@@ -1,0 +1,11 @@
+<button [type]="type()" [class]="buttonClasses()" [disabled]="isDisabled()">
+  @if (loading()) {
+    <span
+      class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+      aria-hidden="true"
+    ></span>
+  }
+  <span>
+    <ng-content />
+  </span>
+</button>

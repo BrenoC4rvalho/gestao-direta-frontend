@@ -1,0 +1,14 @@
+<section class="flex flex-col items-center justify-center rounded-app border border-danger/20 bg-surface px-6 py-10 text-center">
+  <div class="flex size-12 items-center justify-center rounded-full bg-danger/10 text-danger">
+    <svg lucideAlertCircle class="size-6" aria-hidden="true"></svg>
+  </div>
+
+  <h2 class="mt-4 text-lg font-semibold text-text-primary">{{ title() }}</h2>
+  <p class="mt-2 max-w-md text-sm leading-6 text-text-muted">{{ description() }}</p>
+
+  @if (actionLabel(); as label) {
+    <gd-button class="mt-5" type="button" variant="outline" (click)="emitAction()">
+      {{ label }}
+    </gd-button>
+  }
+</section>

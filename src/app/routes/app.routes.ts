@@ -54,6 +54,13 @@ export const routes: Routes = [
     title: 'Perfil',
     loadComponent: temporaryPage,
   },
+  // Temporary route for visual validation of shared UI components. Remove after the design system is stabilized.
+  {
+    path: 'ui-test',
+    title: 'UI Test',
+    loadComponent: () =>
+      import('../pages/ui-test/ui-test-page').then((component) => component.UiTestPage),
+  },
   {
     path: '**',
     redirectTo: 'login',

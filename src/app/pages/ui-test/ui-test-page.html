@@ -1,0 +1,88 @@
+<main class="min-h-dvh bg-background px-4 py-6 text-text-primary sm:px-6 lg:px-8">
+  <div class="mx-auto flex max-w-6xl flex-col gap-6">
+    <header>
+      <p class="text-sm font-medium text-primary">Rota temporária</p>
+      <h1 class="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+        UI Test — Gestão Direta
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Página temporária para validação visual dos componentes compartilhados do Passo 2.
+      </p>
+    </header>
+
+    <gd-card padding="lg">
+      <h2 class="text-lg font-semibold">Buttons</h2>
+      <div class="mt-4 flex flex-wrap gap-3">
+        @for (variant of buttonVariants; track variant) {
+          <gd-button [variant]="variant">{{ variant }}</gd-button>
+        }
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        @for (size of buttonSizes; track size) {
+          <gd-button variant="primary" [size]="size">{{ size }}</gd-button>
+        }
+      </div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <gd-button variant="primary" [loading]="true">Loading</gd-button>
+        <gd-button variant="outline" [disabled]="true">Disabled</gd-button>
+        <gd-button variant="secondary" [fullWidth]="true">Full width</gd-button>
+      </div>
+    </gd-card>
+
+    <section class="grid gap-4 md:grid-cols-3">
+      @for (variant of cardVariants; track variant) {
+        <gd-card [variant]="variant" padding="lg">
+          <h2 class="text-lg font-semibold">Card {{ variant }}</h2>
+          <p class="mt-2 text-sm leading-6 text-text-muted">
+            Container genérico para organizar conteúdo visual.
+          </p>
+        </gd-card>
+      }
+    </section>
+
+    <gd-card padding="lg">
+      <h2 class="text-lg font-semibold">Badges</h2>
+      <div class="mt-4 flex flex-wrap gap-3">
+        @for (variant of badgeVariants; track variant) {
+          <gd-badge [variant]="variant">{{ variant }}</gd-badge>
+        }
+      </div>
+    </gd-card>
+
+    <gd-card padding="lg">
+      <h2 class="text-lg font-semibold">Skeletons</h2>
+      <div class="mt-4 grid gap-4 sm:grid-cols-[160px_1fr]">
+        <gd-skeleton width="160px" height="160px" rounded="lg" />
+        <div class="space-y-3">
+          <gd-skeleton width="70%" height="24px" />
+          <gd-skeleton width="100%" height="16px" />
+          <gd-skeleton width="92%" height="16px" />
+          <gd-skeleton width="56%" height="16px" />
+        </div>
+      </div>
+    </gd-card>
+
+    <section class="grid gap-4 lg:grid-cols-2">
+      <gd-empty-state
+        title="Nenhum registro encontrado"
+        description="Quando houver dados disponíveis, eles aparecerão aqui."
+        icon="inbox"
+        actionLabel="Adicionar novo"
+        (action)="visualAction()"
+      />
+
+      <gd-empty-state
+        title="Nada para mostrar"
+        description="Este exemplo não possui ação configurada."
+        icon="search"
+      />
+    </section>
+
+    <gd-error-state
+      title="Não foi possível carregar os dados"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="visualAction()"
+    />
+  </div>
+</main>
