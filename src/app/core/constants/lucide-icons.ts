@@ -1,0 +1,45 @@
+import { Provider } from '@angular/core';
+import {
+  LucideAlertCircle,
+  LucideCheck,
+  LucideChevronDown,
+  LucideEdit,
+  LucideFilter,
+  LucideHome,
+  LucideLayoutDashboard,
+  LucideLogOut,
+  LucideMenu,
+  LucidePlus,
+  LucideSearch,
+  LucideSettings,
+  LucideSprout,
+  LucideTrash2,
+  LucideUser,
+  LucideUsers,
+  LucideWallet,
+  LucideX,
+  provideLucideIcons,
+} from '@lucide/angular';
+
+export function provideGestaoDiretaIcons(): Provider {
+  return provideLucideIcons(
+    LucideAlertCircle,
+    LucideCheck,
+    LucideChevronDown,
+    LucideEdit,
+    LucideFilter,
+    LucideHome,
+    LucideLayoutDashboard,
+    LucideLogOut,
+    LucideMenu,
+    LucidePlus,
+    LucideSearch,
+    LucideSettings,
+    LucideSprout,
+    LucideTrash2,
+    LucideUser,
+    LucideUsers,
+    LucideWallet,
+    LucideX,
+  );
+}
