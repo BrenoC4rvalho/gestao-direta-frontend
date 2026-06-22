@@ -1,0 +1,31 @@
+@if (hasToasts()) {
+  <section
+    class="fixed inset-x-4 top-4 z-[60] flex flex-col gap-3 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
+    aria-label="Notificações"
+    aria-live="polite"
+  >
+    @for (toast of toasts(); track toast.id) {
+      <article [class]="toastClasses(toast.type)">
+        <div class="flex items-start gap-3">
+          <svg [lucideIcon]="icon(toast.type)" class="mt-0.5 size-5 shrink-0" aria-hidden="true"></svg>
+
+          <div class="min-w-0 flex-1">
+            <h2 class="text-sm font-semibold text-text-primary">{{ toast.title }}</h2>
+            @if (toast.description) {
+              <p class="mt-1 text-sm leading-5 text-text-muted">{{ toast.description }}</p>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="inline-flex size-8 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="Fechar notificação"
+            (click)="remove(toast)"
+          >
+            <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
+          </button>
+        </div>
+      </article>
+    }
+  </section>
+}

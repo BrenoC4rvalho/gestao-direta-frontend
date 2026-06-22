@@ -123,6 +123,23 @@
     </gd-card>
 
     <gd-card padding="lg">
+      <h2 class="text-lg font-semibold">Overlays</h2>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <gd-button variant="primary" (click)="openRightDrawer()">Abrir drawer lateral</gd-button>
+        <gd-button variant="secondary" (click)="openBottomDrawer()">Abrir drawer inferior</gd-button>
+        <gd-button variant="danger" (click)="openDangerConfirm()">Confirm danger</gd-button>
+        <gd-button variant="outline" (click)="openWarningConfirm()">Confirm warning</gd-button>
+      </div>
+
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <gd-button variant="primary" (click)="showSuccessToast()">Toast success</gd-button>
+        <gd-button variant="danger" (click)="showErrorToast()">Toast error</gd-button>
+        <gd-button variant="secondary" (click)="showWarningToast()">Toast warning</gd-button>
+        <gd-button variant="outline" (click)="showInfoToast()">Toast info</gd-button>
+      </div>
+    </gd-card>
+
+    <gd-card padding="lg">
       <h2 class="text-lg font-semibold">Skeletons</h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-[160px_1fr]">
         <gd-skeleton width="160px" height="160px" rounded="lg" />
@@ -158,4 +175,60 @@
       (action)="visualAction()"
     />
   </div>
+
+  <gd-drawer
+    [open]="isRightDrawerOpen()"
+    title="Novo registro"
+    description="Preencha os dados para continuar."
+    position="right"
+    size="md"
+    (closed)="closeRightDrawer()"
+  >
+    <div class="space-y-3 text-sm leading-6 text-text-muted">
+      <p>Conteúdo demonstrativo para futuros formulários de criação e edição.</p>
+      <gd-button variant="primary" [fullWidth]="true" (click)="closeRightDrawer()">
+        Fechar drawer lateral
+      </gd-button>
+    </div>
+  </gd-drawer>
+
+  <gd-drawer
+    [open]="isBottomDrawerOpen()"
+    title="Filtros rápidos"
+    description="Exemplo de drawer inferior para fluxos mobile."
+    position="bottom"
+    size="md"
+    (closed)="closeBottomDrawer()"
+  >
+    <div class="space-y-3 text-sm leading-6 text-text-muted">
+      <p>Conteúdo demonstrativo para filtros, ações rápidas ou formulários curtos.</p>
+      <gd-button variant="secondary" [fullWidth]="true" (click)="closeBottomDrawer()">
+        Fechar drawer inferior
+      </gd-button>
+    </div>
+  </gd-drawer>
+
+  <gd-confirm-dialog
+    [open]="isDangerConfirmOpen()"
+    title="Confirmar ação"
+    description="Essa ação não poderá ser desfeita."
+    confirmLabel="Confirmar"
+    cancelLabel="Cancelar"
+    variant="danger"
+    (confirmed)="confirmDangerAction()"
+    (cancelled)="closeDangerConfirm()"
+    (closed)="closeDangerConfirm()"
+  />
+
+  <gd-confirm-dialog
+    [open]="isWarningConfirmOpen()"
+    title="Revisar antes de continuar"
+    description="Confira se as informações estão corretas antes de confirmar."
+    confirmLabel="Continuar"
+    cancelLabel="Voltar"
+    variant="warning"
+    (confirmed)="confirmWarningAction()"
+    (cancelled)="closeWarningConfirm()"
+    (closed)="closeWarningConfirm()"
+  />
 </main>

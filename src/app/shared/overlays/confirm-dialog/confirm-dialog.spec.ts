@@ -1,0 +1,79 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+
+import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
+
+import { ConfirmDialog } from './confirm-dialog';
+
+@Component({
+  imports: [ConfirmDialog],
+  template: `
+    <gd-confirm-dialog
+      [open]="open"
+      title="Confirmar ação"
+      description="Essa ação não poderá ser desfeita."
+      confirmLabel="Confirmar"
+      cancelLabel="Cancelar"
+      variant="danger"
+      [loading]="loading"
+      (confirmed)="confirmedCount = confirmedCount + 1"
+      (cancelled)="cancelledCount = cancelledCount + 1"
+    />
+  `,
+})
+class ConfirmDialogHost {
+  open = true;
+  loading = false;
+  confirmedCount = 0;
+  cancelledCount = 0;
+}
+
+describe('ConfirmDialog', () => {
+  it('should render when open and emit confirmed', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Confirmar ação');
+
+    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    buttons[2].click();
+
+    expect(fixture.componentInstance.confirmedCount).toBe(1);
+  });
+
+  it('should emit cancelled', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    buttons[1].click();
+
+    expect(fixture.componentInstance.cancelledCount).toBe(1);
+  });
+
+  it('should not emit confirmed while loading', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.componentInstance.loading = true;
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    buttons[2].click();
+
+    expect(fixture.componentInstance.confirmedCount).toBe(0);
+  });
+});

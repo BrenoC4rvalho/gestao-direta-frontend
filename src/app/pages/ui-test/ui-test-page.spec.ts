@@ -20,6 +20,9 @@ describe('UiTestPage', () => {
     expect(text).toContain('Badges');
     expect(text).toContain('Forms');
     expect(text).toContain('Este campo é obrigatório.');
+    expect(text).toContain('Overlays');
+    expect(text).toContain('Abrir drawer lateral');
+    expect(text).toContain('Toast success');
     expect(text).toContain('Skeletons');
     expect(text).toContain('Nenhum registro encontrado');
     expect(text).toContain('Não foi possível carregar os dados');

@@ -1,0 +1,47 @@
+@if (open()) {
+  <div class="fixed inset-0 z-40 bg-black/45" aria-hidden="true" (click)="close()"></div>
+
+  <section
+    class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-app border border-border bg-surface p-5 text-text-primary shadow-soft"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-start gap-3">
+        <div [class]="iconClasses()" aria-hidden="true">
+          <svg lucideIcon="alert-circle" class="size-5"></svg>
+        </div>
+
+        <div>
+          <h2 [id]="titleId" class="text-lg font-semibold text-text-primary">{{ title() }}</h2>
+          <p class="mt-2 text-sm leading-6 text-text-muted">{{ description() }}</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="inline-flex size-9 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Fechar confirmação"
+        (click)="close()"
+      >
+        <svg lucideIcon="x" class="size-5" aria-hidden="true"></svg>
+      </button>
+    </div>
+
+    <div class="mt-6 grid gap-3 sm:grid-cols-2 sm:justify-end">
+      <gd-button type="button" variant="outline" [fullWidth]="true" (click)="cancel()">
+        {{ cancelLabel() }}
+      </gd-button>
+      <gd-button
+        type="button"
+        [variant]="confirmVariant()"
+        [loading]="loading()"
+        [fullWidth]="true"
+        (click)="confirm()"
+      >
+        {{ confirmLabel() }}
+      </gd-button>
+    </div>
+  </section>
+}

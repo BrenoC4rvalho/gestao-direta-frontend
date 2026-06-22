@@ -1,0 +1,39 @@
+@if (open()) {
+  <div class="fixed inset-0 z-40 bg-black/45" aria-hidden="true" (click)="closeFromBackdrop()"></div>
+
+  <section
+    [class]="panelClasses()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId()"
+  >
+    <header class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+      <div>
+        @if (title(); as drawerTitle) {
+          <h2 [id]="titleId()" class="text-lg font-semibold text-text-primary">
+            {{ drawerTitle }}
+          </h2>
+        }
+
+        @if (description(); as drawerDescription) {
+          <p class="mt-1 text-sm leading-6 text-text-muted">{{ drawerDescription }}</p>
+        }
+      </div>
+
+      @if (showCloseButton()) {
+        <button
+          type="button"
+          class="inline-flex size-9 shrink-0 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Fechar drawer"
+          (click)="close()"
+        >
+          <svg lucideIcon="x" class="size-5" aria-hidden="true"></svg>
+        </button>
+      }
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      <ng-content />
+    </div>
+  </section>
+}
