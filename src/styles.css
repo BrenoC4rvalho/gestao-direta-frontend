@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source "./app/**/*.html";
+@source "./app/**/*.ts";
+
 @theme {
   --color-primary: #15803d;
   --color-accent: #22c55e;
