@@ -3,7 +3,7 @@ export interface LoginRequest {
   password: string;
 }
 
-export type UserType = 'ADMIN' | 'MANAGER' | 'PRODUCER' | string;
+export type UserType = 'ADMIN' | 'USER' | string;
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | string;
 
 export interface AuthUser {

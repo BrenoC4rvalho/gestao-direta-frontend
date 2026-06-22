@@ -14,7 +14,6 @@ describe('AuthLayout', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain('Gestão Direta');
     expect(element.querySelector('router-outlet')).toBeTruthy();
   });
 });

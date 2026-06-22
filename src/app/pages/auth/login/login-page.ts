@@ -1,3 +1,4 @@
+import { NgOptimizedImage } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,7 +18,7 @@ interface LoginForm {
 
 @Component({
   selector: 'gd-login-page',
-  imports: [Button, Card, Input, ReactiveFormsModule],
+  imports: [Button, Card, Input, NgOptimizedImage, ReactiveFormsModule],
   templateUrl: './login-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

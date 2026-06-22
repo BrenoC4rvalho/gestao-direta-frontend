@@ -1,40 +1,88 @@
-<gd-card padding="none">
-  <form class="space-y-5" [formGroup]="form" (ngSubmit)="submit()">
-    <div>
-      <h1 class="text-2xl font-semibold tracking-tight text-text-primary">
-        Entrar no Gestão Direta
-      </h1>
-      <p class="mt-2 text-sm leading-6 text-text-muted">
-        Acesse sua conta para gerenciar suas finanças rurais.
-      </p>
-    </div>
+<div class="flex min-h-dvh items-center px-4 py-6 sm:px-6 lg:px-8">
+  <div class="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+    <section class="mx-auto w-full max-w-md">
+      <gd-card variant="elevated" padding="none">
+        <form class="space-y-6 p-5 sm:p-7" [formGroup]="form" (ngSubmit)="submit()">
+          <div>
+            <img
+              ngSrc="/assets/brand/logo_horizontal.svg"
+              width="990"
+              height="313"
+              alt="Gestão Direta"
+              priority
+              class="h-auto w-44"
+            />
 
-    <div class="space-y-4">
-      <gd-input
-        id="login-email"
-        label="E-mail"
-        placeholder="seuemail@exemplo.com"
-        type="email"
-        autocomplete="email"
-        [control]="form.controls.email"
-        [required]="true"
-        [errorMessage]="emailErrorMessage()"
-      />
+            <div class="mt-8">
+              <h1 class="text-2xl font-semibold tracking-tight text-text-primary">
+                Entrar no Gestão Direta
+              </h1>
+              <p class="mt-2 text-sm leading-6 text-text-muted">
+                Acesse sua conta para gerenciar suas finanças rurais.
+              </p>
+            </div>
+          </div>
 
-      <gd-input
-        id="login-password"
-        label="Senha"
-        placeholder="Digite sua senha"
-        type="password"
-        autocomplete="current-password"
-        [control]="form.controls.password"
-        [required]="true"
-        [errorMessage]="passwordErrorMessage()"
-      />
-    </div>
+          <div class="space-y-4">
+            <gd-input
+              id="login-email"
+              label="E-mail"
+              placeholder="seuemail@exemplo.com"
+              type="email"
+              autocomplete="email"
+              [control]="form.controls.email"
+              [required]="true"
+              [errorMessage]="emailErrorMessage()"
+            />
 
-    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">
-      Entrar
-    </gd-button>
-  </form>
-</gd-card>
+            <gd-input
+              id="login-password"
+              label="Senha"
+              placeholder="Digite sua senha"
+              type="password"
+              autocomplete="current-password"
+              [control]="form.controls.password"
+              [required]="true"
+              [errorMessage]="passwordErrorMessage()"
+            />
+          </div>
+
+          <gd-button type="submit" size="lg" [loading]="submitting()" [fullWidth]="true">
+            Entrar
+          </gd-button>
+        </form>
+      </gd-card>
+    </section>
+
+    <aside class="hidden overflow-hidden rounded-app border border-border bg-background-secondary shadow-soft lg:block">
+      <div class="grid min-h-[620px] content-between gap-8 p-8">
+        <div>
+          <img
+            ngSrc="/assets/brand/logo-mark.svg"
+            width="690"
+            height="503"
+            alt=""
+            class="h-12 w-auto"
+          />
+          <p class="mt-6 text-sm font-medium text-primary">Gestão financeira rural</p>
+          <h2 class="mt-3 max-w-lg text-3xl font-semibold tracking-tight text-text-primary">
+            Organização simples para decisões mais seguras no campo.
+          </h2>
+          <p class="mt-4 max-w-xl text-sm leading-6 text-text-muted">
+            Controle fazendas, usuários e movimentações financeiras com uma experiência direta, segura e preparada para o dia a dia do produtor rural.
+          </p>
+        </div>
+
+        <div class="rounded-app bg-highlight-soft p-5">
+          <img
+            ngSrc="/assets/img/login-farm-illustration.png"
+            width="1448"
+            height="1086"
+            alt="Ilustração rural"
+            class="h-auto w-full"
+          />
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

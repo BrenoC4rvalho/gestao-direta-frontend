@@ -6,6 +6,8 @@ import { AuthResponse } from '../models/auth.models';
 
 import { AuthService } from './auth.service';
 
+const apiUrl = 'http://localhost:8080/api';
+
 const authResponse: AuthResponse = {
   user: {
     id: 1,
@@ -34,38 +36,38 @@ describe('AuthService', () => {
     http.verify();
   });
 
-  it('should call POST /auth/login', () => {
+  it('should call POST /api/auth/login', () => {
     service.login({ email: 'maria@example.com', password: 'secret' }).subscribe((response) => {
       expect(response).toEqual(authResponse);
     });
 
-    const request = http.expectOne('/auth/login');
+    const request = http.expectOne(apiUrl + '/auth/login');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ email: 'maria@example.com', password: 'secret' });
     request.flush(authResponse);
   });
 
-  it('should call POST /auth/logout', () => {
+  it('should call POST /api/auth/logout', () => {
     service.logout().subscribe((response) => {
       expect(response).toBeNull();
     });
 
-    const request = http.expectOne('/auth/logout');
+    const request = http.expectOne(apiUrl + '/auth/logout');
     expect(request.request.method).toBe('POST');
     request.flush(null);
   });
 
-  it('should call GET /auth/session', () => {
+  it('should call GET /api/auth/session', () => {
     service.session().subscribe((response) => {
       expect(response).toEqual(authResponse);
     });
 
-    const request = http.expectOne('/auth/session');
+    const request = http.expectOne(apiUrl + '/auth/session');
     expect(request.request.method).toBe('GET');
     request.flush(authResponse);
   });
 
-  it('should call POST /auth/change-password', () => {
+  it('should call POST /api/auth/change-password', () => {
     const payload = {
       currentPassword: 'old-secret',
       newPassword: 'new-secret',
@@ -76,7 +78,7 @@ describe('AuthService', () => {
       expect(response).toBeNull();
     });
 
-    const request = http.expectOne('/auth/change-password');
+    const request = http.expectOne(apiUrl + '/auth/change-password');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(payload);
     request.flush(null);
