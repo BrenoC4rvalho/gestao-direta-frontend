@@ -1,0 +1,24 @@
+<aside class="fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-border bg-surface text-text-primary">
+  <div class="border-b border-border px-6 py-5">
+    <p class="text-lg font-semibold tracking-tight text-primary">Gestão Direta</p>
+    <p class="mt-1 text-xs leading-5 text-text-muted">Gestão financeira rural</p>
+  </div>
+
+  <nav class="flex-1 px-3 py-4" aria-label="Navegação principal">
+    <ul class="space-y-1">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-accent/15 text-primary"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="flex min-h-10 items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+</aside>

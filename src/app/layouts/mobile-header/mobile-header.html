@@ -1,0 +1,45 @@
+<header class="sticky top-0 z-20 border-b border-border bg-surface/95 px-4 py-3 text-text-primary backdrop-blur">
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <p class="text-base font-semibold text-primary">Gestão Direta</p>
+      <p class="text-xs text-text-muted">Gestão financeira rural</p>
+    </div>
+
+    <button
+      type="button"
+      class="inline-flex size-10 items-center justify-center rounded-control border border-border bg-surface text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      aria-label="Abrir menu de navegação"
+      (click)="openMenu()"
+    >
+      <svg lucideIcon="menu" class="size-5" aria-hidden="true"></svg>
+    </button>
+  </div>
+</header>
+
+<gd-drawer
+  [open]="isMenuOpen()"
+  title="Menu"
+  description="Navegação principal"
+  position="right"
+  size="sm"
+  (closed)="closeMenu()"
+>
+  <nav aria-label="Navegação principal mobile">
+    <ul class="space-y-1">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-accent/15 text-primary"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            (click)="closeMenu()"
+          >
+            <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+</gd-drawer>
