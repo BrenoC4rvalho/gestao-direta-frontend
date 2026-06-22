@@ -1,0 +1,6 @@
+@if (message(); as text) {
+  <p [id]="id()" class="flex items-start gap-1.5 text-sm leading-5 text-danger">
+    <svg lucideIcon="alert-circle" class="mt-0.5 size-4 shrink-0" aria-hidden="true"></svg>
+    <span>{{ text }}</span>
+  </p>
+}

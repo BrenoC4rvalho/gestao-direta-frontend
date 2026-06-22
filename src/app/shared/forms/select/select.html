@@ -1,0 +1,29 @@
+<div class="flex flex-col gap-1.5">
+  <label [for]="id()" class="text-sm font-medium text-text-primary">
+    {{ label() }}
+    @if (required()) {
+      <span class="text-danger" aria-hidden="true">*</span>
+    }
+  </label>
+
+  <select
+    [id]="id()"
+    [formControl]="control()"
+    [required]="required()"
+    [attr.disabled]="disabled() ? '' : null"
+    [attr.aria-invalid]="showError()"
+    [attr.aria-describedby]="describedBy()"
+    [class]="fieldClasses()"
+  >
+    <option value="">{{ placeholder() }}</option>
+    @for (option of options(); track option.value) {
+      <option [ngValue]="option.value">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (showError()) {
+    <gd-field-error [id]="errorId()" [message]="errorMessage()" />
+  } @else if (hint(); as hintText) {
+    <p [id]="hintId()" class="text-sm leading-5 text-text-muted">{{ hintText }}</p>
+  }
+</div>

@@ -1,0 +1,28 @@
+<div class="flex flex-col gap-1.5">
+  <label [for]="id()" class="text-sm font-medium text-text-primary">
+    {{ label() }}
+    @if (required()) {
+      <span class="text-danger" aria-hidden="true">*</span>
+    }
+  </label>
+
+  <input
+    [id]="id()"
+    [type]="type()"
+    [formControl]="control()"
+    [placeholder]="placeholder()"
+    [required]="required()"
+    [attr.disabled]="disabled() ? '' : null"
+    [readOnly]="readonly()"
+    [autocomplete]="autocomplete() ?? ''"
+    [attr.aria-invalid]="showError()"
+    [attr.aria-describedby]="describedBy()"
+    [class]="fieldClasses()"
+  />
+
+  @if (showError()) {
+    <gd-field-error [id]="errorId()" [message]="errorMessage()" />
+  } @else if (hint(); as hintText) {
+    <p [id]="hintId()" class="text-sm leading-5 text-text-muted">{{ hintText }}</p>
+  }
+</div>

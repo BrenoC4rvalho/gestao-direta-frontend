@@ -50,6 +50,79 @@
     </gd-card>
 
     <gd-card padding="lg">
+      <h2 class="text-lg font-semibold">Forms</h2>
+      <form class="mt-4 grid gap-4 md:grid-cols-2" [formGroup]="form">
+        <gd-input
+          id="form-normal"
+          label="Nome da fazenda"
+          placeholder="Informe o nome"
+          [control]="form.controls.normal"
+        />
+
+        <gd-input
+          id="form-hint"
+          label="Responsável"
+          placeholder="Informe o responsável"
+          hint="Use o nome que aparece nos documentos financeiros."
+          [control]="form.controls.hint"
+        />
+
+        <gd-input
+          id="form-disabled"
+          label="Campo desabilitado"
+          placeholder="Sem edição"
+          [control]="form.controls.disabled"
+          [disabled]="true"
+        />
+
+        <gd-input
+          id="form-readonly"
+          label="Campo somente leitura"
+          placeholder="Somente leitura"
+          [control]="form.controls.readonly"
+          [readonly]="true"
+        />
+
+        <gd-input
+          id="form-error"
+          label="Campo obrigatório"
+          placeholder="Preencha este campo"
+          errorMessage="Este campo é obrigatório."
+          [control]="form.controls.error"
+          [required]="true"
+        />
+
+        <gd-input
+          id="form-password"
+          label="Senha"
+          placeholder="Digite sua senha"
+          type="password"
+          autocomplete="current-password"
+          [control]="form.controls.password"
+        />
+
+        <gd-select
+          id="form-select"
+          label="Status"
+          placeholder="Selecione um status"
+          hint="As opções são recebidas pelo componente consumidor."
+          [control]="form.controls.select"
+          [options]="statusOptions"
+        />
+
+        <gd-textarea
+          id="form-textarea"
+          label="Observações"
+          placeholder="Adicione observações"
+          hint="Campo livre para notas internas."
+          [control]="form.controls.textarea"
+          [maxlength]="120"
+          [rows]="5"
+        />
+      </form>
+    </gd-card>
+
+    <gd-card padding="lg">
       <h2 class="text-lg font-semibold">Skeletons</h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-[160px_1fr]">
         <gd-skeleton width="160px" height="160px" rounded="lg" />
