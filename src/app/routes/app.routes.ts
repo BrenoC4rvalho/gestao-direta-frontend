@@ -1,5 +1,8 @@
 import { Routes } from '@angular/router';
 
+import { authGuard } from '../core/guards/auth.guard';
+import { guestGuard } from '../core/guards/guest.guard';
+
 const temporaryPage = () =>
   import('./route-placeholder').then((component) => component.RoutePlaceholder);
 
@@ -12,17 +15,20 @@ export const routes: Routes = [
   {
     path: 'login',
     title: 'Login',
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
     children: [
       {
         path: '',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/auth/login/login-page').then((component) => component.LoginPage),
       },
     ],
   },
   {
     path: '',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('../layouts/app-layout/app-layout').then((component) => component.AppLayout),
     children: [

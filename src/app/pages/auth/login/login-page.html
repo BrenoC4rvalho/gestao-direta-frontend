@@ -1,0 +1,40 @@
+<gd-card padding="none">
+  <form class="space-y-5" [formGroup]="form" (ngSubmit)="submit()">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-text-primary">
+        Entrar no Gestão Direta
+      </h1>
+      <p class="mt-2 text-sm leading-6 text-text-muted">
+        Acesse sua conta para gerenciar suas finanças rurais.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <gd-input
+        id="login-email"
+        label="E-mail"
+        placeholder="seuemail@exemplo.com"
+        type="email"
+        autocomplete="email"
+        [control]="form.controls.email"
+        [required]="true"
+        [errorMessage]="emailErrorMessage()"
+      />
+
+      <gd-input
+        id="login-password"
+        label="Senha"
+        placeholder="Digite sua senha"
+        type="password"
+        autocomplete="current-password"
+        [control]="form.controls.password"
+        [required]="true"
+        [errorMessage]="passwordErrorMessage()"
+      />
+    </div>
+
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">
+      Entrar
+    </gd-button>
+  </form>
+</gd-card>
