@@ -1,9 +1,16 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
 import { FinancialTransaction } from '../../../../core/models/financial.models';
 
 import { LatestTransactionsCard } from './latest-transactions-card';
+
+@Component({
+  template: '',
+})
+class RouteStub {}
 
 const transaction: FinancialTransaction = {
   id: 1,
@@ -33,7 +40,10 @@ describe('LatestTransactionsCard', () => {
   it('should render transactions received by input', async () => {
     await TestBed.configureTestingModule({
       imports: [LatestTransactionsCard],
-      providers: [provideGestaoDiretaIcons()],
+      providers: [
+        provideGestaoDiretaIcons(),
+        provideRouter([{ path: '**', component: RouteStub }]),
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(LatestTransactionsCard);
@@ -44,12 +54,16 @@ describe('LatestTransactionsCard', () => {
     expect(text).toContain('Venda de soja');
     expect(text).toContain('Vendas');
     expect(text).toContain('Paga');
+    expect(text).toContain('Ver todas');
   });
 
   it('should render empty state for empty lists', async () => {
     await TestBed.configureTestingModule({
       imports: [LatestTransactionsCard],
-      providers: [provideGestaoDiretaIcons()],
+      providers: [
+        provideGestaoDiretaIcons(),
+        provideRouter([{ path: '**', component: RouteStub }]),
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(LatestTransactionsCard);

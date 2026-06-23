@@ -4,7 +4,6 @@ import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
-import { Farm } from '../../core/models/farm.models';
 import { AuthUser } from '../../core/models/auth.models';
 import { AuthService } from '../../core/services/auth.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -26,33 +25,6 @@ const user: AuthUser = {
   userType: 'ADMIN',
   status: 'ACTIVE',
 };
-
-const farms: Farm[] = [
-  {
-    id: 1,
-    name: 'Fazenda Boa Safra',
-    document: null,
-    city: 'Ribeirão Preto',
-    state: 'SP',
-    totalArea: 120,
-    productionType: 'AGRICULTURE',
-    status: 'ACTIVE',
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 2,
-    name: 'Sítio Santa Clara',
-    document: null,
-    city: null,
-    state: 'MG',
-    totalArea: null,
-    productionType: 'MIXED',
-    status: 'ACTIVE',
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-];
 
 describe('DesktopSidebar', () => {
   let fixture: ComponentFixture<DesktopSidebar>;
@@ -82,7 +54,6 @@ describe('DesktopSidebar', () => {
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
     toastStore.clear();
-    selectedFarmStore.setFarms(farms);
     sessionStore.setUser(user);
     sessionStore.setInitialized(true);
 
@@ -95,7 +66,15 @@ describe('DesktopSidebar', () => {
     toastStore.clear();
   });
 
-  it('should render the main navigation links', () => {
+  it('should render the brand logo', () => {
+    const image = fixture.nativeElement.querySelector('img') as HTMLImageElement;
+
+    expect(image).toBeTruthy();
+    expect(image.getAttribute('src')).toContain('/assets/brand/logo_horizontal.svg');
+    expect(image.getAttribute('alt')).toBe('Gestão Direta');
+  });
+
+  it('should render the main navigation links without farm selector', () => {
     const text = fixture.nativeElement.textContent as string;
 
     expect(text).toContain('Dashboard');
@@ -104,6 +83,7 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('Movimentações');
     expect(text).toContain('Contas a vencer');
     expect(text).toContain('Perfil');
+    expect(fixture.nativeElement.querySelector('#desktop-farm-select')).toBeNull();
   });
 
   it('should render authenticated user name, email and initials', () => {
@@ -112,28 +92,6 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
-  });
-
-  it('should render selected farm and allow changing it', () => {
-    const select = fixture.nativeElement.querySelector('#desktop-farm-select') as HTMLSelectElement;
-
-    expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
-    expect(fixture.nativeElement.textContent).toContain('Ribeirão Preto/SP');
-
-    select.value = '2';
-    select.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-
-    expect(selectedFarmStore.selectedFarmId()).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Sítio Santa Clara');
-    expect(fixture.nativeElement.textContent).toContain('MG');
-  });
-
-  it('should render empty farm state', () => {
-    selectedFarmStore.setFarms([]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda disponível');
   });
 
   it('should logout, clear session and farm context, navigate to login and show success toast', () => {

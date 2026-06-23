@@ -4,11 +4,18 @@
       <h2 class="text-lg font-semibold text-text-primary">Últimas movimentações</h2>
       <p class="mt-1 text-sm text-text-muted">As 5 movimentações mais recentes da fazenda.</p>
     </div>
+
+    <a
+      routerLink="/transactions"
+      class="shrink-0 rounded-control px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      Ver todas
+    </a>
   </div>
 
   <div class="mt-5">
     @if (loading()) {
-      <div class="space-y-4">
+      <div class="space-y-3">
         @for (row of skeletonRows; track row) {
           <div class="rounded-control border border-border p-4">
             <gd-skeleton width="60%" height="1rem" />
@@ -26,7 +33,44 @@
         icon="receipt-text"
       />
     } @else {
-      <ul class="space-y-3">
+      <div class="hidden overflow-hidden rounded-control border border-border md:block">
+        <table class="w-full table-fixed text-left text-sm">
+          <thead class="bg-background-secondary text-xs font-semibold uppercase text-text-muted">
+            <tr>
+              <th class="px-4 py-3">Descrição</th>
+              <th class="px-4 py-3">Categoria</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3 text-right">Valor</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (transaction of transactions(); track transaction.id) {
+              <tr>
+                <td class="px-4 py-3">
+                  <p class="truncate font-semibold text-text-primary">{{ transaction.description }}</p>
+                  <p class="mt-1 text-xs text-text-muted">{{ formatDate(transaction.transactionDate) }}</p>
+                </td>
+                <td class="px-4 py-3 text-text-muted">{{ transaction.categoryName ?? 'Sem categoria' }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex flex-wrap gap-2">
+                    <gd-badge [variant]="transaction.type === 'INCOME' ? 'success' : 'danger'" size="sm">
+                      {{ typeLabel(transaction.type) }}
+                    </gd-badge>
+                    <gd-badge [variant]="statusVariant(transaction.status)" size="sm">
+                      {{ statusLabel(transaction.status) }}
+                    </gd-badge>
+                  </div>
+                </td>
+                <td [class]="'px-4 py-3 text-right font-semibold ' + typeClasses(transaction.type)">
+                  {{ transaction.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="space-y-3 md:hidden">
         @for (transaction of transactions(); track transaction.id) {
           <li class="rounded-control border border-border p-4">
             <div class="flex items-start justify-between gap-3">

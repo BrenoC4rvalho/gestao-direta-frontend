@@ -22,5 +22,12 @@ describe('SummaryCard', () => {
     expect(text).toContain('Entradas');
     expect(text).toContain('R$ 1.000,00');
     expect(text).toContain('Receitas confirmadas');
+
+    const value = Array.from(
+      fixture.nativeElement.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>,
+    ).find((item) => item.textContent?.includes('R$ 1.000,00'));
+
+    expect(value?.className).toContain('break-words');
+    expect(value?.className).not.toContain('truncate');
   });
 });

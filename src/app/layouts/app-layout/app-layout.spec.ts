@@ -102,7 +102,8 @@ describe('AppLayout', () => {
     expect(selectedFarmStore.farms()).toEqual([]);
     expect(selectedFarmStore.selectedFarm()).toBeNull();
     expect(selectedFarmStore.loaded()).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda disponível');
+    expect(fixture.nativeElement.querySelector('gd-desktop-sidebar')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('gd-mobile-header')).toBeTruthy();
   });
 
   it('should store error and show toast when farm loading fails', () => {

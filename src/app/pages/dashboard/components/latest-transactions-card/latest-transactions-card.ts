@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import {
   FinancialTransaction,
@@ -9,7 +10,7 @@ import { Badge, BadgeVariant, Card, EmptyState, ErrorState, Skeleton } from '../
 
 @Component({
   selector: 'gd-latest-transactions-card',
-  imports: [Badge, Card, EmptyState, ErrorState, Skeleton],
+  imports: [Badge, Card, EmptyState, ErrorState, RouterLink, Skeleton],
   templateUrl: './latest-transactions-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

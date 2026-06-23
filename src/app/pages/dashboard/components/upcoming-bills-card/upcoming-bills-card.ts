@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { PaymentStatus, UpcomingBill } from '../../../../core/models/financial.models';
 import { Badge, BadgeVariant, Card, EmptyState, ErrorState, Skeleton } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-upcoming-bills-card',
-  imports: [Badge, Card, EmptyState, ErrorState, Skeleton],
+  imports: [Badge, Card, EmptyState, ErrorState, RouterLink, Skeleton],
   templateUrl: './upcoming-bills-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

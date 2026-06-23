@@ -1,4 +1,6 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -14,6 +16,11 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 
 import { DashboardPage } from './dashboard-page';
+
+@Component({
+  template: '',
+})
+class RouteStub {}
 
 const farms: Farm[] = [
   {
@@ -119,6 +126,10 @@ describe('DashboardPage', () => {
       imports: [DashboardPage],
       providers: [
         provideGestaoDiretaIcons(),
+        provideRouter([
+          { path: 'transactions', component: RouteStub },
+          { path: 'upcoming-bills', component: RouteStub },
+        ]),
         { provide: FinancialService, useValue: financialService },
       ],
     }).compileComponents();
@@ -133,14 +144,27 @@ describe('DashboardPage', () => {
     selectedFarmStore.clear();
   });
 
-  it('should render title and empty state when there is no selected farm', () => {
+  it('should render greeting, farm selector and empty state without calling financial endpoints', () => {
+    sessionStore.setUser({
+      id: 1,
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      document: null,
+      userType: 'ADMIN',
+      status: 'ACTIVE',
+    });
+
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Dashboard');
+    expect(text).toContain('Olá, Maria Silva');
+    expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
+    expect(text).toContain('Selecione uma fazenda');
     expect(text).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
+    expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
+    expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
   });
 
   it('should call endpoints and render dashboard data when there is a selected farm', () => {
@@ -162,12 +186,40 @@ describe('DashboardPage', () => {
     expect(financialService.getUpcomingBills).toHaveBeenCalledWith(1);
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Olá, Maria Silva');
-    expect(text).toContain('Fazenda Boa Safra');
-    expect(text).toContain('Entradas');
-    expect(text).toContain('Saldo');
-    expect(text).toContain('Venda de soja');
-    expect(text).toContain('Conta de energia');
+    const normalizedText = text.replace(/\u00a0/g, ' ');
+
+    expect(normalizedText).toContain('Olá, Maria Silva');
+    expect(normalizedText).toContain('Fazenda Boa Safra');
+    expect(normalizedText).toContain('Ribeirão Preto/SP');
+    expect(normalizedText).toContain('Saldo atual');
+    expect(normalizedText).toContain('Entradas previstas');
+    expect(normalizedText).toContain('Saídas previstas');
+    expect(normalizedText).toContain('Saldo projetado');
+    expect(normalizedText).toContain('Pendências');
+    expect(normalizedText).toContain('Atrasado');
+    expect(normalizedText).toContain('R$ 7.000,00');
+    expect(normalizedText).toContain('Venda de soja');
+    expect(normalizedText).toContain('Conta de energia');
+    expect(normalizedText).toContain('1 conta(s) somando R$ 320,00');
+  });
+
+  it('should select farm from the compact selector and reload financial data', () => {
+    selectedFarmStore.setFarms(farms);
+    const selectFarmById = vi.spyOn(selectedFarmStore, 'selectFarmById');
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector('#dashboard-farm-select') as HTMLSelectElement;
+    select.value = '2';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(selectFarmById).toHaveBeenCalledWith(2);
+    expect(financialService.getSummary).toHaveBeenCalledWith(1);
+    expect(financialService.getSummary).toHaveBeenCalledWith(2);
+    expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
+    expect(financialService.getUpcomingBills).toHaveBeenCalledWith(2);
   });
 
   it('should render section error states when API calls fail', () => {
@@ -185,20 +237,5 @@ describe('DashboardPage', () => {
     expect(text).toContain('Erro ao carregar resumo');
     expect(text).toContain('Erro ao carregar movimentações');
     expect(text).toContain('Erro ao carregar contas');
-  });
-
-  it('should reload dashboard data when selected farm changes', () => {
-    selectedFarmStore.setFarms(farms);
-
-    const fixture = TestBed.createComponent(DashboardPage);
-    fixture.detectChanges();
-
-    selectedFarmStore.selectFarmById(2);
-    fixture.detectChanges();
-
-    expect(financialService.getSummary).toHaveBeenCalledWith(1);
-    expect(financialService.getSummary).toHaveBeenCalledWith(2);
-    expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
-    expect(financialService.getUpcomingBills).toHaveBeenCalledWith(2);
   });
 });

@@ -1,9 +1,9 @@
+import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
-import { Farm } from '../../core/models/farm.models';
 import { AuthService } from '../../core/services/auth.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -12,7 +12,7 @@ import { MAIN_NAV_ITEMS } from '../layout-navigation';
 
 @Component({
   selector: 'gd-desktop-sidebar',
-  imports: [LucideDynamicIcon, RouterLink, RouterLinkActive],
+  imports: [LucideDynamicIcon, NgOptimizedImage, RouterLink, RouterLinkActive],
   templateUrl: './desktop-sidebar.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -22,7 +22,7 @@ export class DesktopSidebar {
   private readonly toastStore = inject(ToastStore);
 
   protected readonly sessionStore = inject(SessionStore);
-  protected readonly selectedFarmStore = inject(SelectedFarmStore);
+  private readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly navItems = MAIN_NAV_ITEMS;
 
   protected logout(): void {
@@ -39,21 +39,5 @@ export class DesktopSidebar {
         next: () => this.toastStore.success('Sessão encerrada.'),
         error: () => this.toastStore.info('Sessão local encerrada.'),
       });
-  }
-
-  protected selectFarm(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value);
-
-    if (!Number.isNaN(id)) {
-      this.selectedFarmStore.selectFarmById(id);
-    }
-  }
-
-  protected farmLocation(farm: Farm): string {
-    if (farm.city && farm.state) {
-      return `${farm.city}/${farm.state}`;
-    }
-
-    return farm.city ?? farm.state ?? 'Localidade não informada';
   }
 }

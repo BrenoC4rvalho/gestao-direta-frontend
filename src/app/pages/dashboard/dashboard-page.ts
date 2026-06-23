@@ -1,13 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { Subscription, finalize } from 'rxjs';
 
-import { FinancialSummary, FinancialTransaction, UpcomingBill } from '../../core/models/financial.models';
+import { Farm } from '../../core/models/farm.models';
+import {
+  FinancialSummary,
+  FinancialTransaction,
+  UpcomingBill,
+} from '../../core/models/financial.models';
 import { FinancialService } from '../../core/services/financial.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
-import { SelectedFarmSummaryCard } from './components/selected-farm-summary-card/selected-farm-summary-card';
 import { SummaryCard, SummaryCardTone } from './components/summary-card/summary-card';
 import { UpcomingBillsCard } from './components/upcoming-bills-card/upcoming-bills-card';
 
@@ -25,7 +38,8 @@ interface SummaryCardViewModel {
     EmptyState,
     ErrorState,
     LatestTransactionsCard,
-    SelectedFarmSummaryCard,
+    LucideDynamicIcon,
+    RouterLink,
     Skeleton,
     SummaryCard,
     UpcomingBillsCard,
@@ -67,21 +81,28 @@ export class DashboardPage {
 
     return [
       {
-        title: 'Entradas',
+        title: 'Saldo atual',
+        value: this.formatCurrency(summary.paidTotal),
+        helper: 'Valores pagos até agora',
+        icon: 'wallet',
+        tone: 'info',
+      },
+      {
+        title: 'Entradas previstas',
         value: this.formatCurrency(summary.incomeTotal),
-        helper: 'Receitas no período',
+        helper: 'Receitas do período',
         icon: 'plus',
         tone: 'success',
       },
       {
-        title: 'Saídas',
+        title: 'Saídas previstas',
         value: this.formatCurrency(summary.expenseTotal),
-        helper: 'Despesas no período',
+        helper: 'Despesas do período',
         icon: 'receipt-text',
         tone: 'danger',
       },
       {
-        title: 'Saldo',
+        title: 'Saldo projetado',
         value: this.formatCurrency(summary.balance),
         helper: 'Resultado financeiro',
         icon: 'wallet',
@@ -95,13 +116,6 @@ export class DashboardPage {
         tone: 'warning',
       },
       {
-        title: 'Pago',
-        value: this.formatCurrency(summary.paidTotal),
-        helper: 'Valores pagos',
-        icon: 'check',
-        tone: 'info',
-      },
-      {
         title: 'Atrasado',
         value: this.formatCurrency(summary.overdueTotal),
         helper: 'Valores vencidos',
@@ -109,6 +123,18 @@ export class DashboardPage {
         tone: 'danger',
       },
     ];
+  });
+
+  protected readonly upcomingBillsTotal = computed(() =>
+    this.upcomingBills().reduce((total, bill) => total + bill.amount, 0),
+  );
+
+  protected readonly emptyFarmDescription = computed(() => {
+    if (this.selectedFarmStore.loaded() && !this.selectedFarmStore.hasFarms()) {
+      return 'Nenhuma fazenda está disponível para o seu usuário.';
+    }
+
+    return 'Selecione uma fazenda no topo do dashboard para visualizar os indicadores financeiros.';
   });
 
   constructor() {
@@ -188,6 +214,26 @@ export class DashboardPage {
     this.upcomingBills.set([]);
     this.upcomingBillsLoading.set(false);
     this.upcomingBillsError.set(null);
+  }
+
+  protected selectFarm(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+
+    if (!Number.isNaN(id)) {
+      this.selectedFarmStore.selectFarmById(id);
+    }
+  }
+
+  protected farmLocation(farm: Farm): string {
+    if (farm.city && farm.state) {
+      return `${farm.city}/${farm.state}`;
+    }
+
+    return farm.city ?? farm.state ?? 'Localidade não informada';
+  }
+
+  protected formatCurrencyValue(value: number): string {
+    return this.formatCurrency(value);
   }
 
   private formatCurrency(value: number): string {

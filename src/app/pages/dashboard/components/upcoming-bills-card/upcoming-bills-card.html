@@ -1,12 +1,21 @@
 <gd-card>
-  <div>
-    <h2 class="text-lg font-semibold text-text-primary">Contas a vencer</h2>
-    <p class="mt-1 text-sm text-text-muted">Próximas 5 contas por data de vencimento.</p>
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold text-text-primary">Contas a vencer</h2>
+      <p class="mt-1 text-sm text-text-muted">Próximas 5 contas por data de vencimento.</p>
+    </div>
+
+    <a
+      routerLink="/upcoming-bills"
+      class="shrink-0 rounded-control px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      Ver todas
+    </a>
   </div>
 
   <div class="mt-5">
     @if (loading()) {
-      <div class="space-y-4">
+      <div class="space-y-3">
         @for (row of skeletonRows; track row) {
           <div class="rounded-control border border-border p-4">
             <gd-skeleton width="60%" height="1rem" />
@@ -24,14 +33,14 @@
         icon="calendar-clock"
       />
     } @else {
-      <ul class="space-y-3">
+      <ul class="divide-y divide-border rounded-control border border-border">
         @for (bill of bills(); track bill.id) {
-          <li class="rounded-control border border-border p-4">
+          <li class="p-4">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-text-primary">{{ bill.description }}</p>
                 <p class="mt-1 text-xs text-text-muted">
-                  {{ bill.categoryName ?? 'Sem categoria' }} · Vence em {{ formatDate(bill.dueDate) }}
+                  {{ bill.categoryName ?? 'Sem categoria' }} · {{ formatDate(bill.dueDate) }}
                 </p>
               </div>
 

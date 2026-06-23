@@ -4,7 +4,6 @@ import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
-import { Farm } from '../../core/models/farm.models';
 import { AuthUser } from '../../core/models/auth.models';
 import { AuthService } from '../../core/services/auth.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -31,33 +30,6 @@ const user: AuthUser = {
   userType: 'ADMIN',
   status: 'ACTIVE',
 };
-
-const farms: Farm[] = [
-  {
-    id: 1,
-    name: 'Fazenda Boa Safra',
-    document: null,
-    city: 'Ribeirão Preto',
-    state: 'SP',
-    totalArea: 120,
-    productionType: 'AGRICULTURE',
-    status: 'ACTIVE',
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 2,
-    name: 'Sítio Santa Clara',
-    document: null,
-    city: null,
-    state: 'MG',
-    totalArea: null,
-    productionType: 'MIXED',
-    status: 'ACTIVE',
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-];
 
 describe('MobileHeader', () => {
   let fixture: ComponentFixture<MobileHeader>;
@@ -90,7 +62,6 @@ describe('MobileHeader', () => {
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
     toastStore.clear();
-    selectedFarmStore.setFarms(farms);
     sessionStore.setUser(user);
     sessionStore.setInitialized(true);
 
@@ -103,14 +74,15 @@ describe('MobileHeader', () => {
     toastStore.clear();
   });
 
-  it('should render selected farm in the header', () => {
-    const text = fixture.nativeElement.textContent as string;
+  it('should render the mobile brand logo', () => {
+    const image = fixture.nativeElement.querySelector('img') as HTMLImageElement;
 
-    expect(text).toContain('Fazenda Boa Safra');
-    expect(text).toContain('Ribeirão Preto/SP');
+    expect(image).toBeTruthy();
+    expect(image.getAttribute('src')).toContain('/assets/brand/logo-mark.svg');
+    expect(image.getAttribute('alt')).toBe('Gestão Direta');
   });
 
-  it('should render menu button and open drawer', () => {
+  it('should render menu button and open drawer without farm selector', () => {
     const menuButton = fixture.nativeElement.querySelector(
       'button[aria-label="Abrir menu de navegação"]',
     ) as HTMLButtonElement;
@@ -124,6 +96,7 @@ describe('MobileHeader', () => {
     expect(fixture.nativeElement.textContent).toContain('Menu');
     expect(fixture.nativeElement.textContent).toContain('Dashboard');
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#mobile-farm-select')).toBeNull();
   });
 
   it('should render authenticated user name, email and initials in the drawer', () => {
@@ -134,27 +107,6 @@ describe('MobileHeader', () => {
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
-  });
-
-  it('should render selected farm in the drawer and allow changing it', () => {
-    openDrawer();
-
-    const select = fixture.nativeElement.querySelector('#mobile-farm-select') as HTMLSelectElement;
-
-    select.value = '2';
-    select.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-
-    expect(selectedFarmStore.selectedFarmId()).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Sítio Santa Clara');
-    expect(fixture.nativeElement.textContent).toContain('MG');
-  });
-
-  it('should render empty farm state', () => {
-    selectedFarmStore.setFarms([]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda disponível');
   });
 
   it('should close drawer when a navigation link is clicked', () => {
