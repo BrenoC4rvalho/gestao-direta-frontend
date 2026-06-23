@@ -24,22 +24,50 @@
   size="sm"
   (closed)="closeMenu()"
 >
-  <nav aria-label="Navegação principal mobile">
-    <ul class="space-y-1">
-      @for (item of navItems; track item.route) {
-        <li>
-          <a
-            [routerLink]="item.route"
-            routerLinkActive="bg-accent/15 text-primary"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            (click)="closeMenu()"
+  <div class="flex min-h-full flex-col">
+    <nav class="flex-1" aria-label="Navegação principal mobile">
+      <ul class="space-y-1">
+        @for (item of navItems; track item.route) {
+          <li>
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="bg-accent/15 text-primary"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              (click)="closeMenu()"
+            >
+              <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
+              <span>{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    @if (sessionStore.user(); as user) {
+      <div class="mt-6 border-t border-border pt-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-sm font-semibold text-primary"
+            aria-hidden="true"
           >
-            <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
-            <span>{{ item.label }}</span>
-          </a>
-        </li>
-      }
-    </ul>
-  </nav>
+            {{ sessionStore.initials() }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-text-primary">{{ user.name }}</p>
+            <p class="truncate text-xs text-text-muted">{{ user.email }}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-border px-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          (click)="logout()"
+        >
+          <svg lucideIcon="log-out" class="size-4" aria-hidden="true"></svg>
+          <span>Sair</span>
+        </button>
+      </div>
+    }
+  </div>
 </gd-drawer>

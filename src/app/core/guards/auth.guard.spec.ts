@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { provideRouter, Router, UrlTree } from '@angular/router';
+import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 
 import { AuthUser } from '../models/auth.models';
 import { AuthService } from '../services/auth.service';
@@ -17,40 +17,77 @@ const user: AuthUser = {
   status: 'ACTIVE',
 };
 
+type GuardResult = boolean | UrlTree;
+
+async function resolveGuardResult(result: unknown): Promise<GuardResult> {
+  if (isObservable(result)) {
+    return firstValueFrom(result) as Promise<GuardResult>;
+  }
+
+  return result as GuardResult;
+}
+
 describe('authGuard', () => {
-  it('should allow when authenticated', () => {
+  let authService: { session: ReturnType<typeof vi.fn> };
+  let router: Router;
+  let store: SessionStore;
+
+  beforeEach(() => {
+    authService = {
+      session: vi.fn().mockReturnValue(of({ user })),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { session: () => of({ user }) } },
+        { provide: AuthService, useValue: authService },
       ],
     });
 
-    const store = TestBed.inject(SessionStore);
+    router = TestBed.inject(Router);
+    store = TestBed.inject(SessionStore);
+  });
+
+  it('should allow when already authenticated', () => {
     store.setUser(user);
     store.setInitialized(true);
 
     const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
 
     expect(result).toBe(true);
+    expect(authService.session).not.toHaveBeenCalled();
   });
 
-  it('should redirect when session check fails', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        { provide: AuthService, useValue: { session: () => throwError(() => new Error('401')) } },
-      ],
-    });
+  it('should redirect to login when initialized without user', () => {
+    store.setInitialized(true);
 
-    const router = TestBed.inject(Router);
     const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
-    const resolved = await new Promise<unknown>((resolve) => {
-      if (typeof result === 'object' && 'subscribe' in result) {
-        result.subscribe(resolve);
-      }
-    });
 
-    expect(router.serializeUrl(resolved as never)).toBe('/login');
+    expect(router.serializeUrl(result as UrlTree)).toBe('/login');
+    expect(authService.session).not.toHaveBeenCalled();
+  });
+
+  it('should call session and save user when not initialized', async () => {
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const resolved = await resolveGuardResult(result);
+
+    expect(authService.session).toHaveBeenCalledTimes(1);
+    expect(resolved).toBe(true);
+    expect(store.user()).toEqual(user);
+    expect(store.initialized()).toBe(true);
+    expect(store.loading()).toBe(false);
+  });
+
+  it('should clear session and redirect to login when session check fails', async () => {
+    authService.session.mockReturnValueOnce(throwError(() => new Error('401')));
+
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const resolved = await resolveGuardResult(result);
+
+    expect(authService.session).toHaveBeenCalledTimes(1);
+    expect(router.serializeUrl(resolved as UrlTree)).toBe('/login');
+    expect(store.user()).toBeNull();
+    expect(store.initialized()).toBe(true);
+    expect(store.loading()).toBe(false);
   });
 });

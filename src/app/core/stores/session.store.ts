@@ -26,6 +26,11 @@ export class SessionStore {
   readonly userEmail = computed(() => this.user()?.email ?? null);
   readonly userType = computed(() => this.user()?.userType ?? null);
   readonly isAdmin = computed(() => this.userType() === 'ADMIN');
+  readonly initials = computed(() => {
+    const user = this.user();
+
+    return this.getInitials(user?.name) ?? this.getInitials(user?.email);
+  });
 
   setUser(user: AuthUser | null): void {
     this.state.update((state) => ({ ...state, user }));
@@ -45,5 +50,21 @@ export class SessionStore {
       loading: false,
       initialized: true,
     });
+  }
+
+  private getInitials(value: string | null | undefined): string | null {
+    const normalized = value?.trim().replace(/\s+/g, ' ');
+
+    if (!normalized) {
+      return null;
+    }
+
+    const parts = normalized.split(' ');
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 }

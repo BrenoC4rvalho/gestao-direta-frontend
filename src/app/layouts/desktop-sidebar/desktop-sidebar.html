@@ -21,4 +21,30 @@
       }
     </ul>
   </nav>
+
+  @if (sessionStore.user(); as user) {
+    <div class="border-t border-border p-4">
+      <div class="flex items-center gap-3">
+        <div
+          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-sm font-semibold text-primary"
+          aria-hidden="true"
+        >
+          {{ sessionStore.initials() }}
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-semibold text-text-primary">{{ user.name }}</p>
+          <p class="truncate text-xs text-text-muted">{{ user.email }}</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="mt-4 flex min-h-10 w-full items-center justify-center gap-2 rounded-control border border-border px-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        (click)="logout()"
+      >
+        <svg lucideIcon="log-out" class="size-4" aria-hidden="true"></svg>
+        <span>Sair</span>
+      </button>
+    </div>
+  }
 </aside>
