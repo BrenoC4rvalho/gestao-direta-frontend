@@ -1,0 +1,19 @@
+<gd-card>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-sm font-medium text-text-muted">Fazenda selecionada</p>
+      <h2 class="mt-2 text-xl font-semibold text-text-primary">{{ farm().name }}</h2>
+      <p class="mt-1 text-sm text-text-muted">{{ location() }}</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <gd-badge [variant]="farm().status === 'ACTIVE' ? 'success' : 'neutral'">
+        {{ statusLabel() }}
+      </gd-badge>
+
+      @if (productionTypeLabel(); as productionType) {
+        <gd-badge variant="info">{{ productionType }}</gd-badge>
+      }
+    </div>
+  </div>
+</gd-card>

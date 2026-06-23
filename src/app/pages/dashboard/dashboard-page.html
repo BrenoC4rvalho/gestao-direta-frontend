@@ -1,0 +1,66 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-2">
+    @if (sessionStore.userName(); as userName) {
+      <p class="text-sm font-medium text-primary">Olá, {{ userName }}</p>
+    }
+
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">Dashboard</h1>
+      <p class="mt-2 text-sm leading-6 text-text-muted">
+        Acompanhe a visão geral financeira da fazenda selecionada.
+      </p>
+    </div>
+  </header>
+
+  @if (!selectedFarmStore.selectedFarmId()) {
+    <gd-empty-state
+      title="Nenhuma fazenda selecionada"
+      description="Selecione uma fazenda no layout ou aguarde o carregamento das suas fazendas para visualizar o dashboard."
+      icon="tractor"
+    />
+  } @else {
+    @if (selectedFarmStore.selectedFarm(); as farm) {
+      <gd-selected-farm-summary-card [farm]="farm" />
+    }
+
+    @if (summaryLoading()) {
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        @for (item of summarySkeletons; track item) {
+          <div class="rounded-app border border-border bg-surface p-4">
+            <gd-skeleton width="45%" height="0.875rem" />
+            <gd-skeleton class="mt-3 block" width="80%" height="1.75rem" />
+            <gd-skeleton class="mt-3 block" width="60%" height="0.75rem" />
+          </div>
+        }
+      </div>
+    } @else if (summaryError(); as errorMessage) {
+      <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage" />
+    } @else {
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        @for (card of summaryCards(); track card.title) {
+          <gd-summary-card
+            [title]="card.title"
+            [value]="card.value"
+            [helper]="card.helper"
+            [icon]="card.icon"
+            [tone]="card.tone"
+          />
+        }
+      </div>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <gd-latest-transactions-card
+        [transactions]="transactions()"
+        [loading]="transactionsLoading()"
+        [error]="transactionsError()"
+      />
+
+      <gd-upcoming-bills-card
+        [bills]="upcomingBills()"
+        [loading]="upcomingBillsLoading()"
+        [error]="upcomingBillsError()"
+      />
+    </div>
+  }
+</section>

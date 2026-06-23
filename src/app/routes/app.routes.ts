@@ -35,7 +35,8 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         title: 'Dashboard',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/dashboard/dashboard-page').then((component) => component.DashboardPage),
       },
       {
         path: 'farms',
