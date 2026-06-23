@@ -3,7 +3,9 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
+import { Farm } from '../../core/models/farm.models';
 import { AuthService } from '../../core/services/auth.service';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { Drawer } from '../../shared/overlays';
@@ -21,6 +23,7 @@ export class MobileHeader {
   private readonly toastStore = inject(ToastStore);
 
   protected readonly sessionStore = inject(SessionStore);
+  protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly navItems = MAIN_NAV_ITEMS;
   protected readonly isMenuOpen = signal(false);
 
@@ -40,6 +43,7 @@ export class MobileHeader {
       .pipe(
         finalize(() => {
           this.sessionStore.clear();
+          this.selectedFarmStore.clear();
           void this.router.navigate(['/login']);
         }),
       )
@@ -47,5 +51,21 @@ export class MobileHeader {
         next: () => this.toastStore.success('Sessão encerrada.'),
         error: () => this.toastStore.info('Sessão local encerrada.'),
       });
+  }
+
+  protected selectFarm(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+
+    if (!Number.isNaN(id)) {
+      this.selectedFarmStore.selectFarmById(id);
+    }
+  }
+
+  protected farmLocation(farm: Farm): string {
+    if (farm.city && farm.state) {
+      return `${farm.city}/${farm.state}`;
+    }
+
+    return farm.city ?? farm.state ?? 'Localidade não informada';
   }
 }

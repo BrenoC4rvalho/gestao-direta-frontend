@@ -4,8 +4,10 @@ import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { Farm } from '../../core/models/farm.models';
 import { AuthUser } from '../../core/models/auth.models';
 import { AuthService } from '../../core/services/auth.service';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
@@ -25,10 +27,38 @@ const user: AuthUser = {
   status: 'ACTIVE',
 };
 
+const farms: Farm[] = [
+  {
+    id: 1,
+    name: 'Fazenda Boa Safra',
+    document: null,
+    city: 'Ribeirão Preto',
+    state: 'SP',
+    totalArea: 120,
+    productionType: 'AGRICULTURE',
+    status: 'ACTIVE',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    name: 'Sítio Santa Clara',
+    document: null,
+    city: null,
+    state: 'MG',
+    totalArea: null,
+    productionType: 'MIXED',
+    status: 'ACTIVE',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+];
+
 describe('DesktopSidebar', () => {
   let fixture: ComponentFixture<DesktopSidebar>;
   let authService: { logout: ReturnType<typeof vi.fn> };
   let router: Router;
+  let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
@@ -47,9 +77,12 @@ describe('DesktopSidebar', () => {
     }).compileComponents();
 
     router = TestBed.inject(Router);
+    selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
+    selectedFarmStore.clear();
     toastStore.clear();
+    selectedFarmStore.setFarms(farms);
     sessionStore.setUser(user);
     sessionStore.setInitialized(true);
 
@@ -58,6 +91,7 @@ describe('DesktopSidebar', () => {
   });
 
   afterEach(() => {
+    selectedFarmStore.clear();
     toastStore.clear();
   });
 
@@ -80,7 +114,29 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('MS');
   });
 
-  it('should logout, clear session, navigate to login and show success toast', () => {
+  it('should render selected farm and allow changing it', () => {
+    const select = fixture.nativeElement.querySelector('#desktop-farm-select') as HTMLSelectElement;
+
+    expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
+    expect(fixture.nativeElement.textContent).toContain('Ribeirão Preto/SP');
+
+    select.value = '2';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(selectedFarmStore.selectedFarmId()).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Sítio Santa Clara');
+    expect(fixture.nativeElement.textContent).toContain('MG');
+  });
+
+  it('should render empty farm state', () => {
+    selectedFarmStore.setFarms([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda disponível');
+  });
+
+  it('should logout, clear session and farm context, navigate to login and show success toast', () => {
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     const logoutButton = Array.from(
       fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
@@ -90,11 +146,12 @@ describe('DesktopSidebar', () => {
 
     expect(authService.logout).toHaveBeenCalledTimes(1);
     expect(sessionStore.user()).toBeNull();
+    expect(selectedFarmStore.selectedFarm()).toBeNull();
     expect(navigate).toHaveBeenCalledWith(['/login']);
     expect(toastStore.toasts()[0]?.title).toBe('Sessão encerrada.');
   });
 
-  it('should clear local session and navigate to login when logout fails', () => {
+  it('should clear local session and farm context when logout fails', () => {
     authService.logout.mockReturnValueOnce(throwError(() => new Error('logout failed')));
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     const logoutButton = Array.from(
@@ -105,6 +162,7 @@ describe('DesktopSidebar', () => {
 
     expect(authService.logout).toHaveBeenCalledTimes(1);
     expect(sessionStore.user()).toBeNull();
+    expect(selectedFarmStore.selectedFarm()).toBeNull();
     expect(navigate).toHaveBeenCalledWith(['/login']);
     expect(toastStore.toasts()[0]?.type).toBe('info');
     expect(toastStore.toasts()[0]?.title).toBe('Sessão local encerrada.');
