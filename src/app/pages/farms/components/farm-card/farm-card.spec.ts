@@ -30,6 +30,7 @@ describe('FarmCard', () => {
     const edited: Farm[] = [];
     const statusChanges: Farm[] = [];
     fixture.componentRef.setInput('farm', farm);
+    fixture.componentRef.setInput('canEdit', true);
     fixture.componentRef.setInput('canManageStatus', true);
     fixture.componentInstance.selectRequested.subscribe((value) => selected.push(value));
     fixture.componentInstance.editRequested.subscribe((value) => edited.push(value));

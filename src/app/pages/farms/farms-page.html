@@ -51,7 +51,8 @@
         <gd-farm-card
           [farm]="farm"
           [selected]="selectedFarmStore.selectedFarmId() === farm.id"
-          [canManageStatus]="sessionStore.isAdmin()"
+          [canEdit]="canEditFarm(farm)"
+          [canManageStatus]="canManageStatus(farm)"
           (selectRequested)="selectFarm($event)"
           (editRequested)="openEditDrawer($event)"
           (statusChangeRequested)="requestStatusChange($event)"

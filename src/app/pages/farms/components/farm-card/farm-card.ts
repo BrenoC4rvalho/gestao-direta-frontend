@@ -12,6 +12,7 @@ import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 export class FarmCard {
   readonly farm = input.required<Farm>();
   readonly selected = input(false);
+  readonly canEdit = input(false);
   readonly canManageStatus = input(false);
 
   readonly selectRequested = output<Farm>();

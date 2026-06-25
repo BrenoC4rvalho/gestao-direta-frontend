@@ -19,6 +19,7 @@ import {
 } from '../../core/models/farm.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FarmService } from '../../core/services/farm.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
@@ -55,6 +56,7 @@ export class FarmsPage implements OnInit {
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly sessionStore = inject(SessionStore);
   protected readonly response = signal<PageResponse<Farm> | null>(null);
@@ -140,6 +142,10 @@ export class FarmsPage implements OnInit {
   }
 
   protected openEditDrawer(farm: Farm): void {
+    if (!this.canEditFarm(farm)) {
+      return;
+    }
+
     this.editingFarm.set(farm);
     this.drawerOpen.set(true);
   }
@@ -154,11 +160,16 @@ export class FarmsPage implements OnInit {
   }
 
   protected saveFarm(payload: CreateFarmRequest): void {
-    if (this.submitting()) {
+    const editingFarm = this.editingFarm();
+
+    if (
+      this.submitting() ||
+      (!editingFarm && !this.sessionStore.isAdmin()) ||
+      (editingFarm && !this.canEditFarm(editingFarm))
+    ) {
       return;
     }
 
-    const editingFarm = this.editingFarm();
     const request$ = editingFarm
       ? this.farmService.update(editingFarm.id, payload as UpdateFarmRequest)
       : this.farmService.create(payload);
@@ -185,7 +196,7 @@ export class FarmsPage implements OnInit {
   }
 
   protected requestStatusChange(farm: Farm): void {
-    if (this.sessionStore.isAdmin()) {
+    if (this.canManageStatus(farm)) {
       this.statusTarget.set(farm);
     }
   }
@@ -199,7 +210,7 @@ export class FarmsPage implements OnInit {
   protected confirmStatusChange(): void {
     const farm = this.statusTarget();
 
-    if (!farm || this.statusSubmitting()) {
+    if (!farm || this.statusSubmitting() || !this.canManageStatus(farm)) {
       return;
     }
 
@@ -223,6 +234,28 @@ export class FarmsPage implements OnInit {
         },
         error: (error: unknown) => this.showOperationError(error),
       });
+  }
+
+  protected canEditFarm(farm: Farm): boolean {
+    return (
+      this.sessionStore.isAdmin() ||
+      (this.hasSelectedFarmAccess(farm) && this.farmAccessStore.canEditFarm())
+    );
+  }
+
+  protected canManageStatus(farm: Farm): boolean {
+    return (
+      this.sessionStore.isAdmin() ||
+      (this.hasSelectedFarmAccess(farm) && this.farmAccessStore.canChangeFarmStatus())
+    );
+  }
+
+  private hasSelectedFarmAccess(farm: Farm): boolean {
+    return (
+      this.selectedFarmStore.selectedFarmId() === farm.id &&
+      this.farmAccessStore.access()?.farmId === farm.id &&
+      !this.farmAccessStore.loading()
+    );
   }
 
   private loadPage(page: number): void {

@@ -48,9 +48,11 @@
           {{ selected() ? 'Selecionada' : farm().status === 'ACTIVE' ? 'Selecionar' : 'Indisponível' }}
         </gd-button>
 
-        <gd-button type="button" variant="outline" [fullWidth]="true" (click)="editFarm()">
-          Editar
-        </gd-button>
+        @if (canEdit()) {
+          <gd-button type="button" variant="outline" [fullWidth]="true" (click)="editFarm()">
+            Editar
+          </gd-button>
+        }
 
         @if (canManageStatus()) {
           <gd-button

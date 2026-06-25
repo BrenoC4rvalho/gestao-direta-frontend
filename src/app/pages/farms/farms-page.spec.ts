@@ -3,10 +3,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { AuthUser } from '../../core/models/auth.models';
 import { Farm } from '../../core/models/farm.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FarmService } from '../../core/services/farm.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
@@ -20,6 +22,25 @@ const admin: AuthUser = {
   document: null,
   userType: 'ADMIN',
   status: 'ACTIVE',
+};
+
+const producerAccess: FarmAccessResponse = {
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  userId: 2,
+  userType: 'USER',
+  role: 'PRODUCER',
+  permissions: {
+    canViewFarm: true,
+    canEditFarm: true,
+    canChangeFarmStatus: false,
+    canManageFarmUsers: true,
+    canViewFinancial: true,
+    canManageTransactions: true,
+    canManageCategories: true,
+    canManageGlobalCategories: false,
+    canCreateFarm: false,
+  },
 };
 
 const farms: Farm[] = [
@@ -74,6 +95,7 @@ describe('FarmsPage', () => {
     updateStatus: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
+  let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
@@ -95,9 +117,11 @@ describe('FarmsPage', () => {
       ],
     }).compileComponents();
 
+    farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
+    farmAccessStore.clear();
     selectedFarmStore.clear();
     sessionStore.clear();
     sessionStore.setUser(admin);
@@ -105,6 +129,7 @@ describe('FarmsPage', () => {
   });
 
   afterEach(() => {
+    farmAccessStore.clear();
     selectedFarmStore.clear();
     sessionStore.clear();
     toastStore.clear();
@@ -221,13 +246,44 @@ describe('FarmsPage', () => {
     expect(fixture.nativeElement.querySelector('article[data-selected="true"]')).toBeTruthy();
   });
 
-  it('should hide admin-only actions for a non-admin user', () => {
+  it('should show edit only for the selected farm when the user has permission', () => {
     sessionStore.setUser({ ...admin, userType: 'USER' });
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
     createPage();
 
     expect(findButton(fixture.nativeElement, 'Nova fazenda')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    expect(findButtons(fixture.nativeElement, 'Editar')).toHaveLength(1);
+  });
+
+  it('should hide edit and status actions without permission', () => {
+    sessionStore.setUser({ ...admin, userType: 'USER' });
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess({
+      ...producerAccess,
+      permissions: {
+        ...producerAccess.permissions,
+        canEditFarm: false,
+        canChangeFarmStatus: false,
+      },
+    });
+    createPage();
+
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+  });
+
+  it('should show status action for the selected farm with permission', () => {
+    sessionStore.setUser({ ...admin, userType: 'USER' });
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess({
+      ...producerAccess,
+      permissions: { ...producerAccess.permissions, canChangeFarmStatus: true },
+    });
+    createPage();
+
+    expect(findButtons(fixture.nativeElement, 'Inativar')).toHaveLength(1);
   });
 
   function clickButton(label: string): void {
@@ -259,6 +315,12 @@ function getInput(root: HTMLElement, selector: string): HTMLInputElement {
   };
 
   return root.querySelectorAll<HTMLInputElement>('gd-input input')[indexes[selector]];
+}
+
+function findButtons(root: HTMLElement, label: string): HTMLButtonElement[] {
+  return Array.from(root.querySelectorAll('button')).filter(
+    (button) => button.textContent?.trim() === label,
+  );
 }
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {

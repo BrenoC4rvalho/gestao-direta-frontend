@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
 import {
   FinancialSummary,
@@ -12,6 +13,7 @@ import {
 } from '../../core/models/financial.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FinancialService } from '../../core/services/financial.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 
@@ -48,6 +50,27 @@ const farms: Farm[] = [
     updatedAt: '2026-01-01T00:00:00Z',
   },
 ];
+
+function farmAccess(farmId: number, canViewFinancial = true): FarmAccessResponse {
+  return {
+    farmId,
+    farmName: farms.find((farm) => farm.id === farmId)?.name ?? 'Fazenda',
+    userId: 1,
+    userType: 'USER',
+    role: 'PRODUCER',
+    permissions: {
+      canViewFarm: true,
+      canEditFarm: true,
+      canChangeFarmStatus: false,
+      canManageFarmUsers: true,
+      canViewFinancial,
+      canManageTransactions: true,
+      canManageCategories: true,
+      canManageGlobalCategories: false,
+      canCreateFarm: false,
+    },
+  };
+}
 
 const summary: FinancialSummary = {
   farmId: 1,
@@ -112,6 +135,7 @@ describe('DashboardPage', () => {
     getLatestTransactions: ReturnType<typeof vi.fn>;
     getUpcomingBills: ReturnType<typeof vi.fn>;
   };
+  let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
 
@@ -134,14 +158,18 @@ describe('DashboardPage', () => {
       ],
     }).compileComponents();
 
+    farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
+    farmAccessStore.clear();
     selectedFarmStore.clear();
     sessionStore.clear();
   });
 
   afterEach(() => {
+    farmAccessStore.clear();
     selectedFarmStore.clear();
+    sessionStore.clear();
   });
 
   it('should render greeting and empty state without calling financial endpoints', () => {
@@ -168,6 +196,7 @@ describe('DashboardPage', () => {
 
   it('should call endpoints and render dashboard data when there is a selected farm', () => {
     selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
     sessionStore.setUser({
       id: 1,
       name: 'Maria Silva',
@@ -202,11 +231,14 @@ describe('DashboardPage', () => {
 
   it('should reload financial data when the global farm selection changes', () => {
     selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
 
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
     selectedFarmStore.selectFarmById(2);
+    fixture.detectChanges();
+    farmAccessStore.setAccess(farmAccess(2));
     fixture.detectChanges();
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getSummary).toHaveBeenCalledWith(2);
@@ -214,8 +246,24 @@ describe('DashboardPage', () => {
     expect(financialService.getUpcomingBills).toHaveBeenCalledWith(2);
   });
 
+  it('should not call financial endpoints without financial permission', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1, false));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(financialService.getSummary).not.toHaveBeenCalled();
+    expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
+    expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Você não tem permissão para visualizar os dados financeiros desta fazenda.',
+    );
+  });
+
   it('should render section error states when API calls fail', () => {
     selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
     financialService.getSummary.mockReturnValueOnce(throwError(() => new Error('summary')));
     financialService.getLatestTransactions.mockReturnValueOnce(
       throwError(() => new Error('transactions')),

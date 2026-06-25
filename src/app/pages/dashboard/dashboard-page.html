@@ -16,6 +16,20 @@
       [description]="emptyFarmDescription()"
       icon="tractor"
     />
+  } @else if (farmAccessStore.loading() || (!farmAccessStore.access() && !farmAccessStore.error())) {
+    <div class="rounded-app border border-border bg-surface p-5" aria-label="Carregando permissões">
+      <gd-skeleton width="40%" height="1rem" />
+      <gd-skeleton class="mt-4 block" width="70%" height="0.875rem" />
+    </div>
+  } @else if (
+    farmAccessStore.access()?.farmId !== selectedFarmStore.selectedFarmId() ||
+    !farmAccessStore.canViewFinancial()
+  ) {
+    <gd-empty-state
+      title="Acesso financeiro indisponível"
+      description="Você não tem permissão para visualizar os dados financeiros desta fazenda."
+      icon="alert-circle"
+    />
   } @else {
     @if (summaryLoading()) {
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

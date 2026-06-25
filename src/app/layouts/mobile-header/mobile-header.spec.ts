@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
 import { AuthService } from '../../core/services/auth.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
@@ -35,6 +36,7 @@ describe('MobileHeader', () => {
   let fixture: ComponentFixture<MobileHeader>;
   let authService: { logout: ReturnType<typeof vi.fn> };
   let router: Router;
+  let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
@@ -57,6 +59,7 @@ describe('MobileHeader', () => {
     }).compileComponents();
 
     router = TestBed.inject(Router);
+    farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
@@ -123,6 +126,7 @@ describe('MobileHeader', () => {
   });
 
   it('should logout, close drawer, clear session and farm context, navigate to login and show success toast', () => {
+    const clearAccess = vi.spyOn(farmAccessStore, 'clear');
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     openDrawer();
 
@@ -133,6 +137,7 @@ describe('MobileHeader', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
     expect(sessionStore.user()).toBeNull();
     expect(selectedFarmStore.selectedFarm()).toBeNull();
+    expect(clearAccess).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(['/login']);
     expect(toastStore.toasts()[0]?.title).toBe('Sessão encerrada.');
   });

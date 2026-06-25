@@ -16,6 +16,7 @@ import {
   UpcomingBill,
 } from '../../core/models/financial.models';
 import { FinancialService } from '../../core/services/financial.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { EmptyState, ErrorState, Skeleton } from '../../shared/ui';
@@ -49,6 +50,7 @@ interface SummaryCardViewModel {
 export class DashboardPage {
   private readonly financialService = inject(FinancialService);
 
+  protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly sessionStore = inject(SessionStore);
 
@@ -139,8 +141,15 @@ export class DashboardPage {
   constructor() {
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
+      const access = this.farmAccessStore.access();
+      const accessLoading = this.farmAccessStore.loading();
 
-      if (!farmId) {
+      if (
+        !farmId ||
+        accessLoading ||
+        access?.farmId !== farmId ||
+        !access.permissions.canViewFinancial
+      ) {
         this.clearDashboardData();
         return;
       }
