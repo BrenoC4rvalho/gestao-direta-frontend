@@ -1,0 +1,47 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+import { environment } from '../../../environments/environment';
+import { PageRequest, PageResponse } from '../models/page-response.model';
+import { User } from '../models/user.models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class UserService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+
+  list(params?: PageRequest): Observable<PageResponse<User>> {
+    return this.http.get<PageResponse<User>>(`${this.apiUrl}/users`, {
+      params: this.buildParams(params),
+    });
+  }
+
+  private buildParams(params?: PageRequest): HttpParams {
+    let httpParams = new HttpParams();
+
+    if (!params) {
+      return httpParams;
+    }
+
+    if (params.page !== undefined) {
+      httpParams = httpParams.set('page', params.page);
+    }
+
+    if (params.size !== undefined) {
+      httpParams = httpParams.set('size', params.size);
+    }
+
+    if (params.sort) {
+      httpParams = httpParams.set('sort', params.sort);
+    }
+
+    if (params.direction) {
+      httpParams = httpParams.set('direction', params.direction);
+    }
+
+    return httpParams;
+  }
+}

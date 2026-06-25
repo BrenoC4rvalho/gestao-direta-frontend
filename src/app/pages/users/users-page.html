@@ -1,0 +1,164 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Usuários</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Gerencie os usuários cadastrados no sistema.
+      </p>
+    </div>
+
+    @if (sessionStore.isAdmin()) {
+      <gd-button type="button" (click)="showCreateFeedback()">Novo usuário</gd-button>
+    }
+  </header>
+
+  @if (accessDenied()) {
+    <gd-error-state
+      title="Acesso restrito"
+      description="Você não tem permissão para visualizar usuários."
+    />
+  } @else if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando usuários">
+      @for (item of skeletons; track item) {
+        <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <gd-skeleton width="65%" height="1.25rem" />
+              <gd-skeleton class="mt-3 block" width="80%" height="0.875rem" />
+            </div>
+            <gd-skeleton width="4.5rem" height="1.5rem" rounded="full" />
+          </div>
+          <gd-skeleton class="mt-6 block" width="55%" height="0.875rem" />
+          <gd-skeleton class="mt-4 block" width="45%" height="0.875rem" />
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <gd-error-state
+      title="Não foi possível carregar os usuários"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="retry()"
+    />
+  } @else if (users().length === 0) {
+    <gd-empty-state
+      title="Nenhum usuário encontrado"
+      description="Quando houver usuários cadastrados, eles aparecerão aqui."
+      icon="users"
+    />
+  } @else {
+    <div class="grid gap-4 md:hidden">
+      @for (user of users(); track user.id) {
+        <article
+          class="rounded-app border border-border bg-surface p-5 shadow-soft"
+          [attr.aria-label]="'Usuário ' + user.name"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="truncate text-lg font-semibold text-text-primary">{{ user.name }}</h2>
+              <p class="mt-1 break-all text-sm text-text-muted">{{ user.email }}</p>
+            </div>
+            <gd-badge [variant]="statusVariant(user)" size="sm">
+              {{ statusLabel(user) }}
+            </gd-badge>
+          </div>
+
+          <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Tipo</dt>
+              <dd class="mt-1">
+                <gd-badge [variant]="userTypeVariant(user)" size="sm">
+                  {{ userTypeLabel(user) }}
+                </gd-badge>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Cadastro</dt>
+              <dd class="mt-1 font-medium text-text-primary">{{ createdAtLabel(user) }}</dd>
+            </div>
+            @if (user.document; as document) {
+              <div class="col-span-2">
+                <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">
+                  Documento
+                </dt>
+                <dd class="mt-1 break-all font-medium text-text-primary">{{ document }}</dd>
+              </div>
+            }
+          </dl>
+        </article>
+      }
+    </div>
+
+    <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+      <table class="w-full border-collapse text-left">
+        <caption class="sr-only">Usuários cadastrados no sistema</caption>
+        <thead class="border-b border-border bg-background">
+          <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            <th class="px-5 py-4" scope="col">Usuário</th>
+            <th class="px-5 py-4" scope="col">Documento</th>
+            <th class="px-5 py-4" scope="col">Tipo</th>
+            <th class="px-5 py-4" scope="col">Status</th>
+            <th class="px-5 py-4" scope="col">Cadastro</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          @for (user of users(); track user.id) {
+            <tr>
+              <td class="px-5 py-4">
+                <p class="font-semibold text-text-primary">{{ user.name }}</p>
+                <p class="mt-1 text-sm text-text-muted">{{ user.email }}</p>
+              </td>
+              <td class="px-5 py-4 text-sm text-text-primary">
+                {{ user.document ?? 'Não informado' }}
+              </td>
+              <td class="px-5 py-4">
+                <gd-badge [variant]="userTypeVariant(user)" size="sm">
+                  {{ userTypeLabel(user) }}
+                </gd-badge>
+              </td>
+              <td class="px-5 py-4">
+                <gd-badge [variant]="statusVariant(user)" size="sm">
+                  {{ statusLabel(user) }}
+                </gd-badge>
+              </td>
+              <td class="px-5 py-4 text-sm text-text-primary">{{ createdAtLabel(user) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (response(); as page) {
+      @if (page.totalPages > 1) {
+        <nav
+          class="flex flex-col gap-3 rounded-app border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+          aria-label="Paginação de usuários"
+        >
+          <p class="text-center text-sm text-text-muted sm:text-left">
+            Página <span class="font-semibold text-text-primary">{{ page.page + 1 }}</span> de
+            <span class="font-semibold text-text-primary">{{ page.totalPages }}</span>
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <gd-button
+              type="button"
+              variant="outline"
+              [disabled]="page.first || loading()"
+              (click)="previousPage()"
+            >
+              Anterior
+            </gd-button>
+            <gd-button
+              type="button"
+              variant="outline"
+              [disabled]="page.last || loading()"
+              (click)="nextPage()"
+            >
+              Próxima
+            </gd-button>
+          </div>
+        </nav>
+      }
+    }
+  }
+</section>

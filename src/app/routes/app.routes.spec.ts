@@ -14,6 +14,7 @@ describe('routes', () => {
     expect(appLayoutRoute?.canActivate).toContain(authGuard);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'dashboard')).toBe(true);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'farms')).toBe(true);
+    expect(appLayoutRoute?.children?.some((route) => route.path === 'users')).toBe(true);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'profile')).toBe(true);
     expect(uiTestRoute?.canActivate).toBeUndefined();
     expect(uiTestRoute).toBeTruthy();
