@@ -62,13 +62,17 @@ function pageResponse(
 
 describe('UsersPage', () => {
   let fixture: ComponentFixture<UsersPage>;
-  let userService: { list: ReturnType<typeof vi.fn> };
+  let userService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
     userService = {
       list: vi.fn().mockReturnValue(of(pageResponse(users))),
+      create: vi.fn().mockReturnValue(of(users[0])),
     };
 
     await TestBed.configureTestingModule({
@@ -222,16 +226,116 @@ describe('UsersPage', () => {
     });
   });
 
-  it('should show future implementation feedback from the create button', () => {
+  it('should open and close the create drawer', () => {
     sessionStore.setUser(admin);
-
     createPage();
-    findButton(fixture.nativeElement, 'Novo usuário')?.click();
+    openCreateDrawer();
 
-    expect(toastStore.toasts()[0]?.title).toBe(
-      'Cadastro de usuário será implementado em uma próxima etapa.',
-    );
+    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Preencha os dados de acesso');
+
+    findButton(fixture.nativeElement, 'Cancelar')?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeFalsy();
   });
+
+  it('should not call create for an invalid form', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openCreateDrawer();
+
+    submitUserForm();
+
+    expect(userService.create).not.toHaveBeenCalled();
+  });
+
+  it('should create a user, close the drawer and reload the current page', () => {
+    userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
+    sessionStore.setUser(admin);
+    createPage();
+    openCreateDrawer();
+    fillValidForm();
+
+    submitUserForm();
+
+    expect(userService.create).toHaveBeenCalledWith({
+      name: 'Maria Nova',
+      email: 'maria.nova@example.com',
+      password: 'password123',
+      document: null,
+      userType: 'USER',
+    });
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
+    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeFalsy();
+    expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
+  });
+
+  it.each([
+    [400, 'Verifique os dados informados.'],
+    [403, 'Você não tem permissão para criar usuários.'],
+  ])('should keep the drawer open and show feedback on error %s', (status, message) => {
+    userService.create.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status })),
+    );
+    sessionStore.setUser(admin);
+    createPage();
+    openCreateDrawer();
+    fillValidForm();
+
+    submitUserForm();
+
+    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeTruthy();
+    expect(toastStore.toasts()[0]?.title).toBe(message);
+    expect(getUserInput(2).value).toBe('');
+    expect(getUserInput(0).value).toBe('Maria Nova');
+  });
+
+  function openCreateDrawer(): void {
+    findButton(fixture.nativeElement, 'Novo usuário')?.click();
+    fixture.detectChanges();
+  }
+
+  function fillValidForm(): void {
+    setUserInput(0, 'Maria Nova');
+    setUserInput(1, 'maria.nova@example.com');
+    setUserInput(2, 'password123');
+    setUserSelect('USER');
+  }
+
+  function getUserInput(index: number): HTMLInputElement {
+    const root = fixture.nativeElement as HTMLElement;
+    return root.querySelectorAll<HTMLInputElement>('gd-user-form gd-input input')[
+      index
+    ];
+  }
+
+  function setUserInput(index: number, value: string): void {
+    const input = getUserInput(index);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function setUserSelect(value: string): void {
+    const select = fixture.nativeElement.querySelector(
+      'gd-user-form gd-select select',
+    ) as HTMLSelectElement;
+    select.selectedIndex = value === 'ADMIN' ? 1 : 2;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function submitUserForm(): void {
+    const form = fixture.nativeElement.querySelector('gd-user-form form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
 });
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {

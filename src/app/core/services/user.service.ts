@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { PageRequest, PageResponse } from '../models/page-response.model';
-import { User } from '../models/user.models';
+import { CreateUserRequest, User } from '../models/user.models';
 
 @Injectable({
   providedIn: 'root',
@@ -17,6 +17,10 @@ export class UserService {
     return this.http.get<PageResponse<User>>(`${this.apiUrl}/users`, {
       params: this.buildParams(params),
     });
+  }
+
+  create(payload: CreateUserRequest): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/users`, payload);
   }
 
   private buildParams(params?: PageRequest): HttpParams {

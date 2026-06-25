@@ -1,0 +1,70 @@
+<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid flex-1 gap-4">
+    <gd-input
+      id="user-name"
+      label="Nome"
+      placeholder="Ex.: Maria Silva"
+      autocomplete="name"
+      [control]="form.controls.name"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="nameErrorMessage()"
+    />
+
+    <gd-input
+      id="user-email"
+      label="E-mail"
+      placeholder="maria@exemplo.com"
+      type="email"
+      autocomplete="email"
+      [control]="form.controls.email"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="emailErrorMessage()"
+    />
+
+    <gd-input
+      id="user-password"
+      label="Senha"
+      placeholder="Mínimo de 8 caracteres"
+      type="password"
+      autocomplete="new-password"
+      [control]="form.controls.password"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="passwordErrorMessage()"
+    />
+
+    <gd-input
+      id="user-document"
+      label="Documento"
+      placeholder="CPF ou CNPJ"
+      [control]="form.controls.document"
+      [disabled]="submitting()"
+    />
+
+    <gd-select
+      id="user-type"
+      label="Tipo"
+      placeholder="Selecione o tipo"
+      [control]="form.controls.userType"
+      [options]="userTypeOptions"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="userTypeErrorMessage()"
+    />
+  </div>
+
+  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+      (click)="cancel()"
+    >
+      Cancelar
+    </gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+  </div>
+</form>

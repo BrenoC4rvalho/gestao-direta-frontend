@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { PageResponse } from '../models/page-response.model';
-import { User } from '../models/user.models';
+import { CreateUserRequest, User } from '../models/user.models';
 
 import { UserService } from './user.service';
 
@@ -51,6 +51,23 @@ describe('UserService', () => {
     const request = http.expectOne('http://localhost:8080/api/users');
     expect(request.request.method).toBe('GET');
     request.flush(response);
+  });
+
+  it('should call POST /api/users with the payload', () => {
+    const payload: CreateUserRequest = {
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      password: 'password123',
+      document: null,
+      userType: 'USER',
+    };
+
+    service.create(payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
   });
 
   it('should send pagination params', () => {

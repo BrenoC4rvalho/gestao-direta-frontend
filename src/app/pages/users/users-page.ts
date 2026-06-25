@@ -7,20 +7,23 @@ import {
   inject,
   OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 
 import { PageResponse } from '../../core/models/page-response.model';
-import { User } from '../../core/models/user.models';
+import { CreateUserRequest, User } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+import { Drawer } from '../../shared/overlays';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { UserForm } from './components/user-form/user-form';
 
 @Component({
   selector: 'gd-users-page',
-  imports: [Badge, Button, EmptyState, ErrorState, Skeleton],
+  imports: [Badge, Button, Drawer, EmptyState, ErrorState, Skeleton, UserForm],
   templateUrl: './users-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -34,10 +37,13 @@ export class UsersPage implements OnInit {
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
+  protected readonly drawerOpen = signal(false);
+  protected readonly submitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
 
   protected readonly users = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
+  private readonly userForm = viewChild(UserForm);
 
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'medium',
@@ -72,8 +78,56 @@ export class UsersPage implements OnInit {
     }
   }
 
-  protected showCreateFeedback(): void {
-    this.toastStore.info('Cadastro de usuário será implementado em uma próxima etapa.');
+  protected openCreateDrawer(): void {
+    if (this.sessionStore.isAdmin()) {
+      this.drawerOpen.set(true);
+    }
+  }
+
+  protected closeDrawer(): void {
+    if (!this.submitting()) {
+      this.drawerOpen.set(false);
+    }
+  }
+
+  protected createUser(payload: CreateUserRequest): void {
+    if (!this.sessionStore.isAdmin() || this.submitting()) {
+      return;
+    }
+
+    this.submitting.set(true);
+
+    this.userService
+      .create(payload)
+      .pipe(
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.drawerOpen.set(false);
+          this.toastStore.success('Usuário criado com sucesso.');
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.handleCreateError(error),
+      });
+  }
+
+  private handleCreateError(error: unknown): void {
+    this.userForm()?.clearPassword();
+
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível criar o usuário.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique os dados informados.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para criar usuários.',
+    };
+
+    this.toastStore.error(messages[error.status] ?? 'Não foi possível criar o usuário.');
   }
 
   protected userTypeLabel(user: User): string {

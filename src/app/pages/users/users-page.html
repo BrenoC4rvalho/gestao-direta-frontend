@@ -8,7 +8,7 @@
     </div>
 
     @if (sessionStore.isAdmin()) {
-      <gd-button type="button" (click)="showCreateFeedback()">Novo usuário</gd-button>
+      <gd-button type="button" (click)="openCreateDrawer()">Novo usuário</gd-button>
     }
   </header>
 
@@ -162,3 +162,20 @@
     }
   }
 </section>
+
+<gd-drawer
+  [open]="drawerOpen()"
+  title="Novo usuário"
+  description="Preencha os dados de acesso do novo usuário."
+  size="md"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closeDrawer()"
+>
+  <gd-user-form
+    [open]="drawerOpen()"
+    [submitting]="submitting()"
+    (submitted)="createUser($event)"
+    (cancelled)="closeDrawer()"
+  />
+</gd-drawer>
