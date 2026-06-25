@@ -3,7 +3,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { PageResponse } from '../models/page-response.model';
-import { CreateUserRequest, User } from '../models/user.models';
+import {
+  CreateUserRequest,
+  UpdateUserStatusRequest,
+  UpdateUserTypeRequest,
+  User,
+} from '../models/user.models';
 
 import { UserService } from './user.service';
 
@@ -66,6 +71,28 @@ describe('UserService', () => {
 
     const request = http.expectOne('http://localhost:8080/api/users');
     expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
+  });
+
+  it('should call PATCH /api/users/{id}/status with the payload', () => {
+    const payload: UpdateUserStatusRequest = { status: 'BLOCKED' };
+
+    service.updateStatus(2, payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/2/status');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
+  });
+
+  it('should call PATCH /api/users/{id}/type with the payload', () => {
+    const payload: UpdateUserTypeRequest = { userType: 'ADMIN' };
+
+    service.updateType(2, payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/2/type');
+    expect(request.request.method).toBe('PATCH');
     expect(request.request.body).toEqual(payload);
     request.flush(user);
   });

@@ -85,6 +85,30 @@
               </div>
             }
           </dl>
+
+          <div class="mt-5 border-t border-border pt-4">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-text-muted">Ações</h3>
+            @if (isCurrentUser(user)) {
+              <p class="mt-2 text-sm font-medium text-text-muted">
+                Sua conta — acesso protegido
+              </p>
+            } @else {
+              <div class="mt-3 grid gap-2">
+                @if (user.status !== "ACTIVE") {
+                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'ACTIVE')">Ativar</gd-button>
+                }
+                @if (user.status !== "BLOCKED") {
+                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'BLOCKED')">Bloquear</gd-button>
+                }
+                @if (user.status !== "INACTIVE") {
+                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'INACTIVE')">Inativar</gd-button>
+                }
+                <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestTypeChange(user)">
+                  {{ user.userType === 'ADMIN' ? 'Tornar usuário' : 'Tornar administrador' }}
+                </gd-button>
+              </div>
+            }
+          </div>
         </article>
       }
     </div>
@@ -99,6 +123,7 @@
             <th class="px-5 py-4" scope="col">Tipo</th>
             <th class="px-5 py-4" scope="col">Status</th>
             <th class="px-5 py-4" scope="col">Cadastro</th>
+            <th class="px-5 py-4" scope="col">Ações</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -122,6 +147,28 @@
                 </gd-badge>
               </td>
               <td class="px-5 py-4 text-sm text-text-primary">{{ createdAtLabel(user) }}</td>
+              <td class="px-5 py-4">
+                @if (isCurrentUser(user)) {
+                  <p class="max-w-40 text-sm font-medium text-text-muted">
+                    Sua conta — acesso protegido
+                  </p>
+                } @else {
+                  <div class="flex max-w-64 flex-wrap gap-2">
+                    @if (user.status !== "ACTIVE") {
+                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'ACTIVE')">Ativar</gd-button>
+                    }
+                    @if (user.status !== "BLOCKED") {
+                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'BLOCKED')">Bloquear</gd-button>
+                    }
+                    @if (user.status !== "INACTIVE") {
+                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'INACTIVE')">Inativar</gd-button>
+                    }
+                    <gd-button type="button" size="sm" variant="outline" (click)="requestTypeChange(user)">
+                      {{ user.userType === 'ADMIN' ? 'Tornar usuário' : 'Tornar administrador' }}
+                    </gd-button>
+                  </div>
+                }
+              </td>
             </tr>
           }
         </tbody>
@@ -179,3 +226,16 @@
     (cancelled)="closeDrawer()"
   />
 </gd-drawer>
+
+<gd-confirm-dialog
+  [open]="pendingAction() !== null"
+  [title]="actionConfirmation().title"
+  [description]="actionConfirmation().description"
+  [confirmLabel]="actionConfirmation().confirmLabel"
+  cancelLabel="Cancelar"
+  [variant]="actionConfirmation().variant"
+  [loading]="actionSubmitting()"
+  (confirmed)="confirmAction()"
+  (cancelled)="closeActionConfirmation()"
+  (closed)="closeActionConfirmation()"
+/>

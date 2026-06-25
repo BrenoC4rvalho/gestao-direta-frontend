@@ -65,6 +65,8 @@ describe('UsersPage', () => {
   let userService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    updateStatus: ReturnType<typeof vi.fn>;
+    updateType: ReturnType<typeof vi.fn>;
   };
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
@@ -73,6 +75,8 @@ describe('UsersPage', () => {
     userService = {
       list: vi.fn().mockReturnValue(of(pageResponse(users))),
       create: vi.fn().mockReturnValue(of(users[0])),
+      updateStatus: vi.fn().mockReturnValue(of(users[1])),
+      updateType: vi.fn().mockReturnValue(of(users[1])),
     };
 
     await TestBed.configureTestingModule({
@@ -295,6 +299,107 @@ describe('UsersPage', () => {
     expect(getUserInput(2).value).toBe('');
     expect(getUserInput(0).value).toBe('Maria Nova');
   });
+
+  it('should show protected access instead of actions for the authenticated user', () => {
+    sessionStore.setUser(admin);
+
+    createPage();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const ownCard = Array.from(root.querySelectorAll<HTMLElement>('article')).find((card) => card.textContent?.includes('Maria Silva'));
+
+    expect(ownCard?.textContent).toContain('Sua conta — acesso protegido');
+    expect(findButton(ownCard as HTMLElement, 'Bloquear')).toBeUndefined();
+    expect(findButton(ownCard as HTMLElement, 'Inativar')).toBeUndefined();
+    expect(findButton(ownCard as HTMLElement, 'Tornar usuário')).toBeUndefined();
+  });
+
+  it('should open the activation confirmation with the expected content', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    const dialog = getConfirmDialog();
+    expect(dialog?.textContent).toContain('Ativar usuário');
+    expect(dialog?.textContent).toContain('João Souza voltará a ter acesso ao sistema.');
+  });
+
+  it('should update status and reload the current page', () => {
+    userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
+    sessionStore.setUser(admin);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Ativar')?.click();
+    fixture.detectChanges();
+    findButton(getConfirmDialog() as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(userService.updateStatus).toHaveBeenCalledWith(2, { status: 'ACTIVE' });
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
+    expect(toastStore.toasts()[0]?.title).toBe('Status do usuário atualizado.');
+    expect(getConfirmDialog()).toBeNull();
+  });
+
+  it('should update the user type', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Tornar administrador')?.click();
+    fixture.detectChanges();
+
+    const dialog = getConfirmDialog();
+    expect(dialog?.textContent).toContain('Tornar administrador');
+    expect(dialog?.textContent).toContain('João Souza terá acesso administrativo ao sistema.');
+
+    findButton(dialog as HTMLElement, 'Tornar administrador')?.click();
+    fixture.detectChanges();
+
+    expect(userService.updateType).toHaveBeenCalledWith(2, { userType: 'ADMIN' });
+    expect(toastStore.toasts()[0]?.title).toBe('Tipo do usuário atualizado.');
+  });
+
+  it('should show permission feedback when a status update is forbidden', () => {
+    userService.updateStatus.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    );
+    sessionStore.setUser(admin);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Ativar')?.click();
+    fixture.detectChanges();
+    findButton(getConfirmDialog() as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Você não tem permissão para realizar esta ação.',
+    );
+    expect(getConfirmDialog()).toBeTruthy();
+  });
+
+  it('should revalidate protection before changing the authenticated user', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Ativar')?.click();
+    fixture.detectChanges();
+    sessionStore.setUser({ ...admin, id: 2 });
+    findButton(getConfirmDialog() as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(userService.updateStatus).not.toHaveBeenCalled();
+    expect(toastStore.toasts()[0]?.title).toBe('Você não pode alterar seu próprio acesso.');
+  });
+
+  function getConfirmDialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
+  }
 
   function openCreateDrawer(): void {
     findButton(fixture.nativeElement, 'Novo usuário')?.click();
