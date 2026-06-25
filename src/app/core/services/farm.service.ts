@@ -3,7 +3,12 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Farm } from '../models/farm.models';
+import {
+  CreateFarmRequest,
+  Farm,
+  UpdateFarmRequest,
+  UpdateFarmStatusRequest,
+} from '../models/farm.models';
 import { PageRequest, PageResponse } from '../models/page-response.model';
 
 @Injectable({
@@ -21,6 +26,22 @@ export class FarmService {
 
   getById(id: number): Observable<Farm> {
     return this.http.get<Farm>(`${this.apiUrl}/farms/${id}`);
+  }
+
+  create(payload: CreateFarmRequest): Observable<Farm> {
+    return this.http.post<Farm>(this.apiUrl + '/farms', payload);
+  }
+
+  update(id: number, payload: UpdateFarmRequest): Observable<Farm> {
+    return this.http.put<Farm>(this.apiUrl + '/farms/' + id, payload);
+  }
+
+  updateStatus(id: number, payload: UpdateFarmStatusRequest): Observable<Farm> {
+    return this.http.patch<Farm>(this.apiUrl + '/farms/' + id + '/status', payload);
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(this.apiUrl + '/farms/' + id);
   }
 
   private buildParams(params?: PageRequest): HttpParams {

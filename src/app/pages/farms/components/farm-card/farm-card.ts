@@ -12,8 +12,11 @@ import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 export class FarmCard {
   readonly farm = input.required<Farm>();
   readonly selected = input(false);
+  readonly canManageStatus = input(false);
 
   readonly selectRequested = output<Farm>();
+  readonly editRequested = output<Farm>();
+  readonly statusChangeRequested = output<Farm>();
 
   private readonly areaFormatter = new Intl.NumberFormat('pt-BR', {
     maximumFractionDigits: 2,
@@ -24,9 +27,17 @@ export class FarmCard {
   });
 
   protected selectFarm(): void {
-    if (!this.selected()) {
+    if (!this.selected() && this.farm().status === 'ACTIVE') {
       this.selectRequested.emit(this.farm());
     }
+  }
+
+  protected editFarm(): void {
+    this.editRequested.emit(this.farm());
+  }
+
+  protected changeStatus(): void {
+    this.statusChangeRequested.emit(this.farm());
   }
 
   protected location(): string {

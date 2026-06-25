@@ -7,10 +7,9 @@
       </p>
     </div>
 
-    <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
-      <gd-button type="button" [disabled]="true">Nova fazenda</gd-button>
-      <span class="text-xs font-medium text-text-muted">Disponível em uma próxima etapa</span>
-    </div>
+    @if (sessionStore.isAdmin()) {
+      <gd-button type="button" (click)="openCreateDrawer()">Nova fazenda</gd-button>
+    }
   </header>
 
   @if (loading()) {
@@ -52,7 +51,10 @@
         <gd-farm-card
           [farm]="farm"
           [selected]="selectedFarmStore.selectedFarmId() === farm.id"
+          [canManageStatus]="sessionStore.isAdmin()"
           (selectRequested)="selectFarm($event)"
+          (editRequested)="openEditDrawer($event)"
+          (statusChangeRequested)="requestStatusChange($event)"
         />
       }
     </div>
@@ -91,3 +93,34 @@
     }
   }
 </section>
+
+<gd-drawer
+  [open]="drawerOpen()"
+  [title]="drawerTitle()"
+  [description]="drawerDescription()"
+  size="md"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closeDrawer()"
+>
+  <gd-farm-form
+    [farm]="editingFarm()"
+    [open]="drawerOpen()"
+    [submitting]="submitting()"
+    (submitted)="saveFarm($event)"
+    (cancelled)="closeDrawer()"
+  />
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="statusTarget() !== null"
+  [title]="statusConfirmation().title"
+  [description]="statusConfirmation().description"
+  [confirmLabel]="statusConfirmation().confirmLabel"
+  cancelLabel="Cancelar"
+  [variant]="statusConfirmation().variant"
+  [loading]="statusSubmitting()"
+  (confirmed)="confirmStatusChange()"
+  (cancelled)="closeStatusConfirmation()"
+  (closed)="closeStatusConfirmation()"
+/>

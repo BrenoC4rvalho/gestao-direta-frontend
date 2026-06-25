@@ -76,4 +76,45 @@ describe('FarmService', () => {
     expect(request.request.method).toBe('GET');
     request.flush(farm);
   });
+
+  it('should create a farm', () => {
+    const payload = { name: 'Fazenda Nova' };
+
+    service.create(payload).subscribe((response) => expect(response).toEqual(farm));
+
+    const request = http.expectOne(apiUrl + '/farms');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush(farm);
+  });
+
+  it('should update a farm', () => {
+    const payload = { name: 'Fazenda Atualizada' };
+
+    service.update(1, payload).subscribe((response) => expect(response).toEqual(farm));
+
+    const request = http.expectOne(apiUrl + '/farms/1');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    request.flush(farm);
+  });
+
+  it('should update farm status', () => {
+    const payload = { status: 'INACTIVE' };
+
+    service.updateStatus(1, payload).subscribe((response) => expect(response).toEqual(farm));
+
+    const request = http.expectOne(apiUrl + '/farms/1/status');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual(payload);
+    request.flush(farm);
+  });
+
+  it('should delete a farm', () => {
+    service.delete(1).subscribe();
+
+    const request = http.expectOne(apiUrl + '/farms/1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+  });
 });

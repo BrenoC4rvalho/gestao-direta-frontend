@@ -82,4 +82,28 @@ describe('SelectedFarmStore', () => {
     expect(store.error()).toBeNull();
     expect(store.loaded()).toBe(false);
   });
+
+  it('should update a selected farm with upsert', () => {
+    store.setFarms(farms);
+    const updatedFarm = { ...farms[0], name: 'Fazenda Atualizada' };
+
+    store.upsertFarm(updatedFarm);
+
+    expect(store.farms()[0]).toEqual(updatedFarm);
+    expect(store.selectedFarm()).toEqual(updatedFarm);
+  });
+
+  it('should select another active farm when the selected farm is inactivated', () => {
+    store.setFarms(farms);
+
+    store.upsertFarm({ ...farms[0], status: 'INACTIVE' });
+
+    expect(store.selectedFarm()).toEqual(farms[1]);
+  });
+
+  it('should not select an inactive farm', () => {
+    store.selectFarm({ ...farms[0], status: 'INACTIVE' });
+
+    expect(store.selectedFarm()).toBeNull();
+  });
 });

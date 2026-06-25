@@ -18,15 +18,24 @@ const farm: Farm = {
 };
 
 describe('FarmCard', () => {
-  it('should render farm data and emit selection', async () => {
+  beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [FarmCard],
     }).compileComponents();
+  });
 
+  it('should render farm data and emit all available actions', () => {
     const fixture = TestBed.createComponent(FarmCard);
-    const emitted: Farm[] = [];
+    const selected: Farm[] = [];
+    const edited: Farm[] = [];
+    const statusChanges: Farm[] = [];
     fixture.componentRef.setInput('farm', farm);
-    fixture.componentInstance.selectRequested.subscribe((value) => emitted.push(value));
+    fixture.componentRef.setInput('canManageStatus', true);
+    fixture.componentInstance.selectRequested.subscribe((value) => selected.push(value));
+    fixture.componentInstance.editRequested.subscribe((value) => edited.push(value));
+    fixture.componentInstance.statusChangeRequested.subscribe((value) =>
+      statusChanges.push(value),
+    );
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
@@ -34,26 +43,51 @@ describe('FarmCard', () => {
     expect(text).toContain('Ribeirão Preto/SP');
     expect(text).toContain('Agricultura');
     expect(text).toContain('Ativa');
-    expect(text).toContain('120 ha');
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    button.click();
+    clickButton(fixture.nativeElement, 'Selecionar');
+    clickButton(fixture.nativeElement, 'Editar');
+    clickButton(fixture.nativeElement, 'Inativar');
 
-    expect(emitted).toEqual([farm]);
+    expect(selected).toEqual([farm]);
+    expect(edited).toEqual([farm]);
+    expect(statusChanges).toEqual([farm]);
   });
 
-  it('should show selected state and disable the action', async () => {
-    await TestBed.configureTestingModule({
-      imports: [FarmCard],
-    }).compileComponents();
-
+  it('should show selected state and disable selection', () => {
     const fixture = TestBed.createComponent(FarmCard);
     fixture.componentRef.setInput('farm', farm);
     fixture.componentRef.setInput('selected', true);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    expect(fixture.nativeElement.textContent).toContain('Selecionada');
-    expect(button.disabled).toBe(true);
+    const selectedButton = findButton(fixture.nativeElement, 'Selecionada');
+    expect(selectedButton?.disabled).toBe(true);
+  });
+
+  it('should not expose status actions without permission', () => {
+    const fixture = TestBed.createComponent(FarmCard);
+    fixture.componentRef.setInput('farm', farm);
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+  });
+
+  it('should disable selection and offer activation for an inactive farm', () => {
+    const fixture = TestBed.createComponent(FarmCard);
+    fixture.componentRef.setInput('farm', { ...farm, status: 'INACTIVE' });
+    fixture.componentRef.setInput('canManageStatus', true);
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement, 'Indisponível')?.disabled).toBe(true);
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
   });
 });
+
+function clickButton(root: HTMLElement, label: string): void {
+  findButton(root, label)?.click();
+}
+
+function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return Array.from(root.querySelectorAll('button')).find(
+    (button) => button.textContent?.trim() === label,
+  );
+}

@@ -16,7 +16,7 @@ export class FarmContextSelector {
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
 
   protected readonly options = computed<readonly Farm[]>(() => {
-    const farms = this.selectedFarmStore.farms();
+    const farms = this.selectedFarmStore.farms().filter((farm) => farm.status === 'ACTIVE');
     const selectedFarm = this.selectedFarmStore.selectedFarm();
 
     if (!selectedFarm || farms.some((farm) => farm.id === selectedFarm.id)) {

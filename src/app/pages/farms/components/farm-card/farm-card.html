@@ -37,16 +37,32 @@
         </div>
       </dl>
 
-      <div class="mt-5 border-t border-border pt-4">
+      <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
         <gd-button
           type="button"
           [variant]="selected() ? 'secondary' : 'outline'"
-          [disabled]="selected()"
+          [disabled]="selected() || farm().status !== 'ACTIVE'"
           [fullWidth]="true"
           (click)="selectFarm()"
         >
-          {{ selected() ? 'Selecionada' : 'Selecionar' }}
+          {{ selected() ? 'Selecionada' : farm().status === 'ACTIVE' ? 'Selecionar' : 'Indisponível' }}
         </gd-button>
+
+        <gd-button type="button" variant="outline" [fullWidth]="true" (click)="editFarm()">
+          Editar
+        </gd-button>
+
+        @if (canManageStatus()) {
+          <gd-button
+            class="sm:col-span-2"
+            type="button"
+            [variant]="farm().status === 'ACTIVE' ? 'outline' : 'secondary'"
+            [fullWidth]="true"
+            (click)="changeStatus()"
+          >
+            {{ farm().status === 'ACTIVE' ? 'Inativar' : 'Ativar' }}
+          </gd-button>
+        }
       </div>
     </div>
   </gd-card>

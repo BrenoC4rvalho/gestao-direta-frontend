@@ -31,6 +31,9 @@ export class Input {
   readonly hint = input<string | null>(null);
   readonly errorMessage = input<string | null>(null);
   readonly autocomplete = input<string | null>(null);
+  readonly maxlength = input<number | null>(null);
+  readonly min = input<number | null>(null);
+  readonly step = input<number | string | null>(null);
 
   protected hintId(): string {
     return `${this.id()}-hint`;

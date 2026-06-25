@@ -1,0 +1,70 @@
+<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid flex-1 gap-4 sm:grid-cols-2">
+    <gd-input
+      class="sm:col-span-2"
+      id="farm-name"
+      label="Nome da fazenda"
+      placeholder="Ex.: Fazenda Boa Safra"
+      autocomplete="organization"
+      [control]="form.controls.name"
+      [required]="true"
+      [errorMessage]="nameErrorMessage()"
+    />
+
+    <gd-input
+      class="sm:col-span-2"
+      id="farm-document"
+      label="Documento"
+      placeholder="CPF ou CNPJ"
+      [control]="form.controls.document"
+    />
+
+    <gd-input
+      id="farm-city"
+      label="Cidade"
+      placeholder="Ex.: Barra Mansa"
+      [control]="form.controls.city"
+    />
+
+    <gd-input
+      id="farm-state"
+      label="UF"
+      placeholder="Ex.: RJ"
+      [control]="form.controls.state"
+      [maxlength]="2"
+      [errorMessage]="stateErrorMessage()"
+    />
+
+    <gd-input
+      id="farm-total-area"
+      label="Área total"
+      placeholder="Ex.: 1500.5"
+      type="number"
+      [control]="form.controls.totalArea"
+      [min]="0"
+      step="0.01"
+      [errorMessage]="areaErrorMessage()"
+    />
+
+    <gd-select
+      id="farm-production-type"
+      label="Tipo de produção"
+      placeholder="Selecione o tipo"
+      [control]="form.controls.productionType"
+      [options]="productionTypeOptions"
+    />
+  </div>
+
+  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+      (click)="cancel()"
+    >
+      Cancelar
+    </gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+  </div>
+</form>

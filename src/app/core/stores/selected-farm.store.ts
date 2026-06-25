@@ -32,7 +32,41 @@ export class SelectedFarmStore {
 
   setFarms(farms: Farm[]): void {
     this.state.update((state) => {
-      const selectedFarm = farms.find((farm) => farm.id === state.selectedFarm?.id) ?? farms[0] ?? null;
+      const selectedFarm =
+        farms.find(
+          (farm) => farm.id === state.selectedFarm?.id && farm.status === 'ACTIVE',
+        ) ??
+        farms.find((farm) => farm.status === 'ACTIVE') ??
+        null;
+
+      return {
+        ...state,
+        farms,
+        selectedFarm,
+        loaded: true,
+        error: null,
+      };
+    });
+  }
+
+  upsertFarm(farm: Farm): void {
+    this.state.update((state) => {
+      const farmExists = state.farms.some((item) => item.id === farm.id);
+      const farms = farmExists
+        ? state.farms.map((item) => (item.id === farm.id ? farm : item))
+        : [...state.farms, farm].sort((first, second) =>
+            first.name.localeCompare(second.name, 'pt-BR'),
+          );
+      const selectedFarm =
+        state.selectedFarm?.id === farm.id
+          ? farm.status === 'ACTIVE'
+            ? farm
+            : farms.find((item) => item.status === 'ACTIVE' && item.id !== farm.id) ?? null
+          : state.selectedFarm?.status === 'ACTIVE'
+            ? state.selectedFarm
+            : farm.status === 'ACTIVE'
+              ? farm
+              : farms.find((item) => item.status === 'ACTIVE') ?? null;
 
       return {
         ...state,
@@ -45,7 +79,10 @@ export class SelectedFarmStore {
   }
 
   selectFarm(farm: Farm | null): void {
-    this.state.update((state) => ({ ...state, selectedFarm: farm }));
+    this.state.update((state) => ({
+      ...state,
+      selectedFarm: farm?.status === 'ACTIVE' ? farm : null,
+    }));
   }
 
   selectFarmById(id: number): void {

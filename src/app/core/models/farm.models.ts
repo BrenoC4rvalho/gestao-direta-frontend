@@ -14,3 +14,25 @@ export interface Farm {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateFarmRequest {
+  name: string;
+  document?: string | null;
+  city?: string | null;
+  state?: string | null;
+  totalArea?: number | null;
+  productionType?: ProductionType | null;
+}
+
+export interface UpdateFarmRequest {
+  name: string;
+  document?: string | null;
+  city?: string | null;
+  state?: string | null;
+  totalArea?: number | null;
+  productionType?: ProductionType | null;
+}
+
+export interface UpdateFarmStatusRequest {
+  status: FarmStatus;
+}

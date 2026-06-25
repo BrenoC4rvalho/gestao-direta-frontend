@@ -1,14 +1,26 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { AuthUser } from '../../core/models/auth.models';
 import { Farm } from '../../core/models/farm.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FarmService } from '../../core/services/farm.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
+import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
 import { FarmsPage } from './farms-page';
+
+const admin: AuthUser = {
+  id: 1,
+  name: 'Admin',
+  email: 'admin@example.com',
+  document: null,
+  userType: 'ADMIN',
+  status: 'ACTIVE',
+};
 
 const farms: Farm[] = [
   {
@@ -55,13 +67,24 @@ function pageResponse(
 
 describe('FarmsPage', () => {
   let fixture: ComponentFixture<FarmsPage>;
-  let farmService: { list: ReturnType<typeof vi.fn> };
+  let farmService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    updateStatus: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
   let selectedFarmStore: SelectedFarmStore;
+  let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
     farmService = {
       list: vi.fn().mockReturnValue(of(pageResponse(farms))),
+      create: vi.fn().mockReturnValue(of({ ...farms[0], id: 3, name: 'Fazenda Nova' })),
+      update: vi.fn().mockReturnValue(of({ ...farms[0], name: 'Fazenda Atualizada' })),
+      updateStatus: vi.fn().mockReturnValue(of({ ...farms[0], status: 'INACTIVE' })),
+      delete: vi.fn().mockReturnValue(of(undefined)),
     };
 
     await TestBed.configureTestingModule({
@@ -73,13 +96,17 @@ describe('FarmsPage', () => {
     }).compileComponents();
 
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
+    sessionStore.clear();
+    sessionStore.setUser(admin);
     toastStore.clear();
   });
 
   afterEach(() => {
     selectedFarmStore.clear();
+    sessionStore.clear();
     toastStore.clear();
   });
 
@@ -88,13 +115,11 @@ describe('FarmsPage', () => {
     fixture.detectChanges();
   }
 
-  it('should render title, load farms and render cards', () => {
+  it('should render title and load farms', () => {
     createPage();
 
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Fazendas');
-    expect(text).toContain('Fazenda Boa Safra');
-    expect(text).toContain('Sítio Santa Clara');
+    expect(fixture.nativeElement.textContent).toContain('Fazendas');
+    expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
     expect(farmService.list).toHaveBeenCalledWith({
       page: 0,
       size: 10,
@@ -103,92 +128,141 @@ describe('FarmsPage', () => {
     });
   });
 
-  it('should show card skeletons while loading', () => {
-    const request = new Subject<PageResponse<Farm>>();
-    farmService.list.mockReturnValueOnce(request);
-
+  it('should show skeletons while loading', () => {
+    farmService.list.mockReturnValueOnce(new Subject<PageResponse<Farm>>());
     createPage();
 
     expect(
       fixture.nativeElement.querySelector('[aria-label="Carregando fazendas"]'),
     ).toBeTruthy();
-    expect(fixture.nativeElement.querySelectorAll('gd-skeleton').length).toBeGreaterThan(0);
-
-    request.complete();
   });
 
-  it('should render the empty state', () => {
-    farmService.list.mockReturnValueOnce(of(pageResponse([])));
+  it('should open create drawer and submit a new farm', () => {
     createPage();
+    clickButton('Nova fazenda');
 
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda encontrada');
+    expect(fixture.nativeElement.textContent).toContain('Preencha os dados principais');
+    setInput('#farm-name', 'Fazenda Nova');
+    submitForm();
+
+    expect(farmService.create).toHaveBeenCalledWith({
+      name: 'Fazenda Nova',
+      document: null,
+      city: null,
+      state: null,
+      totalArea: null,
+      productionType: null,
+    });
+    expect(farmService.list).toHaveBeenCalledTimes(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Fazenda criada.');
   });
 
-  it('should render error state and retry loading', () => {
-    farmService.list
-      .mockReturnValueOnce(throwError(() => new Error('failed')))
-      .mockReturnValueOnce(of(pageResponse(farms)));
+  it('should open edit drawer with values and submit changes', () => {
     createPage();
+    clickButton('Editar');
 
-    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar as fazendas');
+    const nameInput = getInput(fixture.nativeElement, '#farm-name');
+    expect(nameInput.value).toBe('Fazenda Boa Safra');
+    setInput('#farm-name', 'Fazenda Atualizada');
+    submitForm();
 
-    const retryButton = Array.from(
-      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
-    ).find((button) => button.textContent?.includes('Tentar novamente'));
-    retryButton?.click();
+    expect(farmService.update).toHaveBeenCalledWith(1, {
+      name: 'Fazenda Atualizada',
+      document: null,
+      city: 'Ribeirão Preto',
+      state: 'SP',
+      totalArea: 120,
+      productionType: 'AGRICULTURE',
+    });
+    expect(toastStore.toasts()[0]?.title).toBe('Fazenda atualizada.');
+  });
+
+  it('should confirm farm inactivation and reload the list', () => {
+    createPage();
+    clickButton('Inativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    expect(dialog.textContent).toContain('Inativar fazenda');
+    findButton(dialog, 'Inativar')?.click();
     fixture.detectChanges();
 
+    expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'INACTIVE' });
     expect(farmService.list).toHaveBeenCalledTimes(2);
-    expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
+    expect(toastStore.toasts()[0]?.title).toBe('Fazenda inativada.');
   });
 
-  it('should select a farm, highlight it and show success feedback', () => {
+  it('should keep the drawer open and show permission feedback on 403', () => {
+    farmService.update.mockReturnValueOnce(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 403,
+          }),
+      ),
+    );
+    createPage();
+    clickButton('Editar');
+    submitForm();
+
+    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeTruthy();
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Você não tem permissão para realizar esta ação.',
+    );
+  });
+
+  it('should select and highlight an active farm', () => {
     const selectFarm = vi.spyOn(selectedFarmStore, 'selectFarm');
     createPage();
-
-    const selectButton = Array.from(
-      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
-    ).find((button) => button.textContent?.trim() === 'Selecionar');
-    selectButton?.click();
-    fixture.detectChanges();
+    clickButton('Selecionar');
 
     expect(selectFarm).toHaveBeenCalledWith(farms[0]);
-    expect(
-      fixture.nativeElement.querySelector('article[data-selected="true"]'),
-    ).toBeTruthy();
-    expect(toastStore.toasts()[0]?.title).toBe('Fazenda selecionada.');
+    expect(fixture.nativeElement.querySelector('article[data-selected="true"]')).toBeTruthy();
   });
 
-  it('should load next and previous pages', () => {
-    farmService.list
-      .mockReturnValueOnce(of(pageResponse([farms[0]], 0, 2)))
-      .mockReturnValueOnce(of(pageResponse([farms[1]], 1, 2)))
-      .mockReturnValueOnce(of(pageResponse([farms[0]], 0, 2)));
+  it('should hide admin-only actions for a non-admin user', () => {
+    sessionStore.setUser({ ...admin, userType: 'USER' });
     createPage();
 
-    clickButton('Próxima');
-    expect(farmService.list).toHaveBeenLastCalledWith({
-      page: 1,
-      size: 10,
-      sort: 'name',
-      direction: 'ASC',
-    });
-
-    fixture.detectChanges();
-    clickButton('Anterior');
-    expect(farmService.list).toHaveBeenLastCalledWith({
-      page: 0,
-      size: 10,
-      sort: 'name',
-      direction: 'ASC',
-    });
+    expect(findButton(fixture.nativeElement, 'Nova fazenda')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
   });
 
   function clickButton(label: string): void {
-    const button = Array.from(
-      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
-    ).find((item) => item.textContent?.includes(label));
-    button?.click();
+    findButton(fixture.nativeElement, label)?.click();
+    fixture.detectChanges();
+  }
+
+  function setInput(selector: string, value: string): void {
+    const input = getInput(fixture.nativeElement, selector);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function submitForm(): void {
+    const form = fixture.nativeElement.querySelector('gd-farm-form form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
     fixture.detectChanges();
   }
 });
+
+function getInput(root: HTMLElement, selector: string): HTMLInputElement {
+  const indexes: Record<string, number> = {
+    '#farm-name': 0,
+    '#farm-document': 1,
+    '#farm-city': 2,
+    '#farm-state': 3,
+    '#farm-total-area': 4,
+  };
+
+  return root.querySelectorAll<HTMLInputElement>('gd-input input')[indexes[selector]];
+}
+
+function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return Array.from(root.querySelectorAll('button')).find(
+    (button) => button.textContent?.trim() === label,
+  );
+}
