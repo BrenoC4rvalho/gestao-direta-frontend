@@ -1,0 +1,93 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Fazendas</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Gerencie as propriedades disponíveis para acompanhamento financeiro.
+      </p>
+    </div>
+
+    <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+      <gd-button type="button" [disabled]="true">Nova fazenda</gd-button>
+      <span class="text-xs font-medium text-text-muted">Disponível em uma próxima etapa</span>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">
+      @for (item of skeletons; track item) {
+        <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <gd-skeleton width="70%" height="1.25rem" />
+              <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+            </div>
+            <gd-skeleton width="4rem" height="1.5rem" rounded="full" />
+          </div>
+          <div class="mt-6 grid grid-cols-2 gap-4">
+            <gd-skeleton height="2.5rem" />
+            <gd-skeleton height="2.5rem" />
+            <gd-skeleton class="col-span-2" height="2.5rem" />
+          </div>
+          <gd-skeleton class="mt-6 block" height="2.5rem" />
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <gd-error-state
+      title="Não foi possível carregar as fazendas"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="retry()"
+    />
+  } @else if (farms().length === 0) {
+    <gd-empty-state
+      title="Nenhuma fazenda encontrada"
+      description="Quando houver fazendas disponíveis, elas aparecerão aqui."
+      icon="tractor"
+    />
+  } @else {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (farm of farms(); track farm.id) {
+        <gd-farm-card
+          [farm]="farm"
+          [selected]="selectedFarmStore.selectedFarmId() === farm.id"
+          (selectRequested)="selectFarm($event)"
+        />
+      }
+    </div>
+
+    @if (response(); as page) {
+      @if (page.totalPages > 1) {
+        <nav
+          class="flex flex-col gap-3 rounded-app border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+          aria-label="Paginação de fazendas"
+        >
+          <p class="text-center text-sm text-text-muted sm:text-left">
+            Página <span class="font-semibold text-text-primary">{{ page.page + 1 }}</span> de
+            <span class="font-semibold text-text-primary">{{ page.totalPages }}</span>
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <gd-button
+              type="button"
+              variant="outline"
+              [disabled]="page.first || loading()"
+              (click)="previousPage()"
+            >
+              Anterior
+            </gd-button>
+            <gd-button
+              type="button"
+              variant="outline"
+              [disabled]="page.last || loading()"
+              (click)="nextPage()"
+            >
+              Próxima
+            </gd-button>
+          </div>
+        </nav>
+      }
+    }
+  }
+</section>

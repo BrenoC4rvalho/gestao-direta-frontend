@@ -6,11 +6,12 @@ import { FarmService } from '../../core/services/farm.service';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { DesktopSidebar } from '../desktop-sidebar/desktop-sidebar';
+import { FarmContextSelector } from '../farm-context-selector/farm-context-selector';
 import { MobileHeader } from '../mobile-header/mobile-header';
 
 @Component({
   selector: 'gd-app-layout',
-  imports: [DesktopSidebar, MobileHeader, RouterOutlet],
+  imports: [DesktopSidebar, FarmContextSelector, MobileHeader, RouterOutlet],
   templateUrl: './app-layout.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

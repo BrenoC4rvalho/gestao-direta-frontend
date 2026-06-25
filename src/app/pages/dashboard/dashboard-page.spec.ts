@@ -144,7 +144,7 @@ describe('DashboardPage', () => {
     selectedFarmStore.clear();
   });
 
-  it('should render greeting, farm selector and empty state without calling financial endpoints', () => {
+  it('should render greeting and empty state without calling financial endpoints', () => {
     sessionStore.setUser({
       id: 1,
       name: 'Maria Silva',
@@ -160,7 +160,6 @@ describe('DashboardPage', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Olá, Maria Silva');
     expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
-    expect(text).toContain('Selecione uma fazenda');
     expect(text).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
@@ -189,8 +188,6 @@ describe('DashboardPage', () => {
     const normalizedText = text.replace(/\u00a0/g, ' ');
 
     expect(normalizedText).toContain('Olá, Maria Silva');
-    expect(normalizedText).toContain('Fazenda Boa Safra');
-    expect(normalizedText).toContain('Ribeirão Preto/SP');
     expect(normalizedText).toContain('Saldo atual');
     expect(normalizedText).toContain('Entradas previstas');
     expect(normalizedText).toContain('Saídas previstas');
@@ -203,19 +200,14 @@ describe('DashboardPage', () => {
     expect(normalizedText).toContain('1 conta(s) somando R$ 320,00');
   });
 
-  it('should select farm from the compact selector and reload financial data', () => {
+  it('should reload financial data when the global farm selection changes', () => {
     selectedFarmStore.setFarms(farms);
-    const selectFarmById = vi.spyOn(selectedFarmStore, 'selectFarmById');
 
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const select = fixture.nativeElement.querySelector('#dashboard-farm-select') as HTMLSelectElement;
-    select.value = '2';
-    select.dispatchEvent(new Event('change'));
+    selectedFarmStore.selectFarmById(2);
     fixture.detectChanges();
-
-    expect(selectFarmById).toHaveBeenCalledWith(2);
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getSummary).toHaveBeenCalledWith(2);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);

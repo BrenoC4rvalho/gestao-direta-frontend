@@ -9,11 +9,19 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { Drawer } from '../../shared/overlays';
+import { FarmContextSelector } from '../farm-context-selector/farm-context-selector';
 import { MAIN_NAV_ITEMS } from '../layout-navigation';
 
 @Component({
   selector: 'gd-mobile-header',
-  imports: [Drawer, LucideDynamicIcon, NgOptimizedImage, RouterLink, RouterLinkActive],
+  imports: [
+    Drawer,
+    FarmContextSelector,
+    LucideDynamicIcon,
+    NgOptimizedImage,
+    RouterLink,
+    RouterLinkActive,
+  ],
   templateUrl: './mobile-header.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

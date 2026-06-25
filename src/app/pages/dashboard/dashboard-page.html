@@ -1,5 +1,5 @@
 <section class="space-y-6">
-  <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+  <header>
     <div class="min-w-0">
       <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">
         Olá, {{ sessionStore.userName() ?? 'produtor' }}
@@ -8,45 +8,6 @@
         Aqui está o resumo financeiro da sua fazenda hoje.
       </p>
     </div>
-
-    <section
-      class="w-full rounded-app border border-border bg-surface p-4 shadow-soft lg:w-80"
-      aria-labelledby="dashboard-farm-select-title"
-    >
-      <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p id="dashboard-farm-select-title" class="text-xs font-semibold uppercase text-text-muted">
-            Fazenda
-          </p>
-          @if (selectedFarmStore.selectedFarm(); as farm) {
-            <p class="mt-1 truncate text-sm font-semibold text-text-primary">{{ farm.name }}</p>
-            <p class="mt-0.5 truncate text-xs text-text-muted">{{ farmLocation(farm) }}</p>
-          } @else if (selectedFarmStore.loaded() && !selectedFarmStore.hasFarms()) {
-            <p class="mt-1 text-sm font-semibold text-text-primary">Nenhuma fazenda disponível</p>
-          } @else {
-            <p class="mt-1 text-sm font-semibold text-text-primary">Selecione uma fazenda</p>
-          }
-        </div>
-
-        <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary">
-          <svg lucideIcon="tractor" class="size-5" aria-hidden="true"></svg>
-        </div>
-      </div>
-
-      @if (selectedFarmStore.farms().length > 0) {
-        <label for="dashboard-farm-select" class="sr-only">Selecionar fazenda</label>
-        <select
-          id="dashboard-farm-select"
-          class="mt-3 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm font-medium text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          [value]="selectedFarmStore.selectedFarmId() ?? ''"
-          (change)="selectFarm($event)"
-        >
-          @for (farm of selectedFarmStore.farms(); track farm.id) {
-            <option [value]="farm.id">{{ farm.name }}</option>
-          }
-        </select>
-      }
-    </section>
   </header>
 
   @if (!selectedFarmStore.selectedFarmId()) {

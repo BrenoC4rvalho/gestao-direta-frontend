@@ -10,7 +10,6 @@ import { RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { Subscription, finalize } from 'rxjs';
 
-import { Farm } from '../../core/models/farm.models';
 import {
   FinancialSummary,
   FinancialTransaction,
@@ -214,22 +213,6 @@ export class DashboardPage {
     this.upcomingBills.set([]);
     this.upcomingBillsLoading.set(false);
     this.upcomingBillsError.set(null);
-  }
-
-  protected selectFarm(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value);
-
-    if (!Number.isNaN(id)) {
-      this.selectedFarmStore.selectFarmById(id);
-    }
-  }
-
-  protected farmLocation(farm: Farm): string {
-    if (farm.city && farm.state) {
-      return `${farm.city}/${farm.state}`;
-    }
-
-    return farm.city ?? farm.state ?? 'Localidade não informada';
   }
 
   protected formatCurrencyValue(value: number): string {

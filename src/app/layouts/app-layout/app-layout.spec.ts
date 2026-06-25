@@ -75,6 +75,8 @@ describe('AppLayout', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('gd-desktop-sidebar')).toBeTruthy();
     expect(element.querySelector('gd-mobile-header')).toBeTruthy();
+    expect(element.querySelector('gd-farm-context-selector')).toBeTruthy();
+    expect(element.querySelector('#desktop-farm-select')).toBeTruthy();
     expect(element.querySelector('router-outlet')).toBeTruthy();
   });
 

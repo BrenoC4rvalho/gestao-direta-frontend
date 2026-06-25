@@ -82,7 +82,7 @@ describe('MobileHeader', () => {
     expect(image.getAttribute('alt')).toBe('Gestão Direta');
   });
 
-  it('should render menu button and open drawer without farm selector', () => {
+  it('should render the global farm context and open the menu drawer', () => {
     const menuButton = fixture.nativeElement.querySelector(
       'button[aria-label="Abrir menu de navegação"]',
     ) as HTMLButtonElement;
@@ -96,7 +96,7 @@ describe('MobileHeader', () => {
     expect(fixture.nativeElement.textContent).toContain('Menu');
     expect(fixture.nativeElement.textContent).toContain('Dashboard');
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#mobile-farm-select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('gd-farm-context-selector')).toBeTruthy();
   });
 
   it('should render authenticated user name, email and initials in the drawer', () => {

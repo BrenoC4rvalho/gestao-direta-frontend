@@ -41,7 +41,8 @@ export const routes: Routes = [
       {
         path: 'farms',
         title: 'Fazendas',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/farms/farms-page').then((component) => component.FarmsPage),
       },
       {
         path: 'users',

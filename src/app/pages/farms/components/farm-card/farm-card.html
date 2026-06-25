@@ -1,0 +1,53 @@
+<article [attr.aria-label]="'Fazenda ' + farm().name" [attr.data-selected]="selected()">
+  <gd-card [variant]="selected() ? 'outlined' : 'elevated'" padding="none">
+    <div class="flex min-h-full flex-col p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="truncate text-lg font-semibold text-text-primary">{{ farm().name }}</h2>
+          <p class="mt-1 text-sm text-text-muted">{{ location() }}</p>
+        </div>
+
+        <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
+      </div>
+
+      @if (selected()) {
+        <gd-badge class="mt-4 block" variant="default" size="sm">Selecionada</gd-badge>
+      }
+
+      <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Produção</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ productionTypeLabel() }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Área total</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ areaLabel() }}</dd>
+        </div>
+        @if (farm().document; as document) {
+          <div class="col-span-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Documento</dt>
+            <dd class="mt-1 break-all font-medium text-text-primary">{{ document }}</dd>
+          </div>
+        }
+        <div class="col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">
+            Última atualização
+          </dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ updatedAtLabel() }}</dd>
+        </div>
+      </dl>
+
+      <div class="mt-5 border-t border-border pt-4">
+        <gd-button
+          type="button"
+          [variant]="selected() ? 'secondary' : 'outline'"
+          [disabled]="selected()"
+          [fullWidth]="true"
+          (click)="selectFarm()"
+        >
+          {{ selected() ? 'Selecionada' : 'Selecionar' }}
+        </gd-button>
+      </div>
+    </div>
+  </gd-card>
+</article>
