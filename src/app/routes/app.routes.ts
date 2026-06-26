@@ -53,7 +53,10 @@ export const routes: Routes = [
       {
         path: 'farm-users',
         title: 'Usuários por fazenda',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/farm-users/farm-users-page').then(
+            (component) => component.FarmUsersPage,
+          ),
       },
       {
         path: 'categories',

@@ -1,10 +1,11 @@
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
+import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
 
 import { routes } from './app.routes';
 
 describe('routes', () => {
-  it('should register auth, app and ui-test routes with expected guards', () => {
+  it('should register auth, app and ui-test routes with expected guards', async () => {
     const loginRoute = routes.find((route) => route.path === 'login');
     const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
     const uiTestRoute = routes.find((route) => route.path === 'ui-test');
@@ -15,6 +16,12 @@ describe('routes', () => {
     expect(appLayoutRoute?.children?.some((route) => route.path === 'dashboard')).toBe(true);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'farms')).toBe(true);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'users')).toBe(true);
+    const farmUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'farm-users');
+    expect(farmUsersRoute?.loadComponent).toBeTypeOf('function');
+    const farmUsersComponent = await (
+      farmUsersRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(farmUsersComponent).toBe(FarmUsersPage);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'profile')).toBe(true);
     expect(uiTestRoute?.canActivate).toBeUndefined();
     expect(uiTestRoute).toBeTruthy();

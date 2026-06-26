@@ -1,9 +1,4 @@
-export type FarmUserRole =
-  | 'PRODUCER'
-  | 'EMPLOYEE'
-  | 'ACCOUNTANT'
-  | 'INACTIVE'
-  | string;
+import type { FarmUserRole } from './farm-user.models';
 
 export interface FarmAccessPermissions {
   canViewFarm: boolean;

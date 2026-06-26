@@ -1,0 +1,292 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Vínculos da fazenda</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Gerencie os usuários vinculados à fazenda selecionada.
+      </p>
+    </div>
+
+    @if (canManageContext() && !accessDenied()) {
+      <gd-button type="button" (click)="openLinkDrawer()">Vincular usuário</gd-button>
+    }
+  </header>
+
+  @if (selectedFarmName(); as farmName) {
+    <gd-card padding="sm">
+      <div class="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-4">
+        <p class="text-text-muted">
+          Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
+        </p>
+        @if (currentPermissionLabel(); as permissionLabel) {
+          <span class="hidden text-border sm:inline" aria-hidden="true">•</span>
+          <p class="text-text-muted">
+            Sua permissão:
+            <span class="font-semibold text-text-primary">{{ permissionLabel }}</span>
+          </p>
+        }
+      </div>
+    </gd-card>
+  }
+
+  @if (!selectedFarmStore.selectedFarmId()) {
+    <gd-empty-state
+      title="Nenhuma fazenda selecionada"
+      description="Selecione uma fazenda para visualizar os vínculos."
+      icon="tractor"
+    />
+  } @else if (
+    !sessionStore.isAdmin() &&
+    (farmAccessStore.loading() ||
+      (!farmAccessStore.access() && !farmAccessStore.error()))
+  ) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
+      @for (item of skeletons; track item) {
+        <gd-card variant="elevated">
+          <gd-skeleton width="65%" height="1.25rem" />
+          <gd-skeleton class="mt-3 block" width="80%" height="0.875rem" />
+          <gd-skeleton class="mt-6 block" width="40%" height="1.5rem" rounded="full" />
+        </gd-card>
+      }
+    </div>
+  } @else if (accessDenied()) {
+    <gd-error-state
+      title="Acesso restrito"
+      description="Você não tem permissão para gerenciar vínculos desta fazenda."
+    />
+  } @else if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando vínculos">
+      @for (item of skeletons; track item) {
+        <gd-card variant="elevated">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <gd-skeleton width="65%" height="1.25rem" />
+              <gd-skeleton class="mt-3 block" width="80%" height="0.875rem" />
+            </div>
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+          </div>
+          <gd-skeleton class="mt-6 block" width="55%" height="0.875rem" />
+          <gd-skeleton class="mt-4 block" width="45%" height="0.875rem" />
+        </gd-card>
+      }
+    </div>
+  } @else if (error()) {
+    <gd-error-state
+      title="Não foi possível carregar os vínculos"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="retry()"
+    />
+  } @else if (farmUsers().length === 0) {
+    <gd-empty-state
+      title="Nenhum vínculo encontrado"
+      description="Quando houver usuários vinculados a esta fazenda, eles aparecerão aqui."
+      icon="user-round-cog"
+    />
+  } @else {
+    <div class="grid gap-4 md:hidden">
+      @for (farmUser of farmUsers(); track farmUser.id) {
+        <gd-card variant="elevated">
+          <article [attr.aria-label]="'Vínculo de ' + farmUser.userName">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h2 class="truncate text-lg font-semibold text-text-primary">
+                  {{ farmUser.userName }}
+                </h2>
+                <p class="mt-1 break-all text-sm text-text-muted">{{ farmUser.userEmail }}</p>
+              </div>
+              <gd-badge [variant]="roleVariant(farmUser.role)" size="sm">
+                {{ roleLabel(farmUser.role) }}
+              </gd-badge>
+            </div>
+
+            <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
+              <div class="col-span-2">
+                <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Fazenda</dt>
+                <dd class="mt-1 font-medium text-text-primary">{{ farmUser.farmName }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Vinculado em</dt>
+                <dd class="mt-1 font-medium text-text-primary">
+                  {{ dateLabel(farmUser.createdAt) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Atualizado em</dt>
+                <dd class="mt-1 font-medium text-text-primary">
+                  {{ dateLabel(farmUser.updatedAt) }}
+                </dd>
+              </div>
+            </dl>
+
+            @if (isCurrentUser(farmUser)) {
+              <p class="mt-5 border-t border-border pt-4 text-sm font-medium text-text-muted">
+                Seu vínculo — acesso protegido
+              </p>
+            } @else if (farmUser.role !== 'INACTIVE') {
+              @if (sessionStore.isAdmin() || farmUser.role === 'EMPLOYEE' || farmUser.role === 'ACCOUNTANT') {
+                <div class="mt-5 grid gap-2 border-t border-border pt-4">
+                  <gd-button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    [fullWidth]="true"
+                    (click)="openRoleDrawer(farmUser)"
+                  >
+                    Alterar papel
+                  </gd-button>
+                  <gd-button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    [fullWidth]="true"
+                    (click)="requestInactivation(farmUser)"
+                  >
+                    Inativar vínculo
+                  </gd-button>
+                </div>
+              }
+            }
+          </article>
+        </gd-card>
+      }
+    </div>
+
+    <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+      <table class="w-full border-collapse text-left">
+        <caption class="sr-only">Usuários vinculados à fazenda selecionada</caption>
+        <thead class="border-b border-border bg-background">
+          <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            <th class="px-5 py-4" scope="col">Usuário</th>
+            <th class="px-5 py-4" scope="col">Fazenda</th>
+            <th class="px-5 py-4" scope="col">Papel</th>
+            <th class="px-5 py-4" scope="col">Vinculado em</th>
+            <th class="px-5 py-4" scope="col">Atualizado em</th>
+            <th class="px-5 py-4" scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          @for (farmUser of farmUsers(); track farmUser.id) {
+            <tr>
+              <td class="px-5 py-4">
+                <p class="font-semibold text-text-primary">{{ farmUser.userName }}</p>
+                <p class="mt-1 text-sm text-text-muted">{{ farmUser.userEmail }}</p>
+              </td>
+              <td class="px-5 py-4 text-sm text-text-primary">{{ farmUser.farmName }}</td>
+              <td class="px-5 py-4">
+                <gd-badge [variant]="roleVariant(farmUser.role)" size="sm">
+                  {{ roleLabel(farmUser.role) }}
+                </gd-badge>
+              </td>
+              <td class="px-5 py-4 text-sm text-text-primary">
+                {{ dateLabel(farmUser.createdAt) }}
+              </td>
+              <td class="px-5 py-4 text-sm text-text-primary">
+                {{ dateLabel(farmUser.updatedAt) }}
+              </td>
+              <td class="px-5 py-4">
+                @if (isCurrentUser(farmUser)) {
+                  <p class="max-w-40 text-sm font-medium text-text-muted">
+                    Seu vínculo — acesso protegido
+                  </p>
+                } @else if (farmUser.role !== 'INACTIVE') {
+                  @if (sessionStore.isAdmin() || farmUser.role === 'EMPLOYEE' || farmUser.role === 'ACCOUNTANT') {
+                    <div class="flex flex-wrap gap-2">
+                      <gd-button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        (click)="openRoleDrawer(farmUser)"
+                      >
+                        Alterar papel
+                      </gd-button>
+                      <gd-button
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        (click)="requestInactivation(farmUser)"
+                      >
+                        Inativar vínculo
+                      </gd-button>
+                    </div>
+                  }
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<gd-drawer
+  [open]="linkDrawerOpen()"
+  title="Vincular usuário"
+  description="Selecione um usuário e defina o papel dele na fazenda."
+  size="md"
+  [closeOnBackdrop]="!linkSubmitting()"
+  [showCloseButton]="!linkSubmitting()"
+  (closed)="closeLinkDrawer()"
+>
+  @if (availableUsersLoading()) {
+    <div class="space-y-4" aria-label="Carregando usuários disponíveis">
+      <gd-skeleton height="2.5rem" />
+      <gd-skeleton height="2.5rem" />
+    </div>
+  } @else if (availableUsersError()) {
+    <gd-error-state
+      title="Não foi possível carregar os usuários"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="retryAvailableUsers()"
+    />
+  } @else if (availableUsers().length === 0) {
+    <gd-empty-state
+      title="Nenhum usuário disponível"
+      description="Não há usuários ativos disponíveis para vincular a esta fazenda."
+      icon="users"
+    />
+  } @else {
+    <gd-farm-user-form
+      [open]="linkDrawerOpen()"
+      [users]="availableUsers()"
+      [roles]="allowedRoles()"
+      [submitting]="linkSubmitting()"
+      (submitted)="linkUser($event)"
+      (cancelled)="closeLinkDrawer()"
+    />
+  }
+</gd-drawer>
+
+<gd-drawer
+  [open]="roleTarget() !== null"
+  title="Alterar papel"
+  description="Atualize o papel do usuário nesta fazenda."
+  size="sm"
+  [closeOnBackdrop]="!roleSubmitting()"
+  [showCloseButton]="!roleSubmitting()"
+  (closed)="closeRoleDrawer()"
+>
+  <gd-farm-user-role-form
+    [open]="roleTarget() !== null"
+    [farmUser]="roleTarget()"
+    [roles]="roleDrawerOptions()"
+    [submitting]="roleSubmitting()"
+    (submitted)="updateRole($event)"
+    (cancelled)="closeRoleDrawer()"
+  />
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="inactivationTarget() !== null"
+  title="Inativar vínculo"
+  description="Este usuário perderá o acesso operacional a esta fazenda."
+  confirmLabel="Inativar"
+  cancelLabel="Cancelar"
+  variant="danger"
+  [loading]="inactivationSubmitting()"
+  (confirmed)="confirmInactivation()"
+  (cancelled)="closeInactivationConfirmation()"
+  (closed)="closeInactivationConfirmation()"
+/>

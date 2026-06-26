@@ -1,0 +1,38 @@
+<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid flex-1 gap-4">
+    <gd-select
+      id="farm-user-user"
+      label="Usuário"
+      placeholder="Selecione um usuário"
+      [control]="form.controls.userId"
+      [options]="userOptions()"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="userErrorMessage()"
+    />
+
+    <gd-select
+      id="farm-user-role"
+      label="Papel na fazenda"
+      placeholder="Selecione o papel"
+      [control]="form.controls.role"
+      [options]="roleOptions()"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="roleErrorMessage()"
+    />
+  </div>
+
+  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+      (click)="cancel()"
+    >
+      Cancelar
+    </gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+  </div>
+</form>
