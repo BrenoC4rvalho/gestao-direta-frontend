@@ -3,9 +3,6 @@ import { Routes } from '@angular/router';
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 
-const temporaryPage = () =>
-  import('./route-placeholder').then((component) => component.RoutePlaceholder);
-
 export const routes: Routes = [
   {
     path: '',
@@ -85,7 +82,8 @@ export const routes: Routes = [
       {
         path: 'profile',
         title: 'Perfil',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/profile/profile-page').then((component) => component.ProfilePage),
       },
     ],
   },

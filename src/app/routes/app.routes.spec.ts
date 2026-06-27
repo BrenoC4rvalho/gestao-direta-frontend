@@ -2,6 +2,7 @@ import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
+import { ProfilePage } from '../pages/profile/profile-page';
 import { TransactionsPage } from '../pages/transactions/transactions-page';
 import { UpcomingBillsPage } from '../pages/upcoming-bills/upcoming-bills-page';
 
@@ -43,7 +44,10 @@ describe('routes', () => {
       upcomingBillsRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(upcomingBillsComponent).toBe(UpcomingBillsPage);
-    expect(appLayoutRoute?.children?.some((route) => route.path === 'profile')).toBe(true);
+    const profileRoute = appLayoutRoute?.children?.find((route) => route.path === 'profile');
+    expect(profileRoute?.loadComponent).toBeTypeOf('function');
+    const profileComponent = await (profileRoute?.loadComponent as () => Promise<unknown>)();
+    expect(profileComponent).toBe(ProfilePage);
     expect(uiTestRoute?.canActivate).toBeUndefined();
     expect(uiTestRoute).toBeTruthy();
   });

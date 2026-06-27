@@ -13,6 +13,11 @@ export interface CreateUserRequest {
   userType: UserType;
 }
 
+export interface UpdateProfileRequest {
+  name: string;
+  document?: string | null;
+}
+
 export interface UpdateUserStatusRequest {
   status: UserStatus;
 }

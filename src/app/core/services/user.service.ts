@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { PageRequest, PageResponse } from '../models/page-response.model';
 import {
   CreateUserRequest,
+  UpdateProfileRequest,
   UpdateUserStatusRequest,
   UpdateUserTypeRequest,
   User,
@@ -26,6 +27,14 @@ export class UserService {
 
   create(payload: CreateUserRequest): Observable<User> {
     return this.http.post<User>(`${this.apiUrl}/users`, payload);
+  }
+
+  getMe(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/users/me`);
+  }
+
+  updateMe(payload: UpdateProfileRequest): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/users/me`, payload);
   }
 
   updateStatus(id: number, payload: UpdateUserStatusRequest): Observable<User> {

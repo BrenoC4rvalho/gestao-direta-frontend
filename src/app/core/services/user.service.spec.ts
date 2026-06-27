@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { PageResponse } from '../models/page-response.model';
 import {
   CreateUserRequest,
+  UpdateProfileRequest,
   UpdateUserStatusRequest,
   UpdateUserTypeRequest,
   User,
@@ -71,6 +72,28 @@ describe('UserService', () => {
 
     const request = http.expectOne('http://localhost:8080/api/users');
     expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
+  });
+
+  it('should call GET /api/users/me', () => {
+    service.getMe().subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/me');
+    expect(request.request.method).toBe('GET');
+    request.flush(user);
+  });
+
+  it('should call PUT /api/users/me with only profile fields', () => {
+    const payload: UpdateProfileRequest = {
+      name: 'Maria Silva',
+      document: '12345678900',
+    };
+
+    service.updateMe(payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/me');
+    expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual(payload);
     request.flush(user);
   });

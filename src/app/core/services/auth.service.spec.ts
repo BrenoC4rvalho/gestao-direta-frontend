@@ -71,7 +71,6 @@ describe('AuthService', () => {
     const payload = {
       currentPassword: 'old-secret',
       newPassword: 'new-secret',
-      confirmPassword: 'new-secret',
     };
 
     service.changePassword(payload).subscribe((response) => {
