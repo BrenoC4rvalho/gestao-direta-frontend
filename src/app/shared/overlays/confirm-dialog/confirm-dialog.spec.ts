@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
@@ -9,7 +9,7 @@ import { ConfirmDialog } from './confirm-dialog';
   imports: [ConfirmDialog],
   template: `
     <gd-confirm-dialog
-      [open]="open"
+      [open]="open()"
       title="Confirmar ação"
       description="Essa ação não poderá ser desfeita."
       confirmLabel="Confirmar"
@@ -22,7 +22,7 @@ import { ConfirmDialog } from './confirm-dialog';
   `,
 })
 class ConfirmDialogHost {
-  open = true;
+  readonly open = signal(true);
   loading = false;
   variant: 'danger' | 'success' = 'danger';
   confirmedCount = 0;
@@ -30,6 +30,10 @@ class ConfirmDialogHost {
 }
 
 describe('ConfirmDialog', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    document.body.classList.remove('gd-overlay-open');
+  });
   it('should render when open and emit confirmed', async () => {
     await TestBed.configureTestingModule({
       imports: [ConfirmDialogHost],
@@ -90,5 +94,38 @@ describe('ConfirmDialog', () => {
     buttons[2].click();
 
     expect(fixture.componentInstance.confirmedCount).toBe(0);
+  });
+
+  it('should toggle body scroll lock with open state', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.detectChanges();
+
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
+
+    fixture.componentInstance.open.set(false);
+    fixture.detectChanges();
+
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+  });
+
+  it('should remove body scroll lock when destroyed while open', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.detectChanges();
+
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
+
+    fixture.destroy();
+
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 });

@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
 
 import { Button, ButtonVariant } from '../../ui';
+import { lockOverlayScroll } from '../overlay-scroll-lock';
 
 export type ConfirmDialogVariant = 'danger' | 'warning' | 'info' | 'success';
 
@@ -25,6 +26,14 @@ export class ConfirmDialog {
   readonly closed = output<void>();
 
   protected readonly titleId = 'gd-confirm-dialog-title';
+  private readonly scrollLockEffect = effect((onCleanup) => {
+    if (!this.open()) {
+      return;
+    }
+
+    const unlock = lockOverlayScroll();
+    onCleanup(unlock);
+  });
 
   protected readonly iconClasses = computed(() =>
     [

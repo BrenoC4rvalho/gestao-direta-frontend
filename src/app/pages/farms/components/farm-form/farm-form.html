@@ -1,5 +1,5 @@
-<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
-  <div class="grid flex-1 gap-4 sm:grid-cols-2">
+<form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid gap-4 sm:grid-cols-2">
     <gd-input
       class="sm:col-span-2"
       id="farm-name"
@@ -55,7 +55,7 @@
     />
   </div>
 
-  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+  <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
     <gd-button
       type="button"
       variant="outline"

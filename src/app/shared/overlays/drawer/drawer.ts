@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
+
+import { lockOverlayScroll } from '../overlay-scroll-lock';
 
 export type DrawerPosition = 'right' | 'bottom';
 export type DrawerSize = 'sm' | 'md' | 'lg';
@@ -22,10 +24,18 @@ export class Drawer {
   readonly closed = output<void>();
 
   protected readonly titleId = computed(() => (this.title() ? 'gd-drawer-title' : null));
+  private readonly scrollLockEffect = effect((onCleanup) => {
+    if (!this.open()) {
+      return;
+    }
+
+    const unlock = lockOverlayScroll();
+    onCleanup(unlock);
+  });
 
   protected readonly panelClasses = computed(() =>
     [
-      'fixed z-50 flex flex-col bg-surface text-text-primary shadow-soft',
+      'fixed z-50 flex flex-col overflow-hidden bg-surface text-text-primary shadow-soft',
       'transition-transform duration-200 ease-out',
       this.positionClasses(),
       this.sizeClasses(),
