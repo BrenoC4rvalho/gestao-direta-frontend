@@ -4,14 +4,16 @@ import {
   FinancialCategory,
   FinancialCategoryStatus,
   FinancialCategoryType,
-  isGlobalCategory,
 } from '../../../../core/models/financial-category.models';
-import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
+import { Badge, BadgeVariant, Button } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-category-card',
-  imports: [Badge, Button, Card],
+  imports: [Badge, Button],
   templateUrl: './category-card.html',
+  host: {
+    class: 'block',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryCard {
@@ -61,13 +63,5 @@ export class CategoryCard {
 
   protected statusVariant(): BadgeVariant {
     return this.category().status === 'ACTIVE' ? 'success' : 'danger';
-  }
-
-  protected originLabel(): string {
-    return isGlobalCategory(this.category()) ? 'Global' : 'Fazenda';
-  }
-
-  protected originVariant(): BadgeVariant {
-    return isGlobalCategory(this.category()) ? 'info' : 'default';
   }
 }

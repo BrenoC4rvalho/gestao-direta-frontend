@@ -1,51 +1,54 @@
-<article [attr.aria-label]="'Categoria ' + category().name">
-  <gd-card variant="elevated" padding="none">
-    <div class="flex min-h-full flex-col p-5">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h3 class="truncate text-lg font-semibold text-text-primary">{{ category().name }}</h3>
-          @if (category().farmName; as farmName) {
-            <p class="mt-1 truncate text-sm text-text-muted">{{ farmName }}</p>
-          } @else {
-            <p class="mt-1 text-sm text-text-muted">{{ originLabel() }}</p>
-          }
-        </div>
+<article
+  class="grid gap-4 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1fr)_8rem_8rem_auto] md:items-center"
+  [attr.aria-label]="'Categoria ' + category().name"
+>
+  <div class="min-w-0">
+    <h3 class="truncate text-base font-semibold text-text-primary">{{ category().name }}</h3>
+  </div>
 
-        <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
-      </div>
+  <div class="flex items-center justify-between gap-3 md:block">
+    <span class="text-xs font-medium uppercase tracking-wide text-text-muted md:hidden">Tipo</span>
+    <div>
+      <gd-badge [variant]="typeVariant()" size="sm">{{ typeLabel() }}</gd-badge>
+    </div>
+  </div>
 
-      <div class="mt-5 flex flex-wrap gap-2">
-        <gd-badge [variant]="typeVariant()" size="sm">{{ typeLabel() }}</gd-badge>
-        <gd-badge [variant]="originVariant()" size="sm">{{ originLabel() }}</gd-badge>
-      </div>
+  <div class="flex items-center justify-between gap-3 md:block">
+    <span class="text-xs font-medium uppercase tracking-wide text-text-muted md:hidden">
+      Status
+    </span>
+    <div>
+      <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
+    </div>
+  </div>
 
-      @if (canEdit() || (canDelete() && category().status !== 'INACTIVE')) {
-        <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
-          @if (canEdit()) {
-            <gd-button
-              type="button"
-              variant="outline"
-              size="sm"
-              [fullWidth]="true"
-              (click)="editCategory()"
-            >
-              Editar
-            </gd-button>
-          }
+  @if (canEdit() || (canDelete() && category().status !== 'INACTIVE')) {
+    <div
+      class="grid gap-2 border-t border-border pt-4 sm:grid-cols-2 md:min-w-48 md:border-t-0 md:pt-0"
+    >
+      @if (canEdit()) {
+        <gd-button
+          type="button"
+          variant="outline"
+          size="sm"
+          [fullWidth]="true"
+          (click)="editCategory()"
+        >
+          Editar
+        </gd-button>
+      }
 
-          @if (canDelete() && category().status !== 'INACTIVE') {
-            <gd-button
-              type="button"
-              variant="outline"
-              size="sm"
-              [fullWidth]="true"
-              (click)="deleteCategory()"
-            >
-              Inativar
-            </gd-button>
-          }
-        </div>
+      @if (canDelete() && category().status !== 'INACTIVE') {
+        <gd-button
+          type="button"
+          variant="outline"
+          size="sm"
+          [fullWidth]="true"
+          (click)="deleteCategory()"
+        >
+          Inativar
+        </gd-button>
       }
     </div>
-  </gd-card>
+  }
 </article>

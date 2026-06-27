@@ -25,7 +25,7 @@ describe('CategoryCard', () => {
     }).compileComponents();
   });
 
-  it('should render category data', () => {
+  it('should render category list item data', () => {
     const fixture = TestBed.createComponent(CategoryCard);
     fixture.componentRef.setInput('category', category);
     fixture.detectChanges();
@@ -33,13 +33,19 @@ describe('CategoryCard', () => {
     expect(fixture.nativeElement.textContent).toContain('Venda de leite');
     expect(fixture.nativeElement.textContent).toContain('Receita');
     expect(fixture.nativeElement.textContent).toContain('Ativa');
-    expect(fixture.nativeElement.textContent).toContain('Fazenda');
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+
+    expect(article).toBeTruthy();
+    expect(article.className).toContain('md:grid-cols');
+    expect(fixture.nativeElement.querySelector('gd-card')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Fazenda Boa Safra');
   });
 
   it('should render global badge', () => {
     const fixture = TestBed.createComponent(CategoryCard);
     fixture.componentRef.setInput('category', {
       ...category,
+      type: 'GLOBAL',
       farmId: null,
       farmName: null,
       isDefault: true,

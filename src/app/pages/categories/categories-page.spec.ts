@@ -164,13 +164,17 @@ describe('CategoriesPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Adubo');
   });
 
-  it('should render farm and global categories with category cards', () => {
+  it('should render farm and global categories with category list items', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    const cards = fixture.nativeElement.querySelectorAll('gd-category-card article');
+    const lists = fixture.nativeElement.querySelectorAll('[role="list"]');
+    const listItems = fixture.nativeElement.querySelectorAll(
+      'gd-category-card[role="listitem"] article',
+    );
 
-    expect(cards.length).toBe(2);
+    expect(lists.length).toBe(2);
+    expect(listItems.length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Adubo');
     expect(fixture.nativeElement.textContent).toContain('Venda de safra');
   });
@@ -249,14 +253,31 @@ describe('CategoriesPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Categoria atualizada com sucesso.');
   });
 
-  it('should allow global category edit only for admin', () => {
+  it('should show global category actions only for admin', () => {
     createPage();
-    expect(findButtons(fixture.nativeElement, 'Editar').length).toBeGreaterThan(0);
+    const adminGlobalItem = findCategoryItem(fixture.nativeElement, 'Venda de safra');
+
+    expect(adminGlobalItem).toBeTruthy();
+    expect(findButton(adminGlobalItem, 'Editar')).toBeTruthy();
+    expect(findButton(adminGlobalItem, 'Inativar')).toBeTruthy();
 
     sessionStore.setUser(user);
     selectedFarmStore.setFarms([farm]);
     farmAccessStore.setAccess(access);
     categoryService.listByFarm.mockReturnValue(of([farmCategory, globalCategory]));
+    createPage();
+    const userGlobalItem = findCategoryItem(fixture.nativeElement, 'Venda de safra');
+
+    expect(userGlobalItem).toBeTruthy();
+    expect(findButton(userGlobalItem, 'Editar')).toBeUndefined();
+    expect(findButton(userGlobalItem, 'Inativar')).toBeUndefined();
+  });
+
+  it('should block global category edit for non admin handlers', () => {
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(access);
+    categoryService.listByFarm.mockReturnValue(of([farmCategory]));
     createPage();
 
     const harness = fixture.componentInstance as unknown as CategoriesPageHarness;
@@ -269,14 +290,23 @@ describe('CategoriesPage', () => {
     );
   });
 
-  it('should allow farm category inactivation for canManageCategories', () => {
-    sessionStore.setUser(user);
+  it('should show farm category actions for admin and canManageCategories', () => {
     selectedFarmStore.setFarms([farm]);
-    farmAccessStore.setAccess(access);
-    categoryService.listByFarm.mockReturnValue(of([farmCategory, globalCategory]));
     createPage();
+    const adminFarmItem = findCategoryItem(fixture.nativeElement, 'Adubo');
 
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeTruthy();
+    expect(adminFarmItem).toBeTruthy();
+    expect(findButton(adminFarmItem, 'Editar')).toBeTruthy();
+    expect(findButton(adminFarmItem, 'Inativar')).toBeTruthy();
+
+    sessionStore.setUser(user);
+    farmAccessStore.setAccess(access);
+    createPage();
+    const userFarmItem = findCategoryItem(fixture.nativeElement, 'Adubo');
+
+    expect(userFarmItem).toBeTruthy();
+    expect(findButton(userFarmItem, 'Editar')).toBeTruthy();
+    expect(findButton(userFarmItem, 'Inativar')).toBeTruthy();
   });
 
   it('should block global category inactivation for non admin handlers', () => {
@@ -361,12 +391,17 @@ describe('CategoriesPage', () => {
   }
 });
 
-function findButtons(root: HTMLElement, label: string): HTMLButtonElement[] {
-  return Array.from(root.querySelectorAll('button')).filter(
-    (button) => button.textContent?.trim() === label,
+function findCategoryItem(root: HTMLElement, label: string): HTMLElement {
+  const item = Array.from(root.querySelectorAll('gd-category-card article')).find((article) =>
+    article.textContent?.includes(label),
   );
-}
 
+  if (!item) {
+    throw new Error(`Category item not found: ${label}`);
+  }
+
+  return item as HTMLElement;
+}
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,

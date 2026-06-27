@@ -81,7 +81,10 @@
             icon="tags"
           />
         } @else {
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
+            role="list"
+          >
             @for (category of farmCategories(); track category.id) {
               <gd-category-card
                 [category]="category"
@@ -89,6 +92,7 @@
                 [canDelete]="canDeleteCategory(category)"
                 (editRequested)="openEditDrawer($event)"
                 (deleteRequested)="requestDelete($event)"
+                role="listitem"
               />
             }
           </div>
@@ -113,7 +117,10 @@
           icon="tags"
         />
       } @else {
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
+          role="list"
+        >
           @for (category of globalCategories(); track category.id) {
             <gd-category-card
               [category]="category"
@@ -121,6 +128,7 @@
               [canDelete]="canDeleteCategory(category)"
               (editRequested)="openEditDrawer($event)"
               (deleteRequested)="requestDelete($event)"
+              role="listitem"
             />
           }
         </div>
