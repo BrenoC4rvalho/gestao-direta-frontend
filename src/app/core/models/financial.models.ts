@@ -54,6 +54,11 @@ export interface UpcomingBill {
   status: PaymentStatus;
   dueDate: string;
   farmId: number;
+  farmName?: string | null;
   categoryId: number | null;
   categoryName: string | null;
+  paymentMethod?: PaymentMethod | null;
+  transactionDate?: string | null;
+  paidAt?: string | null;
+  paidDate?: string | null;
 }

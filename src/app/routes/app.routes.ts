@@ -76,8 +76,11 @@ export const routes: Routes = [
       },
       {
         path: 'upcoming-bills',
-        title: 'Contas futuras',
-        loadComponent: temporaryPage,
+        title: 'Contas a vencer',
+        loadComponent: () =>
+          import('../pages/upcoming-bills/upcoming-bills-page').then(
+            (component) => component.UpcomingBillsPage,
+          ),
       },
       {
         path: 'profile',

@@ -1,0 +1,67 @@
+<article [attr.aria-label]="'Conta a vencer ' + bill().description">
+  <gd-card variant="elevated" padding="none">
+    <div class="flex min-h-full flex-col p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h3 class="truncate text-lg font-semibold text-text-primary">{{ bill().description }}</h3>
+          <p class="mt-1 truncate text-sm text-text-muted">
+            {{ bill().categoryName ?? 'Sem categoria' }}
+          </p>
+        </div>
+
+        <p class="shrink-0 text-base font-semibold text-text-primary">
+          {{ formatCurrency(bill().amount) }}
+        </p>
+      </div>
+
+      <div class="mt-5 flex flex-wrap gap-2">
+        <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
+        <gd-badge [variant]="dueVariant()" size="sm">{{ dueText() }}</gd-badge>
+      </div>
+
+      <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="text-text-muted">Vencimento</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(bill().dueDate) }}</dd>
+        </div>
+        <div>
+          <dt class="text-text-muted">Método</dt>
+          <dd class="mt-1 font-medium text-text-primary">
+            {{ paymentMethodLabel(bill().paymentMethod) }}
+          </dd>
+        </div>
+        @if (bill().transactionDate) {
+          <div>
+            <dt class="text-text-muted">Movimentação</dt>
+            <dd class="mt-1 font-medium text-text-primary">{{ formatDate(bill().transactionDate) }}</dd>
+          </div>
+        }
+        @if (bill().paidAt || bill().paidDate) {
+          <div>
+            <dt class="text-text-muted">Pagamento</dt>
+            <dd class="mt-1 font-medium text-text-primary">
+              {{ formatDate(bill().paidAt ?? bill().paidDate) }}
+            </dd>
+          </div>
+        }
+      </dl>
+
+      @if (hasActions()) {
+        <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
+          @if (canMarkAsPaid()) {
+            <gd-button type="button" variant="secondary" size="sm" [fullWidth]="true" (click)="markAsPaid()">
+              Marcar como paga
+            </gd-button>
+          }
+          @if (canCancel()) {
+            <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="cancelBill()">
+              Cancelar
+            </gd-button>
+          }
+        </div>
+      } @else {
+        <p class="mt-5 border-t border-border pt-4 text-sm font-medium text-text-muted">Somente leitura</p>
+      }
+    </div>
+  </gd-card>
+</article>
