@@ -1,14 +1,36 @@
 <section class="space-y-6">
-  @if (sessionStore.isAdmin()) {
+  @if (canCreateUsers()) {
     <div class="flex justify-end">
       <gd-button type="button" (click)="openCreateDrawer()">Novo usuário</gd-button>
     </div>
   }
 
-  @if (accessDenied()) {
+  @if (!canListUsers() && !selectedFarmStore.selectedFarmId()) {
+    <gd-empty-state
+      title="Nenhuma fazenda selecionada"
+      description="Selecione uma fazenda para criar usuários vinculáveis à gestão da fazenda."
+      icon="tractor"
+    />
+  } @else if (waitingForFarmAccess()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
+      @for (item of skeletons; track item) {
+        <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+          <gd-skeleton width="65%" height="1.25rem" />
+          <gd-skeleton class="mt-3 block" width="80%" height="0.875rem" />
+          <gd-skeleton class="mt-6 block" width="40%" height="1.5rem" rounded="full" />
+        </div>
+      }
+    </div>
+  } @else if (accessDenied() || (!canListUsers() && !canCreateUsers())) {
     <gd-error-state
       title="Acesso restrito"
       description="Você não tem permissão para visualizar usuários."
+    />
+  } @else if (isProducerMode()) {
+    <gd-empty-state
+      title="Criação de usuários disponível"
+      description="Crie usuários comuns para depois vinculá-los à fazenda selecionada por e-mail."
+      icon="users"
     />
   } @else if (loading()) {
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando usuários">
@@ -215,6 +237,7 @@
   <gd-user-form
     [open]="drawerOpen()"
     [submitting]="submitting()"
+    [allowedUserTypes]="allowedUserTypes()"
     (submitted)="createUser($event)"
     (cancelled)="closeDrawer()"
   />

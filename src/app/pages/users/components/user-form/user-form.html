@@ -43,16 +43,18 @@
       [disabled]="submitting()"
     />
 
-    <gd-select
-      id="user-type"
-      label="Tipo"
-      placeholder="Selecione o tipo"
-      [control]="form.controls.userType"
-      [options]="userTypeOptions"
-      [required]="true"
-      [disabled]="submitting()"
-      [errorMessage]="userTypeErrorMessage()"
-    />
+    @if (showUserTypeSelect()) {
+      <gd-select
+        id="user-type"
+        label="Tipo"
+        placeholder="Selecione o tipo"
+        [control]="form.controls.userType"
+        [options]="userTypeOptions()"
+        [required]="true"
+        [disabled]="submitting()"
+        [errorMessage]="userTypeErrorMessage()"
+      />
+    }
   </div>
 
   <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">

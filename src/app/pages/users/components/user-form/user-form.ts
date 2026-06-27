@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { UserType } from '../../../../core/models/auth.models';
@@ -29,14 +29,15 @@ interface UserFormControls {
 export class UserForm {
   readonly open = input(false);
   readonly submitting = input(false);
+  readonly allowedUserTypes = input<readonly UserType[]>(['USER', 'ADMIN']);
 
   readonly submitted = output<CreateUserRequest>();
   readonly cancelled = output<void>();
 
-  protected readonly userTypeOptions: readonly GdSelectOption[] = [
-    { label: 'Administrador', value: 'ADMIN' },
-    { label: 'Usuário', value: 'USER' },
-  ];
+  protected readonly userTypeOptions = computed<readonly GdSelectOption[]>(() =>
+    this.allowedUserTypes().map((type) => ({ label: this.userTypeLabel(type), value: type })),
+  );
+  protected readonly showUserTypeSelect = computed(() => this.allowedUserTypes().length > 1);
 
   protected readonly form = new FormGroup<UserFormControls>({
     name: new FormControl<GdFormValue>('', {
@@ -57,12 +58,13 @@ export class UserForm {
   constructor() {
     effect(() => {
       this.open();
+      const [defaultType = 'USER'] = this.allowedUserTypes();
       this.form.reset({
         name: '',
         email: '',
         password: '',
         document: '',
-        userType: '',
+        userType: this.showUserTypeSelect() ? '' : defaultType,
       });
     });
   }
@@ -79,7 +81,11 @@ export class UserForm {
     const name = this.stringValue(this.form.controls.name.value);
     const email = this.stringValue(this.form.controls.email.value).toLowerCase();
     const password = this.stringValue(this.form.controls.password.value);
-    const userType = this.stringValue(this.form.controls.userType.value);
+    const allowedUserTypes = this.allowedUserTypes();
+    const selectedUserType = this.stringValue(this.form.controls.userType.value) as UserType;
+    const userType = this.normalizedUserType(selectedUserType, allowedUserTypes);
+
+    this.form.controls.userType.setValue(userType);
 
     this.setRequiredErrorIfEmpty(this.form.controls.name, name);
     this.setRequiredErrorIfEmpty(this.form.controls.email, email);
@@ -96,7 +102,7 @@ export class UserForm {
       email,
       password,
       document: this.nullableString(this.form.controls.document.value),
-      userType: userType as UserType,
+      userType,
     });
   }
 
@@ -137,6 +143,32 @@ export class UserForm {
     return this.form.controls.userType.hasError('required')
       ? 'Selecione o tipo de usuário.'
       : null;
+  }
+
+
+
+  private normalizedUserType(
+    selectedUserType: UserType | '',
+    allowedUserTypes: readonly UserType[],
+  ): UserType | '' {
+    if (allowedUserTypes.includes(selectedUserType as UserType)) {
+      return selectedUserType as UserType;
+    }
+
+    if (!selectedUserType && this.showUserTypeSelect()) {
+      return '';
+    }
+
+    return allowedUserTypes[0] ?? 'USER';
+  }
+
+  private userTypeLabel(type: UserType): string {
+    const labels: Record<string, string> = {
+      ADMIN: 'Administrador',
+      USER: 'Usuário',
+    };
+
+    return labels[type] ?? type;
   }
 
   private setRequiredErrorIfEmpty(control: GdFormControl, value: string): void {

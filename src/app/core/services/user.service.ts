@@ -25,6 +25,12 @@ export class UserService {
     });
   }
 
+  searchByEmail(email: string): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/users/search-by-email`, {
+      params: new HttpParams().set('email', email.trim()),
+    });
+  }
+
   create(payload: CreateUserRequest): Observable<User> {
     return this.http.post<User>(`${this.apiUrl}/users`, payload);
   }

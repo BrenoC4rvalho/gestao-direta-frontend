@@ -59,6 +59,27 @@ describe('UserService', () => {
     request.flush(response);
   });
 
+
+  it('should search a user by email', () => {
+    service.searchByEmail('user@email.com').subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne(
+      'http://localhost:8080/api/users/search-by-email?email=user@email.com',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush(user);
+  });
+
+  it('should trim email when searching a user', () => {
+    service.searchByEmail(' user@email.com ').subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne(
+      'http://localhost:8080/api/users/search-by-email?email=user@email.com',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush(user);
+  });
+
   it('should call POST /api/users with the payload', () => {
     const payload: CreateUserRequest = {
       name: 'Maria Silva',

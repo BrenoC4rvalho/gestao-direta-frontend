@@ -37,6 +37,31 @@ const user: AuthUser = {
   status: 'ACTIVE',
 };
 
+
+const producerUser: AuthUser = {
+  ...user,
+  userType: 'USER',
+};
+
+const producerAccess = {
+  farmId: 10,
+  farmName: 'Fazenda Boa Safra',
+  userId: 1,
+  userType: 'USER',
+  role: 'PRODUCER',
+  permissions: {
+    canViewFarm: true,
+    canEditFarm: true,
+    canChangeFarmStatus: false,
+    canManageFarmUsers: true,
+    canViewFinancial: true,
+    canManageTransactions: true,
+    canManageCategories: true,
+    canManageGlobalCategories: false,
+    canCreateFarm: false,
+  },
+};
+
 describe('MobileHeader', () => {
   let fixture: ComponentFixture<MobileHeader>;
   let authService: { logout: ReturnType<typeof vi.fn> };
@@ -79,6 +104,7 @@ describe('MobileHeader', () => {
   });
 
   afterEach(() => {
+    farmAccessStore.clear();
     selectedFarmStore.clear();
     toastStore.clear();
   });
@@ -106,6 +132,28 @@ describe('MobileHeader', () => {
     expect(fixture.nativeElement.textContent).toContain('Dashboard');
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('gd-farm-context-selector')).toBeNull();
+  });
+
+
+  it('should render Users for a producer with farm user management permission', () => {
+    sessionStore.setUser(producerUser);
+    farmAccessStore.setAccess(producerAccess);
+    fixture.detectChanges();
+    openDrawer();
+
+    expect(fixture.nativeElement.textContent).toContain('Usuários');
+  });
+
+  it('should hide Users for a non-admin user without farm user management permission', () => {
+    sessionStore.setUser(producerUser);
+    farmAccessStore.setAccess({
+      ...producerAccess,
+      permissions: { ...producerAccess.permissions, canManageFarmUsers: false },
+    });
+    fixture.detectChanges();
+    openDrawer();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Usuários');
   });
 
   it('should render authenticated user as a profile link in the drawer', () => {

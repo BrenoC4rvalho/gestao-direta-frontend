@@ -1,15 +1,53 @@
 <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
   <div class="grid gap-4">
-    <gd-select
-      id="farm-user-user"
-      label="Usuário"
-      placeholder="Selecione um usuário"
-      [control]="form.controls.userId"
-      [options]="userOptions()"
-      [required]="true"
-      [disabled]="submitting()"
-      [errorMessage]="userErrorMessage()"
-    />
+    @if (mode() === 'admin-list') {
+      <gd-select
+        id="farm-user-user"
+        label="Usuário"
+        placeholder="Selecione um usuário"
+        [control]="form.controls.userId"
+        [options]="userOptions()"
+        [required]="true"
+        [disabled]="submitting()"
+        [errorMessage]="userErrorMessage()"
+      />
+    } @else {
+      <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <gd-input
+          id="farm-user-email"
+          label="E-mail do usuário"
+          placeholder="usuario@exemplo.com"
+          type="email"
+          autocomplete="email"
+          [control]="form.controls.email"
+          [required]="true"
+          [disabled]="submitting() || searchLoading()"
+          [errorMessage]="emailErrorMessage()"
+        />
+        <gd-button
+          type="button"
+          variant="outline"
+          [loading]="searchLoading()"
+          [disabled]="submitting()"
+          (click)="requestSearch()"
+        >
+          Buscar usuário
+        </gd-button>
+      </div>
+
+      @if (searchError(); as error) {
+        <p class="rounded-control border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+          {{ error }}
+        </p>
+      }
+
+      @if (foundUser(); as user) {
+        <article class="rounded-app border border-border bg-background p-4" aria-label="Usuário encontrado">
+          <p class="font-semibold text-text-primary">{{ user.name }}</p>
+          <p class="mt-1 break-all text-sm text-text-muted">{{ user.email }}</p>
+        </article>
+      }
+    }
 
     <gd-select
       id="farm-user-role"
@@ -33,6 +71,8 @@
     >
       Cancelar
     </gd-button>
-    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">
+      {{ mode() === 'email-search' ? 'Vincular' : 'Salvar' }}
+    </gd-button>
   </div>
 </form>

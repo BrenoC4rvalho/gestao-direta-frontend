@@ -73,6 +73,9 @@ export class FarmUsersPage {
   protected readonly availableUsers = signal<User[]>([]);
   protected readonly availableUsersLoading = signal(false);
   protected readonly availableUsersError = signal(false);
+  protected readonly foundUser = signal<User | null>(null);
+  protected readonly userSearchLoading = signal(false);
+  protected readonly userSearchError = signal<string | null>(null);
   protected readonly roleTarget = signal<FarmUser | null>(null);
   protected readonly roleSubmitting = signal(false);
   protected readonly inactivationTarget = signal<FarmUser | null>(null);
@@ -90,6 +93,9 @@ export class FarmUsersPage {
   );
   protected readonly roleDrawerOptions = computed<readonly FarmUserRole[]>(() =>
     this.allowedRoles().filter((role) => role !== this.roleTarget()?.role),
+  );
+  protected readonly linkFormMode = computed(() =>
+    this.sessionStore.isAdmin() ? 'admin-list' : 'email-search',
   );
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'medium',
@@ -152,7 +158,11 @@ export class FarmUsersPage {
     }
 
     this.linkDrawerOpen.set(true);
-    this.loadAvailableUsers();
+    this.resetUserSearchState();
+
+    if (this.sessionStore.isAdmin()) {
+      this.loadAvailableUsers();
+    }
   }
 
   protected closeLinkDrawer(): void {
@@ -163,10 +173,39 @@ export class FarmUsersPage {
     this.linkDrawerOpen.set(false);
     this.availableUsersSubscription?.unsubscribe();
     this.availableUsersSubscription = null;
+    this.resetUserSearchState();
   }
 
   protected retryAvailableUsers(): void {
     this.loadAvailableUsers();
+  }
+
+
+  protected searchUserByEmail(email: string): void {
+    if (this.sessionStore.isAdmin() || !this.canManageContext() || this.userSearchLoading()) {
+      return;
+    }
+
+    this.foundUser.set(null);
+    this.userSearchError.set(null);
+    this.userSearchLoading.set(true);
+
+    this.userService
+      .searchByEmail(email)
+      .pipe(
+        finalize(() => this.userSearchLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (user) => {
+          if (!this.isValidSearchResult(user)) {
+            return;
+          }
+
+          this.foundUser.set(user);
+        },
+        error: (error: unknown) => this.handleUserSearchError(error),
+      });
   }
 
   protected linkUser(payload: CreateFarmUserRequest): void {
@@ -181,6 +220,21 @@ export class FarmUsersPage {
       return;
     }
 
+    if (!this.sessionStore.isAdmin()) {
+      const foundUser = this.foundUser();
+
+      if (
+        !foundUser ||
+        payload.userId !== foundUser.id ||
+        foundUser.userType === 'ADMIN' ||
+        foundUser.status !== 'ACTIVE' ||
+        !['EMPLOYEE', 'ACCOUNTANT'].includes(payload.role)
+      ) {
+        this.toastStore.error('Não foi possível concluir a ação. Verifique as regras do vínculo.');
+        return;
+      }
+    }
+
     this.linkSubmitting.set(true);
 
     this.farmUserService
@@ -192,6 +246,7 @@ export class FarmUsersPage {
       .subscribe({
         next: () => {
           this.linkDrawerOpen.set(false);
+          this.resetUserSearchState();
           this.toastStore.success('Usuário vinculado com sucesso.');
           this.retry();
         },
@@ -391,6 +446,39 @@ export class FarmUsersPage {
       });
   }
 
+
+  private isValidSearchResult(user: User): boolean {
+    if (user.userType === 'ADMIN') {
+      this.userSearchError.set('Não é possível vincular um administrador.');
+      return false;
+    }
+
+    if (user.status !== 'ACTIVE') {
+      this.userSearchError.set('Não é possível vincular um usuário inativo ou bloqueado.');
+      return false;
+    }
+
+    return true;
+  }
+
+  private handleUserSearchError(error: unknown): void {
+    this.foundUser.set(null);
+
+    if (!(error instanceof HttpErrorResponse)) {
+      this.userSearchError.set('Não foi possível pesquisar o usuário.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Informe um e-mail válido.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para pesquisar usuários.',
+      404: 'Usuário não encontrado.',
+    };
+
+    this.userSearchError.set(messages[error.status] ?? 'Não foi possível pesquisar o usuário.');
+  }
+
   private handleListError(error: unknown): void {
     this.farmUsers.set([]);
 
@@ -432,7 +520,14 @@ export class FarmUsersPage {
     this.availableUsers.set([]);
     this.availableUsersLoading.set(false);
     this.availableUsersError.set(false);
+    this.resetUserSearchState();
     this.roleTarget.set(null);
     this.inactivationTarget.set(null);
+  }
+
+  private resetUserSearchState(): void {
+    this.foundUser.set(null);
+    this.userSearchLoading.set(false);
+    this.userSearchError.set(null);
   }
 }

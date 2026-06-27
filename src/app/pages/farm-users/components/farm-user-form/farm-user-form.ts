@@ -10,27 +10,36 @@ import {
   GdFormControl,
   GdFormValue,
   GdSelectOption,
+  Input,
   Select,
 } from '../../../../shared/forms';
 import { Button } from '../../../../shared/ui';
 
+export type FarmUserFormMode = 'admin-list' | 'email-search';
+
 interface FarmUserFormControls {
+  email: GdFormControl;
   userId: GdFormControl;
   role: GdFormControl;
 }
 
 @Component({
   selector: 'gd-farm-user-form',
-  imports: [Button, ReactiveFormsModule, Select],
+  imports: [Button, Input, ReactiveFormsModule, Select],
   templateUrl: './farm-user-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FarmUserForm {
   readonly open = input(false);
-  readonly users = input.required<readonly User[]>();
+  readonly mode = input<FarmUserFormMode>('admin-list');
+  readonly users = input<readonly User[]>([]);
+  readonly foundUser = input<User | null>(null);
   readonly roles = input.required<readonly FarmUserRole[]>();
   readonly submitting = input(false);
+  readonly searchLoading = input(false);
+  readonly searchError = input<string | null>(null);
 
+  readonly searchEmail = output<string>();
   readonly submitted = output<CreateFarmUserRequest>();
   readonly cancelled = output<void>();
 
@@ -45,6 +54,7 @@ export class FarmUserForm {
   );
 
   protected readonly form = new FormGroup<FarmUserFormControls>({
+    email: new FormControl<GdFormValue>('', { validators: [Validators.required, Validators.email] }),
     userId: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     role: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
   });
@@ -52,8 +62,33 @@ export class FarmUserForm {
   constructor() {
     effect(() => {
       this.open();
-      this.form.reset({ userId: '', role: '' });
+      this.mode();
+      this.form.reset({ email: '', userId: '', role: '' });
     });
+
+    effect(() => {
+      const user = this.foundUser();
+
+      if (this.mode() === 'email-search') {
+        this.form.controls.userId.setValue(user?.id ?? '');
+      }
+    });
+  }
+
+  protected requestSearch(): void {
+    if (this.submitting() || this.searchLoading()) {
+      return;
+    }
+
+    const email = this.stringValue(this.form.controls.email.value).toLowerCase();
+    this.setRequiredErrorIfEmpty(this.form.controls.email, email);
+
+    if (this.form.controls.email.invalid) {
+      this.form.controls.email.markAsTouched();
+      return;
+    }
+
+    this.searchEmail.emit(email);
   }
 
   protected submit(): void {
@@ -61,8 +96,14 @@ export class FarmUserForm {
       return;
     }
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    if (this.mode() === 'email-search') {
+      const user = this.foundUser();
+      this.form.controls.userId.setValue(user?.id ?? '');
+    }
+
+    if (this.form.controls.userId.invalid || this.form.controls.role.invalid) {
+      this.form.controls.userId.markAsTouched();
+      this.form.controls.role.markAsTouched();
       return;
     }
 
@@ -76,6 +117,16 @@ export class FarmUserForm {
     if (!this.submitting()) {
       this.cancelled.emit();
     }
+  }
+
+  protected emailErrorMessage(): string | null {
+    const control = this.form.controls.email;
+
+    if (control.hasError('required')) {
+      return 'Informe o e-mail.';
+    }
+
+    return control.hasError('email') ? 'Informe um e-mail válido.' : null;
   }
 
   protected userErrorMessage(): string | null {
@@ -96,5 +147,15 @@ export class FarmUserForm {
     };
 
     return labels[role] ?? role;
+  }
+
+  private setRequiredErrorIfEmpty(control: GdFormControl, value: string): void {
+    if (!value) {
+      control.setErrors({ ...control.errors, required: true });
+    }
+  }
+
+  private stringValue(value: GdFormValue): string {
+    return `${value ?? ''}`.trim();
   }
 }

@@ -12,7 +12,7 @@
 
   <nav class="flex-1 px-3 py-4" aria-label="Navegação principal">
     <ul class="space-y-1">
-      @for (item of navItems; track item.route) {
+      @for (item of navItems(); track item.route) {
         <li>
           <a
             [routerLink]="item.route"

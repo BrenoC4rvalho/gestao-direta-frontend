@@ -182,7 +182,7 @@ describe('FarmUsersPage', () => {
     updateRole: ReturnType<typeof vi.fn>;
     inactivate: ReturnType<typeof vi.fn>;
   };
-  let userService: { list: ReturnType<typeof vi.fn> };
+  let userService: { list: ReturnType<typeof vi.fn>; searchByEmail: ReturnType<typeof vi.fn> };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
@@ -197,6 +197,7 @@ describe('FarmUsersPage', () => {
     };
     userService = {
       list: vi.fn().mockReturnValue(of(userPage(availableUsers))),
+      searchByEmail: vi.fn().mockReturnValue(of(availableUsers[0])),
     };
 
     await TestBed.configureTestingModule({
@@ -376,7 +377,7 @@ describe('FarmUsersPage', () => {
     );
   });
 
-  it('should allow only employee and accountant roles for a producer', () => {
+  it('should open the producer drawer without listing users and allow only employee and accountant roles', () => {
     sessionStore.setUser(producer);
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(producerAccess);
@@ -384,9 +385,47 @@ describe('FarmUsersPage', () => {
     clickButton('Vincular usuário');
 
     const form = fixture.nativeElement.querySelector('gd-farm-user-form') as HTMLElement;
+    expect(userService.list).not.toHaveBeenCalled();
     expect(form.textContent).not.toContain('Produtor');
     expect(form.textContent).toContain('Funcionário');
     expect(form.textContent).toContain('Contador');
+    expect(form.textContent).toContain('Buscar usuário');
+  });
+
+  it('should search by email and link the found user for a producer', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, ' ana@example.com ');
+    clickButton('Buscar usuário');
+
+    expect(userService.searchByEmail).toHaveBeenCalledWith('ana@example.com');
+    expect(fixture.nativeElement.textContent).toContain('Ana Disponível');
+
+    selectInForm('gd-farm-user-form', 0, 1);
+    submitForm('gd-farm-user-form');
+
+    expect(farmUserService.linkUser).toHaveBeenCalledWith(10, {
+      userId: 5,
+      role: 'EMPLOYEE',
+    });
+  });
+
+  it('should show producer search errors', () => {
+    userService.searchByEmail.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 404 })),
+    );
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, 'desconhecido@example.com');
+    clickButton('Buscar usuário');
+
+    expect(fixture.nativeElement.textContent).toContain('Usuário não encontrado.');
   });
 
   it('should protect the authenticated user link from actions', () => {
@@ -427,6 +466,14 @@ describe('FarmUsersPage', () => {
 
   function clickButton(label: string): void {
     findButton(fixture.nativeElement, label)?.click();
+    fixture.detectChanges();
+  }
+
+  function setInput(selector: string, index: number, value: string): void {
+    const root = fixture.nativeElement.querySelector(selector) as HTMLElement;
+    const input = root.querySelectorAll<HTMLInputElement>('input')[index];
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
   }
 

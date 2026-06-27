@@ -1,5 +1,5 @@
 import { NgOptimizedImage } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
@@ -32,7 +32,14 @@ export class MobileHeader {
   protected readonly sessionStore = inject(SessionStore);
   private readonly farmAccessStore = inject(FarmAccessStore);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
-  protected readonly navItems = MAIN_NAV_ITEMS;
+  protected readonly navItems = computed(() =>
+    MAIN_NAV_ITEMS.filter(
+      (item) =>
+        item.route !== '/users' ||
+        this.sessionStore.isAdmin() ||
+        this.farmAccessStore.canManageFarmUsers(),
+    ),
+  );
   protected readonly isMenuOpen = signal(false);
 
   protected openMenu(): void {

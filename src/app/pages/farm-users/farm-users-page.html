@@ -205,30 +205,46 @@
   [showCloseButton]="!linkSubmitting()"
   (closed)="closeLinkDrawer()"
 >
-  @if (availableUsersLoading()) {
-    <div class="space-y-4" aria-label="Carregando usuários disponíveis">
-      <gd-skeleton height="2.5rem" />
-      <gd-skeleton height="2.5rem" />
-    </div>
-  } @else if (availableUsersError()) {
-    <gd-error-state
-      title="Não foi possível carregar os usuários"
-      description="Verifique sua conexão e tente novamente."
-      actionLabel="Tentar novamente"
-      (action)="retryAvailableUsers()"
-    />
-  } @else if (availableUsers().length === 0) {
-    <gd-empty-state
-      title="Nenhum usuário disponível"
-      description="Não há usuários ativos disponíveis para vincular a esta fazenda."
-      icon="users"
-    />
+  @if (sessionStore.isAdmin()) {
+    @if (availableUsersLoading()) {
+      <div class="space-y-4" aria-label="Carregando usuários disponíveis">
+        <gd-skeleton height="2.5rem" />
+        <gd-skeleton height="2.5rem" />
+      </div>
+    } @else if (availableUsersError()) {
+      <gd-error-state
+        title="Não foi possível carregar os usuários"
+        description="Verifique sua conexão e tente novamente."
+        actionLabel="Tentar novamente"
+        (action)="retryAvailableUsers()"
+      />
+    } @else if (availableUsers().length === 0) {
+      <gd-empty-state
+        title="Nenhum usuário disponível"
+        description="Não há usuários ativos disponíveis para vincular a esta fazenda."
+        icon="users"
+      />
+    } @else {
+      <gd-farm-user-form
+        [open]="linkDrawerOpen()"
+        mode="admin-list"
+        [users]="availableUsers()"
+        [roles]="allowedRoles()"
+        [submitting]="linkSubmitting()"
+        (submitted)="linkUser($event)"
+        (cancelled)="closeLinkDrawer()"
+      />
+    }
   } @else {
     <gd-farm-user-form
       [open]="linkDrawerOpen()"
-      [users]="availableUsers()"
+      mode="email-search"
+      [foundUser]="foundUser()"
       [roles]="allowedRoles()"
       [submitting]="linkSubmitting()"
+      [searchLoading]="userSearchLoading()"
+      [searchError]="userSearchError()"
+      (searchEmail)="searchUserByEmail($event)"
       (submitted)="linkUser($event)"
       (cancelled)="closeLinkDrawer()"
     />

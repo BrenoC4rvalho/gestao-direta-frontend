@@ -95,6 +95,40 @@ describe('UserForm', () => {
     ]);
   });
 
+
+  it('should limit type options with allowedUserTypes', () => {
+    const fixture = TestBed.createComponent(UserForm);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('allowedUserTypes', ['USER']);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('gd-select select')).toBeNull();
+  });
+
+  it('should not emit ADMIN when only USER is allowed', () => {
+    const fixture = TestBed.createComponent(UserForm);
+    const submitted: unknown[] = [];
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('allowedUserTypes', ['USER']);
+    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
+    fixture.detectChanges();
+
+    setInput(fixture.nativeElement, 0, 'Maria Silva');
+    setInput(fixture.nativeElement, 1, 'maria@example.com');
+    setInput(fixture.nativeElement, 2, 'password123');
+    submit(fixture.nativeElement);
+
+    expect(submitted).toEqual([
+      {
+        name: 'Maria Silva',
+        email: 'maria@example.com',
+        password: 'password123',
+        document: null,
+        userType: 'USER',
+      },
+    ]);
+  });
+
   it('should reset and emit cancellation', () => {
     const fixture = createForm();
     const cancelled = vi.fn();
@@ -150,7 +184,13 @@ function setInput(root: HTMLElement, index: number, value: string): void {
 
 function setSelect(root: HTMLElement, value: string): void {
   const select = root.querySelector('gd-select select') as HTMLSelectElement;
-  select.selectedIndex = value === 'ADMIN' ? 1 : 2;
+  const option = Array.from(select.options).find((item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'));
+
+  if (!option) {
+    throw new Error(`Option not found: ${value}`);
+  }
+
+  select.value = option.value;
   select.dispatchEvent(new Event('change'));
 }
 

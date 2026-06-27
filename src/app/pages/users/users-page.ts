@@ -16,6 +16,8 @@ import { UserStatus, UserType } from '../../core/models/auth.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { CreateUserRequest, User } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
@@ -62,6 +64,8 @@ export class UsersPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly sessionStore = inject(SessionStore);
+  protected readonly farmAccessStore = inject(FarmAccessStore);
+  protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly response = signal<PageResponse<User> | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
@@ -71,6 +75,33 @@ export class UsersPage implements OnInit {
   protected readonly pendingAction = signal<UserAction | null>(null);
   protected readonly actionSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
+
+  protected readonly canListUsers = computed(() => this.sessionStore.isAdmin());
+  protected readonly canCreateUsers = computed(() => {
+    if (this.sessionStore.isAdmin()) {
+      return true;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    return (
+      farmId !== null &&
+      this.farmAccessStore.access()?.farmId === farmId &&
+      this.farmAccessStore.canManageFarmUsers()
+    );
+  });
+  protected readonly isProducerMode = computed(
+    () => !this.sessionStore.isAdmin() && this.canCreateUsers(),
+  );
+  protected readonly allowedUserTypes = computed<readonly UserType[]>(() =>
+    this.sessionStore.isAdmin() ? ['USER', 'ADMIN'] : ['USER'],
+  );
+  protected readonly waitingForFarmAccess = computed(
+    () =>
+      !this.sessionStore.isAdmin() &&
+      this.selectedFarmStore.selectedFarmId() !== null &&
+      (this.farmAccessStore.loading() ||
+        (!this.farmAccessStore.access() && !this.farmAccessStore.error())),
+  );
 
   protected readonly users = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
@@ -84,12 +115,9 @@ export class UsersPage implements OnInit {
   });
 
   ngOnInit(): void {
-    if (!this.sessionStore.isAdmin()) {
-      this.accessDenied.set(true);
-      return;
+    if (this.canListUsers()) {
+      this.loadPage(0);
     }
-
-    this.loadPage(0);
   }
 
   protected retry(): void {
@@ -113,7 +141,7 @@ export class UsersPage implements OnInit {
   }
 
   protected openCreateDrawer(): void {
-    if (this.sessionStore.isAdmin()) {
+    if (this.canCreateUsers()) {
       this.drawerOpen.set(true);
     }
   }
@@ -125,7 +153,7 @@ export class UsersPage implements OnInit {
   }
 
   protected createUser(payload: CreateUserRequest): void {
-    if (!this.sessionStore.isAdmin() || this.submitting()) {
+    if (!this.canCreateUsers() || this.submitting()) {
       return;
     }
 
@@ -141,7 +169,10 @@ export class UsersPage implements OnInit {
         next: () => {
           this.drawerOpen.set(false);
           this.toastStore.success('Usuário criado com sucesso.');
-          this.loadPage(this.currentPage());
+
+          if (this.canListUsers()) {
+            this.loadPage(this.currentPage());
+          }
         },
         error: (error: unknown) => this.handleCreateError(error),
       });
@@ -217,7 +248,8 @@ export class UsersPage implements OnInit {
     const messages: Record<number, string> = {
       400: 'Verifique os dados informados.',
       401: 'Sua sessão expirou. Faça login novamente.',
-      403: 'Você não tem permissão para criar usuários.',
+      403: 'Você não tem permissão para criar este tipo de usuário.',
+      409: 'Já existe um usuário com os dados informados.',
     };
 
     this.toastStore.error(messages[error.status] ?? 'Não foi possível criar o usuário.');
@@ -331,7 +363,7 @@ export class UsersPage implements OnInit {
   }
 
   private loadPage(page: number): void {
-    if (!this.sessionStore.isAdmin() || this.loading()) {
+    if (!this.canListUsers() || this.loading()) {
       return;
     }
 

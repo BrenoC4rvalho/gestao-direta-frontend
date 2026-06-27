@@ -4,9 +4,13 @@ import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
+import { FarmAccessResponse } from '../../core/models/farm-access.models';
+import { Farm } from '../../core/models/farm.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { User } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
@@ -19,6 +23,48 @@ const admin: AuthUser = {
   document: null,
   userType: 'ADMIN',
   status: 'ACTIVE',
+};
+
+
+const producer: AuthUser = {
+  id: 3,
+  name: 'Produtor',
+  email: 'produtor@example.com',
+  document: null,
+  userType: 'USER',
+  status: 'ACTIVE',
+};
+
+const farm: Farm = {
+  id: 10,
+  name: 'Fazenda Boa Safra',
+  document: null,
+  city: 'Ribeirão Preto',
+  state: 'SP',
+  totalArea: 100,
+  productionType: 'AGRICULTURE',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-02T00:00:00Z',
+};
+
+const producerAccess: FarmAccessResponse = {
+  farmId: 10,
+  farmName: 'Fazenda Boa Safra',
+  userId: 3,
+  userType: 'USER',
+  role: 'PRODUCER',
+  permissions: {
+    canViewFarm: true,
+    canEditFarm: true,
+    canChangeFarmStatus: false,
+    canManageFarmUsers: true,
+    canViewFinancial: true,
+    canManageTransactions: true,
+    canManageCategories: true,
+    canManageGlobalCategories: false,
+    canCreateFarm: false,
+  },
 };
 
 const users: User[] = [
@@ -68,6 +114,8 @@ describe('UsersPage', () => {
     updateStatus: ReturnType<typeof vi.fn>;
     updateType: ReturnType<typeof vi.fn>;
   };
+  let selectedFarmStore: SelectedFarmStore;
+  let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
@@ -87,13 +135,23 @@ describe('UsersPage', () => {
       ],
     }).compileComponents();
 
+    selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    farmAccessStore = TestBed.inject(FarmAccessStore);
     sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
     sessionStore.clear();
     toastStore.clear();
   });
 
   afterEach(() => {
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
     sessionStore.clear();
     toastStore.clear();
   });
@@ -103,8 +161,23 @@ describe('UsersPage', () => {
     fixture.detectChanges();
   }
 
-  it('should deny access without calling the API for a non-admin user', () => {
-    sessionStore.setUser({ ...admin, userType: 'USER' });
+  it('should show farm selection guidance without calling the API for a non-admin user without farm', () => {
+    sessionStore.setUser(producer);
+
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda selecionada');
+    expect(userService.list).not.toHaveBeenCalled();
+    expect(findButton(fixture.nativeElement, 'Novo usuário')).toBeUndefined();
+  });
+
+  it('should deny access without calling the API for a non-admin user without permission', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess({
+      ...producerAccess,
+      permissions: { ...producerAccess.permissions, canManageFarmUsers: false },
+    });
 
     createPage();
 
@@ -280,7 +353,7 @@ describe('UsersPage', () => {
 
   it.each([
     [400, 'Verifique os dados informados.'],
-    [403, 'Você não tem permissão para criar usuários.'],
+    [403, 'Você não tem permissão para criar este tipo de usuário.'],
   ])('should keep the drawer open and show feedback on error %s', (status, message) => {
     userService.create.mockReturnValueOnce(
       throwError(() => new HttpErrorResponse({ status })),
@@ -296,6 +369,32 @@ describe('UsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe(message);
     expect(getUserInput(2).value).toBe('');
     expect(getUserInput(0).value).toBe('Maria Nova');
+  });
+
+
+  it('should allow a producer with farm user permission to create only regular users without listing', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(producerAccess);
+
+    createPage();
+
+    expect(userService.list).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Criação de usuários disponível');
+
+    openCreateDrawer();
+    fillProducerForm();
+    submitUserForm();
+
+    expect(userService.create).toHaveBeenCalledWith({
+      name: 'Maria Nova',
+      email: 'maria.nova@example.com',
+      password: 'password123',
+      document: null,
+      userType: 'USER',
+    });
+    expect(userService.list).not.toHaveBeenCalled();
+    expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
   });
 
   it('should show protected access instead of actions for the authenticated user', () => {
@@ -429,9 +528,21 @@ describe('UsersPage', () => {
     const select = fixture.nativeElement.querySelector(
       'gd-user-form gd-select select',
     ) as HTMLSelectElement;
-    select.selectedIndex = value === 'ADMIN' ? 1 : 2;
+    const option = Array.from(select.options).find((item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'));
+
+    if (!option) {
+      throw new Error(`Option not found: ${value}`);
+    }
+
+    select.value = option.value;
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
+  }
+
+  function fillProducerForm(): void {
+    setUserInput(0, 'Maria Nova');
+    setUserInput(1, 'maria.nova@example.com');
+    setUserInput(2, 'password123');
   }
 
   function submitUserForm(): void {
