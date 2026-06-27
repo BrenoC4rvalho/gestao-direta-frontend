@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+  | 'warning'
+  | 'success';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type ButtonType = 'button' | 'submit' | 'reset';
 
@@ -50,6 +57,8 @@ export class Button {
         'border border-border bg-surface text-text-primary hover:bg-background focus-visible:outline-primary',
       ghost: 'bg-transparent text-text-muted hover:bg-accent/10 hover:text-primary focus-visible:outline-primary',
       danger: 'bg-danger text-white hover:bg-red-700 focus-visible:outline-danger',
+      warning: 'bg-warning text-white hover:bg-amber-600 focus-visible:outline-warning',
+      success: 'bg-success text-white hover:bg-green-700 focus-visible:outline-success',
     };
 
     return variants[this.variant()];

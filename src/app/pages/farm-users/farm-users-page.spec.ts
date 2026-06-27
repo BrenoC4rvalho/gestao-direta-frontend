@@ -442,7 +442,7 @@ describe('FarmUsersPage', () => {
     const drawer = getDialog('gd-drawer');
     expect(drawer?.textContent).toContain('Status do Vínculo');
     expect(drawer?.textContent).toContain(
-      'Selecione um papel ativo e salve as alterações para reativar este vínculo.',
+      'Este vínculo está inativo. Para reativá-lo, selecione um novo papel para o usuário na fazenda.',
     );
     expect(findButton(drawer as HTMLElement, 'Inativar vínculo')).toBeUndefined();
   });

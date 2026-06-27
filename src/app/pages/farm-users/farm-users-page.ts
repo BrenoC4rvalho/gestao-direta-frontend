@@ -33,6 +33,7 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
+  StatusActionSection,
 } from '../../shared/ui';
 import { FarmUserForm } from './components/farm-user-form/farm-user-form';
 import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-role-form';
@@ -53,6 +54,7 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
     FarmUserForm,
     FarmUserRoleForm,
     Skeleton,
+    StatusActionSection,
   ],
   templateUrl: './farm-users-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

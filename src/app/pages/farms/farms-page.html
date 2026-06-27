@@ -105,37 +105,21 @@
     @if (canManageStatus(farm)) {
       <section class="mt-6 border-t border-border pt-6">
         @if (farm.status === 'ACTIVE') {
-          <div class="rounded-app border border-danger/30 bg-danger/5 p-4">
-            <h3 class="text-base font-semibold text-danger">Status da Fazenda</h3>
-            <p class="mt-2 text-sm text-text-muted">
-              Inative esta fazenda caso ela não deva mais ser usada no sistema.
-            </p>
-            <gd-button
-              class="mt-4 block"
-              type="button"
-              variant="danger"
-              [fullWidth]="true"
-              (click)="requestStatusChange(farm)"
-            >
-              Inativar fazenda
-            </gd-button>
-          </div>
+          <gd-status-action-section
+            title="Status da Fazenda"
+            description="Inative esta fazenda caso ela não deva mais ser usada no sistema."
+            actionLabel="Inativar fazenda"
+            actionVariant="danger"
+            (action)="requestStatusChange(farm)"
+          />
         } @else {
-          <div class="rounded-app border border-border bg-background-secondary p-4">
-            <h3 class="text-base font-semibold text-text-primary">Status da Fazenda</h3>
-            <p class="mt-2 text-sm text-text-muted">
-              Reative esta fazenda para permitir seu uso novamente.
-            </p>
-            <gd-button
-              class="mt-4 block"
-              type="button"
-              variant="secondary"
-              [fullWidth]="true"
-              (click)="requestStatusChange(farm)"
-            >
-              Ativar fazenda
-            </gd-button>
-          </div>
+          <gd-status-action-section
+            title="Status da Fazenda"
+            description="Reative esta fazenda para permitir seu uso novamente."
+            actionLabel="Ativar fazenda"
+            actionVariant="primary"
+            (action)="requestStatusChange(farm)"
+          />
         }
       </section>
     }

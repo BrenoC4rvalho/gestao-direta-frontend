@@ -24,7 +24,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
-import { Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Button, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
 import { FarmCard } from './components/farm-card/farm-card';
 import { FarmForm } from './components/farm-form/farm-form';
 
@@ -47,6 +47,7 @@ interface StatusConfirmation {
     FarmCard,
     FarmForm,
     Skeleton,
+    StatusActionSection,
   ],
   templateUrl: './farms-page.html',
   host: {

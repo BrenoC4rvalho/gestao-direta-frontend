@@ -1,0 +1,23 @@
+<section
+  class="rounded-app border border-border bg-background-secondary p-4 text-text-primary sm:flex sm:items-center sm:justify-between sm:gap-5"
+>
+  <div>
+    <h3 class="text-base font-semibold text-text-primary">{{ title() }}</h3>
+    <p class="mt-2 text-sm leading-6 text-text-muted">{{ description() }}</p>
+  </div>
+
+  @if (shouldShowAction()) {
+    <div class="mt-4 sm:mt-0 sm:shrink-0">
+      <gd-button
+        type="button"
+        [variant]="buttonVariant()"
+        [disabled]="actionDisabled()"
+        [loading]="actionLoading()"
+        [fullWidth]="true"
+        (click)="emitAction()"
+      >
+        {{ actionLabel() }}
+      </gd-button>
+    </div>
+  }
+</section>
