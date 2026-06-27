@@ -49,6 +49,9 @@ interface StatusConfirmation {
     Skeleton,
   ],
   templateUrl: './farms-page.html',
+  host: {
+    '(document:keydown.escape)': 'closeDrawerFromEscape()',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FarmsPage implements OnInit {
@@ -148,6 +151,8 @@ export class FarmsPage implements OnInit {
 
     this.drawerOpen.set(false);
     this.editingFarm.set(null);
+    this.statusTarget.set(null);
+    this.statusSubmitting.set(false);
   }
 
   protected saveFarm(payload: CreateFarmRequest): void {
@@ -178,8 +183,7 @@ export class FarmsPage implements OnInit {
           this.toastStore.success(
             editingFarm ? 'Fazenda atualizada.' : 'Fazenda criada.',
           );
-          this.drawerOpen.set(false);
-          this.editingFarm.set(null);
+          this.closeDrawer();
           this.loadPage(this.currentPage());
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -221,6 +225,7 @@ export class FarmsPage implements OnInit {
             nextStatus === 'ACTIVE' ? 'Fazenda ativada.' : 'Fazenda inativada.',
           );
           this.statusTarget.set(null);
+          this.closeDrawer();
           this.loadPage(this.currentPage());
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -247,6 +252,12 @@ export class FarmsPage implements OnInit {
       this.farmAccessStore.access()?.farmId === farm.id &&
       !this.farmAccessStore.loading()
     );
+  }
+
+  protected closeDrawerFromEscape(): void {
+    if (this.drawerOpen()) {
+      this.closeDrawer();
+    }
   }
 
   private loadPage(page: number): void {

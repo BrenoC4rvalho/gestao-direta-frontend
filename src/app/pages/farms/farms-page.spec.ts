@@ -201,21 +201,47 @@ describe('FarmsPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Fazenda atualizada.');
   });
 
-  it('should confirm farm inactivation from the edit drawer and reload the list', () => {
+  it('should render the status section without the old danger zone label', () => {
     createPage();
     clickButton('Editar');
 
-    expect(fixture.nativeElement.textContent).toContain('Zona de perigo');
+    const drawer = getDrawerDialog();
+    expect(drawer?.textContent).toContain('Status da Fazenda');
+    expect(drawer?.textContent).toContain(
+      'Inative esta fazenda caso ela não deva mais ser usada no sistema.',
+    );
+    expect(drawer?.textContent).not.toContain('Zona de perigo');
+  });
+
+  it('should open inactivation confirmation over the edit drawer and cancel only the confirmation', () => {
+    createPage();
+    clickButton('Editar');
     clickButton('Inativar fazenda');
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
-    expect(dialog.textContent).toContain('Inativar fazenda');
-    findButton(dialog, 'Inativar')?.click();
-    fixture.detectChanges();
+    expect(getDrawerDialog()).toBeTruthy();
+    expect(getConfirmDialog()?.textContent).toContain('Inativar fazenda');
+
+    clickDialogButton(getConfirmDialog(), 'Cancelar');
+
+    expect(getConfirmDialog()).toBeNull();
+    expect(getDrawerDialog()).toBeTruthy();
+    expect(farmService.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('should confirm farm inactivation, update context, close overlays and reload the list', () => {
+    const updatedFarm = { ...farms[0], status: 'INACTIVE' as const };
+    farmService.updateStatus.mockReturnValueOnce(of(updatedFarm));
+    const upsertSpy = vi.spyOn(selectedFarmStore, 'upsertFarm');
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar fazenda');
+
+    clickDialogButton(getConfirmDialog(), 'Inativar');
 
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'INACTIVE' });
+    expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
+    expect(getConfirmDialog()).toBeNull();
+    expect(getDrawerDialog()).toBeNull();
     expect(farmService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Fazenda inativada.');
   });
@@ -291,24 +317,31 @@ describe('FarmsPage', () => {
     expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeTruthy();
   });
 
-  it('should show activation action in the edit drawer for an inactive farm', () => {
+  it('should confirm farm activation for an inactive farm with the same drawer flow', () => {
     const inactiveFarm = { ...farms[0], status: 'INACTIVE' as const };
+    const updatedFarm = { ...inactiveFarm, status: 'ACTIVE' as const };
     farmService.list.mockReturnValueOnce(of(pageResponse([inactiveFarm])));
+    farmService.updateStatus.mockReturnValueOnce(of(updatedFarm));
+    const upsertSpy = vi.spyOn(selectedFarmStore, 'upsertFarm');
     createPage();
     clickButton('Editar');
 
-    expect(fixture.nativeElement.textContent).toContain('Status da fazenda');
+    const drawer = getDrawerDialog();
+    expect(drawer?.textContent).toContain('Status da Fazenda');
+    expect(drawer?.textContent).toContain('Reative esta fazenda para permitir seu uso novamente.');
     expect(findButton(fixture.nativeElement, 'Ativar fazenda')).toBeTruthy();
     clickButton('Ativar fazenda');
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
-    expect(dialog.textContent).toContain('Ativar fazenda');
-    findButton(dialog, 'Ativar')?.click();
-    fixture.detectChanges();
+    expect(getDrawerDialog()).toBeTruthy();
+    expect(getConfirmDialog()?.textContent).toContain('Ativar fazenda');
+    clickDialogButton(getConfirmDialog(), 'Ativar');
 
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
+    expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
+    expect(getConfirmDialog()).toBeNull();
+    expect(getDrawerDialog()).toBeNull();
+    expect(farmService.list).toHaveBeenCalledTimes(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Fazenda ativada.');
   });
 
   it('should hide status action in the edit drawer without status permission', () => {
@@ -320,6 +353,34 @@ describe('FarmsPage', () => {
 
     expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Ativar fazenda')).toBeUndefined();
+  });
+
+  it('should close the status confirmation when the drawer is manually closed', () => {
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar fazenda');
+
+    const confirmButton = findButton(getConfirmDialog() as HTMLElement, 'Inativar');
+    getDrawerDialog()?.querySelector<HTMLButtonElement>('[aria-label="Fechar drawer"]')?.click();
+    fixture.detectChanges();
+    confirmButton?.click();
+    fixture.detectChanges();
+
+    expect(getDrawerDialog()).toBeNull();
+    expect(getConfirmDialog()).toBeNull();
+    expect(farmService.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('should close the drawer and pending status confirmation on Escape', () => {
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar fazenda');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(getDrawerDialog()).toBeNull();
+    expect(getConfirmDialog()).toBeNull();
   });
 
   function clickButton(label: string): void {
@@ -337,6 +398,20 @@ describe('FarmsPage', () => {
   function submitForm(): void {
     const form = fixture.nativeElement.querySelector('gd-farm-form form') as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+
+  function getDrawerDialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('gd-drawer [role="dialog"]');
+  }
+
+  function getConfirmDialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
+  }
+
+  function clickDialogButton(dialog: HTMLElement | null, label: string): void {
+    expect(dialog).toBeTruthy();
+    findButton(dialog as HTMLElement, label)?.click();
     fixture.detectChanges();
   }
 });

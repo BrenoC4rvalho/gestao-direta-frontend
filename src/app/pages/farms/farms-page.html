@@ -106,9 +106,9 @@
       <section class="mt-6 border-t border-border pt-6">
         @if (farm.status === 'ACTIVE') {
           <div class="rounded-app border border-danger/30 bg-danger/5 p-4">
-            <h3 class="text-base font-semibold text-danger">Zona de perigo</h3>
+            <h3 class="text-base font-semibold text-danger">Status da Fazenda</h3>
             <p class="mt-2 text-sm text-text-muted">
-              Inative a fazenda para removê-la do uso operacional.
+              Inative esta fazenda caso ela não deva mais ser usada no sistema.
             </p>
             <gd-button
               class="mt-4 block"
@@ -122,9 +122,9 @@
           </div>
         } @else {
           <div class="rounded-app border border-border bg-background-secondary p-4">
-            <h3 class="text-base font-semibold text-text-primary">Status da fazenda</h3>
+            <h3 class="text-base font-semibold text-text-primary">Status da Fazenda</h3>
             <p class="mt-2 text-sm text-text-muted">
-              Ative a fazenda para disponibilizá-la novamente.
+              Reative esta fazenda para permitir seu uso novamente.
             </p>
             <gd-button
               class="mt-4 block"
