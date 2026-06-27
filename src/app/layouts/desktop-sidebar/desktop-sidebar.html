@@ -30,7 +30,10 @@
 
   @if (sessionStore.user(); as user) {
     <div class="border-t border-border p-4">
-      <div class="flex items-center gap-3">
+      <a
+        routerLink="/profile"
+        class="-m-2 flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-accent/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
         <div
           class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-sm font-semibold text-primary"
           aria-hidden="true"
@@ -41,7 +44,7 @@
           <p class="truncate text-sm font-semibold text-text-primary">{{ user.name }}</p>
           <p class="truncate text-xs text-text-muted">{{ user.email }}</p>
         </div>
-      </div>
+      </a>
 
       <button
         type="button"

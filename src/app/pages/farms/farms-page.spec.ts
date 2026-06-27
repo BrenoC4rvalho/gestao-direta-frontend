@@ -140,10 +140,9 @@ describe('FarmsPage', () => {
     fixture.detectChanges();
   }
 
-  it('should render title and load farms', () => {
+  it('should render farms and load farms', () => {
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Fazendas');
     expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
     expect(farmService.list).toHaveBeenCalledWith({
       page: 0,

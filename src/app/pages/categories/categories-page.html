@@ -1,18 +1,9 @@
 <section class="space-y-6">
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div class="min-w-0">
-      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">
-        Categorias financeiras
-      </h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
-        Organize receitas e despesas por categorias da fazenda.
-      </p>
-    </div>
-
-    @if (canCreateFarmCategory() && !accessDenied()) {
+  @if (canCreateFarmCategory() && !accessDenied()) {
+    <div class="flex justify-end">
       <gd-button type="button" (click)="openCreateDrawer()">Nova categoria</gd-button>
-    }
-  </header>
+    </div>
+  }
 
   @if (!selectedFarmName()) {
     <gd-card padding="sm">

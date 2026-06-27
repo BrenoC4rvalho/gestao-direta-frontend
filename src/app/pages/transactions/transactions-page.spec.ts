@@ -190,10 +190,9 @@ describe('TransactionsPage', () => {
     fixture.detectChanges();
   }
 
-  it('should render title and not call API without selected farm', () => {
+  it('should avoid API without selected farm', () => {
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Movimentações financeiras');
     expect(fixture.nativeElement.textContent).toContain('Selecione uma fazenda');
     expect(transactionService.listByFarm).not.toHaveBeenCalled();
   });

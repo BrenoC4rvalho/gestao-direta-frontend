@@ -17,7 +17,8 @@ describe('routes', () => {
     expect(loginRoute?.canActivate).toContain(guestGuard);
     expect(loginRoute?.children?.[0].path).toBe('');
     expect(appLayoutRoute?.canActivate).toContain(authGuard);
-    expect(appLayoutRoute?.children?.some((route) => route.path === 'dashboard')).toBe(true);
+    const dashboardRoute = appLayoutRoute?.children?.find((route) => route.path === 'dashboard');
+    expect(dashboardRoute?.data?.['title']).toBe('Dashboard');
     expect(appLayoutRoute?.children?.some((route) => route.path === 'farms')).toBe(true);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'users')).toBe(true);
     const farmUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'farm-users');
@@ -45,6 +46,7 @@ describe('routes', () => {
     )();
     expect(upcomingBillsComponent).toBe(UpcomingBillsPage);
     const profileRoute = appLayoutRoute?.children?.find((route) => route.path === 'profile');
+    expect(profileRoute?.data?.['title']).toBe('Minha conta');
     expect(profileRoute?.loadComponent).toBeTypeOf('function');
     const profileComponent = await (profileRoute?.loadComponent as () => Promise<unknown>)();
     expect(profileComponent).toBe(ProfilePage);

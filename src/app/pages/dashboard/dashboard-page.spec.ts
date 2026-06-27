@@ -186,8 +186,6 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Olá, Maria Silva');
-    expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
     expect(text).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
@@ -216,7 +214,6 @@ describe('DashboardPage', () => {
     const text = fixture.nativeElement.textContent as string;
     const normalizedText = text.replace(/\u00a0/g, ' ');
 
-    expect(normalizedText).toContain('Olá, Maria Silva');
     expect(normalizedText).toContain('Saldo atual');
     expect(normalizedText).toContain('Entradas previstas');
     expect(normalizedText).toContain('Saídas previstas');

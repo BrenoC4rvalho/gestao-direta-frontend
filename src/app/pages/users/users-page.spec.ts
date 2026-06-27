@@ -108,7 +108,6 @@ describe('UsersPage', () => {
 
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Usuários');
     expect(fixture.nativeElement.textContent).toContain('Acesso restrito');
     expect(fixture.nativeElement.textContent).toContain(
       'Você não tem permissão para visualizar usuários.',
@@ -130,7 +129,6 @@ describe('UsersPage', () => {
     });
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Gerencie os usuários cadastrados no sistema.');
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
     expect(text).toContain('Administrador');

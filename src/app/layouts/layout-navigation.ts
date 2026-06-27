@@ -12,5 +12,4 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
   { label: 'Categorias', route: '/categories', icon: 'tags' },
   { label: 'Movimentações', route: '/transactions', icon: 'receipt-text' },
   { label: 'Contas a vencer', route: '/upcoming-bills', icon: 'calendar-clock' },
-  { label: 'Perfil', route: '/profile', icon: 'user' },
 ];

@@ -23,6 +23,11 @@ class LoginStub {}
 })
 class DashboardStub {}
 
+@Component({
+  template: '',
+})
+class ProfileStub {}
+
 const user: AuthUser = {
   id: 1,
   name: 'Maria Silva',
@@ -53,6 +58,7 @@ describe('MobileHeader', () => {
         provideRouter([
           { path: 'login', component: LoginStub },
           { path: 'dashboard', component: DashboardStub },
+          { path: 'profile', component: ProfileStub },
         ]),
         { provide: AuthService, useValue: authService },
       ],
@@ -85,7 +91,7 @@ describe('MobileHeader', () => {
     expect(image.getAttribute('alt')).toBe('Gestão Direta');
   });
 
-  it('should render the global farm context and open the menu drawer', () => {
+  it('should open the menu drawer', () => {
     const menuButton = fixture.nativeElement.querySelector(
       'button[aria-label="Abrir menu de navegação"]',
     ) as HTMLButtonElement;
@@ -99,17 +105,21 @@ describe('MobileHeader', () => {
     expect(fixture.nativeElement.textContent).toContain('Menu');
     expect(fixture.nativeElement.textContent).toContain('Dashboard');
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('gd-farm-context-selector')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('gd-farm-context-selector')).toBeNull();
   });
 
-  it('should render authenticated user name, email and initials in the drawer', () => {
+  it('should render authenticated user as a profile link in the drawer', () => {
     openDrawer();
 
     const text = fixture.nativeElement.textContent as string;
+    const profileLink = Array.from(
+      fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>,
+    ).find((link) => link.textContent?.includes('Maria Silva'));
 
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
+    expect(profileLink?.getAttribute('href')).toBe('/profile');
   });
 
   it('should close drawer when a navigation link is clicked', () => {
@@ -120,6 +130,19 @@ describe('MobileHeader', () => {
     ).find((link) => link.textContent?.includes('Dashboard'));
 
     dashboardLink?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('should close drawer when the authenticated user profile link is clicked', () => {
+    openDrawer();
+
+    const profileLink = Array.from(
+      fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>,
+    ).find((link) => link.textContent?.includes('Maria Silva'));
+
+    profileLink?.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();

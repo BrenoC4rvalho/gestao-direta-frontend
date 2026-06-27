@@ -1,16 +1,31 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { finalize } from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter, finalize } from 'rxjs';
 
 import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
+import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { DesktopSidebar } from '../desktop-sidebar/desktop-sidebar';
 import { FarmContextSelector } from '../farm-context-selector/farm-context-selector';
 import { MobileHeader } from '../mobile-header/mobile-header';
+
+interface PageHeaderData {
+  title: string;
+  subtitle: string;
+}
 
 @Component({
   selector: 'gd-app-layout',
@@ -22,10 +37,36 @@ export class AppLayout implements OnInit {
   private readonly farmAccessService = inject(FarmAccessService);
   private readonly farmService = inject(FarmService);
   private readonly farmAccessStore = inject(FarmAccessStore);
+  private readonly router = inject(Router);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
+  private readonly sessionStore = inject(SessionStore);
   private readonly toastStore = inject(ToastStore);
+  private readonly pageHeaderData = signal<PageHeaderData>({
+    title: '',
+    subtitle: '',
+  });
+
+  protected readonly pageTitle = computed(() => {
+    const title = this.pageHeaderData().title;
+
+    if (title === 'Dashboard') {
+      return `Olá, ${this.sessionStore.userName() ?? 'produtor'}`;
+    }
+
+    return title;
+  });
+  protected readonly pageSubtitle = computed(() => this.pageHeaderData().subtitle);
 
   constructor() {
+    this.updatePageHeaderData();
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.updatePageHeaderData());
+
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
 
@@ -81,5 +122,21 @@ export class AppLayout implements OnInit {
 
     this.farmAccessStore.setError(message);
     this.toastStore.info(message);
+  }
+
+  private updatePageHeaderData(): void {
+    let route = this.router.routerState.snapshot.root;
+
+    while (route.firstChild) {
+      route = route.firstChild;
+    }
+
+    const title = route.data['title'];
+    const subtitle = route.data['subtitle'];
+
+    this.pageHeaderData.set({
+      title: typeof title === 'string' ? title : '',
+      subtitle: typeof subtitle === 'string' ? subtitle : '',
+    });
   }
 }

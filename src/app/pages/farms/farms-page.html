@@ -1,16 +1,9 @@
 <section class="space-y-6">
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div class="min-w-0">
-      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Fazendas</h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
-        Gerencie as propriedades disponíveis para acompanhamento financeiro.
-      </p>
-    </div>
-
-    @if (sessionStore.isAdmin()) {
+  @if (sessionStore.isAdmin()) {
+    <div class="flex justify-end">
       <gd-button type="button" (click)="openCreateDrawer()">Nova fazenda</gd-button>
-    }
-  </header>
+    </div>
+  }
 
   @if (loading()) {
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">

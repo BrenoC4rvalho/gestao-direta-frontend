@@ -97,10 +97,9 @@ describe('ProfilePage', () => {
     return fixture.componentInstance as unknown as ProfilePageHarness;
   }
 
-  it('should render title and load authenticated user profile', () => {
+  it('should load authenticated user profile', () => {
     const component = createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Minha conta');
     expect(userService.getMe).toHaveBeenCalled();
     expect(component.profileForm.controls.name.value).toBe('Maria Silva');
     expect(component.profileForm.controls.email.value).toBe('maria@example.com');

@@ -1,11 +1,4 @@
 <section class="space-y-6">
-  <header class="min-w-0">
-    <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Minha conta</h1>
-    <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
-      Atualize seus dados pessoais e mantenha sua senha segura.
-    </p>
-  </header>
-
   @if (loading()) {
     <div class="grid gap-5 lg:grid-cols-2" aria-label="Carregando perfil">
       @for (item of skeletons; track item) {

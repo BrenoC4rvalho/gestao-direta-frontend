@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -12,9 +13,15 @@ import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
+import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
 import { AppLayout } from './app-layout';
+
+@Component({
+  template: '',
+})
+class DashboardStub {}
 
 const farm: Farm = {
   id: 1,
@@ -64,7 +71,9 @@ describe('AppLayout', () => {
   let farmAccessService: { getAccess: ReturnType<typeof vi.fn> };
   let farmService: { list: ReturnType<typeof vi.fn> };
   let farmAccessStore: FarmAccessStore;
+  let router: Router;
   let selectedFarmStore: SelectedFarmStore;
+  let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
@@ -79,7 +88,24 @@ describe('AppLayout', () => {
       imports: [AppLayout],
       providers: [
         provideGestaoDiretaIcons(),
-        provideRouter([]),
+        provideRouter([
+          {
+            path: 'dashboard',
+            component: DashboardStub,
+            data: {
+              title: 'Dashboard',
+              subtitle: 'Aqui está o resumo financeiro da sua fazenda hoje.',
+            },
+          },
+          {
+            path: 'farms',
+            component: DashboardStub,
+            data: {
+              title: 'Fazendas',
+              subtitle: 'Gerencie as propriedades disponíveis para acompanhamento financeiro.',
+            },
+          },
+        ]),
         { provide: AuthService, useValue: { logout: vi.fn().mockReturnValue(of(undefined)) } },
         { provide: FarmAccessService, useValue: farmAccessService },
         { provide: FarmService, useValue: farmService },
@@ -87,16 +113,20 @@ describe('AppLayout', () => {
     }).compileComponents();
 
     farmAccessStore = TestBed.inject(FarmAccessStore);
+    router = TestBed.inject(Router);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
     farmAccessStore.clear();
     selectedFarmStore.clear();
+    sessionStore.clear();
     toastStore.clear();
   });
 
   afterEach(() => {
     farmAccessStore.clear();
     selectedFarmStore.clear();
+    sessionStore.clear();
     toastStore.clear();
   });
 
@@ -108,8 +138,28 @@ describe('AppLayout', () => {
     expect(element.querySelector('gd-desktop-sidebar')).toBeTruthy();
     expect(element.querySelector('gd-mobile-header')).toBeTruthy();
     expect(element.querySelector('gd-farm-context-selector')).toBeTruthy();
-    expect(element.querySelector('#desktop-farm-select')).toBeTruthy();
+    expect(element.querySelector('#global-farm-select')).toBeTruthy();
     expect(element.querySelector('router-outlet')).toBeTruthy();
+  });
+
+  it('should render route title, subtitle and dynamic dashboard greeting', async () => {
+    sessionStore.setUser({
+      id: 1,
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      document: null,
+      userType: 'ADMIN',
+      status: 'ACTIVE',
+    });
+    const fixture = TestBed.createComponent(AppLayout);
+    fixture.detectChanges();
+
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Olá, Maria Silva');
+    expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
   });
 
   it('should load farms on init and select the first farm', () => {

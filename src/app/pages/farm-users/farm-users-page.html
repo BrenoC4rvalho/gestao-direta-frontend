@@ -1,16 +1,9 @@
 <section class="space-y-6">
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div class="min-w-0">
-      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Vínculos da fazenda</h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
-        Gerencie os usuários vinculados à fazenda selecionada.
-      </p>
-    </div>
-
-    @if (canManageContext() && !accessDenied()) {
+  @if (canManageContext() && !accessDenied()) {
+    <div class="flex justify-end">
       <gd-button type="button" (click)="openLinkDrawer()">Vincular usuário</gd-button>
-    }
-  </header>
+    </div>
+  }
 
   @if (!selectedFarmStore.selectedFarmId()) {
     <gd-empty-state

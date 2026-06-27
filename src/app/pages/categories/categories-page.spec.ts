@@ -149,10 +149,9 @@ describe('CategoriesPage', () => {
     fixture.detectChanges();
   }
 
-  it('should render title and load global categories', () => {
+  it('should load and render global categories', () => {
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Categorias financeiras');
     expect(fixture.nativeElement.textContent).toContain('Venda de safra');
     expect(categoryService.listGlobal).toHaveBeenCalled();
   });

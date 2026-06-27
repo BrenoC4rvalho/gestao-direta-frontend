@@ -181,10 +181,9 @@ describe('UpcomingBillsPage', () => {
     fixture.detectChanges();
   }
 
-  it('should render title and avoid API without selected farm', () => {
+  it('should avoid API without selected farm', () => {
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Contas a vencer');
     expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda selecionada');
     expect(fixture.nativeElement.textContent).toContain(
       'Selecione uma fazenda para visualizar contas a vencer.',

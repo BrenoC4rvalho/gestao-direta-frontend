@@ -18,6 +18,11 @@ import { DesktopSidebar } from './desktop-sidebar';
 })
 class LoginStub {}
 
+@Component({
+  template: '',
+})
+class ProfileStub {}
+
 const user: AuthUser = {
   id: 1,
   name: 'Maria Silva',
@@ -45,7 +50,10 @@ describe('DesktopSidebar', () => {
       imports: [DesktopSidebar],
       providers: [
         provideGestaoDiretaIcons(),
-        provideRouter([{ path: 'login', component: LoginStub }]),
+        provideRouter([
+          { path: 'login', component: LoginStub },
+          { path: 'profile', component: ProfileStub },
+        ]),
         { provide: AuthService, useValue: authService },
       ],
     }).compileComponents();
@@ -85,16 +93,20 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('Usuários');
     expect(text).toContain('Movimentações');
     expect(text).toContain('Contas a vencer');
-    expect(text).toContain('Perfil');
-    expect(fixture.nativeElement.querySelector('#desktop-farm-select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('nav')?.textContent).not.toContain('Perfil');
+    expect(fixture.nativeElement.querySelector('#global-farm-select')).toBeNull();
   });
 
-  it('should render authenticated user name, email and initials', () => {
+  it('should render authenticated user as a profile link', () => {
     const text = fixture.nativeElement.textContent as string;
+    const profileLink = Array.from(
+      fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>,
+    ).find((link) => link.textContent?.includes('Maria Silva'));
 
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
+    expect(profileLink?.getAttribute('href')).toBe('/profile');
   });
 
   it('should logout, clear session and farm context, navigate to login and show success toast', () => {
