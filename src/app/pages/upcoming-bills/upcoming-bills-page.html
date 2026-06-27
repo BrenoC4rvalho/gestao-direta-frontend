@@ -8,13 +8,7 @@
     </div>
   </header>
 
-  @if (selectedFarmName(); as farmName) {
-    <gd-card padding="sm">
-      <p class="text-sm text-text-muted">
-        Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
-      </p>
-    </gd-card>
-  } @else {
+  @if (!selectedFarmName()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"
       description="Selecione uma fazenda para visualizar contas a vencer."

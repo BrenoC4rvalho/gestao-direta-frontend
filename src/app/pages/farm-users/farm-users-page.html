@@ -12,23 +12,6 @@
     }
   </header>
 
-  @if (selectedFarmName(); as farmName) {
-    <gd-card padding="sm">
-      <div class="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-4">
-        <p class="text-text-muted">
-          Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
-        </p>
-        @if (currentPermissionLabel(); as permissionLabel) {
-          <span class="hidden text-border sm:inline" aria-hidden="true">•</span>
-          <p class="text-text-muted">
-            Sua permissão:
-            <span class="font-semibold text-text-primary">{{ permissionLabel }}</span>
-          </p>
-        }
-      </div>
-    </gd-card>
-  }
-
   @if (!selectedFarmStore.selectedFarmId()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"

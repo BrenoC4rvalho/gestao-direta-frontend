@@ -165,6 +165,17 @@ describe('CategoriesPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Adubo');
   });
 
+  it('should render farm and global categories with category cards', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    const cards = fixture.nativeElement.querySelectorAll('gd-category-card article');
+
+    expect(cards.length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Adubo');
+    expect(fixture.nativeElement.textContent).toContain('Venda de safra');
+  });
+
   it('should not load farm categories when no farm is selected', () => {
     createPage();
 

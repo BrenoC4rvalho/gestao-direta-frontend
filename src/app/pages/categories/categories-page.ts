@@ -14,7 +14,6 @@ import { finalize, forkJoin, map, Observable, of } from 'rxjs';
 import {
   CreateFinancialCategoryRequest,
   FinancialCategory,
-  FinancialCategoryType,
   isGlobalCategory,
   UpdateFinancialCategoryRequest,
 } from '../../core/models/financial-category.models';
@@ -25,7 +24,7 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
 import { CategoryForm } from './components/category-form/category-form';
 
@@ -37,7 +36,6 @@ interface CategoryLists {
 @Component({
   selector: 'gd-categories-page',
   imports: [
-    Badge,
     Button,
     Card,
     CategoryCard,
@@ -265,26 +263,6 @@ export class CategoriesPage {
       this.selectedFarmStore.selectedFarmId() !== null &&
       (this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory())
     );
-  }
-
-  protected typeLabel(type: FinancialCategoryType): string {
-    const labels: Record<string, string> = {
-      INCOME: 'Receita',
-      EXPENSE: 'Despesa',
-      GLOBAL: 'Global',
-    };
-
-    return labels[type] ?? type;
-  }
-
-  protected typeVariant(type: FinancialCategoryType): BadgeVariant {
-    const variants: Record<string, BadgeVariant> = {
-      INCOME: 'success',
-      EXPENSE: 'warning',
-      GLOBAL: 'info',
-    };
-
-    return variants[type] ?? 'neutral';
   }
 
   private createCategory(payload: UpdateFinancialCategoryRequest): void {

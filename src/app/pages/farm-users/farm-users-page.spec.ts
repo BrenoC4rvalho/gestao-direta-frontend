@@ -253,8 +253,7 @@ describe('FarmUsersPage', () => {
     createPage();
 
     expect(farmUserService.listByFarm).toHaveBeenCalledWith(10);
-    expect(fixture.nativeElement.textContent).toContain('Fazenda selecionada:');
-    expect(fixture.nativeElement.textContent).toContain('Administrador');
+    expect(fixture.nativeElement.textContent).not.toContain('Fazenda selecionada:');
     expect(fixture.nativeElement.textContent).toContain('Maria Funcionária');
     expect(fixture.nativeElement.textContent).toContain('Funcionário');
     expect(fixture.nativeElement.textContent).toContain('João Contador');

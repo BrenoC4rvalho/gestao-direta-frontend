@@ -49,6 +49,28 @@ describe('CategoryCard', () => {
     expect(fixture.nativeElement.textContent).toContain('Global');
   });
 
+  it('should render expense type as danger badge', () => {
+    const fixture = TestBed.createComponent(CategoryCard);
+    fixture.componentRef.setInput('category', { ...category, type: 'EXPENSE' });
+    fixture.detectChanges();
+
+    const badge = findBadge(fixture.nativeElement, 'Despesa');
+
+    expect(badge).toBeTruthy();
+    expect(badge?.className).toContain('border-danger');
+  });
+
+  it('should render inactive status as danger badge', () => {
+    const fixture = TestBed.createComponent(CategoryCard);
+    fixture.componentRef.setInput('category', { ...category, status: 'INACTIVE' });
+    fixture.detectChanges();
+
+    const badge = findBadge(fixture.nativeElement, 'Inativa');
+
+    expect(badge).toBeTruthy();
+    expect(badge?.className).toContain('border-danger');
+  });
+
   it('should emit actions when permitted', () => {
     const fixture = TestBed.createComponent(CategoryCard);
     const edited = vi.fn();
@@ -76,6 +98,12 @@ describe('CategoryCard', () => {
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
   });
 });
+
+function findBadge(root: HTMLElement, label: string): HTMLElement | undefined {
+  return Array.from(root.querySelectorAll('gd-badge span')).find(
+    (badge) => badge.textContent?.trim() === label,
+  ) as HTMLElement | undefined;
+}
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(

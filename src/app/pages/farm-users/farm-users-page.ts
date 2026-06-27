@@ -91,21 +91,6 @@ export class FarmUsersPage {
   protected readonly roleDrawerOptions = computed<readonly FarmUserRole[]>(() =>
     this.allowedRoles().filter((role) => role !== this.roleTarget()?.role),
   );
-  protected readonly selectedFarmName = computed(
-    () => this.selectedFarmStore.selectedFarm()?.name ?? null,
-  );
-  protected readonly currentPermissionLabel = computed<string | null>(() => {
-    if (this.sessionStore.isAdmin()) {
-      return 'Administrador';
-    }
-
-    const access = this.farmAccessStore.access();
-
-    return access?.farmId === this.selectedFarmStore.selectedFarmId()
-      ? this.roleLabel(access.role)
-      : null;
-  });
-
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'medium',
   });

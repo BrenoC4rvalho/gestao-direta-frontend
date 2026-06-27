@@ -14,13 +14,7 @@
     }
   </header>
 
-  @if (selectedFarmName(); as farmName) {
-    <gd-card padding="sm">
-      <p class="text-sm text-text-muted">
-        Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
-      </p>
-    </gd-card>
-  } @else {
+  @if (!selectedFarmName()) {
     <gd-card padding="sm">
       <p class="text-sm text-text-muted">
         Selecione uma fazenda para visualizar categorias específicas da fazenda.
@@ -128,78 +122,7 @@
           icon="tags"
         />
       } @else {
-        <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
-          <table class="w-full border-collapse text-left">
-            <caption class="sr-only">Categorias globais disponíveis no sistema</caption>
-            <thead class="border-b border-border bg-background">
-              <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                <th class="px-5 py-4" scope="col">Nome</th>
-                <th class="px-5 py-4" scope="col">Tipo</th>
-                <th class="px-5 py-4" scope="col">Origem</th>
-                <th class="px-5 py-4" scope="col">Status</th>
-                <th class="px-5 py-4" scope="col">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              @for (category of globalCategories(); track category.id) {
-                <tr>
-                  <td class="px-5 py-4">
-                    <p class="font-semibold text-text-primary">{{ category.name }}</p>
-                    @if (category.farmName; as farmName) {
-                      <p class="mt-1 text-sm text-text-muted">{{ farmName }}</p>
-                    }
-                  </td>
-                  <td class="px-5 py-4">
-                    <gd-badge [variant]="typeVariant(category.type)" size="sm">
-                      {{ typeLabel(category.type) }}
-                    </gd-badge>
-                  </td>
-                  <td class="px-5 py-4">
-                    <gd-badge variant="info" size="sm">Global</gd-badge>
-                  </td>
-                  <td class="px-5 py-4">
-                    <gd-badge
-                      [variant]="category.status === 'ACTIVE' ? 'success' : 'neutral'"
-                      size="sm"
-                    >
-                      {{ category.status === 'ACTIVE' ? 'Ativa' : 'Inativa' }}
-                    </gd-badge>
-                  </td>
-                  <td class="px-5 py-4">
-                    @if (canEditCategory(category) || canDeleteCategory(category)) {
-                      <div class="flex flex-wrap gap-2">
-                        @if (canEditCategory(category)) {
-                          <gd-button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            (click)="openEditDrawer(category)"
-                          >
-                            Editar
-                          </gd-button>
-                        }
-                        @if (canDeleteCategory(category)) {
-                          <gd-button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            (click)="requestDelete(category)"
-                          >
-                            Inativar
-                          </gd-button>
-                        }
-                      </div>
-                    } @else {
-                      <p class="text-sm font-medium text-text-muted">Somente leitura</p>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <div class="grid gap-4 md:hidden">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           @for (category of globalCategories(); track category.id) {
             <gd-category-card
               [category]="category"

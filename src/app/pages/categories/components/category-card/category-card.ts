@@ -43,7 +43,7 @@ export class CategoryCard {
   protected typeVariant(): BadgeVariant {
     const variants: Record<string, BadgeVariant> = {
       INCOME: 'success',
-      EXPENSE: 'warning',
+      EXPENSE: 'danger',
       GLOBAL: 'info',
     };
 
@@ -60,7 +60,7 @@ export class CategoryCard {
   }
 
   protected statusVariant(): BadgeVariant {
-    return this.category().status === 'ACTIVE' ? 'success' : 'neutral';
+    return this.category().status === 'ACTIVE' ? 'success' : 'danger';
   }
 
   protected originLabel(): string {
