@@ -5,6 +5,7 @@ import { FieldError } from '../field-error/field-error';
 import { GdFormControl } from '../forms.types';
 
 export type GdInputType =
+  | 'date'
   | 'email'
   | 'number'
   | 'password'

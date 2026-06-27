@@ -3,7 +3,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
 
 import { Button, ButtonVariant } from '../../ui';
 
-export type ConfirmDialogVariant = 'danger' | 'warning' | 'info';
+export type ConfirmDialogVariant = 'danger' | 'warning' | 'info' | 'success';
 
 @Component({
   selector: 'gd-confirm-dialog',
@@ -56,6 +56,7 @@ export class ConfirmDialog {
       danger: 'bg-danger/10 text-danger',
       warning: 'bg-warning/15 text-warning',
       info: 'bg-info/10 text-info',
+      success: 'bg-success/10 text-success',
     };
 
     return variants[this.variant()];

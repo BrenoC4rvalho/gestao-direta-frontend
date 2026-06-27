@@ -1,0 +1,108 @@
+<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid flex-1 gap-4 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <gd-input
+        id="transaction-description"
+        label="Descrição"
+        placeholder="Ex.: Venda de leite, Compra de sementes"
+        autocomplete="off"
+        [control]="form.controls.description"
+        [required]="true"
+        [errorMessage]="descriptionErrorMessage()"
+      />
+    </div>
+
+    <gd-select
+      id="transaction-type"
+      label="Tipo"
+      placeholder="Selecione o tipo"
+      [control]="form.controls.type"
+      [options]="typeOptions"
+      [required]="true"
+      [errorMessage]="typeErrorMessage()"
+    />
+
+    <gd-input
+      id="transaction-amount"
+      label="Valor"
+      type="number"
+      placeholder="0,00"
+      [control]="form.controls.amount"
+      [required]="true"
+      [min]="0.01"
+      step="0.01"
+      [errorMessage]="amountErrorMessage()"
+    />
+
+    <div class="sm:col-span-2">
+      <gd-select
+        id="transaction-category"
+        label="Categoria"
+        placeholder="Selecione a categoria"
+        [control]="form.controls.categoryId"
+        [options]="categoryOptions()"
+        [required]="categoryRequired()"
+        [disabled]="categoryOptions().length === 0"
+        [hint]="categoryOptions().length === 0 ? 'Nenhuma categoria ativa disponível para este tipo.' : null"
+        [errorMessage]="categoryErrorMessage()"
+      />
+    </div>
+
+    <gd-input
+      id="transaction-date"
+      label="Data da movimentação"
+      type="date"
+      [control]="form.controls.transactionDate"
+      [required]="true"
+      [errorMessage]="transactionDateErrorMessage()"
+    />
+
+    <gd-input id="transaction-due-date" label="Vencimento" type="date" [control]="form.controls.dueDate" />
+
+    <gd-input id="transaction-paid-at" label="Data de pagamento" type="date" [control]="form.controls.paidAt" />
+
+    <gd-select
+      id="transaction-status"
+      label="Status de pagamento"
+      placeholder="Selecione o status"
+      [control]="form.controls.status"
+      [options]="statusOptions"
+      [required]="true"
+      [errorMessage]="statusErrorMessage()"
+    />
+
+    <div class="sm:col-span-2">
+      <gd-select
+        id="transaction-payment-method"
+        label="Método de pagamento"
+        placeholder="Selecione o método"
+        [control]="form.controls.paymentMethod"
+        [options]="paymentMethodOptions"
+      />
+    </div>
+
+    <div class="sm:col-span-2">
+      <gd-textarea
+        id="transaction-notes"
+        label="Observações"
+        placeholder="Adicione detalhes relevantes para a movimentação"
+        [control]="form.controls.notes"
+        [rows]="4"
+        [maxlength]="500"
+      />
+    </div>
+  </div>
+
+  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+      (click)="cancel()"
+    >
+      Cancelar
+    </gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+  </div>
+</form>

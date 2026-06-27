@@ -14,7 +14,7 @@ import { ConfirmDialog } from './confirm-dialog';
       description="Essa ação não poderá ser desfeita."
       confirmLabel="Confirmar"
       cancelLabel="Cancelar"
-      variant="danger"
+      [variant]="variant"
       [loading]="loading"
       (confirmed)="confirmedCount = confirmedCount + 1"
       (cancelled)="cancelledCount = cancelledCount + 1"
@@ -24,6 +24,7 @@ import { ConfirmDialog } from './confirm-dialog';
 class ConfirmDialogHost {
   open = true;
   loading = false;
+  variant: 'danger' | 'success' = 'danger';
   confirmedCount = 0;
   cancelledCount = 0;
 }
@@ -59,6 +60,20 @@ describe('ConfirmDialog', () => {
     buttons[1].click();
 
     expect(fixture.componentInstance.cancelledCount).toBe(1);
+  });
+
+  it('should support success variant', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.componentInstance.variant = 'success';
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Confirmar ação');
+    expect(fixture.nativeElement.querySelector('.text-success')).toBeTruthy();
   });
 
   it('should not emit confirmed while loading', async () => {

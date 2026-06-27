@@ -1,0 +1,70 @@
+<article [attr.aria-label]="'Movimentação ' + transaction().description">
+  <gd-card variant="elevated" padding="none">
+    <div class="flex min-h-full flex-col p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h3 class="truncate text-lg font-semibold text-text-primary">
+            {{ transaction().description }}
+          </h3>
+          <p class="mt-1 truncate text-sm text-text-muted">
+            {{ transaction().categoryName ?? 'Sem categoria' }}
+          </p>
+        </div>
+
+        <p [class]="'shrink-0 text-base font-semibold ' + amountClasses()">
+          {{ amountPrefix() }}{{ formatCurrency(transaction().amount) }}
+        </p>
+      </div>
+
+      <div class="mt-5 flex flex-wrap gap-2">
+        <gd-badge [variant]="typeVariant()" size="sm">{{ typeLabel() }}</gd-badge>
+        <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
+      </div>
+
+      <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="text-text-muted">Movimentação</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().transactionDate) }}</dd>
+        </div>
+        <div>
+          <dt class="text-text-muted">Vencimento</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().dueDate) }}</dd>
+        </div>
+        <div>
+          <dt class="text-text-muted">Pagamento</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().paidAt) }}</dd>
+        </div>
+        <div>
+          <dt class="text-text-muted">Método</dt>
+          <dd class="mt-1 font-medium text-text-primary">{{ paymentMethodLabel() }}</dd>
+        </div>
+      </dl>
+
+      @if (transaction().notes; as notes) {
+        <p class="mt-4 border-t border-border pt-4 text-sm leading-6 text-text-muted">
+          {{ notes }}
+        </p>
+      }
+
+      @if (hasActions()) {
+        <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
+          @if (canEdit()) {
+            <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="editTransaction()">
+              Editar
+            </gd-button>
+          }
+          @if (canMarkAsPaid()) {
+            <gd-button type="button" variant="secondary" size="sm" [fullWidth]="true" (click)="markAsPaid()">
+              Marcar paga
+            </gd-button>
+          }
+          @if (canCancel()) {
+            <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="cancelTransaction()">
+              Cancelar
+            </gd-button>
+          }
+        </div>
+      }
+    </div>
+  </gd-card>
+</article>

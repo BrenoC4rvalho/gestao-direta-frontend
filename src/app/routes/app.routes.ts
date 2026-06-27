@@ -69,7 +69,10 @@ export const routes: Routes = [
       {
         path: 'transactions',
         title: 'Transações',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/transactions/transactions-page').then(
+            (component) => component.TransactionsPage,
+          ),
       },
       {
         path: 'upcoming-bills',

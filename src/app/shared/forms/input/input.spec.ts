@@ -19,6 +19,13 @@ import { Input } from './input';
     />
 
     <gd-input
+      id="transaction-date"
+      label="Data"
+      type="date"
+      [control]="dateControl"
+    />
+
+    <gd-input
       id="required-name"
       label="Obrigatório"
       placeholder="Informe o valor"
@@ -30,6 +37,7 @@ import { Input } from './input';
 })
 class InputHost {
   readonly hintControl = new FormControl<GdFormValue>('Fazenda');
+  readonly dateControl = new FormControl<GdFormValue>('2026-06-21');
   readonly errorControl = new FormControl<GdFormValue>('', {
     validators: [Validators.required],
   });
@@ -57,6 +65,7 @@ describe('Input', () => {
     expect(text).toContain('Obrigatório');
     expect(text).toContain('Campo obrigatório.');
     expect(inputs[0].placeholder).toBe('Informe o nome');
-    expect(inputs[1].getAttribute('aria-invalid')).toBe('true');
+    expect(inputs[1].type).toBe('date');
+    expect(inputs[2].getAttribute('aria-invalid')).toBe('true');
   });
 });

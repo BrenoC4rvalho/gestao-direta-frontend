@@ -2,6 +2,7 @@ import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
+import { TransactionsPage } from '../pages/transactions/transactions-page';
 
 import { routes } from './app.routes';
 
@@ -29,6 +30,12 @@ describe('routes', () => {
       categoriesRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(categoriesComponent).toBe(CategoriesPage);
+    const transactionsRoute = appLayoutRoute?.children?.find((route) => route.path === 'transactions');
+    expect(transactionsRoute?.loadComponent).toBeTypeOf('function');
+    const transactionsComponent = await (
+      transactionsRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(transactionsComponent).toBe(TransactionsPage);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'profile')).toBe(true);
     expect(uiTestRoute?.canActivate).toBeUndefined();
     expect(uiTestRoute).toBeTruthy();

@@ -1,0 +1,272 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">Movimentações financeiras</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Acompanhe receitas, despesas e status de pagamento da fazenda selecionada.
+      </p>
+    </div>
+
+    @if (canCreateTransaction() && !accessDenied()) {
+      <gd-button type="button" (click)="openCreateDrawer()">Nova movimentação</gd-button>
+    }
+  </header>
+
+  @if (selectedFarmName(); as farmName) {
+    <gd-card padding="sm">
+      <p class="text-sm text-text-muted">
+        Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
+      </p>
+    </gd-card>
+  } @else {
+    <gd-empty-state
+      title="Selecione uma fazenda"
+      description="Escolha uma fazenda para visualizar e gerenciar movimentações financeiras."
+      icon="tractor"
+    />
+  }
+
+  @if (
+    selectedFarmStore.selectedFarmId() &&
+    !sessionStore.isAdmin() &&
+    (farmAccessStore.loading() || (!farmAccessStore.access() && !farmAccessStore.error()))
+  ) {
+    <div class="grid gap-4 md:grid-cols-3" aria-label="Carregando permissões">
+      @for (item of [1, 2, 3]; track item) {
+        <gd-card>
+          <gd-skeleton width="45%" height="0.875rem" />
+          <gd-skeleton class="mt-3 block" width="70%" height="1.75rem" />
+        </gd-card>
+      }
+    </div>
+  } @else if (accessDenied()) {
+    <gd-error-state
+      title="Acesso restrito"
+      description="Você não tem permissão para visualizar movimentações financeiras."
+    />
+  } @else if (selectedFarmStore.selectedFarmId()) {
+    <div class="grid gap-4 md:grid-cols-3">
+      <gd-card>
+        <p class="text-sm font-medium text-text-muted">Receitas</p>
+        <p class="mt-2 text-2xl font-semibold text-success">{{ formatCurrency(summary().income) }}</p>
+      </gd-card>
+      <gd-card>
+        <p class="text-sm font-medium text-text-muted">Despesas</p>
+        <p class="mt-2 text-2xl font-semibold text-danger">{{ formatCurrency(summary().expense) }}</p>
+      </gd-card>
+      <gd-card>
+        <p class="text-sm font-medium text-text-muted">Saldo</p>
+        <p [class]="'mt-2 text-2xl font-semibold ' + (summary().balance >= 0 ? 'text-success' : 'text-danger')">
+          {{ formatCurrency(summary().balance) }}
+        </p>
+      </gd-card>
+    </div>
+
+    <gd-card>
+      <form class="grid gap-4 md:grid-cols-4" [formGroup]="filterForm">
+        <gd-select
+          id="transaction-filter-type"
+          label="Tipo"
+          placeholder="Todos"
+          [control]="filterForm.controls.type"
+          [options]="typeFilterOptions"
+        />
+        <gd-select
+          id="transaction-filter-status"
+          label="Status"
+          placeholder="Todos"
+          [control]="filterForm.controls.status"
+          [options]="statusFilterOptions"
+        />
+        <gd-select
+          id="transaction-filter-category"
+          label="Categoria"
+          placeholder="Todas"
+          [control]="filterForm.controls.categoryId"
+          [options]="categoryFilterOptions()"
+          [disabled]="categoryFilterOptions().length === 0"
+        />
+        <div class="flex items-end">
+          <gd-button type="button" variant="outline" [fullWidth]="true" (click)="resetFilters()">
+            Limpar filtros
+          </gd-button>
+        </div>
+      </form>
+    </gd-card>
+
+    @if (loading()) {
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando movimentações">
+        @for (item of skeletons; track item) {
+          <gd-card variant="elevated">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <gd-skeleton width="70%" height="1.25rem" />
+                <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+              </div>
+              <gd-skeleton width="6rem" height="1.25rem" />
+            </div>
+            <div class="mt-5 flex gap-2">
+              <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+              <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+            </div>
+            <gd-skeleton class="mt-5 block" height="4rem" />
+          </gd-card>
+        }
+      </div>
+    } @else if (error()) {
+      <gd-error-state
+        title="Não foi possível carregar as movimentações"
+        description="Verifique sua conexão e tente novamente."
+        actionLabel="Tentar novamente"
+        (action)="retry()"
+      />
+    } @else if (filteredTransactions().length === 0) {
+      <gd-empty-state
+        title="Nenhuma movimentação encontrada"
+        description="As receitas e despesas da fazenda aparecerão aqui."
+        icon="receipt-text"
+      />
+    } @else {
+      <div class="grid gap-4 md:hidden">
+        @for (transaction of filteredTransactions(); track transaction.id) {
+          <gd-transaction-card
+            [transaction]="transaction"
+            [canEdit]="canEditTransaction(transaction)"
+            [canMarkAsPaid]="canMarkAsPaid(transaction)"
+            [canCancel]="canCancelTransaction(transaction)"
+            (editRequested)="openEditDrawer($event)"
+            (markAsPaidRequested)="requestMarkAsPaid($event)"
+            (cancelRequested)="requestCancel($event)"
+          />
+        }
+      </div>
+
+      <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+        <table class="w-full border-collapse text-left text-sm">
+          <caption class="sr-only">Movimentações financeiras da fazenda selecionada</caption>
+          <thead class="border-b border-border bg-background">
+            <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
+              <th class="px-5 py-4" scope="col">Descrição</th>
+              <th class="px-5 py-4" scope="col">Tipo</th>
+              <th class="px-5 py-4" scope="col">Status</th>
+              <th class="px-5 py-4" scope="col">Datas</th>
+              <th class="px-5 py-4 text-right" scope="col">Valor</th>
+              <th class="px-5 py-4" scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (transaction of filteredTransactions(); track transaction.id) {
+              <tr>
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-text-primary">{{ transaction.description }}</p>
+                  <p class="mt-1 text-sm text-text-muted">{{ transaction.categoryName ?? 'Sem categoria' }}</p>
+                  <p class="mt-1 text-xs text-text-muted">{{ paymentMethodLabel(transaction.paymentMethod) }}</p>
+                </td>
+                <td class="px-5 py-4">
+                  <gd-badge [variant]="typeVariant(transaction.type)" size="sm">
+                    {{ typeLabel(transaction.type) }}
+                  </gd-badge>
+                </td>
+                <td class="px-5 py-4">
+                  <gd-badge [variant]="statusVariant(transaction.status)" size="sm">
+                    {{ statusLabel(transaction.status) }}
+                  </gd-badge>
+                </td>
+                <td class="px-5 py-4 text-text-muted">
+                  <p>Mov.: {{ formatDate(transaction.transactionDate) }}</p>
+                  <p>Venc.: {{ formatDate(transaction.dueDate) }}</p>
+                  <p>Pag.: {{ formatDate(transaction.paidAt) }}</p>
+                </td>
+                <td [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(transaction.type)">
+                  {{ amountPrefix(transaction.type) }}{{ formatCurrency(transaction.amount) }}
+                </td>
+                <td class="px-5 py-4">
+                  @if (canEditTransaction(transaction) || canMarkAsPaid(transaction) || canCancelTransaction(transaction)) {
+                    <div class="flex flex-wrap gap-2">
+                      @if (canEditTransaction(transaction)) {
+                        <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(transaction)">
+                          Editar
+                        </gd-button>
+                      }
+                      @if (canMarkAsPaid(transaction)) {
+                        <gd-button type="button" size="sm" variant="secondary" (click)="requestMarkAsPaid(transaction)">
+                          Marcar paga
+                        </gd-button>
+                      }
+                      @if (canCancelTransaction(transaction)) {
+                        <gd-button type="button" size="sm" variant="outline" (click)="requestCancel(transaction)">
+                          Cancelar
+                        </gd-button>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-sm font-medium text-text-muted">Somente leitura</p>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de movimentações">
+        <p class="text-sm text-text-muted">
+          Página {{ page() + 1 }} de {{ pageInfo().totalPages || 1 }} · {{ pageInfo().totalElements }} registros
+        </p>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <gd-button type="button" variant="outline" [disabled]="pageInfo().first" (click)="previousPage()">
+            Anterior
+          </gd-button>
+          <gd-button type="button" variant="outline" [disabled]="pageInfo().last" (click)="nextPage()">
+            Próxima
+          </gd-button>
+        </div>
+      </nav>
+    }
+  }
+</section>
+
+<gd-drawer
+  [open]="drawerOpen()"
+  [title]="drawerTitle()"
+  [description]="drawerDescription()"
+  size="lg"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closeDrawer()"
+>
+  <gd-transaction-form
+    [transaction]="editingTransaction()"
+    [categories]="categories()"
+    [open]="drawerOpen()"
+    [submitting]="submitting()"
+    (submitted)="saveTransaction($event)"
+    (cancelled)="closeDrawer()"
+  />
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="paidTarget() !== null"
+  title="Marcar como paga"
+  description="Esta movimentação será registrada com status de pagamento pago."
+  confirmLabel="Marcar paga"
+  cancelLabel="Cancelar"
+  variant="success"
+  [loading]="paidSubmitting()"
+  (confirmed)="confirmMarkAsPaid()"
+  (cancelled)="closePaidConfirmation()"
+  (closed)="closePaidConfirmation()"
+/>
+
+<gd-confirm-dialog
+  [open]="cancelTarget() !== null"
+  title="Cancelar movimentação"
+  description="Esta movimentação será cancelada e não entrará no saldo operacional."
+  confirmLabel="Cancelar movimentação"
+  cancelLabel="Voltar"
+  variant="warning"
+  [loading]="cancelSubmitting()"
+  (confirmed)="confirmCancel()"
+  (cancelled)="closeCancelConfirmation()"
+  (closed)="closeCancelConfirmation()"
+/>
