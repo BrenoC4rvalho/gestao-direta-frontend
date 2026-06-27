@@ -76,7 +76,7 @@ export class FarmUsersPage {
   protected readonly foundUser = signal<User | null>(null);
   protected readonly userSearchLoading = signal(false);
   protected readonly userSearchError = signal<string | null>(null);
-  protected readonly roleTarget = signal<FarmUser | null>(null);
+  protected readonly editTarget = signal<FarmUser | null>(null);
   protected readonly roleSubmitting = signal(false);
   protected readonly inactivationTarget = signal<FarmUser | null>(null);
   protected readonly inactivationSubmitting = signal(false);
@@ -92,7 +92,7 @@ export class FarmUsersPage {
       : ['EMPLOYEE', 'ACCOUNTANT'],
   );
   protected readonly roleDrawerOptions = computed<readonly FarmUserRole[]>(() =>
-    this.allowedRoles().filter((role) => role !== this.roleTarget()?.role),
+    this.allowedRoles().filter((role) => role !== this.editTarget()?.role),
   );
   protected readonly linkFormMode = computed(() =>
     this.sessionStore.isAdmin() ? 'admin-list' : 'email-search',
@@ -258,23 +258,27 @@ export class FarmUsersPage {
       });
   }
 
-  protected openRoleDrawer(farmUser: FarmUser): void {
+  protected openEditDrawer(farmUser: FarmUser): void {
     if (!this.canManageFarmUser(farmUser)) {
       return;
     }
 
-    this.roleTarget.set(farmUser);
+    this.editTarget.set(farmUser);
   }
 
-  protected closeRoleDrawer(): void {
-    if (!this.roleSubmitting()) {
-      this.roleTarget.set(null);
+  protected closeEditDrawer(): void {
+    if (
+      !this.roleSubmitting() &&
+      !this.inactivationSubmitting() &&
+      !this.inactivationTarget()
+    ) {
+      this.editTarget.set(null);
     }
   }
 
   protected updateRole(payload: UpdateFarmUserRoleRequest): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
-    const target = this.roleTarget();
+    const target = this.editTarget();
 
     if (
       !farmId ||
@@ -297,7 +301,7 @@ export class FarmUsersPage {
       )
       .subscribe({
         next: () => {
-          this.roleTarget.set(null);
+          this.editTarget.set(null);
           this.toastStore.success('Papel atualizado com sucesso.');
           this.retry();
         },
@@ -341,6 +345,7 @@ export class FarmUsersPage {
       .subscribe({
         next: () => {
           this.inactivationTarget.set(null);
+          this.editTarget.set(null);
           this.toastStore.success('Vínculo inativado com sucesso.');
           this.retry();
         },
@@ -351,6 +356,22 @@ export class FarmUsersPage {
   protected canManageFarmUser(farmUser: FarmUser): boolean {
     if (farmUser.userId === this.sessionStore.user()?.id) {
       this.toastStore.error('Você não pode alterar seu próprio vínculo por aqui.');
+      return false;
+    }
+
+    if (!this.canManageContext() || farmUser.role === 'INACTIVE') {
+      return false;
+    }
+
+    return (
+      this.sessionStore.isAdmin() ||
+      farmUser.role === 'EMPLOYEE' ||
+      farmUser.role === 'ACCOUNTANT'
+    );
+  }
+
+  protected canShowEditAction(farmUser: FarmUser): boolean {
+    if (farmUser.userId === this.sessionStore.user()?.id) {
       return false;
     }
 
@@ -525,7 +546,7 @@ export class FarmUsersPage {
     this.availableUsersLoading.set(false);
     this.availableUsersError.set(false);
     this.resetUserSearchState();
-    this.roleTarget.set(null);
+    this.editTarget.set(null);
     this.inactivationTarget.set(null);
   }
 

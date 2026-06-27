@@ -2,7 +2,7 @@
   <div>
     <gd-select
       id="farm-user-new-role"
-      label="Novo papel"
+      label="Papel na fazenda"
       placeholder="Selecione o novo papel"
       [control]="form.controls.role"
       [options]="roleOptions()"
@@ -22,6 +22,8 @@
     >
       Cancelar
     </gd-button>
-    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">
+      Salvar alterações
+    </gd-button>
   </div>
 </form>

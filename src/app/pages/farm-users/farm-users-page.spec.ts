@@ -333,10 +333,45 @@ describe('FarmUsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Usuário vinculado com sucesso.');
   });
 
+  it('should show only the edit action in the listing', () => {
+    setupAdminFarm();
+    createPage();
+
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    expect(findButton(fixture.nativeElement, 'Alterar papel')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar vínculo')).toBeUndefined();
+  });
+
+  it('should open the edit drawer with user data and role select', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+
+    const drawer = getDialog('gd-drawer');
+    expect(drawer?.textContent).toContain('Editar vínculo');
+    expect(drawer?.textContent).toContain(
+      'Altere o papel do usuário ou inative o vínculo com esta fazenda.',
+    );
+    expect(drawer?.textContent).toContain('Produtor Atual');
+    expect(drawer?.textContent).toContain('produtor@example.com');
+    expect(drawer?.textContent).toContain('Papel na fazenda');
+  });
+
+  it('should show admin role options without the current role in the edit drawer', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+
+    const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
+    expect(form.textContent).not.toContain('Produtor');
+    expect(form.textContent).toContain('Funcionário');
+    expect(form.textContent).toContain('Contador');
+  });
+
   it('should update a role and reload the list', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Alterar papel');
+    clickButton('Editar');
     selectInForm('gd-farm-user-role-form', 0, 1);
     submitForm('gd-farm-user-role-form');
 
@@ -345,11 +380,33 @@ describe('FarmUsersPage', () => {
     });
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Papel atualizado com sucesso.');
+    expect(getDialog('gd-drawer')).toBeNull();
   });
 
-  it('should confirm inactivation and reload the list', () => {
+  it('should show the danger zone for an active manageable link', () => {
     setupAdminFarm();
     createPage();
+    clickButton('Editar');
+
+    const drawer = getDialog('gd-drawer');
+    expect(drawer?.textContent).toContain('Zona de perigo');
+    expect(findButton(drawer as HTMLElement, 'Inativar vínculo')).toBeTruthy();
+  });
+
+  it('should not open edit actions for an inactive link', () => {
+    setupAdminFarm();
+    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Usuário Inativo');
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar vínculo')).toBeUndefined();
+  });
+
+  it('should open a confirmation from the edit drawer and reload the list after inactivation', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
     clickButton('Inativar vínculo');
 
     const dialog = getDialog('gd-confirm-dialog');
@@ -360,6 +417,7 @@ describe('FarmUsersPage', () => {
     expect(farmUserService.inactivate).toHaveBeenCalledWith(10, 1);
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo inativado com sucesso.');
+    expect(getDialog('gd-drawer')).toBeNull();
   });
 
   it('should show permission feedback when an action returns 403', () => {
@@ -368,6 +426,7 @@ describe('FarmUsersPage', () => {
     );
     setupAdminFarm();
     createPage();
+    clickButton('Editar');
     clickButton('Inativar vínculo');
     findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Inativar')?.click();
     fixture.detectChanges();
@@ -468,6 +527,19 @@ describe('FarmUsersPage', () => {
     expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
   });
 
+  it('should show producer edit options only for employee and accountant roles', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Editar');
+
+    const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
+    expect(form.textContent).not.toContain('Produtor');
+    expect(form.textContent).not.toContain('Funcionário');
+    expect(form.textContent).toContain('Contador');
+  });
+
   it('should protect the authenticated user link from actions', () => {
     sessionStore.setUser(producer);
     selectedFarmStore.setFarms(farms);
@@ -479,8 +551,29 @@ describe('FarmUsersPage', () => {
     ).find((article) => article.textContent?.includes('Produtor Atual'));
 
     expect(ownCard?.textContent).toContain('Seu vínculo — acesso protegido');
-    expect(findButton(ownCard as HTMLElement, 'Alterar papel')).toBeUndefined();
+    expect(findButton(ownCard as HTMLElement, 'Editar')).toBeUndefined();
     expect(findButton(ownCard as HTMLElement, 'Inativar vínculo')).toBeUndefined();
+  });
+
+  it('should keep method-level protection for the authenticated user link', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+
+    const page = fixture.componentInstance as unknown as {
+      openEditDrawer(farmUser: FarmUser): void;
+      requestInactivation(farmUser: FarmUser): void;
+    };
+    page.openEditDrawer(farmUsers[0]);
+    page.requestInactivation(farmUsers[0]);
+    fixture.detectChanges();
+
+    expect(getDialog('gd-drawer')).toBeNull();
+    expect(getDialog('gd-confirm-dialog')).toBeNull();
+    expect(toastStore.toasts().map((toast) => toast.title)).toContain(
+      'Você não pode alterar seu próprio vínculo por aqui.',
+    );
   });
 
   it('should reload links when the selected farm changes', () => {

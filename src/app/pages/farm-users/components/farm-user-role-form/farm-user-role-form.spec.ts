@@ -28,6 +28,12 @@ describe('FarmUserRoleForm', () => {
     fixture.detectChanges();
   });
 
+  it('should render edit copy', () => {
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Papel na fazenda');
+    expect(text).toContain('Salvar alterações');
+  });
+
   it('should omit the current role from options', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).not.toContain('Funcionário');
