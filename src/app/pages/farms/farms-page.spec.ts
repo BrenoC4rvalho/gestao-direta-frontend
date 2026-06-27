@@ -201,9 +201,12 @@ describe('FarmsPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Fazenda atualizada.');
   });
 
-  it('should confirm farm inactivation and reload the list', () => {
+  it('should confirm farm inactivation from the edit drawer and reload the list', () => {
     createPage();
-    clickButton('Inativar');
+    clickButton('Editar');
+
+    expect(fixture.nativeElement.textContent).toContain('Zona de perigo');
+    clickButton('Inativar fazenda');
 
     const dialog = fixture.nativeElement.querySelector(
       'gd-confirm-dialog [role="dialog"]',
@@ -236,13 +239,15 @@ describe('FarmsPage', () => {
     );
   });
 
-  it('should select and highlight an active farm', () => {
-    const selectFarm = vi.spyOn(selectedFarmStore, 'selectFarm');
+  it('should not show local selection or direct status actions in the list', () => {
     createPage();
-    clickButton('Selecionar');
 
-    expect(selectFarm).toHaveBeenCalledWith(farms[0]);
-    expect(fixture.nativeElement.querySelector('article[data-selected="true"]')).toBeTruthy();
+    const listText = fixture.nativeElement.querySelector('section')?.textContent as string;
+    expect(listText).not.toContain('Selecionar');
+    expect(listText).not.toContain('Selecionada');
+    expect(listText).not.toContain('Indisponível');
+    expect(listText).not.toContain('Inativar');
+    expect(fixture.nativeElement.querySelector('article[data-selected]')).toBeNull();
   });
 
   it('should show edit only for the selected farm when the user has permission', () => {
@@ -252,7 +257,7 @@ describe('FarmsPage', () => {
     createPage();
 
     expect(findButton(fixture.nativeElement, 'Nova fazenda')).toBeUndefined();
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeUndefined();
     expect(findButtons(fixture.nativeElement, 'Editar')).toHaveLength(1);
   });
 
@@ -270,10 +275,10 @@ describe('FarmsPage', () => {
     createPage();
 
     expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeUndefined();
   });
 
-  it('should show status action for the selected farm with permission', () => {
+  it('should show status action in the edit drawer for the selected farm with permission', () => {
     sessionStore.setUser({ ...admin, userType: 'USER' });
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess({
@@ -281,8 +286,40 @@ describe('FarmsPage', () => {
       permissions: { ...producerAccess.permissions, canChangeFarmStatus: true },
     });
     createPage();
+    clickButton('Editar');
 
-    expect(findButtons(fixture.nativeElement, 'Inativar')).toHaveLength(1);
+    expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeTruthy();
+  });
+
+  it('should show activation action in the edit drawer for an inactive farm', () => {
+    const inactiveFarm = { ...farms[0], status: 'INACTIVE' as const };
+    farmService.list.mockReturnValueOnce(of(pageResponse([inactiveFarm])));
+    createPage();
+    clickButton('Editar');
+
+    expect(fixture.nativeElement.textContent).toContain('Status da fazenda');
+    expect(findButton(fixture.nativeElement, 'Ativar fazenda')).toBeTruthy();
+    clickButton('Ativar fazenda');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    expect(dialog.textContent).toContain('Ativar fazenda');
+    findButton(dialog, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
+  });
+
+  it('should hide status action in the edit drawer without status permission', () => {
+    sessionStore.setUser({ ...admin, userType: 'USER' });
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Editar');
+
+    expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Ativar fazenda')).toBeUndefined();
   });
 
   function clickButton(label: string): void {

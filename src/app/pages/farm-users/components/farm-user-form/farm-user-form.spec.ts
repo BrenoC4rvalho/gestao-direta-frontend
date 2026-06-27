@@ -52,6 +52,27 @@ describe('FarmUserForm', () => {
   });
 
 
+
+  it('should keep link submit disabled in email-search mode before finding a user', () => {
+    fixture.componentRef.setInput('mode', 'email-search');
+    fixture.componentRef.setInput('foundUser', null);
+    fixture.detectChanges();
+
+    expect(findButton('Vincular')?.disabled).toBe(true);
+  });
+
+  it('should enable link submit only after finding a user and selecting a role', () => {
+    fixture.componentRef.setInput('mode', 'email-search');
+    fixture.componentRef.setInput('foundUser', users[0]);
+    fixture.detectChanges();
+
+    expect(findButton('Vincular')?.disabled).toBe(true);
+
+    selectOption(0, 1);
+
+    expect(findButton('Vincular')?.disabled).toBe(false);
+  });
+
   it('should emit an email search in email-search mode', () => {
     fixture.componentRef.setInput('mode', 'email-search');
     fixture.componentRef.setInput('foundUser', null);
@@ -80,6 +101,23 @@ describe('FarmUserForm', () => {
     submit();
 
     expect(submitted).toHaveBeenCalledWith({ userId: 2, role: 'EMPLOYEE' });
+  });
+
+
+  it('should emit emailChanged when the searched email changes', () => {
+    fixture.componentRef.setInput('mode', 'email-search');
+    fixture.componentRef.setInput('foundUser', users[0]);
+    fixture.detectChanges();
+    const emailChanged = vi.fn();
+    fixture.componentInstance.emailChanged.subscribe(emailChanged);
+
+    setInput(0, 'outra@example.com');
+
+    expect(emailChanged).toHaveBeenCalled();
+  });
+
+  it('should keep admin-list submit behavior unchanged', () => {
+    expect(findButton('Salvar')?.disabled).toBe(false);
   });
 
   it('should show search errors in email-search mode', () => {

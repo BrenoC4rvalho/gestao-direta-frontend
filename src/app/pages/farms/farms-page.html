@@ -43,12 +43,8 @@
       @for (farm of farms(); track farm.id) {
         <gd-farm-card
           [farm]="farm"
-          [selected]="selectedFarmStore.selectedFarmId() === farm.id"
           [canEdit]="canEditFarm(farm)"
-          [canManageStatus]="canManageStatus(farm)"
-          (selectRequested)="selectFarm($event)"
           (editRequested)="openEditDrawer($event)"
-          (statusChangeRequested)="requestStatusChange($event)"
         />
       }
     </div>
@@ -104,6 +100,46 @@
     (submitted)="saveFarm($event)"
     (cancelled)="closeDrawer()"
   />
+
+  @if (editingFarm(); as farm) {
+    @if (canManageStatus(farm)) {
+      <section class="mt-6 border-t border-border pt-6">
+        @if (farm.status === 'ACTIVE') {
+          <div class="rounded-app border border-danger/30 bg-danger/5 p-4">
+            <h3 class="text-base font-semibold text-danger">Zona de perigo</h3>
+            <p class="mt-2 text-sm text-text-muted">
+              Inative a fazenda para removê-la do uso operacional.
+            </p>
+            <gd-button
+              class="mt-4 block"
+              type="button"
+              variant="danger"
+              [fullWidth]="true"
+              (click)="requestStatusChange(farm)"
+            >
+              Inativar fazenda
+            </gd-button>
+          </div>
+        } @else {
+          <div class="rounded-app border border-border bg-background-secondary p-4">
+            <h3 class="text-base font-semibold text-text-primary">Status da fazenda</h3>
+            <p class="mt-2 text-sm text-text-muted">
+              Ative a fazenda para disponibilizá-la novamente.
+            </p>
+            <gd-button
+              class="mt-4 block"
+              type="button"
+              variant="secondary"
+              [fullWidth]="true"
+              (click)="requestStatusChange(farm)"
+            >
+              Ativar fazenda
+            </gd-button>
+          </div>
+        }
+      </section>
+    }
+  }
 </gd-drawer>
 
 <gd-confirm-dialog

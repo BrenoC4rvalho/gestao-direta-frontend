@@ -71,7 +71,7 @@
     >
       Cancelar
     </gd-button>
-    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">
+    <gd-button type="submit" [loading]="submitting()" [disabled]="submitDisabled()" [fullWidth]="true">
       {{ mode() === 'email-search' ? 'Vincular' : 'Salvar' }}
     </gd-button>
   </div>

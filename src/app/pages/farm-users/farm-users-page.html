@@ -245,6 +245,7 @@
       [searchLoading]="userSearchLoading()"
       [searchError]="userSearchError()"
       (searchEmail)="searchUserByEmail($event)"
+      (emailChanged)="clearUserSearchResult()"
       (submitted)="linkUser($event)"
       (cancelled)="closeLinkDrawer()"
     />

@@ -17,6 +17,8 @@ const farm: Farm = {
   updatedAt: '2026-01-10T00:00:00Z',
 };
 
+const removedActions = ['Selecionar', 'Selecionada', 'Indisponível', 'Inativar', 'Ativar'];
+
 describe('FarmCard', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -24,19 +26,12 @@ describe('FarmCard', () => {
     }).compileComponents();
   });
 
-  it('should render farm data and emit all available actions', () => {
+  it('should render farm data and emit edit action', () => {
     const fixture = TestBed.createComponent(FarmCard);
-    const selected: Farm[] = [];
     const edited: Farm[] = [];
-    const statusChanges: Farm[] = [];
     fixture.componentRef.setInput('farm', farm);
     fixture.componentRef.setInput('canEdit', true);
-    fixture.componentRef.setInput('canManageStatus', true);
-    fixture.componentInstance.selectRequested.subscribe((value) => selected.push(value));
     fixture.componentInstance.editRequested.subscribe((value) => edited.push(value));
-    fixture.componentInstance.statusChangeRequested.subscribe((value) =>
-      statusChanges.push(value),
-    );
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
@@ -45,41 +40,42 @@ describe('FarmCard', () => {
     expect(text).toContain('Agricultura');
     expect(text).toContain('Ativa');
 
-    clickButton(fixture.nativeElement, 'Selecionar');
     clickButton(fixture.nativeElement, 'Editar');
-    clickButton(fixture.nativeElement, 'Inativar');
 
-    expect(selected).toEqual([farm]);
     expect(edited).toEqual([farm]);
-    expect(statusChanges).toEqual([farm]);
   });
 
-  it('should show selected state and disable selection', () => {
+  it('should not render selection or status actions', () => {
     const fixture = TestBed.createComponent(FarmCard);
     fixture.componentRef.setInput('farm', farm);
-    fixture.componentRef.setInput('selected', true);
+    fixture.componentRef.setInput('canEdit', true);
     fixture.detectChanges();
 
-    const selectedButton = findButton(fixture.nativeElement, 'Selecionada');
-    expect(selectedButton?.disabled).toBe(true);
+    const text = fixture.nativeElement.textContent as string;
+    for (const label of removedActions) {
+      expect(text).not.toContain(label);
+      expect(findButton(fixture.nativeElement, label)).toBeUndefined();
+    }
   });
 
-  it('should not expose status actions without permission', () => {
+  it('should hide edit action without permission', () => {
     const fixture = TestBed.createComponent(FarmCard);
     fixture.componentRef.setInput('farm', farm);
     fixture.detectChanges();
 
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
   });
 
-  it('should disable selection and offer activation for an inactive farm', () => {
+  it('should render inactive status without activation action', () => {
     const fixture = TestBed.createComponent(FarmCard);
     fixture.componentRef.setInput('farm', { ...farm, status: 'INACTIVE' });
-    fixture.componentRef.setInput('canManageStatus', true);
+    fixture.componentRef.setInput('canEdit', true);
     fixture.detectChanges();
 
-    expect(findButton(fixture.nativeElement, 'Indisponível')?.disabled).toBe(true);
-    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Inativa');
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Indisponível')).toBeUndefined();
   });
 });
 

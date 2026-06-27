@@ -180,6 +180,10 @@ export class FarmUsersPage {
     this.loadAvailableUsers();
   }
 
+  protected clearUserSearchResult(): void {
+    this.foundUser.set(null);
+    this.userSearchError.set(null);
+  }
 
   protected searchUserByEmail(email: string): void {
     if (this.sessionStore.isAdmin() || !this.canManageContext() || this.userSearchLoading()) {

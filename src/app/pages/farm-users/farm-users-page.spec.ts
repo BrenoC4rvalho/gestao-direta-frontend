@@ -392,6 +392,26 @@ describe('FarmUsersPage', () => {
     expect(form.textContent).toContain('Buscar usuário');
   });
 
+  it('should keep producer link submit disabled until a user is found and a role is selected', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Vincular usuário');
+
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
+
+    setInput('gd-farm-user-form', 0, ' ana@example.com ');
+    clickButton('Buscar usuário');
+
+    expect(fixture.nativeElement.textContent).toContain('Ana Disponível');
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
+
+    selectInForm('gd-farm-user-form', 0, 1);
+
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(false);
+  });
+
   it('should search by email and link the found user for a producer', () => {
     sessionStore.setUser(producer);
     selectedFarmStore.setFarms(farms);
@@ -413,6 +433,25 @@ describe('FarmUsersPage', () => {
     });
   });
 
+  it('should clear the found user and disable submit when the email changes after search', () => {
+    sessionStore.setUser(producer);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(producerAccess);
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, 'ana@example.com');
+    clickButton('Buscar usuário');
+    selectInForm('gd-farm-user-form', 0, 1);
+
+    expect(fixture.nativeElement.textContent).toContain('Ana Disponível');
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(false);
+
+    setInput('gd-farm-user-form', 0, 'outra@example.com');
+
+    expect(fixture.nativeElement.textContent).not.toContain('Ana Disponível');
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
+  });
+
   it('should show producer search errors', () => {
     userService.searchByEmail.mockReturnValueOnce(
       throwError(() => new HttpErrorResponse({ status: 404 })),
@@ -426,6 +465,7 @@ describe('FarmUsersPage', () => {
     clickButton('Buscar usuário');
 
     expect(fixture.nativeElement.textContent).toContain('Usuário não encontrado.');
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
   });
 
   it('should protect the authenticated user link from actions', () => {

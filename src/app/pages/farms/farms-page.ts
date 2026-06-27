@@ -123,15 +123,6 @@ export class FarmsPage implements OnInit {
     }
   }
 
-  protected selectFarm(farm: Farm): void {
-    if (farm.status !== 'ACTIVE') {
-      return;
-    }
-
-    this.selectedFarmStore.selectFarm(farm);
-    this.toastStore.success('Fazenda selecionada.');
-  }
-
   protected openCreateDrawer(): void {
     if (!this.sessionStore.isAdmin()) {
       return;

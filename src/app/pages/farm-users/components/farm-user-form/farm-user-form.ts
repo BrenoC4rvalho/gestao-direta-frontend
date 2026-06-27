@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   CreateFarmUserRequest,
@@ -30,6 +31,8 @@ interface FarmUserFormControls {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FarmUserForm {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly open = input(false);
   readonly mode = input<FarmUserFormMode>('admin-list');
   readonly users = input<readonly User[]>([]);
@@ -40,6 +43,7 @@ export class FarmUserForm {
   readonly searchError = input<string | null>(null);
 
   readonly searchEmail = output<string>();
+  readonly emailChanged = output<void>();
   readonly submitted = output<CreateFarmUserRequest>();
   readonly cancelled = output<void>();
 
@@ -73,6 +77,14 @@ export class FarmUserForm {
         this.form.controls.userId.setValue(user?.id ?? '');
       }
     });
+
+    this.form.controls.email.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.mode() === 'email-search') {
+          this.emailChanged.emit();
+        }
+      });
   }
 
   protected requestSearch(): void {
@@ -111,6 +123,19 @@ export class FarmUserForm {
       userId: Number(this.form.controls.userId.value),
       role: `${this.form.controls.role.value ?? ''}` as FarmUserRole,
     });
+  }
+
+
+  protected submitDisabled(): boolean {
+    if (this.submitting()) {
+      return true;
+    }
+
+    if (this.mode() === 'email-search') {
+      return this.foundUser() === null || this.form.controls.role.invalid;
+    }
+
+    return false;
   }
 
   protected cancel(): void {
