@@ -304,7 +304,7 @@ export class FarmUsersPage {
       .subscribe({
         next: () => {
           this.editTarget.set(null);
-          this.toastStore.success('Papel atualizado com sucesso.');
+          this.toastStore.success('Vínculo atualizado com sucesso.');
           this.retry();
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -312,7 +312,7 @@ export class FarmUsersPage {
   }
 
   protected requestInactivation(farmUser: FarmUser): void {
-    if (this.canManageFarmUser(farmUser)) {
+    if (farmUser.role !== 'INACTIVE' && this.canManageFarmUser(farmUser)) {
       this.inactivationTarget.set(farmUser);
     }
   }
@@ -331,6 +331,7 @@ export class FarmUsersPage {
       !farmId ||
       !target ||
       this.inactivationSubmitting() ||
+      target.role === 'INACTIVE' ||
       !this.canManageFarmUser(target)
     ) {
       return;
@@ -361,14 +362,15 @@ export class FarmUsersPage {
       return false;
     }
 
-    if (!this.canManageContext() || farmUser.role === 'INACTIVE') {
+    if (!this.canManageContext()) {
       return false;
     }
 
     return (
       this.sessionStore.isAdmin() ||
       farmUser.role === 'EMPLOYEE' ||
-      farmUser.role === 'ACCOUNTANT'
+      farmUser.role === 'ACCOUNTANT' ||
+      farmUser.role === 'INACTIVE'
     );
   }
 
@@ -377,14 +379,15 @@ export class FarmUsersPage {
       return false;
     }
 
-    if (!this.canManageContext() || farmUser.role === 'INACTIVE') {
+    if (!this.canManageContext()) {
       return false;
     }
 
     return (
       this.sessionStore.isAdmin() ||
       farmUser.role === 'EMPLOYEE' ||
-      farmUser.role === 'ACCOUNTANT'
+      farmUser.role === 'ACCOUNTANT' ||
+      farmUser.role === 'INACTIVE'
     );
   }
 

@@ -267,20 +267,26 @@
           <h3 id="farm-user-status-title" class="text-sm font-semibold text-text-primary">
             Status do Vínculo
           </h3>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
-            Inative este vínculo caso o usuário não deva mais acessar esta fazenda.
-          </p>
-          <div class="mt-3">
-            <gd-button
-              type="button"
-              variant="danger"
-              [fullWidth]="true"
-              [disabled]="roleSubmitting() || inactivationSubmitting()"
-              (click)="requestInactivation(farmUser)"
-            >
-              Inativar vínculo
-            </gd-button>
-          </div>
+          @if (farmUser.role === 'INACTIVE') {
+            <p class="mt-1 text-sm leading-6 text-text-muted">
+              Selecione um papel ativo e salve as alterações para reativar este vínculo.
+            </p>
+          } @else {
+            <p class="mt-1 text-sm leading-6 text-text-muted">
+              Inative este vínculo caso o usuário não deva mais acessar esta fazenda.
+            </p>
+            <div class="mt-3">
+              <gd-button
+                type="button"
+                variant="danger"
+                [fullWidth]="true"
+                [disabled]="roleSubmitting() || inactivationSubmitting()"
+                (click)="requestInactivation(farmUser)"
+              >
+                Inativar vínculo
+              </gd-button>
+            </div>
+          }
         </section>
       }
     </section>
