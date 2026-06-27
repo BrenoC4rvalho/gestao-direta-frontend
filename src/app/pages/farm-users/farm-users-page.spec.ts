@@ -383,13 +383,17 @@ describe('FarmUsersPage', () => {
     expect(getDialog('gd-drawer')).toBeNull();
   });
 
-  it('should show the danger zone for an active manageable link', () => {
+  it('should show the link status section for an active manageable link', () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
 
     const drawer = getDialog('gd-drawer');
-    expect(drawer?.textContent).toContain('Zona de perigo');
+    expect(drawer?.textContent).toContain('Status do Vínculo');
+    expect(drawer?.textContent).toContain(
+      'Inative este vínculo caso o usuário não deva mais acessar esta fazenda.',
+    );
+    expect(drawer?.textContent).not.toContain('Zona de perigo');
     expect(findButton(drawer as HTMLElement, 'Inativar vínculo')).toBeTruthy();
   });
 
@@ -403,21 +407,76 @@ describe('FarmUsersPage', () => {
     expect(findButton(fixture.nativeElement, 'Inativar vínculo')).toBeUndefined();
   });
 
-  it('should open a confirmation from the edit drawer and reload the list after inactivation', () => {
+  it('should open the inactivation confirmation over the edit drawer', () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
     clickButton('Inativar vínculo');
 
+    const drawer = getDialog('gd-drawer');
     const dialog = getDialog('gd-confirm-dialog');
+
+    expect(drawer?.textContent).toContain('Editar vínculo');
     expect(dialog?.textContent).toContain('Inativar vínculo');
-    findButton(dialog as HTMLElement, 'Inativar')?.click();
+  });
+
+  it('should close only the confirmation when cancelling inactivation', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar vínculo');
+
+    findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Cancelar')?.click();
+    fixture.detectChanges();
+
+    expect(getDialog('gd-confirm-dialog')).toBeNull();
+    expect(getDialog('gd-drawer')?.textContent).toContain('Editar vínculo');
+    expect(farmUserService.inactivate).not.toHaveBeenCalled();
+  });
+
+  it('should reload the list and close confirmation plus drawer after inactivation', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar vínculo');
+
+    findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Inativar')?.click();
     fixture.detectChanges();
 
     expect(farmUserService.inactivate).toHaveBeenCalledWith(10, 1);
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo inativado com sucesso.');
+    expect(getDialog('gd-confirm-dialog')).toBeNull();
     expect(getDialog('gd-drawer')).toBeNull();
+  });
+
+  it('should close the pending confirmation when manually closing the edit drawer', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar vínculo');
+
+    clickDialogClose('gd-drawer', 'Fechar drawer');
+
+    expect(getDialog('gd-drawer')).toBeNull();
+    expect(getDialog('gd-confirm-dialog')).toBeNull();
+  });
+
+  it('should clear a pending inactivation when manually closing the edit drawer', () => {
+    setupAdminFarm();
+    createPage();
+    clickButton('Editar');
+    clickButton('Inativar vínculo');
+
+    const staleConfirmButton = findButton(
+      getDialog('gd-confirm-dialog') as HTMLElement,
+      'Inativar',
+    );
+    clickDialogClose('gd-drawer', 'Fechar drawer');
+    staleConfirmButton?.click();
+    fixture.detectChanges();
+
+    expect(farmUserService.inactivate).not.toHaveBeenCalled();
   });
 
   it('should show permission feedback when an action returns 403', () => {
@@ -621,6 +680,12 @@ describe('FarmUsersPage', () => {
   function submitForm(selector: string): void {
     const form = fixture.nativeElement.querySelector(`${selector} form`) as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+
+  function clickDialogClose(selector: string, ariaLabel: string): void {
+    const dialog = getDialog(selector) as HTMLElement;
+    dialog.querySelector<HTMLButtonElement>(`button[aria-label="${ariaLabel}"]`)?.click();
     fixture.detectChanges();
   }
 

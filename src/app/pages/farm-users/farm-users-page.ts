@@ -39,6 +39,9 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
 
 @Component({
   selector: 'gd-farm-users-page',
+  host: {
+    '(document:keydown.escape)': 'closeEditDrawer()',
+  },
   imports: [
     Badge,
     Button,
@@ -267,13 +270,12 @@ export class FarmUsersPage {
   }
 
   protected closeEditDrawer(): void {
-    if (
-      !this.roleSubmitting() &&
-      !this.inactivationSubmitting() &&
-      !this.inactivationTarget()
-    ) {
-      this.editTarget.set(null);
+    if (this.roleSubmitting() || this.inactivationSubmitting()) {
+      return;
     }
+
+    this.editTarget.set(null);
+    this.inactivationTarget.set(null);
   }
 
   protected updateRole(payload: UpdateFarmUserRoleRequest): void {
@@ -344,8 +346,8 @@ export class FarmUsersPage {
       )
       .subscribe({
         next: () => {
-          this.inactivationTarget.set(null);
-          this.editTarget.set(null);
+          this.inactivationSubmitting.set(false);
+          this.closeEditDrawer();
           this.toastStore.success('Vínculo inativado com sucesso.');
           this.retry();
         },

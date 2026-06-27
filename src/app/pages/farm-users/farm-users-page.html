@@ -234,8 +234,8 @@
   title="Editar vínculo"
   description="Altere o papel do usuário ou inative o vínculo com esta fazenda."
   size="sm"
-  [closeOnBackdrop]="!roleSubmitting() && !inactivationSubmitting() && !inactivationTarget()"
-  [showCloseButton]="!roleSubmitting() && !inactivationSubmitting() && !inactivationTarget()"
+  [closeOnBackdrop]="!roleSubmitting() && !inactivationSubmitting()"
+  [showCloseButton]="!roleSubmitting() && !inactivationSubmitting()"
   (closed)="closeEditDrawer()"
 >
   @if (editTarget(); as farmUser) {
@@ -261,12 +261,15 @@
 
       @if (canShowEditAction(farmUser)) {
         <section
-          class="border-t border-danger/30 pt-5"
-          aria-labelledby="farm-user-danger-zone-title"
+          class="border-t border-border pt-5"
+          aria-labelledby="farm-user-status-title"
         >
-          <h3 id="farm-user-danger-zone-title" class="text-sm font-semibold text-danger">
-            Zona de perigo
+          <h3 id="farm-user-status-title" class="text-sm font-semibold text-text-primary">
+            Status do Vínculo
           </h3>
+          <p class="mt-1 text-sm leading-6 text-text-muted">
+            Inative este vínculo caso o usuário não deva mais acessar esta fazenda.
+          </p>
           <div class="mt-3">
             <gd-button
               type="button"
