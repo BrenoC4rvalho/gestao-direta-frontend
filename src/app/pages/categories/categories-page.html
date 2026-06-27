@@ -1,0 +1,248 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">
+        Categorias financeiras
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+        Organize receitas e despesas por categorias da fazenda.
+      </p>
+    </div>
+
+    @if (canCreateFarmCategory() && !accessDenied()) {
+      <gd-button type="button" (click)="openCreateDrawer()">Nova categoria</gd-button>
+    }
+  </header>
+
+  @if (selectedFarmName(); as farmName) {
+    <gd-card padding="sm">
+      <p class="text-sm text-text-muted">
+        Fazenda selecionada: <span class="font-semibold text-text-primary">{{ farmName }}</span>
+      </p>
+    </gd-card>
+  } @else {
+    <gd-card padding="sm">
+      <p class="text-sm text-text-muted">
+        Selecione uma fazenda para visualizar categorias específicas da fazenda.
+      </p>
+    </gd-card>
+  }
+
+  @if (
+    !sessionStore.isAdmin() &&
+    selectedFarmStore.selectedFarmId() &&
+    (farmAccessStore.loading() ||
+      (!farmAccessStore.access() && !farmAccessStore.error()))
+  ) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
+      @for (item of skeletons; track item) {
+        <gd-card variant="elevated">
+          <gd-skeleton width="65%" height="1.25rem" />
+          <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+          <div class="mt-5 flex gap-2">
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+          </div>
+        </gd-card>
+      }
+    </div>
+  } @else if (accessDenied()) {
+    <gd-error-state
+      title="Acesso restrito"
+      description="Você não tem permissão para visualizar categorias financeiras."
+    />
+  } @else if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando categorias">
+      @for (item of skeletons; track item) {
+        <gd-card variant="elevated">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <gd-skeleton width="70%" height="1.25rem" />
+              <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+            </div>
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+          </div>
+          <div class="mt-5 flex gap-2">
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+            <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+          </div>
+          <gd-skeleton class="mt-5 block" height="2.25rem" />
+        </gd-card>
+      }
+    </div>
+  } @else if (error()) {
+    <gd-error-state
+      title="Não foi possível carregar as categorias"
+      description="Verifique sua conexão e tente novamente."
+      actionLabel="Tentar novamente"
+      (action)="retry()"
+    />
+  } @else {
+    @if (selectedFarmStore.selectedFarmId()) {
+      <section class="space-y-4" aria-labelledby="farm-categories-title">
+        <div>
+          <h2 id="farm-categories-title" class="text-lg font-semibold text-text-primary">
+            Categorias da fazenda
+          </h2>
+          <p class="mt-1 text-sm text-text-muted">
+            Categorias específicas da fazenda selecionada.
+          </p>
+        </div>
+
+        @if (farmCategories().length === 0) {
+          <gd-empty-state
+            title="Nenhuma categoria da fazenda encontrada"
+            description="Crie categorias para organizar receitas e despesas desta fazenda."
+            icon="tags"
+          />
+        } @else {
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            @for (category of farmCategories(); track category.id) {
+              <gd-category-card
+                [category]="category"
+                [canEdit]="canEditCategory(category)"
+                [canDelete]="canDeleteCategory(category)"
+                (editRequested)="openEditDrawer($event)"
+                (deleteRequested)="requestDelete($event)"
+              />
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <section class="space-y-4" aria-labelledby="global-categories-title">
+      <div>
+        <h2 id="global-categories-title" class="text-lg font-semibold text-text-primary">
+          Categorias globais
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">
+          Categorias padrão disponíveis para o sistema.
+        </p>
+      </div>
+
+      @if (globalCategories().length === 0) {
+        <gd-empty-state
+          title="Nenhuma categoria global encontrada"
+          description="As categorias padrão do sistema aparecerão aqui."
+          icon="tags"
+        />
+      } @else {
+        <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+          <table class="w-full border-collapse text-left">
+            <caption class="sr-only">Categorias globais disponíveis no sistema</caption>
+            <thead class="border-b border-border bg-background">
+              <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                <th class="px-5 py-4" scope="col">Nome</th>
+                <th class="px-5 py-4" scope="col">Tipo</th>
+                <th class="px-5 py-4" scope="col">Origem</th>
+                <th class="px-5 py-4" scope="col">Status</th>
+                <th class="px-5 py-4" scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (category of globalCategories(); track category.id) {
+                <tr>
+                  <td class="px-5 py-4">
+                    <p class="font-semibold text-text-primary">{{ category.name }}</p>
+                    @if (category.farmName; as farmName) {
+                      <p class="mt-1 text-sm text-text-muted">{{ farmName }}</p>
+                    }
+                  </td>
+                  <td class="px-5 py-4">
+                    <gd-badge [variant]="typeVariant(category.type)" size="sm">
+                      {{ typeLabel(category.type) }}
+                    </gd-badge>
+                  </td>
+                  <td class="px-5 py-4">
+                    <gd-badge variant="info" size="sm">Global</gd-badge>
+                  </td>
+                  <td class="px-5 py-4">
+                    <gd-badge
+                      [variant]="category.status === 'ACTIVE' ? 'success' : 'neutral'"
+                      size="sm"
+                    >
+                      {{ category.status === 'ACTIVE' ? 'Ativa' : 'Inativa' }}
+                    </gd-badge>
+                  </td>
+                  <td class="px-5 py-4">
+                    @if (canEditCategory(category) || canDeleteCategory(category)) {
+                      <div class="flex flex-wrap gap-2">
+                        @if (canEditCategory(category)) {
+                          <gd-button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            (click)="openEditDrawer(category)"
+                          >
+                            Editar
+                          </gd-button>
+                        }
+                        @if (canDeleteCategory(category)) {
+                          <gd-button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            (click)="requestDelete(category)"
+                          >
+                            Inativar
+                          </gd-button>
+                        }
+                      </div>
+                    } @else {
+                      <p class="text-sm font-medium text-text-muted">Somente leitura</p>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid gap-4 md:hidden">
+          @for (category of globalCategories(); track category.id) {
+            <gd-category-card
+              [category]="category"
+              [canEdit]="canEditCategory(category)"
+              [canDelete]="canDeleteCategory(category)"
+              (editRequested)="openEditDrawer($event)"
+              (deleteRequested)="requestDelete($event)"
+            />
+          }
+        </div>
+      }
+    </section>
+  }
+</section>
+
+<gd-drawer
+  [open]="drawerOpen()"
+  [title]="drawerTitle()"
+  [description]="drawerDescription()"
+  size="md"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closeDrawer()"
+>
+  <gd-category-form
+    [category]="editingCategory()"
+    [open]="drawerOpen()"
+    [submitting]="submitting()"
+    [typeOptions]="typeOptions()"
+    (submitted)="saveCategory($event)"
+    (cancelled)="closeDrawer()"
+  />
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="deleteTarget() !== null"
+  title="Inativar categoria"
+  description="Esta categoria não ficará disponível para novas movimentações."
+  confirmLabel="Inativar"
+  cancelLabel="Cancelar"
+  variant="warning"
+  [loading]="deleteSubmitting()"
+  (confirmed)="confirmDelete()"
+  (cancelled)="closeDeleteConfirmation()"
+  (closed)="closeDeleteConfirmation()"
+/>

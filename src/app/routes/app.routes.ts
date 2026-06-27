@@ -61,7 +61,10 @@ export const routes: Routes = [
       {
         path: 'categories',
         title: 'Categorias',
-        loadComponent: temporaryPage,
+        loadComponent: () =>
+          import('../pages/categories/categories-page').then(
+            (component) => component.CategoriesPage,
+          ),
       },
       {
         path: 'transactions',

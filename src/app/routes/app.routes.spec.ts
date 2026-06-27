@@ -1,5 +1,6 @@
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
+import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
 
 import { routes } from './app.routes';
@@ -22,6 +23,12 @@ describe('routes', () => {
       farmUsersRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(farmUsersComponent).toBe(FarmUsersPage);
+    const categoriesRoute = appLayoutRoute?.children?.find((route) => route.path === 'categories');
+    expect(categoriesRoute?.loadComponent).toBeTypeOf('function');
+    const categoriesComponent = await (
+      categoriesRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(categoriesComponent).toBe(CategoriesPage);
     expect(appLayoutRoute?.children?.some((route) => route.path === 'profile')).toBe(true);
     expect(uiTestRoute?.canActivate).toBeUndefined();
     expect(uiTestRoute).toBeTruthy();

@@ -1,0 +1,36 @@
+<form class="flex min-h-full flex-col" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="grid flex-1 gap-4">
+    <gd-input
+      id="category-name"
+      label="Nome"
+      placeholder="Ex.: Venda de leite, Adubo, Combustível"
+      autocomplete="off"
+      [control]="form.controls.name"
+      [required]="true"
+      [errorMessage]="nameErrorMessage()"
+    />
+
+    <gd-select
+      id="category-type"
+      label="Tipo"
+      placeholder="Selecione o tipo"
+      [control]="form.controls.type"
+      [options]="typeOptions()"
+      [required]="true"
+      [errorMessage]="typeErrorMessage()"
+    />
+  </div>
+
+  <div class="sticky bottom-0 mt-6 grid gap-3 border-t border-border bg-surface pt-4 sm:grid-cols-2">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+      (click)="cancel()"
+    >
+      Cancelar
+    </gd-button>
+    <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
+  </div>
+</form>
