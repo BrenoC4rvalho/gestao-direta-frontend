@@ -16,6 +16,8 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { UsersPage } from './users-page';
 
+const drawerAnimationDurationMs = 250;
+
 const admin: AuthUser = {
   id: 1,
   name: 'Admin',
@@ -283,7 +285,7 @@ describe('UsersPage', () => {
     });
   });
 
-  it('should open and close the create drawer', () => {
+  it('should open and close the create drawer', async () => {
     sessionStore.setUser(admin);
     createPage();
     openCreateDrawer();
@@ -293,11 +295,12 @@ describe('UsersPage', () => {
 
     findButton(fixture.nativeElement, 'Cancelar')?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(fixture.nativeElement.querySelector('gd-user-form')).toBeFalsy();
   });
 
-  it('should create a user, close the drawer and reload the current page', () => {
+  it('should create a user, close the drawer and reload the current page', async () => {
     userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
     sessionStore.setUser(admin);
     createPage();
@@ -319,6 +322,7 @@ describe('UsersPage', () => {
       sort: 'name',
       direction: 'ASC',
     });
+    await finishDrawerClose();
     expect(fixture.nativeElement.querySelector('gd-user-form')).toBeFalsy();
     expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
   });
@@ -535,7 +539,7 @@ describe('UsersPage', () => {
     expect(userService.resetPassword).not.toHaveBeenCalled();
   });
 
-  it('should clear password reset confirmation when closing the edit drawer', () => {
+  it('should clear password reset confirmation when closing the edit drawer', async () => {
     sessionStore.setUser(admin);
     createPage();
     openEditDrawer('João Souza');
@@ -550,6 +554,7 @@ describe('UsersPage', () => {
       'Cancelar',
     )?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(fixture.nativeElement.querySelector('gd-user-edit-form')).toBeFalsy();
     expect(getConfirmDialog()).toBeNull();
@@ -625,7 +630,7 @@ describe('UsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Você não pode alterar seu próprio acesso.');
   });
 
-  it('should clear pending confirmations when closing the edit drawer', () => {
+  it('should clear pending confirmations when closing the edit drawer', async () => {
     sessionStore.setUser(admin);
     createPage();
     openEditDrawer('João Souza');
@@ -639,10 +644,16 @@ describe('UsersPage', () => {
       'Cancelar',
     )?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(fixture.nativeElement.querySelector('gd-user-edit-form')).toBeFalsy();
     expect(getConfirmDialog()).toBeNull();
   });
+
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
 
   function getConfirmDialog(): HTMLElement | null {
     return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
@@ -736,4 +747,8 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

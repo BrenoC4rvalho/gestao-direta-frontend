@@ -18,6 +18,8 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { FarmUsersPage } from './farm-users-page';
 
+const drawerAnimationDurationMs = 250;
+
 const admin: AuthUser = {
   id: 99,
   name: 'Admin',
@@ -440,7 +442,7 @@ describe('FarmUsersPage', () => {
     expect(form.textContent).toContain('Contador');
   });
 
-  it('should update a role and reload the list', () => {
+  it('should update a role and reload the list', async () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
@@ -452,6 +454,7 @@ describe('FarmUsersPage', () => {
     });
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo atualizado com sucesso.');
+    await finishDrawerClose();
     expect(getDialog('gd-drawer')).toBeNull();
   });
 
@@ -519,7 +522,7 @@ describe('FarmUsersPage', () => {
     expect(findButton(drawer as HTMLElement, 'Inativar vínculo')).toBeUndefined();
   });
 
-  it('should reactivate an inactive link by updating it to an active role', () => {
+  it('should reactivate an inactive link by updating it to an active role', async () => {
     setupAdminFarm();
     farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
     createPage();
@@ -532,6 +535,7 @@ describe('FarmUsersPage', () => {
     });
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo atualizado com sucesso.');
+    await finishDrawerClose();
     expect(getDialog('gd-drawer')).toBeNull();
   });
 
@@ -562,7 +566,7 @@ describe('FarmUsersPage', () => {
     expect(farmUserService.inactivate).not.toHaveBeenCalled();
   });
 
-  it('should reload the list and close confirmation plus drawer after inactivation', () => {
+  it('should reload the list and close confirmation plus drawer after inactivation', async () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
@@ -575,16 +579,18 @@ describe('FarmUsersPage', () => {
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo inativado com sucesso.');
     expect(getDialog('gd-confirm-dialog')).toBeNull();
+    await finishDrawerClose();
     expect(getDialog('gd-drawer')).toBeNull();
   });
 
-  it('should close the pending confirmation when manually closing the edit drawer', () => {
+  it('should close the pending confirmation when manually closing the edit drawer', async () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
     clickButton('Inativar vínculo');
 
     clickDialogClose('gd-drawer', 'Fechar drawer');
+    await finishDrawerClose();
 
     expect(getDialog('gd-drawer')).toBeNull();
     expect(getDialog('gd-confirm-dialog')).toBeNull();
@@ -832,6 +838,11 @@ describe('FarmUsersPage', () => {
     fixture.detectChanges();
   }
 
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
   function getDialog(selector: string): HTMLElement | null {
     return fixture.nativeElement.querySelector(`${selector} [role="dialog"]`);
   }
@@ -841,4 +852,8 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

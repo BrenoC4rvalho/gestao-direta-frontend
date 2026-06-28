@@ -28,6 +28,8 @@ class DashboardStub {}
 })
 class ProfileStub {}
 
+const drawerAnimationDurationMs = 250;
+
 const user: AuthUser = {
   id: 1,
   name: 'Maria Silva',
@@ -170,7 +172,7 @@ describe('MobileHeader', () => {
     expect(profileLink?.getAttribute('href')).toBe('/profile');
   });
 
-  it('should close drawer when a navigation link is clicked', () => {
+  it('should close drawer when a navigation link is clicked', async () => {
     openDrawer();
 
     const dashboardLink = Array.from(
@@ -179,11 +181,12 @@ describe('MobileHeader', () => {
 
     dashboardLink?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('should close drawer when the authenticated user profile link is clicked', () => {
+  it('should close drawer when the authenticated user profile link is clicked', async () => {
     openDrawer();
 
     const profileLink = Array.from(
@@ -192,17 +195,19 @@ describe('MobileHeader', () => {
 
     profileLink?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('should logout, close drawer, clear session and farm context, navigate to login and show success toast', () => {
+  it('should logout, close drawer, clear session and farm context, navigate to login and show success toast', async () => {
     const clearAccess = vi.spyOn(farmAccessStore, 'clear');
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     openDrawer();
 
     clickLogout();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(authService.logout).toHaveBeenCalledTimes(1);
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
@@ -213,13 +218,14 @@ describe('MobileHeader', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Sessão encerrada.');
   });
 
-  it('should close drawer and clear local session and farm context when logout fails', () => {
+  it('should close drawer and clear local session and farm context when logout fails', async () => {
     authService.logout.mockReturnValueOnce(throwError(() => new Error('logout failed')));
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     openDrawer();
 
     clickLogout();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(authService.logout).toHaveBeenCalledTimes(1);
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
@@ -239,6 +245,11 @@ describe('MobileHeader', () => {
     fixture.detectChanges();
   }
 
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
   function clickLogout(): void {
     const logoutButton = Array.from(
       fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
@@ -247,3 +258,7 @@ describe('MobileHeader', () => {
     logoutButton?.click();
   }
 });
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}

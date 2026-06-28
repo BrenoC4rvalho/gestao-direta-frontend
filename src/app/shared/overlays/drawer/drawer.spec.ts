@@ -1,9 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
 
-import { Drawer } from './drawer';
+import { Drawer, DrawerPosition } from './drawer';
+
+const animationDurationMs = 250;
+const frameDurationMs = 20;
 
 @Component({
   imports: [Drawer],
@@ -12,6 +15,7 @@ import { Drawer } from './drawer';
       [open]="open()"
       title="Drawer title"
       description="Drawer description"
+      [position]="position()"
       (closed)="close()"
     >
       Drawer content
@@ -20,6 +24,7 @@ import { Drawer } from './drawer';
 })
 class DrawerHost {
   readonly open = signal(false);
+  readonly position = signal<DrawerPosition>('right');
   closedCount = 0;
 
   close(): void {
@@ -29,33 +34,32 @@ class DrawerHost {
 }
 
 describe('Drawer', () => {
+  let fixture: ComponentFixture<DrawerHost>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DrawerHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(DrawerHost);
+  });
+
   afterEach(() => {
+    fixture.destroy();
     TestBed.resetTestingModule();
     document.body.classList.remove('gd-overlay-open');
   });
 
-  it('should not render when closed', async () => {
-    await TestBed.configureTestingModule({
-      imports: [DrawerHost],
-      providers: [provideGestaoDiretaIcons()],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(DrawerHost);
+  it('should not render when closed', () => {
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(dialog()).toBeNull();
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
-  it('should render when open and emit closed', async () => {
-    await TestBed.configureTestingModule({
-      imports: [DrawerHost],
-      providers: [provideGestaoDiretaIcons()],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(DrawerHost);
-    fixture.componentInstance.open.set(true);
-    fixture.detectChanges();
+  it('should render when open and apply visible state after the next frame', async () => {
+    openDrawer();
 
     expect(fixture.nativeElement.textContent).toContain('Drawer title');
     expect(fixture.nativeElement.textContent).toContain('Drawer content');
@@ -65,6 +69,19 @@ describe('Drawer', () => {
     expect(content.classList.contains('min-h-0')).toBe(true);
     expect(content.classList.contains('flex-1')).toBe(true);
 
+    expect(panel().classList.contains('translate-x-full')).toBe(true);
+    expect(backdrop().classList.contains('opacity-0')).toBe(true);
+
+    await completeOpeningAnimation();
+
+    expect(panel().classList.contains('translate-x-0')).toBe(true);
+    expect(backdrop().classList.contains('opacity-100')).toBe(true);
+  });
+
+  it('should keep rendering while closing and remove after the animation duration', async () => {
+    openDrawer();
+    await completeOpeningAnimation();
+
     const closeButton = fixture.nativeElement.querySelector(
       'button[aria-label="Fechar drawer"]',
     ) as HTMLButtonElement;
@@ -72,35 +89,49 @@ describe('Drawer', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.closedCount).toBe(1);
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(dialog()).not.toBeNull();
+    expect(panel().classList.contains('translate-x-full')).toBe(true);
+    expect(backdrop().classList.contains('opacity-0')).toBe(true);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
+
+    await finishClosingAnimation();
+
+    expect(dialog()).toBeNull();
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
-  it('should close with Escape when open', async () => {
-    await TestBed.configureTestingModule({
-      imports: [DrawerHost],
-      providers: [provideGestaoDiretaIcons()],
-    }).compileComponents();
+  it('should close from backdrop click', async () => {
+    openDrawer();
+    await completeOpeningAnimation();
 
-    const fixture = TestBed.createComponent(DrawerHost);
-    fixture.componentInstance.open.set(true);
+    backdrop().click();
     fixture.detectChanges();
+
+    expect(fixture.componentInstance.closedCount).toBe(1);
+    expect(dialog()).not.toBeNull();
+
+    await finishClosingAnimation();
+
+    expect(dialog()).toBeNull();
+  });
+
+  it('should close with Escape when open', async () => {
+    openDrawer();
+    await completeOpeningAnimation();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.closedCount).toBe(1);
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(dialog()).not.toBeNull();
+
+    await finishClosingAnimation();
+
+    expect(dialog()).toBeNull();
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
-  it('should ignore Escape when closed', async () => {
-    await TestBed.configureTestingModule({
-      imports: [DrawerHost],
-      providers: [provideGestaoDiretaIcons()],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(DrawerHost);
+  it('should ignore Escape when closed', () => {
     fixture.detectChanges();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -110,15 +141,40 @@ describe('Drawer', () => {
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
-  it('should remove body scroll lock when destroyed while open', async () => {
-    await TestBed.configureTestingModule({
-      imports: [DrawerHost],
-      providers: [provideGestaoDiretaIcons()],
-    }).compileComponents();
+  it('should include transition classes on backdrop and panel', async () => {
+    openDrawer();
 
-    const fixture = TestBed.createComponent(DrawerHost);
-    fixture.componentInstance.open.set(true);
+    expect(backdrop().classList.contains('transition-opacity')).toBe(true);
+    expect(backdrop().classList.contains('duration-[250ms]')).toBe(true);
+    expect(panel().classList.contains('transition-transform')).toBe(true);
+    expect(panel().classList.contains('duration-[250ms]')).toBe(true);
+
+    await completeOpeningAnimation();
+  });
+
+  it('should animate bottom drawers vertically', async () => {
+    fixture.componentInstance.position.set('bottom');
+    openDrawer();
+
+    expect(panel().classList.contains('translate-y-full')).toBe(true);
+
+    await completeOpeningAnimation();
+
+    expect(panel().classList.contains('translate-y-0')).toBe(true);
+
+    fixture.componentInstance.open.set(false);
     fixture.detectChanges();
+
+    expect(panel().classList.contains('translate-y-full')).toBe(true);
+
+    await finishClosingAnimation();
+
+    expect(dialog()).toBeNull();
+  });
+
+  it('should remove body scroll lock when destroyed while open', async () => {
+    openDrawer();
+    await completeOpeningAnimation();
 
     expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
 
@@ -126,4 +182,35 @@ describe('Drawer', () => {
 
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
+
+  function openDrawer(): void {
+    fixture.componentInstance.open.set(true);
+    fixture.detectChanges();
+  }
+
+  async function completeOpeningAnimation(): Promise<void> {
+    await wait(frameDurationMs);
+    fixture.detectChanges();
+  }
+
+  async function finishClosingAnimation(): Promise<void> {
+    await wait(animationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  function dialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('[role="dialog"]');
+  }
+
+  function panel(): HTMLElement {
+    return fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+  }
+
+  function backdrop(): HTMLElement {
+    return fixture.nativeElement.querySelector('div[aria-hidden="true"]') as HTMLElement;
+  }
 });
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}

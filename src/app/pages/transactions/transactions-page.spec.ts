@@ -18,6 +18,8 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { TransactionsPage } from './transactions-page';
 
+const drawerAnimationDurationMs = 250;
+
 interface TransactionsPageHarness {
   openEditDrawer(transaction: FinancialTransaction): void;
   requestMarkAsPaid(transaction: FinancialTransaction): void;
@@ -309,12 +311,13 @@ describe('TransactionsPage', () => {
     expect(toastStore.toasts()[1]?.title).toBe('Movimentação cancelada com sucesso.');
   });
 
-  it('should close the drawer on Escape when it is open', () => {
+  it('should close the drawer on Escape when it is open', async () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     clickButton('Nova movimentação');
 
     pressEscape();
+    await finishDrawerClose();
 
     expect(getDrawerDialog()).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Nova movimentação');
@@ -385,6 +388,11 @@ describe('TransactionsPage', () => {
     fixture.detectChanges();
   }
 
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
   function getDrawerDialog(): HTMLElement | null {
     return fixture.nativeElement.querySelector('gd-drawer [role="dialog"]');
   }
@@ -427,4 +435,8 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

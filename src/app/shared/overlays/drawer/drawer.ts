@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
 
 import { lockOverlayScroll } from '../overlay-scroll-lock';
@@ -19,6 +29,11 @@ export type DrawerSize = 'sm' | 'md' | 'lg';
 export class Drawer {
   private readonly overlayStack = inject(OverlayStack);
   private readonly overlayId = signal<number | null>(null);
+  private readonly animationDurationMs = 250;
+  private readonly animationDurationClass = 'duration-[250ms]';
+  private visibilityFrameId: number | ReturnType<typeof setTimeout> | null = null;
+  private visibilityFrameUsesTimeout = false;
+  private closeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   readonly open = input(false);
   readonly title = input<string | null>(null);
   readonly description = input<string | null>(null);
@@ -29,7 +44,33 @@ export class Drawer {
 
   readonly closed = output<void>();
 
+  protected readonly rendered = signal(false);
+  protected readonly visible = signal(false);
   protected readonly titleId = computed(() => (this.title() ? 'gd-drawer-title' : null));
+  private readonly renderStateEffect = effect((onCleanup) => {
+    if (this.open()) {
+      this.clearCloseTimeout();
+      this.rendered.set(true);
+      this.scheduleVisibleState();
+      onCleanup(() => this.clearVisibilityFrame());
+      return;
+    }
+
+    this.clearVisibilityFrame();
+    this.visible.set(false);
+
+    if (!untracked(() => this.rendered())) {
+      return;
+    }
+
+    this.clearCloseTimeout();
+    this.closeTimeoutId = setTimeout(() => {
+      this.rendered.set(false);
+      this.closeTimeoutId = null;
+    }, this.animationDurationMs);
+
+    onCleanup(() => this.clearCloseTimeout());
+  });
   private readonly overlayRegistrationEffect = effect((onCleanup) => {
     if (!this.open()) {
       return;
@@ -46,7 +87,7 @@ export class Drawer {
     });
   });
   private readonly scrollLockEffect = effect((onCleanup) => {
-    if (!this.open()) {
+    if (!this.rendered()) {
       return;
     }
 
@@ -54,12 +95,22 @@ export class Drawer {
     onCleanup(unlock);
   });
 
+  protected readonly backdropClasses = computed(() =>
+    [
+      'fixed inset-0 z-40 bg-black/45 transition-opacity ease-out',
+      this.animationDurationClass,
+      this.visible() ? 'opacity-100' : 'opacity-0',
+    ].join(' '),
+  );
+
   protected readonly panelClasses = computed(() =>
     [
       'fixed z-50 flex flex-col overflow-hidden bg-surface text-text-primary shadow-soft',
-      'transition-transform duration-200 ease-out',
+      'transition-transform ease-out will-change-transform',
+      this.animationDurationClass,
       this.positionClasses(),
       this.sizeClasses(),
+      this.transformClasses(),
     ].join(' '),
   );
 
@@ -70,6 +121,10 @@ export class Drawer {
   }
 
   protected close(): void {
+    if (!this.open()) {
+      return;
+    }
+
     this.closed.emit();
   }
 
@@ -110,5 +165,57 @@ export class Drawer {
     };
 
     return sizes[this.size()];
+  }
+
+  private transformClasses(): string {
+    if (this.visible()) {
+      return this.position() === 'bottom' ? 'translate-y-0' : 'translate-x-0';
+    }
+
+    return this.position() === 'bottom' ? 'translate-y-full' : 'translate-x-full';
+  }
+
+  private scheduleVisibleState(): void {
+    this.clearVisibilityFrame();
+
+    if (typeof requestAnimationFrame === 'function') {
+      this.visibilityFrameUsesTimeout = false;
+      this.visibilityFrameId = requestAnimationFrame(() => {
+        this.visible.set(true);
+        this.visibilityFrameId = null;
+      });
+      return;
+    }
+
+    this.visibilityFrameUsesTimeout = true;
+    this.visibilityFrameId = setTimeout(() => {
+      this.visible.set(true);
+      this.visibilityFrameId = null;
+      this.visibilityFrameUsesTimeout = false;
+    }, 16);
+  }
+
+  private clearVisibilityFrame(): void {
+    if (this.visibilityFrameId === null) {
+      return;
+    }
+
+    if (this.visibilityFrameUsesTimeout) {
+      clearTimeout(this.visibilityFrameId as ReturnType<typeof setTimeout>);
+    } else {
+      cancelAnimationFrame(this.visibilityFrameId as number);
+    }
+
+    this.visibilityFrameId = null;
+    this.visibilityFrameUsesTimeout = false;
+  }
+
+  private clearCloseTimeout(): void {
+    if (this.closeTimeoutId === null) {
+      return;
+    }
+
+    clearTimeout(this.closeTimeoutId);
+    this.closeTimeoutId = null;
   }
 }

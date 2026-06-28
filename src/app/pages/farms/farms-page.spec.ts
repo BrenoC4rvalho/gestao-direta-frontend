@@ -15,6 +15,8 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { FarmsPage } from './farms-page';
 
+const drawerAnimationDurationMs = 250;
+
 const admin: AuthUser = {
   id: 1,
   name: 'Admin',
@@ -231,7 +233,7 @@ describe('FarmsPage', () => {
     expect(farmService.updateStatus).not.toHaveBeenCalled();
   });
 
-  it('should confirm farm inactivation, update context, close overlays and reload the list', () => {
+  it('should confirm farm inactivation, update context, close overlays and reload the list', async () => {
     const updatedFarm = { ...farms[0], status: 'INACTIVE' as const };
     farmService.updateStatus.mockReturnValueOnce(of(updatedFarm));
     const upsertSpy = vi.spyOn(selectedFarmStore, 'upsertFarm');
@@ -244,6 +246,7 @@ describe('FarmsPage', () => {
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'INACTIVE' });
     expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
     expect(getConfirmDialog()).toBeNull();
+    await finishDrawerClose();
     expect(getDrawerDialog()).toBeNull();
     expect(farmService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Fazenda inativada.');
@@ -320,7 +323,7 @@ describe('FarmsPage', () => {
     expect(findButton(fixture.nativeElement, 'Inativar fazenda')).toBeTruthy();
   });
 
-  it('should confirm farm activation for an inactive farm with the same drawer flow', () => {
+  it('should confirm farm activation for an inactive farm with the same drawer flow', async () => {
     const inactiveFarm = { ...farms[0], status: 'INACTIVE' as const };
     const updatedFarm = { ...inactiveFarm, status: 'ACTIVE' as const };
     farmService.list.mockReturnValueOnce(of(pageResponse([inactiveFarm])));
@@ -342,6 +345,7 @@ describe('FarmsPage', () => {
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
     expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
     expect(getConfirmDialog()).toBeNull();
+    await finishDrawerClose();
     expect(getDrawerDialog()).toBeNull();
     expect(farmService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Fazenda ativada.');
@@ -358,7 +362,7 @@ describe('FarmsPage', () => {
     expect(findButton(fixture.nativeElement, 'Ativar fazenda')).toBeUndefined();
   });
 
-  it('should close the status confirmation when the drawer is manually closed', () => {
+  it('should close the status confirmation when the drawer is manually closed', async () => {
     createPage();
     clickButton('Editar');
     clickButton('Inativar fazenda');
@@ -368,6 +372,7 @@ describe('FarmsPage', () => {
     fixture.detectChanges();
     confirmButton?.click();
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(getDrawerDialog()).toBeNull();
     expect(getConfirmDialog()).toBeNull();
@@ -386,12 +391,13 @@ describe('FarmsPage', () => {
     expect(getDrawerDialog()).toBeTruthy();
   });
 
-  it('should close the drawer on Escape when no confirmation is open', () => {
+  it('should close the drawer on Escape when no confirmation is open', async () => {
     createPage();
     clickButton('Editar');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
+    await finishDrawerClose();
 
     expect(getDrawerDialog()).toBeNull();
   });
@@ -411,6 +417,11 @@ describe('FarmsPage', () => {
   function submitForm(): void {
     const form = fixture.nativeElement.querySelector('gd-farm-form form') as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 
@@ -451,4 +462,8 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
