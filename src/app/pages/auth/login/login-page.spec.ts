@@ -87,19 +87,16 @@ describe('LoginPage', () => {
     expect(illustration?.alt).toBe('Ilustração rural');
     expect(
       illustration?.getAttribute('ng-reflect-ng-src') ?? illustration?.getAttribute('src'),
-    ).toContain('/assets/img/login-farm-illustration.png');
+    ).toContain('/assets/img/login-farm-mobile.png');
   });
 
   it('should render desktop and mobile titles and subtitles', () => {
     expect(textContent()).toContain('Bem-vindo ao');
     expect(textContent()).toContain('Gestão Direta');
     expect(textContent()).toContain('Controle financeiro simples e confiável para sua propriedade.');
-    expect(textContent()).toContain('Entrar no Gestão Direta');
     expect(textContent()).toContain('Entrar na sua conta');
-    expect(textContent()).toContain(
-      'Acesse sua conta para acompanhar suas fazendas e movimentações financeiras.',
-    );
     expect(textContent()).toContain('Acesse sua gestão financeira rural com segurança.');
+    expect(textContent()).toContain('Acompanhe saldo, safras e movimentações em um só lugar.');
   });
 
   it('should render feature pills and support footer', () => {

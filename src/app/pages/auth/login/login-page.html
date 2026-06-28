@@ -48,37 +48,42 @@
     </div>
   </section>
 
-  <section class="relative z-10 flex min-h-dvh flex-col bg-surface lg:items-center lg:justify-center lg:bg-transparent lg:p-10">
-    <div class="lg:hidden">
-      <img
-        ngSrc="/assets/img/login-farm-illustration.png"
-        width="1448"
-        height="1086"
-        alt="Ilustração rural"
-        priority
-        data-testid="login-illustration"
-        class="h-52 w-full object-cover object-center sm:h-64"
-      />
-    </div>
-
-    <div class="w-full px-5 py-8 sm:px-8 lg:max-w-[36rem] lg:rounded-3xl lg:border lg:border-border lg:bg-surface/95 lg:p-10 lg:shadow-soft lg:backdrop-blur-[2px] xl:p-12">
-      <div class="lg:hidden">
+  <section class="relative z-10 flex min-h-dvh flex-col bg-[#fbf5ee] lg:items-center lg:justify-center lg:bg-transparent lg:p-10">
+    <div class="relative overflow-hidden bg-linear-to-b from-[#fbf5ee] via-[#f9f4ee] to-background pb-7 lg:hidden">
+      <div class="relative h-52 overflow-hidden sm:h-60">
+        <img
+          ngSrc="/assets/img/login-farm-mobile.png"
+          width="1448"
+          height="1086"
+          alt="Ilustração rural"
+          priority
+          data-testid="login-illustration"
+          class="h-full w-full object-cover object-bottom "
+        />
+        <div class="absolute inset-x-0 top-0 h-28 bg-linear-to-b from-[#fbf5ee]/85 to-transparent"></div>
         <img
           ngSrc="/assets/brand/logo_horizontal.svg"
           width="990"
           height="313"
           alt="Gestão Direta"
-          class="h-auto w-44 sm:w-48"
+          class="absolute left-1/2 top-5 z-10 h-auto w-40 max-w-[50vw] -translate-x-1/2"
         />
-        <div class="mt-8">
-          <h2 class="text-2xl font-semibold leading-tight text-text-primary">
-            Entrar no Gestão Direta
-          </h2>
-          <p class="mt-3 text-sm leading-6 text-text-muted">
-            Acesse sua conta para acompanhar suas fazendas e movimentações financeiras.
-          </p>
-        </div>
+        <div class="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-background to-transparent"></div>
       </div>
+
+      <div class="relative z-10 mt-4 px-6 text-center">
+        <h2 class="text-3xl font-semibold leading-tight text-text-primary">
+          Bem-vindo ao
+          <span class="block text-primary">Gestão Direta</span>
+        </h2>
+        <p class="mx-auto mt-2 max-w-sm text-base leading-7 text-text-muted">
+          Controle financeiro simples e confiável para sua propriedade.
+        </p>
+      </div>
+    </div>
+
+    <div class="w-full px-6 pb-8 lg:max-w-[36rem] lg:px-0 lg:pb-0">
+      <div class="rounded-3xl border border-border/70 bg-surface p-6 shadow-soft lg:border-border lg:bg-surface/95 lg:p-10 lg:backdrop-blur-[2px] xl:p-12">
 
       <div class="hidden text-center lg:block">
         <img
@@ -103,7 +108,7 @@
             <div class="relative">
               <svg
                 lucideIcon="mail"
-                class="pointer-events-none absolute left-4 top-1/2 hidden size-5 -translate-y-1/2 text-text-muted lg:block"
+                class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-text-muted"
                 aria-hidden="true"
               ></svg>
               <input
@@ -118,7 +123,7 @@
                 [attr.aria-invalid]="showEmailError()"
                 [class.border-danger]="showEmailError()"
                 [class.border-border]="!showEmailError()"
-                class="min-h-11 w-full rounded-control border bg-surface px-3 text-sm text-text-primary transition-colors placeholder:text-text-muted/75 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary lg:min-h-12 lg:pl-11"
+                class="min-h-12 w-full rounded-control border bg-surface px-3 pl-11 text-sm text-text-primary transition-colors placeholder:text-text-muted/75 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
               />
             </div>
             @if (showEmailError()) {
@@ -135,7 +140,7 @@
             <div class="relative">
               <svg
                 lucideIcon="lock"
-                class="pointer-events-none absolute left-4 top-1/2 hidden size-5 -translate-y-1/2 text-text-muted lg:block"
+                class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-text-muted"
                 aria-hidden="true"
               ></svg>
               <input
@@ -150,12 +155,12 @@
                 [attr.aria-invalid]="showPasswordError()"
                 [class.border-danger]="showPasswordError()"
                 [class.border-border]="!showPasswordError()"
-                class="min-h-11 w-full rounded-control border bg-surface px-3 text-sm text-text-primary transition-colors placeholder:text-text-muted/75 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary lg:min-h-12 lg:pl-11 lg:pr-12"
+                class="min-h-12 w-full rounded-control border bg-surface px-3 pl-11 pr-12 text-sm text-text-primary transition-colors placeholder:text-text-muted/75 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
               />
               <button
                 type="button"
                 data-testid="password-toggle"
-                class="absolute right-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary lg:flex"
+                class="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
                 [attr.aria-pressed]="showPassword()"
                 (click)="togglePasswordVisibility()"
@@ -171,8 +176,8 @@
           </div>
         </div>
 
-        <div class="hidden items-center justify-between gap-4 lg:flex">
-          <label for="remember-me" class="inline-flex items-center gap-2 text-sm text-text-muted">
+        <div class="flex items-center justify-end gap-4 lg:justify-between">
+          <label for="remember-me" class="hidden items-center gap-2 text-sm text-text-muted lg:inline-flex">
             <input
               id="remember-me"
               type="checkbox"
@@ -190,7 +195,10 @@
         </div>
 
         <gd-button type="submit" size="lg" [loading]="submitting()" [fullWidth]="true">
-          Entrar
+          <span class="inline-flex w-full items-center justify-center gap-2.5">
+            <svg lucideIcon="lock" class="size-5 shrink-0 lg:hidden" aria-hidden="true"></svg>
+            <span>Entrar</span>
+          </span>
         </gd-button>
       </form>
 
@@ -204,6 +212,16 @@
           Fale com o suporte
         </a>
       </p>
+      </div>
+
+      <div class="mt-7 text-center lg:hidden">
+        <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-highlight-soft text-primary shadow-soft">
+          <svg lucideIcon="sprout" class="size-5" aria-hidden="true"></svg>
+        </div>
+        <p class="mx-auto mt-3 max-w-xs text-sm leading-6 text-text-muted">
+          Acompanhe saldo, safras e movimentações em um só lugar.
+        </p>
+      </div>
     </div>
   </section>
 </main>
