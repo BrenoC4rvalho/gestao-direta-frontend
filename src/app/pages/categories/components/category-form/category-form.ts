@@ -42,6 +42,9 @@ export class CategoryForm {
   readonly cancelled = output<void>();
 
   protected readonly editing = computed(() => this.category() !== null);
+  private readonly allowedTypeValues = computed(() =>
+    new Set(this.typeOptions().map((option) => this.stringValue(option.value))),
+  );
 
   protected readonly form = new FormGroup<CategoryFormControls>({
     name: new FormControl<GdFormValue>('', {
@@ -59,9 +62,11 @@ export class CategoryForm {
       }
 
       const category = this.category();
+      const type = this.stringValue(category?.type ?? '');
+
       this.form.reset({
         name: category?.name ?? '',
-        type: category?.type ?? '',
+        type: this.isAllowedType(type) ? type : '',
       });
     });
   }
@@ -74,7 +79,7 @@ export class CategoryForm {
       this.form.controls.name.setErrors({ required: true });
     }
 
-    if (!type) {
+    if (!type || !this.isAllowedType(type)) {
       this.form.controls.type.setErrors({ required: true });
     }
 
@@ -102,6 +107,10 @@ export class CategoryForm {
     return this.form.controls.type.hasError('required')
       ? 'Selecione o tipo da categoria.'
       : null;
+  }
+
+  private isAllowedType(type: string): boolean {
+    return this.allowedTypeValues().has(type);
   }
 
   private stringValue(value: GdFormValue): string {

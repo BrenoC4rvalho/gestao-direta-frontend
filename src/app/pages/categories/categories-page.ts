@@ -73,6 +73,7 @@ export class CategoriesPage {
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
+  private readonly allowedFormTypes = new Set(['INCOME', 'EXPENSE']);
 
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
@@ -85,22 +86,10 @@ export class CategoriesPage {
       ? 'Atualize os dados da categoria financeira.'
       : 'Crie uma categoria para organizar as movimentações da fazenda.',
   );
-  protected readonly typeOptions = computed<readonly GdSelectOption[]>(() => {
-    const category = this.editingCategory();
-
-    if (category && isGlobalCategory(category) && this.sessionStore.isAdmin()) {
-      return [
-        { label: 'Receita', value: 'INCOME' },
-        { label: 'Despesa', value: 'EXPENSE' },
-        { label: 'Global', value: 'GLOBAL' },
-      ];
-    }
-
-    return [
-      { label: 'Receita', value: 'INCOME' },
-      { label: 'Despesa', value: 'EXPENSE' },
-    ];
-  });
+  protected readonly typeOptions: readonly GdSelectOption[] = [
+    { label: 'Receita', value: 'INCOME' },
+    { label: 'Despesa', value: 'EXPENSE' },
+  ];
   protected readonly canViewCategories = computed(() => {
     if (this.sessionStore.isAdmin()) {
       return true;
@@ -337,7 +326,12 @@ export class CategoriesPage {
   private createCategory(payload: UpdateFinancialCategoryRequest): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
 
-    if (!farmId || this.submitting() || !this.canCreateFarmCategory()) {
+    if (
+      !farmId ||
+      this.submitting() ||
+      !this.canCreateFarmCategory() ||
+      !this.isAllowedFormType(payload.type)
+    ) {
       this.showPermissionError();
       return;
     }
@@ -371,7 +365,11 @@ export class CategoriesPage {
     category: FinancialCategory,
     payload: UpdateFinancialCategoryRequest,
   ): void {
-    if (this.submitting() || !this.canEditCategory(category)) {
+    if (
+      this.submitting() ||
+      !this.canEditCategory(category) ||
+      !this.isAllowedFormType(payload.type)
+    ) {
       this.showPermissionError();
       return;
     }
@@ -457,6 +455,10 @@ export class CategoriesPage {
     }
 
     this.error.set(true);
+  }
+
+  private isAllowedFormType(type: string): boolean {
+    return this.allowedFormTypes.has(type);
   }
 
   private showOperationError(error: unknown): void {

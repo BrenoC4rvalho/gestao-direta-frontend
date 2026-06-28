@@ -6,7 +6,10 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
-import { FinancialCategory } from '../../core/models/financial-category.models';
+import {
+  FinancialCategory,
+  UpdateFinancialCategoryRequest,
+} from '../../core/models/financial-category.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -16,6 +19,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { CategoriesPage } from './categories-page';
 
 interface CategoriesPageHarness {
+  saveCategory(payload: UpdateFinancialCategoryRequest): void;
   openEditDrawer(category: FinancialCategory): void;
   requestDelete(category: FinancialCategory): void;
   requestActivate(category: FinancialCategory): void;
@@ -256,6 +260,17 @@ describe('CategoriesPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Categoria criada com sucesso.');
   });
 
+  it('should not create a category with global type payload', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    const harness = fixture.componentInstance as unknown as CategoriesPageHarness;
+    harness.saveCategory({ name: 'Global indevida', type: 'GLOBAL' });
+    fixture.detectChanges();
+
+    expect(categoryService.create).not.toHaveBeenCalled();
+  });
+
   it('should update a farm category and reload lists', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -270,6 +285,18 @@ describe('CategoriesPage', () => {
       isDefault: false,
     });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria atualizada com sucesso.');
+  });
+
+  it('should not update a category with global type payload', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    const harness = fixture.componentInstance as unknown as CategoriesPageHarness;
+    harness.openEditDrawer(farmCategory);
+    harness.saveCategory({ name: 'Adubo global indevido', type: 'GLOBAL' });
+    fixture.detectChanges();
+
+    expect(categoryService.update).not.toHaveBeenCalled();
   });
 
   it('should show global category actions only for admin', () => {

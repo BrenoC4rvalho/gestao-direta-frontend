@@ -23,6 +23,16 @@ const category: FinancialCategory = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
+const globalCategory: FinancialCategory = {
+  ...category,
+  id: 2,
+  name: 'Categoria global',
+  type: 'GLOBAL',
+  farmId: null,
+  farmName: null,
+  isDefault: true,
+};
+
 describe('CategoryForm', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -39,6 +49,68 @@ describe('CategoryForm', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Nome');
     expect(fixture.nativeElement.textContent).toContain('Tipo');
+  });
+
+  it('should render only income and expense type options for create', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.detectChanges();
+
+    expect(optionLabels(fixture.nativeElement)).toEqual([
+      'Selecione o tipo',
+      'Receita',
+      'Despesa',
+    ]);
+    expect(fixture.nativeElement.textContent).not.toContain('Global');
+  });
+
+  it('should render only income and expense type options for edit', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    fixture.componentRef.setInput('category', category);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.detectChanges();
+
+    expect(optionLabels(fixture.nativeElement)).toEqual([
+      'Selecione o tipo',
+      'Receita',
+      'Despesa',
+    ]);
+    expect(fixture.nativeElement.textContent).not.toContain('Global');
+  });
+
+  it('should clear unsupported global type while editing', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    const submitted: unknown[] = [];
+    fixture.componentRef.setInput('category', globalCategory);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
+    fixture.detectChanges();
+
+    submitForm(fixture.nativeElement);
+    fixture.detectChanges();
+
+    expect(selectedOptionLabel(fixture.nativeElement)).toBe('Selecione o tipo');
+    expect(fixture.nativeElement.textContent).not.toContain('Global');
+    expect(submitted).toEqual([]);
+  });
+
+  it('should not emit a global type payload', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    const submitted: unknown[] = [];
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
+    fixture.detectChanges();
+
+    setInput(fixture.nativeElement, 'Adubo');
+    setSelect(fixture.nativeElement, 'GLOBAL');
+    submitForm(fixture.nativeElement);
+    fixture.detectChanges();
+
+    expect(submitted).toEqual([]);
   });
 
   it('should validate required fields', () => {
@@ -124,6 +196,12 @@ function setSelect(root: HTMLElement, value: string): void {
   const option = Array.from(select.options).find((item) => item.value.includes(value));
   select.selectedIndex = option?.index ?? 0;
   select.dispatchEvent(new Event('change'));
+}
+
+function optionLabels(root: HTMLElement): string[] {
+  return Array.from(getSelect(root).options).map(
+    (option) => option.textContent?.trim() ?? '',
+  );
 }
 
 function selectedOptionLabel(root: HTMLElement): string {
