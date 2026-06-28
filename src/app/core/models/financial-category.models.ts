@@ -35,6 +35,7 @@ export interface UpdateFinancialCategoryRequest {
   isDefault?: boolean;
   color?: string | null;
   icon?: string | null;
+  status?: FinancialCategoryStatus;
 }
 
 export function isGlobalCategory(category: FinancialCategory): boolean {

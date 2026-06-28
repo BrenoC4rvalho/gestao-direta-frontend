@@ -90,7 +90,13 @@ describe('FinancialCategoryService', () => {
   });
 
   it('should update a category', () => {
-    const payload = { name: 'Adubo e insumos', type: 'EXPENSE', farmId: 1, isDefault: false };
+    const payload = {
+      name: 'Adubo e insumos',
+      type: 'EXPENSE',
+      farmId: 1,
+      isDefault: false,
+      status: 'ACTIVE' as const,
+    };
 
     service.update(1, payload).subscribe((result) => expect(result).toEqual(category));
 

@@ -68,6 +68,8 @@ export class CategoriesPage {
   protected readonly submitting = signal(false);
   protected readonly deleteTarget = signal<FinancialCategory | null>(null);
   protected readonly deleteSubmitting = signal(false);
+  protected readonly activateTarget = signal<FinancialCategory | null>(null);
+  protected readonly activateSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
@@ -202,9 +204,24 @@ export class CategoriesPage {
     this.deleteTarget.set(category);
   }
 
+  protected requestActivate(category: FinancialCategory): void {
+    if (!this.canActivateCategory(category)) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.activateTarget.set(category);
+  }
+
   protected closeDeleteConfirmation(): void {
     if (!this.deleteSubmitting()) {
       this.deleteTarget.set(null);
+    }
+  }
+
+  protected closeActivateConfirmation(): void {
+    if (!this.activateSubmitting()) {
+      this.activateTarget.set(null);
     }
   }
 
@@ -238,6 +255,46 @@ export class CategoriesPage {
       });
   }
 
+  protected confirmActivate(): void {
+    const category = this.activateTarget();
+
+    if (!category || this.activateSubmitting()) {
+      return;
+    }
+
+    if (!this.canActivateCategory(category)) {
+      this.showPermissionError();
+      return;
+    }
+
+    const request: UpdateFinancialCategoryRequest = {
+      name: category.name,
+      type: category.type,
+      color: category.color,
+      icon: category.icon,
+      farmId: isGlobalCategory(category) ? null : category.farmId,
+      isDefault: isGlobalCategory(category),
+      status: 'ACTIVE',
+    };
+
+    this.activateSubmitting.set(true);
+
+    this.categoryService
+      .update(category.id, request)
+      .pipe(
+        finalize(() => this.activateSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.activateTarget.set(null);
+          this.toastStore.success('Categoria ativada com sucesso.');
+          this.retry();
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
+  }
+
   protected canEditCategory(category: FinancialCategory): boolean {
     if (isGlobalCategory(category)) {
       return this.sessionStore.isAdmin();
@@ -248,6 +305,18 @@ export class CategoriesPage {
 
   protected canDeleteCategory(category: FinancialCategory): boolean {
     if (category.status === 'INACTIVE') {
+      return false;
+    }
+
+    if (isGlobalCategory(category)) {
+      return this.sessionStore.isAdmin();
+    }
+
+    return this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory();
+  }
+
+  protected canActivateCategory(category: FinancialCategory): boolean {
+    if (category.status !== 'INACTIVE') {
       return false;
     }
 

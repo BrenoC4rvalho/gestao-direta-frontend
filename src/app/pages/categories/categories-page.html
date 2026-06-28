@@ -90,8 +90,10 @@
                 [category]="category"
                 [canEdit]="canEditCategory(category)"
                 [canDelete]="canDeleteCategory(category)"
+                [canActivate]="canActivateCategory(category)"
                 (editRequested)="openEditDrawer($event)"
                 (deleteRequested)="requestDelete($event)"
+                (activateRequested)="requestActivate($event)"
                 role="listitem"
               />
             }
@@ -126,8 +128,10 @@
               [category]="category"
               [canEdit]="canEditCategory(category)"
               [canDelete]="canDeleteCategory(category)"
+              [canActivate]="canActivateCategory(category)"
               (editRequested)="openEditDrawer($event)"
               (deleteRequested)="requestDelete($event)"
+              (activateRequested)="requestActivate($event)"
               role="listitem"
             />
           }
@@ -167,4 +171,17 @@
   (confirmed)="confirmDelete()"
   (cancelled)="closeDeleteConfirmation()"
   (closed)="closeDeleteConfirmation()"
+/>
+
+<gd-confirm-dialog
+  [open]="activateTarget() !== null"
+  title="Ativar categoria"
+  description="Esta categoria voltará a ficar disponível para novas movimentações."
+  confirmLabel="Ativar"
+  cancelLabel="Cancelar"
+  variant="success"
+  [loading]="activateSubmitting()"
+  (confirmed)="confirmActivate()"
+  (cancelled)="closeActivateConfirmation()"
+  (closed)="closeActivateConfirmation()"
 />

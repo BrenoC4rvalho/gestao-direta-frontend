@@ -18,6 +18,7 @@ import { CategoriesPage } from './categories-page';
 interface CategoriesPageHarness {
   openEditDrawer(category: FinancialCategory): void;
   requestDelete(category: FinancialCategory): void;
+  requestActivate(category: FinancialCategory): void;
 }
 
 const admin: AuthUser = {
@@ -91,6 +92,24 @@ const globalCategory: FinancialCategory = {
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
+};
+
+const inactiveFarmCategory: FinancialCategory = {
+  ...farmCategory,
+  id: 3,
+  name: 'Defensivos',
+  color: '#15803D',
+  icon: 'sprout',
+  status: 'INACTIVE',
+};
+
+const inactiveGlobalCategory: FinancialCategory = {
+  ...globalCategory,
+  id: 4,
+  name: 'Serviços globais',
+  color: '#2563EB',
+  icon: 'tags',
+  status: 'INACTIVE',
 };
 
 describe('CategoriesPage', () => {
@@ -340,6 +359,105 @@ describe('CategoriesPage', () => {
     expect(categoryService.delete).toHaveBeenCalledWith(1);
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Categoria inativada com sucesso.');
+  });
+
+  it('should open activation confirmation for an inactive category', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    createPage();
+    clickButton('Ativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+
+    expect(dialog.textContent).toContain('Ativar categoria');
+    expect(dialog.textContent).toContain(
+      'Esta categoria voltará a ficar disponível para novas movimentações.',
+    );
+    expect(findButton(dialog, 'Ativar')).toBeTruthy();
+  });
+
+  it('should activate a category with preserved data and reload lists', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    categoryService.update.mockReturnValueOnce(
+      of({ ...inactiveFarmCategory, status: 'ACTIVE' }),
+    );
+    createPage();
+    clickButton('Ativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    findButton(dialog, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(categoryService.update).toHaveBeenCalledWith(3, {
+      name: 'Defensivos',
+      type: 'EXPENSE',
+      color: '#15803D',
+      icon: 'sprout',
+      farmId: 1,
+      isDefault: false,
+      status: 'ACTIVE',
+    });
+    expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
+  });
+
+  it('should show inactive global category activation only for admin', () => {
+    categoryService.listGlobal.mockReturnValue(of([inactiveGlobalCategory]));
+    createPage();
+    const adminGlobalItem = findCategoryItem(fixture.nativeElement, 'Serviços globais');
+
+    expect(findButton(adminGlobalItem, 'Ativar')).toBeTruthy();
+
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(access);
+    categoryService.listByFarm.mockReturnValue(of([inactiveGlobalCategory]));
+    createPage();
+    const userGlobalItem = findCategoryItem(fixture.nativeElement, 'Serviços globais');
+
+    expect(findButton(userGlobalItem, 'Ativar')).toBeUndefined();
+  });
+
+  it('should show inactive farm category activation only with manage permission', () => {
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(access);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    createPage();
+    let farmItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
+
+    expect(findButton(farmItem, 'Ativar')).toBeTruthy();
+
+    farmAccessStore.setAccess({
+      ...access,
+      permissions: { ...access.permissions, canManageCategories: false },
+    });
+    createPage();
+    farmItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
+
+    expect(findButton(farmItem, 'Ativar')).toBeUndefined();
+  });
+
+  it('should block global category activation for non admin handlers', () => {
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(access);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    createPage();
+
+    const harness = fixture.componentInstance as unknown as CategoriesPageHarness;
+    harness.requestActivate(inactiveGlobalCategory);
+    fixture.detectChanges();
+
+    expect(categoryService.update).not.toHaveBeenCalled();
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Você não tem permissão para realizar esta ação.',
+    );
   });
 
   it('should show permission toast on 403', () => {
