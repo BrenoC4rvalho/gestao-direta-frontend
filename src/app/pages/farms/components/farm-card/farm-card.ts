@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { Farm } from '../../../../core/models/farm.models';
+import { DocumentFormatPipe } from '../../../../shared/pipes/document-format.pipe';
 import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-farm-card',
-  imports: [Badge, Button, Card],
+  imports: [Badge, Button, Card, DocumentFormatPipe],
   templateUrl: './farm-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

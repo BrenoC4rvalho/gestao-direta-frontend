@@ -7,7 +7,7 @@ import { FarmCard } from './farm-card';
 const farm: Farm = {
   id: 1,
   name: 'Fazenda Boa Safra',
-  document: '12.345.678/0001-90',
+  document: '12345678000190',
   city: 'Ribeirão Preto',
   state: 'SP',
   totalArea: 120,
@@ -39,10 +39,22 @@ describe('FarmCard', () => {
     expect(text).toContain('Ribeirão Preto/SP');
     expect(text).toContain('Agricultura');
     expect(text).toContain('Ativa');
+    expect(text).toContain('12.345.678/0001-90');
 
     clickButton(fixture.nativeElement, 'Editar');
 
     expect(edited).toEqual([farm]);
+  });
+
+
+  it('should render empty document placeholder', () => {
+    const fixture = TestBed.createComponent(FarmCard);
+    fixture.componentRef.setInput('farm', { ...farm, document: null });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Documento');
+    expect(text).toContain('—');
   });
 
   it('should not render selection or status actions', () => {

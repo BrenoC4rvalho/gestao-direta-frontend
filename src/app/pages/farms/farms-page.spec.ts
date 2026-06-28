@@ -47,7 +47,7 @@ const farms: Farm[] = [
   {
     id: 1,
     name: 'Fazenda Boa Safra',
-    document: null,
+    document: '12345678900',
     city: 'Ribeirão Preto',
     state: 'SP',
     totalArea: 120,
@@ -59,7 +59,7 @@ const farms: Farm[] = [
   {
     id: 2,
     name: 'Sítio Santa Clara',
-    document: null,
+    document: '12345678000190',
     city: 'Uberaba',
     state: 'MG',
     totalArea: 80,
@@ -144,6 +144,8 @@ describe('FarmsPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Fazenda Boa Safra');
+    expect(fixture.nativeElement.textContent).toContain('123.456.789-00');
+    expect(fixture.nativeElement.textContent).toContain('12.345.678/0001-90');
     expect(farmService.list).toHaveBeenCalledWith({
       page: 0,
       size: 10,
@@ -167,11 +169,12 @@ describe('FarmsPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Preencha os dados principais');
     setInput('#farm-name', 'Fazenda Nova');
+    setInput('#farm-document', '12.345.678/0001-90');
     submitForm();
 
     expect(farmService.create).toHaveBeenCalledWith({
       name: 'Fazenda Nova',
-      document: null,
+      document: '12345678000190',
       city: null,
       state: null,
       totalArea: null,
@@ -192,7 +195,7 @@ describe('FarmsPage', () => {
 
     expect(farmService.update).toHaveBeenCalledWith(1, {
       name: 'Fazenda Atualizada',
-      document: null,
+      document: '12345678900',
       city: 'Ribeirão Preto',
       state: 'SP',
       totalArea: 120,

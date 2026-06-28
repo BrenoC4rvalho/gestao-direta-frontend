@@ -11,12 +11,22 @@
       [errorMessage]="nameErrorMessage()"
     />
 
+    <gd-select
+      id="farm-document-type"
+      label="Tipo de documento"
+      [control]="form.controls.documentType"
+      [options]="documentTypeOptions"
+      [required]="true"
+    />
+
     <gd-input
-      class="sm:col-span-2"
       id="farm-document"
       label="Documento"
-      placeholder="CPF ou CNPJ"
+      placeholder="Informe o documento"
+      type="tel"
+      autocomplete="off"
       [control]="form.controls.document"
+      [errorMessage]="documentErrorMessage()"
     />
 
     <gd-input
