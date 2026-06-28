@@ -19,6 +19,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { TransactionsPage } from './transactions-page';
 
 const drawerAnimationDurationMs = 250;
+const confirmAnimationDurationMs = 200;
 
 interface TransactionsPageHarness {
   openEditDrawer(transaction: FinancialTransaction): void;
@@ -323,13 +324,14 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Nova movimentação');
   });
 
-  it('should close only the top confirmation on Escape when a drawer is open behind it', () => {
+  it('should close only the top confirmation on Escape when a drawer is open behind it', async () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     clickButton('Editar');
     clickButton('Marcar paga');
 
     pressEscape();
+    await finishConfirmClose();
 
     expect(getConfirmDialog()).toBeNull();
     expect(getDrawerDialog()).toBeTruthy();
@@ -390,6 +392,11 @@ describe('TransactionsPage', () => {
 
   async function finishDrawerClose(): Promise<void> {
     await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  async function finishConfirmClose(): Promise<void> {
+    await wait(confirmAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 

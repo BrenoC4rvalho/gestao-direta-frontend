@@ -17,6 +17,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { UsersPage } from './users-page';
 
 const drawerAnimationDurationMs = 250;
+const confirmAnimationDurationMs = 200;
 
 const admin: AuthUser = {
   id: 1,
@@ -432,7 +433,7 @@ describe('UsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Dados do usuário atualizados.');
   });
 
-  it('should change status through confirmation and update the selected user', () => {
+  it('should change status through confirmation and update the selected user', async () => {
     sessionStore.setUser(admin);
     createPage();
     openEditDrawer('João Souza');
@@ -450,6 +451,7 @@ describe('UsersPage', () => {
     expect(userService.updateStatus).toHaveBeenCalledWith(2, { status: 'ACTIVE' });
     expect(userService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Status do usuário atualizado.');
+    await finishConfirmClose();
     expect(getConfirmDialog()).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Ativo');
   });
@@ -523,7 +525,7 @@ describe('UsersPage', () => {
     expect(userService.resetPassword).not.toHaveBeenCalled();
   });
 
-  it('should cancel password reset confirmation without calling the service', () => {
+  it('should cancel password reset confirmation without calling the service', async () => {
     sessionStore.setUser(admin);
     createPage();
     openEditDrawer('João Souza');
@@ -534,6 +536,7 @@ describe('UsersPage', () => {
 
     findButton(getConfirmDialog() as HTMLElement, 'Cancelar')?.click();
     fixture.detectChanges();
+    await finishConfirmClose();
 
     expect(getConfirmDialog()).toBeNull();
     expect(userService.resetPassword).not.toHaveBeenCalled();
@@ -652,6 +655,11 @@ describe('UsersPage', () => {
 
   async function finishDrawerClose(): Promise<void> {
     await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  async function finishConfirmClose(): Promise<void> {
+    await wait(confirmAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 

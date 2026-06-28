@@ -16,6 +16,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { FarmsPage } from './farms-page';
 
 const drawerAnimationDurationMs = 250;
+const confirmAnimationDurationMs = 200;
 
 const admin: AuthUser = {
   id: 1,
@@ -218,7 +219,7 @@ describe('FarmsPage', () => {
     expect(drawer?.textContent).not.toContain('Zona de perigo');
   });
 
-  it('should open inactivation confirmation over the edit drawer and cancel only the confirmation', () => {
+  it('should open inactivation confirmation over the edit drawer and cancel only the confirmation', async () => {
     createPage();
     clickButton('Editar');
     clickButton('Inativar fazenda');
@@ -227,6 +228,7 @@ describe('FarmsPage', () => {
     expect(getConfirmDialog()?.textContent).toContain('Inativar fazenda');
 
     clickDialogButton(getConfirmDialog(), 'Cancelar');
+    await finishConfirmClose();
 
     expect(getConfirmDialog()).toBeNull();
     expect(getDrawerDialog()).toBeTruthy();
@@ -245,6 +247,7 @@ describe('FarmsPage', () => {
 
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'INACTIVE' });
     expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
+    await finishConfirmClose();
     expect(getConfirmDialog()).toBeNull();
     await finishDrawerClose();
     expect(getDrawerDialog()).toBeNull();
@@ -344,6 +347,7 @@ describe('FarmsPage', () => {
 
     expect(farmService.updateStatus).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
     expect(upsertSpy).toHaveBeenCalledWith(updatedFarm);
+    await finishConfirmClose();
     expect(getConfirmDialog()).toBeNull();
     await finishDrawerClose();
     expect(getDrawerDialog()).toBeNull();
@@ -379,13 +383,14 @@ describe('FarmsPage', () => {
     expect(farmService.updateStatus).not.toHaveBeenCalled();
   });
 
-  it('should close only the status confirmation on Escape when both overlays are open', () => {
+  it('should close only the status confirmation on Escape when both overlays are open', async () => {
     createPage();
     clickButton('Editar');
     clickButton('Inativar fazenda');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
+    await finishConfirmClose();
 
     expect(getConfirmDialog()).toBeNull();
     expect(getDrawerDialog()).toBeTruthy();
@@ -422,6 +427,11 @@ describe('FarmsPage', () => {
 
   async function finishDrawerClose(): Promise<void> {
     await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  async function finishConfirmClose(): Promise<void> {
+    await wait(confirmAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 

@@ -18,6 +18,8 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { CategoriesPage } from './categories-page';
 
+const confirmAnimationDurationMs = 200;
+
 interface CategoriesPageHarness {
   saveCategory(payload: UpdateFinancialCategoryRequest): void;
   openEditDrawer(category: FinancialCategory): void;
@@ -510,7 +512,7 @@ describe('CategoriesPage', () => {
     expect(findButton(dialog, 'Ativar')).toBeTruthy();
   });
 
-  it('should not activate a category when confirmation is cancelled', () => {
+  it('should not activate a category when confirmation is cancelled', async () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     createPage();
@@ -521,6 +523,7 @@ describe('CategoriesPage', () => {
     ) as HTMLElement;
     findButton(dialog, 'Cancelar')?.click();
     fixture.detectChanges();
+    await finishConfirmClose();
 
     expect(categoryService.activate).not.toHaveBeenCalled();
     expect(categoryService.update).not.toHaveBeenCalled();
@@ -702,6 +705,11 @@ describe('CategoriesPage', () => {
     form.dispatchEvent(new Event('submit'));
     fixture.detectChanges();
   }
+
+  async function finishConfirmClose(): Promise<void> {
+    await wait(confirmAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
 });
 
 function findCategoryItem(root: HTMLElement, label: string): HTMLElement {
@@ -719,4 +727,9 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

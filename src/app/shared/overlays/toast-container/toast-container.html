@@ -5,7 +5,7 @@
     aria-live="polite"
   >
     @for (toast of toasts(); track toast.id) {
-      <article [class]="toastClasses(toast.type)">
+      <article [class]="toastClasses(toast)">
         <div class="flex items-start gap-3">
           <svg [lucideIcon]="icon(toast.type)" class="mt-0.5 size-5 shrink-0" aria-hidden="true"></svg>
 

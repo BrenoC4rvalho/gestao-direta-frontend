@@ -30,15 +30,18 @@ export class ToastContainer {
     this.toastStore.remove(toast.id);
   }
 
-  protected toastClasses(type: ToastType): string {
-    const base = 'rounded-app border px-4 py-3 text-text-primary shadow-soft';
+  protected toastClasses(toast: ToastMessage): string {
+    const base =
+      'rounded-app border px-4 py-3 text-text-primary shadow-soft transition-[opacity,transform] duration-[250ms] ease-out will-change-transform';
     const variants: Record<ToastType, string> = {
       success: 'border-success/30 bg-surface text-success',
       error: 'border-danger/30 bg-surface text-danger',
       warning: 'border-warning/30 bg-surface text-warning',
       info: 'border-info/30 bg-surface text-info',
     };
+    const stateClasses =
+      toast.state === 'visible' ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-[0.98] opacity-0';
 
-    return base + ' ' + variants[type];
+    return [base, variants[toast.type], stateClasses].join(' ');
   }
 }

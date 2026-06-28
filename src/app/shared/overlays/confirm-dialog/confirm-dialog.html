@@ -1,8 +1,8 @@
-@if (open()) {
-  <div class="fixed inset-0 z-40 bg-black/45" aria-hidden="true" (click)="close()"></div>
+@if (rendered()) {
+  <div [class]="backdropClasses()" aria-hidden="true" (click)="close()"></div>
 
   <section
-    class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-app border border-border bg-surface p-5 text-text-primary shadow-soft"
+    [class]="panelClasses()"
     role="dialog"
     aria-modal="true"
     [attr.aria-labelledby]="titleId"

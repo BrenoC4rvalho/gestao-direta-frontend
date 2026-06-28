@@ -19,6 +19,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { FarmUsersPage } from './farm-users-page';
 
 const drawerAnimationDurationMs = 250;
+const confirmAnimationDurationMs = 200;
 
 const admin: AuthUser = {
   id: 99,
@@ -552,7 +553,7 @@ describe('FarmUsersPage', () => {
     expect(dialog?.textContent).toContain('Inativar vínculo');
   });
 
-  it('should close only the confirmation when cancelling inactivation', () => {
+  it('should close only the confirmation when cancelling inactivation', async () => {
     setupAdminFarm();
     createPage();
     clickButton('Editar');
@@ -560,6 +561,7 @@ describe('FarmUsersPage', () => {
 
     findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Cancelar')?.click();
     fixture.detectChanges();
+    await finishConfirmClose();
 
     expect(getDialog('gd-confirm-dialog')).toBeNull();
     expect(getDialog('gd-drawer')?.textContent).toContain('Editar vínculo');
@@ -578,6 +580,7 @@ describe('FarmUsersPage', () => {
     expect(farmUserService.inactivate).toHaveBeenCalledWith(10, 1);
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Vínculo inativado com sucesso.');
+    await finishConfirmClose();
     expect(getDialog('gd-confirm-dialog')).toBeNull();
     await finishDrawerClose();
     expect(getDialog('gd-drawer')).toBeNull();
@@ -840,6 +843,11 @@ describe('FarmUsersPage', () => {
 
   async function finishDrawerClose(): Promise<void> {
     await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  async function finishConfirmClose(): Promise<void> {
+    await wait(confirmAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 
