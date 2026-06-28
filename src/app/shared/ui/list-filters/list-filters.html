@@ -20,9 +20,9 @@
     </div>
   </div>
 
-  <div class="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end">
-    <div class="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      @if (searchConfig(); as search) {
+  <div class="mt-5 grid gap-4 md:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+    @if (searchConfig(); as search) {
+      <div class="lg:w-64 xl:w-72">
         <gd-input
           [id]="'filter-' + searchKey()"
           [label]="search.label ?? 'Buscar'"
@@ -31,9 +31,11 @@
           [control]="control(searchKey())"
           autocomplete="off"
         />
-      }
+      </div>
+    }
 
-      @for (field of textFields(); track field.key) {
+    @for (field of textFields(); track field.key) {
+      <div class="lg:w-64 xl:w-72">
         <gd-input
           [id]="'filter-' + field.key"
           [label]="field.label"
@@ -42,9 +44,11 @@
           [control]="control(field.key)"
           autocomplete="off"
         />
-      }
+      </div>
+    }
 
-      @for (select of selects(); track select.key) {
+    @for (select of selects(); track select.key) {
+      <div class="lg:w-56 xl:w-64">
         <gd-select
           [id]="'filter-' + select.key"
           [label]="select.label"
@@ -52,10 +56,10 @@
           [control]="control(select.key)"
           [options]="selectOptions(select)"
         />
-      }
-    </div>
+      </div>
+    }
 
-    <div class="flex justify-end gap-2">
+    <div class="flex justify-end gap-2 lg:shrink-0">
       <button
         type="submit"
         class="inline-flex size-10 items-center justify-center rounded-control bg-primary text-white transition-all duration-200 ease-out hover:bg-[#166534] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
