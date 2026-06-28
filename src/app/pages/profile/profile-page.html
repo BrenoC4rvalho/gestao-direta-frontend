@@ -21,12 +21,12 @@
       (action)="loadProfile()"
     />
   } @else {
-    <div class="grid gap-5 lg:grid-cols-2 lg:items-start">
+    <div class="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
       <gd-card variant="elevated" padding="lg">
-        <div class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div class="min-w-0">
             <h2 class="text-lg font-semibold text-text-primary">Dados do perfil</h2>
-            <p class="mt-1 text-sm leading-6 text-text-muted">
+            <p class="mt-2 text-sm leading-6 text-text-muted">
               Nome e documento usados na sua identificação no sistema.
             </p>
           </div>
@@ -43,46 +43,54 @@
           }
         </div>
 
-        <form class="mt-6 space-y-4" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
-          <gd-input
-            id="profile-name"
-            label="Nome"
-            [control]="profileForm.controls.name"
-            [required]="true"
-            autocomplete="name"
-            [errorMessage]="nameErrorMessage()"
-          />
+        <form class="mt-6 space-y-5" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+          <div class="space-y-2">
+            <gd-input
+              id="profile-name"
+              label="Nome"
+              [control]="profileForm.controls.name"
+              [required]="true"
+              autocomplete="name"
+              [errorMessage]="nameErrorMessage()"
+            />
+          </div>
 
-          <gd-input
-            id="profile-email"
-            label="E-mail"
-            type="email"
-            [control]="profileForm.controls.email"
-            [readonly]="true"
-            autocomplete="email"
-            hint="O e-mail não pode ser alterado por aqui."
-          />
+          <div class="space-y-2">
+            <gd-input
+              id="profile-email"
+              label="E-mail"
+              type="email"
+              [control]="profileForm.controls.email"
+              [readonly]="true"
+              autocomplete="email"
+              hint="O e-mail não pode ser alterado por aqui."
+            />
+          </div>
 
-          <gd-select
-            id="profile-document-type"
-            label="Tipo de documento"
-            [control]="profileForm.controls.documentType"
-            [options]="documentTypeOptions"
-            [required]="true"
-            [disabled]="savingProfile()"
-          />
+          <div class="space-y-2">
+            <gd-select
+              id="profile-document-type"
+              label="Tipo de documento"
+              [control]="profileForm.controls.documentType"
+              [options]="documentTypeOptions"
+              [required]="true"
+              [disabled]="savingProfile()"
+            />
+          </div>
 
-          <gd-input
-            id="profile-document"
-            label="Documento"
-            type="tel"
-            [control]="profileForm.controls.document"
-            autocomplete="off"
-            hint="Campo opcional."
-            [errorMessage]="documentErrorMessage()"
-          />
+          <div class="space-y-2">
+            <gd-input
+              id="profile-document"
+              label="Documento"
+              type="tel"
+              [control]="profileForm.controls.document"
+              autocomplete="off"
+              hint="Campo opcional."
+              [errorMessage]="documentErrorMessage()"
+            />
+          </div>
 
-          <div class="pt-2">
+          <div class="pt-3">
             <gd-button
               type="submit"
               [loading]="savingProfile()"
@@ -96,45 +104,51 @@
       </gd-card>
 
       <gd-card variant="elevated" padding="lg">
-        <div class="border-b border-border pb-5">
+        <div class="border-b border-border pb-6">
           <h2 class="text-lg font-semibold text-text-primary">Alterar senha</h2>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
+          <p class="mt-2 text-sm leading-6 text-text-muted">
             Informe sua senha atual antes de definir uma nova senha.
           </p>
         </div>
 
-        <form class="mt-6 space-y-4" [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
-          <gd-input
-            id="current-password"
-            label="Senha atual"
-            type="password"
-            [control]="passwordForm.controls.currentPassword"
-            [required]="true"
-            autocomplete="current-password"
-            [errorMessage]="currentPasswordErrorMessage()"
-          />
+        <form class="mt-6 space-y-5" [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+          <div class="space-y-2">
+            <gd-input
+              id="current-password"
+              label="Senha atual"
+              type="password"
+              [control]="passwordForm.controls.currentPassword"
+              [required]="true"
+              autocomplete="current-password"
+              [errorMessage]="currentPasswordErrorMessage()"
+            />
+          </div>
 
-          <gd-input
-            id="new-password"
-            label="Nova senha"
-            type="password"
-            [control]="passwordForm.controls.newPassword"
-            [required]="true"
-            autocomplete="new-password"
-            [errorMessage]="newPasswordErrorMessage()"
-          />
+          <div class="space-y-2">
+            <gd-input
+              id="new-password"
+              label="Nova senha"
+              type="password"
+              [control]="passwordForm.controls.newPassword"
+              [required]="true"
+              autocomplete="new-password"
+              [errorMessage]="newPasswordErrorMessage()"
+            />
+          </div>
 
-          <gd-input
-            id="confirm-password"
-            label="Confirmar nova senha"
-            type="password"
-            [control]="passwordForm.controls.confirmPassword"
-            [required]="true"
-            autocomplete="new-password"
-            [errorMessage]="confirmPasswordErrorMessage()"
-          />
+          <div class="space-y-2">
+            <gd-input
+              id="confirm-password"
+              label="Confirmar nova senha"
+              type="password"
+              [control]="passwordForm.controls.confirmPassword"
+              [required]="true"
+              autocomplete="new-password"
+              [errorMessage]="confirmPasswordErrorMessage()"
+            />
+          </div>
 
-          <div class="pt-2">
+          <div class="pt-3">
             <gd-button
               type="submit"
               [loading]="changingPassword()"
