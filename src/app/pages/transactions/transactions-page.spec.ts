@@ -309,6 +309,30 @@ describe('TransactionsPage', () => {
     expect(toastStore.toasts()[1]?.title).toBe('Movimentação cancelada com sucesso.');
   });
 
+  it('should close the drawer on Escape when it is open', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova movimentação');
+
+    pressEscape();
+
+    expect(getDrawerDialog()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Nova movimentação');
+  });
+
+  it('should close only the top confirmation on Escape when a drawer is open behind it', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Editar');
+    clickButton('Marcar paga');
+
+    pressEscape();
+
+    expect(getConfirmDialog()).toBeNull();
+    expect(getDrawerDialog()).toBeTruthy();
+    expect(transactionService.markAsPaid).not.toHaveBeenCalled();
+  });
+
   it('should block handlers without management permission', () => {
     sessionStore.setUser(user);
     selectedFarmStore.setFarms([farm]);
@@ -354,6 +378,19 @@ describe('TransactionsPage', () => {
       .find((item) => (item as HTMLButtonElement).textContent?.trim() === label) as HTMLButtonElement | undefined;
     button?.click();
     fixture.detectChanges();
+  }
+
+  function pressEscape(): void {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+  }
+
+  function getDrawerDialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('gd-drawer [role="dialog"]');
+  }
+
+  function getConfirmDialog(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
   }
 
   function fillForm(description: string): void {

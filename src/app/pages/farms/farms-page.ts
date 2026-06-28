@@ -50,9 +50,6 @@ interface StatusConfirmation {
     StatusActionSection,
   ],
   templateUrl: './farms-page.html',
-  host: {
-    '(document:keydown.escape)': 'closeDrawerFromEscape()',
-  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FarmsPage implements OnInit {
@@ -253,12 +250,6 @@ export class FarmsPage implements OnInit {
       this.farmAccessStore.access()?.farmId === farm.id &&
       !this.farmAccessStore.loading()
     );
-  }
-
-  protected closeDrawerFromEscape(): void {
-    if (this.drawerOpen()) {
-      this.closeDrawer();
-    }
   }
 
   private loadPage(page: number): void {

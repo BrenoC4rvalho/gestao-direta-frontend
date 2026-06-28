@@ -17,7 +17,8 @@ import { ConfirmDialog } from './confirm-dialog';
       [variant]="variant"
       [loading]="loading"
       (confirmed)="confirmedCount = confirmedCount + 1"
-      (cancelled)="cancelledCount = cancelledCount + 1"
+      (cancelled)="cancel()"
+      (closed)="close()"
     />
   `,
 })
@@ -27,6 +28,15 @@ class ConfirmDialogHost {
   variant: 'danger' | 'success' = 'danger';
   confirmedCount = 0;
   cancelledCount = 0;
+
+  cancel(): void {
+    this.cancelledCount += 1;
+    this.open.set(false);
+  }
+
+  close(): void {
+    this.open.set(false);
+  }
 }
 
 describe('ConfirmDialog', () => {
@@ -64,6 +74,42 @@ describe('ConfirmDialog', () => {
     buttons[1].click();
 
     expect(fixture.componentInstance.cancelledCount).toBe(1);
+  });
+
+  it('should close with Escape when open without confirming', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.cancelledCount).toBe(1);
+    expect(fixture.componentInstance.confirmedCount).toBe(0);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+  });
+
+  it('should ignore Escape when closed', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConfirmDialogHost);
+    fixture.componentInstance.open.set(false);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.cancelledCount).toBe(0);
+    expect(fixture.componentInstance.confirmedCount).toBe(0);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
   it('should support success variant', async () => {

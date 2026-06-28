@@ -40,9 +40,6 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
 
 @Component({
   selector: 'gd-farm-users-page',
-  host: {
-    '(document:keydown.escape)': 'closeEditDrawer()',
-  },
   imports: [
     Badge,
     Button,

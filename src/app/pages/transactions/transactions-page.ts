@@ -296,8 +296,7 @@ export class TransactionsPage {
       return;
     }
 
-    this.drawerOpen.set(false);
-    this.editingTransaction.set(null);
+    this.resetDrawerState();
   }
 
   protected saveTransaction(payload: UpdateFinancialTransactionRequest): void {
@@ -516,7 +515,7 @@ export class TransactionsPage {
       )
       .subscribe({
         next: () => {
-          this.drawerOpen.set(false);
+          this.resetDrawerState();
           this.toastStore.success('Movimentação criada com sucesso.');
           this.retry();
         },
@@ -543,8 +542,7 @@ export class TransactionsPage {
       )
       .subscribe({
         next: () => {
-          this.drawerOpen.set(false);
-          this.editingTransaction.set(null);
+          this.resetDrawerState();
           this.toastStore.success('Movimentação atualizada com sucesso.');
           this.retry();
         },
@@ -605,6 +603,11 @@ export class TransactionsPage {
 
   private showPermissionError(): void {
     this.toastStore.error('Você não tem permissão para realizar esta ação.');
+  }
+
+  private resetDrawerState(): void {
+    this.drawerOpen.set(false);
+    this.editingTransaction.set(null);
   }
 
   private clearListState(): void {

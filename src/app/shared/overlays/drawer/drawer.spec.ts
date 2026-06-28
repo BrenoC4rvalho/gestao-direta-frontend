@@ -76,6 +76,40 @@ describe('Drawer', () => {
     expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
   });
 
+  it('should close with Escape when open', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DrawerHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DrawerHost);
+    fixture.componentInstance.open.set(true);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.closedCount).toBe(1);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+  });
+
+  it('should ignore Escape when closed', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DrawerHost],
+      providers: [provideGestaoDiretaIcons()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DrawerHost);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.closedCount).toBe(0);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+  });
+
   it('should remove body scroll lock when destroyed while open', async () => {
     await TestBed.configureTestingModule({
       imports: [DrawerHost],

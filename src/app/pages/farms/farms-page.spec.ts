@@ -374,7 +374,7 @@ describe('FarmsPage', () => {
     expect(farmService.updateStatus).not.toHaveBeenCalled();
   });
 
-  it('should close the drawer and pending status confirmation on Escape', () => {
+  it('should close only the status confirmation on Escape when both overlays are open', () => {
     createPage();
     clickButton('Editar');
     clickButton('Inativar fazenda');
@@ -382,8 +382,18 @@ describe('FarmsPage', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
 
-    expect(getDrawerDialog()).toBeNull();
     expect(getConfirmDialog()).toBeNull();
+    expect(getDrawerDialog()).toBeTruthy();
+  });
+
+  it('should close the drawer on Escape when no confirmation is open', () => {
+    createPage();
+    clickButton('Editar');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(getDrawerDialog()).toBeNull();
   });
 
   function clickButton(label: string): void {
