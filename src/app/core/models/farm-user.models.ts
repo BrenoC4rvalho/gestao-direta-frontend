@@ -1,3 +1,5 @@
+import { PageRequest } from './page-response.model';
+
 export type FarmUserRole =
   | 'PRODUCER'
   | 'EMPLOYEE'
@@ -24,4 +26,9 @@ export interface CreateFarmUserRequest {
 
 export interface UpdateFarmUserRoleRequest {
   role: FarmUserRole;
+}
+
+export interface FarmUserListParams extends PageRequest {
+  search?: string | null;
+  role?: FarmUserRole | null;
 }

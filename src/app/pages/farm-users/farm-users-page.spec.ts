@@ -176,6 +176,18 @@ const producerAccess: FarmAccessResponse = {
   },
 };
 
+function farmUserPage(content: FarmUser[], page = 0, totalPages = 1): PageResponse<FarmUser> {
+  return {
+    content,
+    page,
+    size: 10,
+    totalElements: content.length,
+    totalPages,
+    first: page === 0,
+    last: page + 1 >= totalPages,
+  };
+}
+
 function userPage(content: User[]): PageResponse<User> {
   return {
     content,
@@ -204,7 +216,7 @@ describe('FarmUsersPage', () => {
 
   beforeEach(async () => {
     farmUserService = {
-      listByFarm: vi.fn().mockReturnValue(of(farmUsers)),
+      listByFarm: vi.fn().mockReturnValue(of(farmUserPage(farmUsers))),
       linkUser: vi.fn().mockReturnValue(of(farmUsers[1])),
       updateRole: vi.fn().mockReturnValue(of({ ...farmUsers[1], role: 'ACCOUNTANT' })),
       inactivate: vi.fn().mockReturnValue(of(undefined)),
@@ -267,7 +279,15 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     createPage();
 
-    expect(farmUserService.listByFarm).toHaveBeenCalledWith(10);
+    expect(farmUserService.listByFarm).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+      }),
+    );
     expect(fixture.nativeElement.textContent).not.toContain('Fazenda selecionada:');
     expect(fixture.nativeElement.textContent).toContain('Maria Funcionária');
     expect(fixture.nativeElement.textContent).toContain('Funcionário');
@@ -287,7 +307,7 @@ describe('FarmUsersPage', () => {
   });
 
   it('should show skeletons while loading links', () => {
-    farmUserService.listByFarm.mockReturnValueOnce(new Subject<FarmUser[]>());
+    farmUserService.listByFarm.mockReturnValueOnce(new Subject<PageResponse<FarmUser>>());
     setupAdminFarm();
     createPage();
 
@@ -295,7 +315,7 @@ describe('FarmUsersPage', () => {
   });
 
   it('should show the empty state when no links exist', () => {
-    farmUserService.listByFarm.mockReturnValueOnce(of([]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([])));
     setupAdminFarm();
     createPage();
 
@@ -308,7 +328,7 @@ describe('FarmUsersPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar os vínculos');
-    farmUserService.listByFarm.mockReturnValueOnce(of(farmUsers));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage(farmUsers)));
     clickButton('Tentar novamente');
 
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
@@ -475,7 +495,7 @@ describe('FarmUsersPage', () => {
 
   it('should show the edit action for an inactive link', () => {
     setupAdminFarm();
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Usuário Inativo');
@@ -485,7 +505,7 @@ describe('FarmUsersPage', () => {
 
   it('should open the edit drawer for an inactive link with user data and role select', () => {
     setupAdminFarm();
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
     clickButton('Editar');
 
@@ -498,7 +518,7 @@ describe('FarmUsersPage', () => {
 
   it('should show all active role options for an inactive link when admin edits', () => {
     setupAdminFarm();
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
     clickButton('Editar');
 
@@ -511,7 +531,7 @@ describe('FarmUsersPage', () => {
 
   it('should show reactivation guidance and hide inactivation for an inactive link', () => {
     setupAdminFarm();
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
     clickButton('Editar');
 
@@ -525,7 +545,7 @@ describe('FarmUsersPage', () => {
 
   it('should reactivate an inactive link by updating it to an active role', async () => {
     setupAdminFarm();
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
     clickButton('Editar');
     selectInForm('gd-farm-user-role-form', 0, 2);
@@ -740,7 +760,7 @@ describe('FarmUsersPage', () => {
     sessionStore.setUser(producer);
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(producerAccess);
-    farmUserService.listByFarm.mockReturnValueOnce(of([farmUsers[3]]));
+    farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
     clickButton('Editar');
 
@@ -794,7 +814,15 @@ describe('FarmUsersPage', () => {
     selectedFarmStore.selectFarm(farms[1]);
     fixture.detectChanges();
 
-    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(11);
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      11,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+      }),
+    );
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
   });
 

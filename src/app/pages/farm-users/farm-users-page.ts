@@ -14,9 +14,11 @@ import { finalize, Subscription } from 'rxjs';
 import {
   CreateFarmUserRequest,
   FarmUser,
+  FarmUserListParams,
   FarmUserRole,
   UpdateFarmUserRoleRequest,
 } from '../../core/models/farm-user.models';
+import { PageResponse } from '../../core/models/page-response.model';
 import { User } from '../../core/models/user.models';
 import { FarmUserService } from '../../core/services/farm-user.service';
 import { UserService } from '../../core/services/user.service';
@@ -32,6 +34,8 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  ListFilters,
+  ListFiltersConfig,
   Skeleton,
   StatusActionSection,
 } from '../../shared/ui';
@@ -50,6 +54,7 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
     ErrorState,
     FarmUserForm,
     FarmUserRoleForm,
+    ListFilters,
     Skeleton,
     StatusActionSection,
   ],
@@ -66,7 +71,7 @@ export class FarmUsersPage {
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
 
-  protected readonly farmUsers = signal<FarmUser[]>([]);
+  protected readonly response = signal<PageResponse<FarmUser> | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
@@ -83,6 +88,27 @@ export class FarmUsersPage {
   protected readonly inactivationTarget = signal<FarmUser | null>(null);
   protected readonly inactivationSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
+  protected readonly requestedPage = signal(0);
+  protected readonly filters = signal<Pick<FarmUserListParams, 'search' | 'role'>>({
+    search: null,
+    role: null,
+  });
+  protected readonly filtersConfig: ListFiltersConfig = {
+    search: { placeholder: 'Buscar por nome ou e-mail' },
+    selects: [
+      {
+        key: 'role',
+        label: 'Papel',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Produtor', value: 'PRODUCER' },
+          { label: 'Funcionário', value: 'EMPLOYEE' },
+          { label: 'Contador', value: 'ACCOUNTANT' },
+          { label: 'Inativo', value: 'INACTIVE' },
+        ],
+      },
+    ],
+  };
 
   private readonly reloadTrigger = signal(0);
   private previousFarmId: number | null = null;
@@ -96,6 +122,16 @@ export class FarmUsersPage {
   protected readonly roleDrawerOptions = computed<readonly FarmUserRole[]>(() =>
     this.allowedRoles().filter((role) => role !== this.editTarget()?.role),
   );
+  protected readonly farmUsers = computed(() => this.response()?.content ?? []);
+  protected readonly currentPage = computed(() => this.response()?.page ?? 0);
+  protected readonly hasActiveFilters = computed(() =>
+    Object.values(this.filters()).some((value) => value !== null),
+  );
+  protected readonly emptyFarmUsersDescription = computed(() =>
+    this.hasActiveFilters()
+      ? 'Nenhum resultado encontrado para os filtros informados.'
+      : 'Quando houver usuários vinculados a esta fazenda, eles aparecerão aqui.',
+  );
   protected readonly linkFormMode = computed(() =>
     this.sessionStore.isAdmin() ? 'admin-list' : 'email-search',
   );
@@ -108,8 +144,13 @@ export class FarmUsersPage {
       const farmId = this.selectedFarmStore.selectedFarmId();
       this.reloadTrigger();
 
+      let page = this.requestedPage();
+      const filters = this.activeFilters();
+
       if (this.previousFarmId !== farmId) {
         this.previousFarmId = farmId;
+        page = 0;
+        this.requestedPage.set(0);
         this.resetTransientState();
       }
 
@@ -139,10 +180,16 @@ export class FarmUsersPage {
       this.loading.set(true);
 
       const subscription = this.farmUserService
-        .listByFarm(farmId)
+        .listByFarm(farmId, {
+          page,
+          size: 10,
+          sort: 'userName',
+          direction: 'ASC',
+          ...filters,
+        })
         .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
-          next: (farmUsers) => this.farmUsers.set(farmUsers),
+          next: (response) => this.response.set(response),
           error: (error: unknown) => this.handleListError(error),
         });
 
@@ -152,6 +199,30 @@ export class FarmUsersPage {
 
   protected retry(): void {
     this.reloadTrigger.update((value) => value + 1);
+  }
+
+  protected previousPage(): void {
+    const response = this.response();
+
+    if (response && !response.first) {
+      this.requestedPage.set(response.page - 1);
+    }
+  }
+
+  protected nextPage(): void {
+    const response = this.response();
+
+    if (response && !response.last) {
+      this.requestedPage.set(response.page + 1);
+    }
+  }
+
+  protected changeFilters(filters: Record<string, string | null>): void {
+    this.filters.set({
+      search: filters['search'],
+      role: filters['role'] as FarmUserListParams['role'],
+    });
+    this.requestedPage.set(0);
   }
 
   protected openLinkDrawer(): void {
@@ -450,6 +521,15 @@ export class FarmUsersPage {
     );
   }
 
+  private activeFilters(): Pick<FarmUserListParams, 'search' | 'role'> {
+    const filters = this.filters();
+
+    return {
+      ...(filters.search !== null ? { search: filters.search } : {}),
+      ...(filters.role !== null ? { role: filters.role } : {}),
+    };
+  }
+
   private loadAvailableUsers(): void {
     if (!this.canManageContext() || this.availableUsersLoading()) {
       return;
@@ -530,7 +610,7 @@ export class FarmUsersPage {
   }
 
   private handleListError(error: unknown): void {
-    this.farmUsers.set([]);
+    this.response.set(null);
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
@@ -557,7 +637,7 @@ export class FarmUsersPage {
   }
 
   private clearListState(): void {
-    this.farmUsers.set([]);
+    this.response.set(null);
     this.loading.set(false);
     this.error.set(false);
     this.accessDenied.set(false);

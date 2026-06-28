@@ -14,7 +14,7 @@ import { finalize } from 'rxjs';
 
 import { UserStatus, UserType } from '../../core/models/auth.models';
 import { PageResponse } from '../../core/models/page-response.model';
-import { CreateUserRequest, UpdateUserRequest, User } from '../../core/models/user.models';
+import { CreateUserRequest, UpdateUserRequest, User, UserListParams } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -22,7 +22,7 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
 import { DocumentFormatPipe } from '../../shared/pipes/document-format.pipe';
-import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Badge, BadgeVariant, Button, EmptyState, ErrorState, ListFilters, ListFiltersConfig, Skeleton } from '../../shared/ui';
 import { UserEditForm } from './components/user-edit-form/user-edit-form';
 import { UserForm } from './components/user-form/user-form';
 
@@ -60,6 +60,7 @@ interface UserActionConfirmation {
     DocumentFormatPipe,
     EmptyState,
     ErrorState,
+    ListFilters,
     Skeleton,
     UserEditForm,
     UserForm,
@@ -88,6 +89,35 @@ export class UsersPage implements OnInit {
   protected readonly resetSubmitting = signal(false);
   protected readonly pendingEditAction = signal<UserEditAction | null>(null);
   protected readonly skeletons = [1, 2, 3, 4, 5];
+  protected readonly filters = signal<Pick<UserListParams, 'search' | 'userType' | 'status'>>({
+    search: null,
+    userType: null,
+    status: null,
+  });
+  protected readonly filtersConfig: ListFiltersConfig = {
+    search: { placeholder: 'Buscar por nome ou e-mail' },
+    selects: [
+      {
+        key: 'userType',
+        label: 'Tipo',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Administrador', value: 'ADMIN' },
+          { label: 'Usuário', value: 'USER' },
+        ],
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Ativo', value: 'ACTIVE' },
+          { label: 'Inativo', value: 'INACTIVE' },
+          { label: 'Bloqueado', value: 'BLOCKED' },
+        ],
+      },
+    ],
+  };
 
   protected readonly canListUsers = computed(() => this.sessionStore.isAdmin());
   protected readonly canCreateUsers = computed(() => {
@@ -117,6 +147,14 @@ export class UsersPage implements OnInit {
   );
 
   protected readonly users = computed(() => this.response()?.content ?? []);
+  protected readonly hasActiveFilters = computed(() =>
+    Object.values(this.filters()).some((value) => value !== null),
+  );
+  protected readonly emptyUsersDescription = computed(() =>
+    this.hasActiveFilters()
+      ? "Nenhum resultado encontrado para os filtros informados."
+      : "Quando houver usuários cadastrados, eles aparecerão aqui.",
+  );
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly editDrawerOpen = computed(() => this.editingUser() !== null);
   protected readonly isEditingCurrentUser = computed(() => {
@@ -147,6 +185,15 @@ export class UsersPage implements OnInit {
 
   protected retry(): void {
     this.loadPage(this.currentPage());
+  }
+
+  protected changeFilters(filters: Record<string, string | null>): void {
+    this.filters.set({
+      search: filters['search'],
+      userType: filters['userType'] as UserListParams['userType'],
+      status: filters['status'] as UserListParams['status'],
+    });
+    this.loadPage(0);
   }
 
   protected previousPage(): void {
@@ -539,7 +586,7 @@ export class UsersPage implements OnInit {
     this.accessDenied.set(false);
 
     this.userService
-      .list({ page, size: 10, sort: 'name', direction: 'ASC' })
+      .list({ page, size: 10, sort: 'name', direction: 'ASC', ...this.activeFilters() })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -548,6 +595,16 @@ export class UsersPage implements OnInit {
         next: (response) => this.response.set(response),
         error: (error: unknown) => this.handleLoadError(error),
       });
+  }
+
+  private activeFilters(): Pick<UserListParams, 'search' | 'userType' | 'status'> {
+    const filters = this.filters();
+
+    return {
+      ...(filters.search !== null ? { search: filters.search } : {}),
+      ...(filters.userType !== null ? { userType: filters.userType } : {}),
+      ...(filters.status !== null ? { status: filters.status } : {}),
+    };
   }
 
   private handleLoadError(error: unknown): void {

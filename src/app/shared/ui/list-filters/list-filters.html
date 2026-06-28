@@ -1,0 +1,45 @@
+<form class="rounded-app border border-border bg-surface p-4 shadow-soft" aria-label="Filtros da lista">
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    @if (searchConfig(); as search) {
+      <gd-input
+        [id]="'filter-' + searchKey()"
+        [label]="search.label ?? 'Buscar'"
+        [placeholder]="search.placeholder ?? 'Buscar por nome'"
+        type="search"
+        [control]="control(searchKey())"
+        autocomplete="off"
+      />
+    }
+
+    @for (field of textFields(); track field.key) {
+      <gd-input
+        [id]="'filter-' + field.key"
+        [label]="field.label"
+        [placeholder]="field.placeholder ?? ''"
+        [control]="control(field.key)"
+        autocomplete="off"
+      />
+    }
+
+    @for (select of selects(); track select.key) {
+      <gd-select
+        [id]="'filter-' + select.key"
+        [label]="select.label"
+        [placeholder]="selectPlaceholder(select)"
+        [control]="control(select.key)"
+        [options]="selectOptions(select)"
+      />
+    }
+  </div>
+
+  <div class="mt-4 flex justify-end">
+    <gd-button
+      type="button"
+      variant="outline"
+      [disabled]="!hasActiveFilters()"
+      (click)="clearFilters()"
+    >
+      Limpar filtros
+    </gd-button>
+  </div>
+</form>

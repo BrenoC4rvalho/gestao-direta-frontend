@@ -5,6 +5,8 @@
     </div>
   }
 
+  <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
+
   @if (loading()) {
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">
       @for (item of skeletons; track item) {
@@ -35,7 +37,7 @@
   } @else if (farms().length === 0) {
     <gd-empty-state
       title="Nenhuma fazenda encontrada"
-      description="Quando houver fazendas disponíveis, elas aparecerão aqui."
+      [description]="emptyFarmsDescription()"
       icon="tractor"
     />
   } @else {

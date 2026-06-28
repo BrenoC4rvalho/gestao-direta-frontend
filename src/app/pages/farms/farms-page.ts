@@ -14,6 +14,7 @@ import { finalize } from 'rxjs';
 import {
   CreateFarmRequest,
   Farm,
+  FarmListParams,
   FarmStatus,
   UpdateFarmRequest,
 } from '../../core/models/farm.models';
@@ -24,7 +25,15 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
-import { Button, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  ListFilters,
+  ListFiltersConfig,
+  Skeleton,
+  StatusActionSection,
+} from '../../shared/ui';
 import { FarmCard } from './components/farm-card/farm-card';
 import { FarmForm } from './components/farm-form/farm-form';
 
@@ -45,6 +54,7 @@ interface StatusConfirmation {
     EmptyState,
     ErrorState,
     FarmCard,
+    ListFilters,
     FarmForm,
     Skeleton,
     StatusActionSection,
@@ -69,8 +79,50 @@ export class FarmsPage implements OnInit {
   protected readonly statusTarget = signal<Farm | null>(null);
   protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
+  protected readonly filters = signal<
+    Pick<FarmListParams, 'search' | 'document' | 'productionType' | 'status'>
+  >({
+    search: null,
+    document: null,
+    productionType: null,
+    status: null,
+  });
+  protected readonly filtersConfig: ListFiltersConfig = {
+    search: { placeholder: 'Buscar por nome da fazenda' },
+    textFields: [{ key: 'document', label: 'CPF/CNPJ', placeholder: 'CPF ou CNPJ' }],
+    selects: [
+      {
+        key: 'productionType',
+        label: 'Tipo de produção',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Agricultura', value: 'AGRICULTURE' },
+          { label: 'Pecuária', value: 'LIVESTOCK' },
+          { label: 'Mista', value: 'MIXED' },
+          { label: 'Outro', value: 'OTHER' },
+        ],
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Ativa', value: 'ACTIVE' },
+          { label: 'Inativa', value: 'INACTIVE' },
+        ],
+      },
+    ],
+  };
 
   protected readonly farms = computed(() => this.response()?.content ?? []);
+  protected readonly hasActiveFilters = computed(() =>
+    Object.values(this.filters()).some((value) => value !== null),
+  );
+  protected readonly emptyFarmsDescription = computed(() =>
+    this.hasActiveFilters()
+      ? 'Nenhum resultado encontrado para os filtros informados.'
+      : 'Quando houver fazendas disponíveis, elas aparecerão aqui.',
+  );
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly drawerTitle = computed(() =>
     this.editingFarm() ? 'Editar fazenda' : 'Nova fazenda',
@@ -106,6 +158,16 @@ export class FarmsPage implements OnInit {
 
   protected retry(): void {
     this.loadPage(this.currentPage());
+  }
+
+  protected changeFilters(filters: Record<string, string | null>): void {
+    this.filters.set({
+      search: filters['search'],
+      document: filters['document'],
+      productionType: filters['productionType'] as FarmListParams['productionType'],
+      status: filters['status'] as FarmListParams['status'],
+    });
+    this.loadPage(0);
   }
 
   protected previousPage(): void {
@@ -261,7 +323,7 @@ export class FarmsPage implements OnInit {
     this.error.set(false);
 
     this.farmService
-      .list({ page, size: 10, sort: 'name', direction: 'ASC' })
+      .list({ page, size: 10, sort: 'name', direction: 'ASC', ...this.activeFilters() })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -273,6 +335,17 @@ export class FarmsPage implements OnInit {
           this.error.set(true);
         },
       });
+  }
+
+  private activeFilters(): Pick<FarmListParams, 'search' | 'document' | 'productionType' | 'status'> {
+    const filters = this.filters();
+
+    return {
+      ...(filters.search !== null ? { search: filters.search } : {}),
+      ...(filters.document !== null ? { document: filters.document } : {}),
+      ...(filters.productionType !== null ? { productionType: filters.productionType } : {}),
+      ...(filters.status !== null ? { status: filters.status } : {}),
+    };
   }
 
   private showOperationError(error: unknown): void {

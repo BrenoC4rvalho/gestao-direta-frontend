@@ -459,7 +459,9 @@ function getInput(root: HTMLElement, selector: string): HTMLInputElement {
     '#farm-total-area': 4,
   };
 
-  return root.querySelectorAll<HTMLInputElement>('gd-input input')[indexes[selector]];
+  const formRoot = root.querySelector('gd-farm-form') ?? root;
+
+  return formRoot.querySelectorAll<HTMLInputElement>('gd-input input')[indexes[selector]];
 }
 
 function findButtons(root: HTMLElement, label: string): HTMLButtonElement[] {

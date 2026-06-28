@@ -5,6 +5,10 @@
     </div>
   }
 
+  @if (canListUsers()) {
+    <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
+  }
+
   @if (!canListUsers() && !selectedFarmStore.selectedFarmId()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"
@@ -58,7 +62,7 @@
   } @else if (users().length === 0) {
     <gd-empty-state
       title="Nenhum usuário encontrado"
-      description="Quando houver usuários cadastrados, eles aparecerão aqui."
+      [description]="emptyUsersDescription()"
       icon="users"
     />
   } @else {

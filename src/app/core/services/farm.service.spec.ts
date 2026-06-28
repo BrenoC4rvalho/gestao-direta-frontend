@@ -117,4 +117,36 @@ describe('FarmService', () => {
     expect(request.request.method).toBe('DELETE');
     request.flush(null);
   });
+
+  it("should send list filters and normalize document", () => {
+    service
+      .list({
+        search: " Boa ",
+        document: "12.345.678/0001-90",
+        productionType: "AGRICULTURE",
+        status: "ACTIVE",
+      })
+      .subscribe();
+
+    const request = http.expectOne((request) => request.url === apiUrl + "/farms");
+    expect(request.request.params.get("search")).toBe("Boa");
+    expect(request.request.params.get("document")).toBe("12345678000190");
+    expect(request.request.params.get("productionType")).toBe("AGRICULTURE");
+    expect(request.request.params.get("status")).toBe("ACTIVE");
+    request.flush(pageResponse);
+  });
+
+  it("should omit empty list filters", () => {
+    service
+      .list({ page: 0, search: "   ", document: "abc", productionType: null, status: undefined })
+      .subscribe();
+
+    const request = http.expectOne((request) => request.url === apiUrl + "/farms");
+    expect(request.request.params.get("page")).toBe("0");
+    expect(request.request.params.has("search")).toBe(false);
+    expect(request.request.params.has("document")).toBe(false);
+    expect(request.request.params.has("productionType")).toBe(false);
+    expect(request.request.params.has("status")).toBe(false);
+    request.flush(pageResponse);
+  });
 });

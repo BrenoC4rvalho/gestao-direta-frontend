@@ -1,4 +1,5 @@
 import { AuthUser, UserStatus, UserType } from './auth.models';
+import { PageRequest } from './page-response.model';
 
 export interface User extends AuthUser {
   createdAt: string;
@@ -33,4 +34,10 @@ export interface UpdateUserTypeRequest {
 
 export interface ResetUserPasswordRequest {
   newPassword: string;
+}
+
+export interface UserListParams extends PageRequest {
+  search?: string | null;
+  userType?: UserType | null;
+  status?: UserStatus | null;
 }

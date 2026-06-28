@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { PageRequest, PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 import {
   CreateUserRequest,
   ResetUserPasswordRequest,
@@ -12,6 +12,7 @@ import {
   UpdateUserStatusRequest,
   UpdateUserTypeRequest,
   User,
+  UserListParams,
 } from '../models/user.models';
 
 @Injectable({
@@ -21,7 +22,7 @@ export class UserService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  list(params?: PageRequest): Observable<PageResponse<User>> {
+  list(params?: UserListParams): Observable<PageResponse<User>> {
     return this.http.get<PageResponse<User>>(`${this.apiUrl}/users`, {
       params: this.buildParams(params),
     });
@@ -61,7 +62,7 @@ export class UserService {
     return this.http.patch<User>(`${this.apiUrl}/users/${id}/reset-password`, payload);
   }
 
-  private buildParams(params?: PageRequest): HttpParams {
+  private buildParams(params?: UserListParams): HttpParams {
     let httpParams = new HttpParams();
 
     if (!params) {
@@ -84,6 +85,19 @@ export class UserService {
       httpParams = httpParams.set('direction', params.direction);
     }
 
+    httpParams = this.setOptionalParam(httpParams, 'search', params.search);
+    httpParams = this.setOptionalParam(httpParams, 'userType', params.userType);
+    httpParams = this.setOptionalParam(httpParams, 'status', params.status);
+
     return httpParams;
+  }
+
+  private setOptionalParam(
+    httpParams: HttpParams,
+    key: string,
+    value: string | null | undefined,
+  ): HttpParams {
+    const normalized = value?.trim() ?? '';
+    return normalized ? httpParams.set(key, normalized) : httpParams;
   }
 }

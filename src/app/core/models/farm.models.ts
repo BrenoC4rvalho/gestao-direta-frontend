@@ -1,3 +1,5 @@
+import { PageRequest } from './page-response.model';
+
 export type FarmStatus = 'ACTIVE' | 'INACTIVE' | string;
 
 export type ProductionType = 'AGRICULTURE' | 'LIVESTOCK' | 'MIXED' | 'OTHER' | string;
@@ -35,4 +37,11 @@ export interface UpdateFarmRequest {
 
 export interface UpdateFarmStatusRequest {
   status: FarmStatus;
+}
+
+export interface FarmListParams extends PageRequest {
+  search?: string | null;
+  document?: string | null;
+  productionType?: ProductionType | null;
+  status?: FarmStatus | null;
 }

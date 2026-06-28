@@ -176,4 +176,29 @@ describe('UserService', () => {
     expect(request.request.method).toBe('GET');
     request.flush(response);
   });
+
+  it("should send list filters", () => {
+    service
+      .list({ search: " Maria ", userType: "ADMIN", status: "ACTIVE" })
+      .subscribe();
+
+    const request = http.expectOne((request) => request.url === "http://localhost:8080/api/users");
+    expect(request.request.params.get("search")).toBe("Maria");
+    expect(request.request.params.get("userType")).toBe("ADMIN");
+    expect(request.request.params.get("status")).toBe("ACTIVE");
+    request.flush(response);
+  });
+
+  it("should omit empty list filters", () => {
+    service
+      .list({ page: 0, search: "   ", userType: null, status: undefined })
+      .subscribe();
+
+    const request = http.expectOne((request) => request.url === "http://localhost:8080/api/users");
+    expect(request.request.params.get("page")).toBe("0");
+    expect(request.request.params.has("search")).toBe(false);
+    expect(request.request.params.has("userType")).toBe(false);
+    expect(request.request.params.has("status")).toBe(false);
+    request.flush(response);
+  });
 });
