@@ -6,7 +6,6 @@ import { GdSelectOption } from '../../forms/forms.types';
 import { GdInputType } from '../../forms/input/input';
 import { Input } from '../../forms/input/input';
 import { Select } from '../../forms/select/select';
-import { Button } from '../button/button';
 
 export interface ListFilterOption {
   label: string;
@@ -57,7 +56,7 @@ export type ListFilterValues = Record<string, string | string[] | null>;
 
 @Component({
   selector: 'gd-list-filters',
-  imports: [Button, Input, LucideFilter, LucideSearch, LucideX, ReactiveFormsModule, Select],
+  imports: [Input, LucideFilter, LucideSearch, LucideX, ReactiveFormsModule, Select],
   templateUrl: './list-filters.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

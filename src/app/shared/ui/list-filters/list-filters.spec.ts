@@ -78,20 +78,28 @@ describe('ListFilters', () => {
     fixture.detectChanges();
   });
 
-  it('should render title, subtitle, fields and actions', () => {
+  it('should render title, subtitle, fields and icon actions', () => {
     const text = fixture.nativeElement.textContent as string;
     const inputs = fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
     const selects = fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>;
+    const applyButton = actionButton('Aplicar filtros');
+    const clearButton = actionButton('Limpar filtros');
 
     expect(text).toContain('Filtros');
     expect(text).toContain('Busque por usuário e filtre por status');
     expect(text).toContain('Buscar');
     expect(text).toContain('Documento');
     expect(text).toContain('Status');
-    expect(text).toContain('Aplicar filtros');
-    expect(text).toContain('Limpar filtros');
+    expect(text).not.toContain('Aplicar filtros');
+    expect(text).not.toContain('Limpar filtros');
     expect(inputs.length).toBe(2);
     expect(selects.length).toBe(1);
+    expect(applyButton).toBeTruthy();
+    expect(applyButton?.getAttribute('title')).toBe('Aplicar filtros');
+    expect(applyButton?.querySelector('svg')).toBeTruthy();
+    expect(clearButton).toBeTruthy();
+    expect(clearButton?.getAttribute('title')).toBe('Limpar filtros');
+    expect(clearButton?.querySelector('svg')).toBeTruthy();
   });
 
   it('should not emit automatically when text fields change', async () => {
@@ -118,7 +126,7 @@ describe('ListFilters', () => {
     status.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    clickButton('Aplicar filtros');
+    clickActionButton('Aplicar filtros');
 
     expect(fixture.componentInstance.changes).toEqual([
       { search: 'maria', document: '123', status: 'ACTIVE', role: null },
@@ -131,7 +139,7 @@ describe('ListFilters', () => {
     clickButton('Ativo');
     fixture.detectChanges();
 
-    clickButton('Limpar filtros');
+    clickActionButton('Limpar filtros');
     fixture.detectChanges();
 
     expect(input('#filter-search').value).toBe('');
@@ -216,10 +224,24 @@ describe('ListFilters', () => {
     fixture.detectChanges();
   }
 
+  function clickActionButton(label: string): void {
+    const target = actionButton(label);
+    if (!target) {
+      throw new Error(`Action button not found: ${label}`);
+    }
+
+    target.click();
+    fixture.detectChanges();
+  }
+
   function button(label: string): HTMLButtonElement | undefined {
     return Array.from(
       fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
     ).find((candidate) => candidate.textContent?.includes(label));
+  }
+
+  function actionButton(label: string): HTMLButtonElement | null {
+    return fixture.nativeElement.querySelector(`button[aria-label="${label}"]`);
   }
 });
 

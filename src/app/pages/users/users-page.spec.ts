@@ -719,7 +719,12 @@ describe('UsersPage', () => {
   });
 
   function clickFilterButton(label: string): void {
-    findButton(getListFilters(), label)?.click();
+    const filters = getListFilters();
+    const button =
+      filters.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`) ??
+      findButton(filters, label);
+
+    button?.click();
     fixture.detectChanges();
   }
 
