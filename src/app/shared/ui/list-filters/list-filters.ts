@@ -1,33 +1,26 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  OnInit,
-  computed,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, merge } from 'rxjs';
+import { LucideFilter, LucideSearch, LucideX } from '@lucide/angular';
 
 import { GdSelectOption } from '../../forms/forms.types';
+import { GdInputType } from '../../forms/input/input';
 import { Input } from '../../forms/input/input';
 import { Select } from '../../forms/select/select';
 import { Button } from '../button/button';
+
+export interface ListFilterOption {
+  label: string;
+  value: string | null;
+}
 
 export interface ListFilterTextField {
   key: string;
   label: string;
   placeholder?: string;
+  type?: Extract<GdInputType, 'search' | 'text'>;
 }
 
-export interface ListFilterSelectOption {
-  label: string;
-  value: string | null;
-}
+export type ListFilterSelectOption = ListFilterOption;
 
 export interface ListFilterSelect {
   key: string;
@@ -36,68 +29,60 @@ export interface ListFilterSelect {
   options: readonly ListFilterSelectOption[];
 }
 
+export type ListQuickFilter = ListFilterOption;
+
+export interface ListQuickFilterGroup {
+  key: string;
+  label: string;
+  multiple?: boolean;
+  options: readonly ListQuickFilter[];
+}
+
 export interface ListFiltersConfig {
+  title?: string;
+  subtitle?: string | null;
   search?: {
     key?: string;
     label?: string;
     placeholder?: string;
+    type?: Extract<GdInputType, 'search' | 'text'>;
   };
   textFields?: readonly ListFilterTextField[];
   selects?: readonly ListFilterSelect[];
+  quickFilters?: readonly ListQuickFilterGroup[];
 }
 
 type FilterControls = Record<string, FormControl<string | null>>;
-type FilterValues = Record<string, string | null>;
+export type ListFilterValues = Record<string, string | string[] | null>;
 
 @Component({
   selector: 'gd-list-filters',
-  imports: [Button, Input, ReactiveFormsModule, Select],
+  imports: [Button, Input, LucideFilter, LucideSearch, LucideX, ReactiveFormsModule, Select],
   templateUrl: './list-filters.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ListFilters implements OnInit {
-  private readonly destroyRef = inject(DestroyRef);
-
+export class ListFilters {
   readonly config = input.required<ListFiltersConfig>();
   readonly debounceMs = input(300);
-  readonly filtersChange = output<FilterValues>();
+  readonly filtersChange = output<ListFilterValues>();
   readonly clear = output<void>();
 
   protected readonly controls: FilterControls = {};
-  protected readonly hasActiveFilters = signal(false);
+  protected readonly selectedQuickFilters = signal<Record<string, readonly string[]>>({});
 
+  protected readonly title = computed(() => this.config().title ?? 'Filtros');
+  protected readonly subtitle = computed(() => this.config().subtitle ?? null);
   protected readonly searchConfig = computed(() => this.config().search ?? null);
   protected readonly textFields = computed(() => this.config().textFields ?? []);
   protected readonly selects = computed(() => this.config().selects ?? []);
-
-  ngOnInit(): void {
-    this.initializeControls();
-
-    const textControls = this.textControlKeys()
-      .map((key) => this.controls[key]?.valueChanges)
-      .filter((changes) => changes !== undefined);
-    const selectControls = this.selects()
-      .map((select) => this.controls[select.key]?.valueChanges)
-      .filter((changes) => changes !== undefined);
-
-    if (textControls.length > 0) {
-      merge(...textControls)
-        .pipe(debounceTime(this.debounceMs()), takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.emitFilters());
-    }
-
-    if (selectControls.length > 0) {
-      merge(...selectControls)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.emitFilters());
-    }
-  }
+  protected readonly quickFilters = computed(() => this.config().quickFilters ?? []);
 
   protected searchKey(): string {
     return this.searchConfig()?.key ?? 'search';
   }
 
   protected control(key: string): FormControl<string | null> {
+    this.controls[key] ??= new FormControl<string | null>(null);
     return this.controls[key];
   }
 
@@ -120,27 +105,71 @@ export class ListFilters implements OnInit {
       control.setValue(null, { emitEvent: false });
     }
 
+    this.selectedQuickFilters.set({});
     this.emitFilters();
     this.clear.emit();
   }
 
-  private emitFilters(): void {
-    const filters: FilterValues = {};
-
-    for (const key of this.controlKeys()) {
-      filters[key] = this.normalizeValue(this.controls[key].value);
-    }
-
-    this.hasActiveFilters.set(
-      Object.values(filters).some((value) => value !== null),
-    );
-    this.filtersChange.emit(filters);
+  protected applyFilters(): void {
+    this.emitFilters();
   }
 
-  private initializeControls(): void {
-    for (const key of this.controlKeys()) {
-      this.controls[key] = new FormControl<string | null>(null);
+  protected toggleQuickFilter(group: ListQuickFilterGroup, filter: ListQuickFilter): void {
+    const current = this.selectedQuickFilters()[group.key] ?? [];
+    const nextSelection = this.nextQuickFilterSelection(group, filter, current);
+
+    this.selectedQuickFilters.update((selected) => ({
+      ...selected,
+      [group.key]: nextSelection,
+    }));
+
+    const control = this.controls[group.key];
+    if (control && !group.multiple) {
+      control.setValue(nextSelection[0] ?? null, { emitEvent: false });
     }
+
+    this.emitFilters();
+  }
+
+  protected isQuickFilterActive(group: ListQuickFilterGroup, filter: ListQuickFilter): boolean {
+    const selected = this.selectedQuickFilters()[group.key] ?? [];
+
+    if (filter.value === null) {
+      return selected.length === 0;
+    }
+
+    return selected.includes(filter.value);
+  }
+
+  protected hasActiveFilters(): boolean {
+    return Object.values(this.currentFilters()).some((value) =>
+      Array.isArray(value) ? value.length > 0 : value !== null,
+    );
+  }
+
+  private emitFilters(): void {
+    this.filtersChange.emit(this.currentFilters());
+  }
+
+  private currentFilters(): ListFilterValues {
+    const filters: ListFilterValues = {};
+
+    for (const key of this.controlKeys()) {
+      filters[key] = this.normalizeValue(this.controls[key]?.value ?? null);
+    }
+
+    for (const group of this.quickFilters()) {
+      const selected = this.selectedQuickFilters()[group.key] ?? [];
+
+      if (selected.length === 0) {
+        filters[group.key] = filters[group.key] ?? null;
+        continue;
+      }
+
+      filters[group.key] = group.multiple ? [...selected] : selected[0];
+    }
+
+    return filters;
   }
 
   private controlKeys(): string[] {
@@ -151,15 +180,26 @@ export class ListFilters implements OnInit {
     ];
   }
 
-  private textControlKeys(): string[] {
-    return [
-      ...(this.searchConfig() ? [this.searchKey()] : []),
-      ...this.textFields().map((field) => field.key),
-    ];
-  }
-
   private normalizeValue(value: string | null): string | null {
     const trimmed = value?.trim() ?? '';
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private nextQuickFilterSelection(
+    group: ListQuickFilterGroup,
+    filter: ListQuickFilter,
+    current: readonly string[],
+  ): readonly string[] {
+    if (filter.value === null) {
+      return [];
+    }
+
+    if (!group.multiple) {
+      return [filter.value];
+    }
+
+    return current.includes(filter.value)
+      ? current.filter((value) => value !== filter.value)
+      : [...current, filter.value];
   }
 }

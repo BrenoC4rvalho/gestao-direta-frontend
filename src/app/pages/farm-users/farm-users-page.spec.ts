@@ -295,6 +295,78 @@ describe('FarmUsersPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Inativo');
   });
 
+  it('should render role quick filters without duplicated role select', () => {
+    setupAdminFarm();
+    createPage();
+
+    const filters = getListFilters();
+    expect(filters.querySelector('#filter-role')).toBeNull();
+    expect(filters.textContent).toContain('Papel');
+    expect(findButton(filters, 'Todos')).toBeTruthy();
+    expect(findButton(filters, 'Produtor')).toBeTruthy();
+    expect(findButton(filters, 'Funcionário')).toBeTruthy();
+    expect(findButton(filters, 'Contador')).toBeTruthy();
+    expect(findButton(filters, 'Inativo')).toBeTruthy();
+  });
+
+  it('should apply role quick filter immediately', () => {
+    setupAdminFarm();
+    createPage();
+
+    clickFilterButton('Contador');
+
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      10,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+        role: 'ACCOUNTANT',
+      }),
+    );
+  });
+
+  it('should apply manual farm user search without role select', () => {
+    setupAdminFarm();
+    createPage();
+
+    setFilterInput('#filter-search', ' Maria ');
+    clickFilterButton('Aplicar filtros');
+
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      10,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+        search: 'Maria',
+      }),
+    );
+  });
+
+  it('should clear selected role quick filter', () => {
+    setupAdminFarm();
+    createPage();
+    clickFilterButton('Contador');
+
+    expect(findButton(getListFilters(), 'Contador')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickFilterButton('Limpar filtros');
+
+    expect(findButton(getListFilters(), 'Contador')?.getAttribute('aria-pressed')).toBe('false');
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      10,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+      }),
+    );
+  });
+
   it('should treat a forbidden list response as restricted access', () => {
     farmUserService.listByFarm.mockReturnValueOnce(
       throwError(() => new HttpErrorResponse({ status: 403 })),
@@ -834,6 +906,22 @@ describe('FarmUsersPage', () => {
   function createPage(): void {
     fixture = TestBed.createComponent(FarmUsersPage);
     fixture.detectChanges();
+  }
+
+  function clickFilterButton(label: string): void {
+    findButton(getListFilters(), label)?.click();
+    fixture.detectChanges();
+  }
+
+  function setFilterInput(selector: string, value: string): void {
+    const input = getListFilters().querySelector<HTMLInputElement>(selector) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function getListFilters(): HTMLElement {
+    return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
   }
 
   function clickButton(label: string): void {

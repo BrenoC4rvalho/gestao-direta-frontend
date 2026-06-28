@@ -36,6 +36,7 @@ import {
   ErrorState,
   ListFilters,
   ListFiltersConfig,
+  ListFilterValues,
   Skeleton,
   StatusActionSection,
 } from '../../shared/ui';
@@ -94,8 +95,9 @@ export class FarmUsersPage {
     role: null,
   });
   protected readonly filtersConfig: ListFiltersConfig = {
-    search: { placeholder: 'Buscar por nome ou e-mail' },
-    selects: [
+    subtitle: 'Busque por usuário e filtre por papel',
+    search: { placeholder: 'Buscar por usuário' },
+    quickFilters: [
       {
         key: 'role',
         label: 'Papel',
@@ -201,6 +203,10 @@ export class FarmUsersPage {
     this.reloadTrigger.update((value) => value + 1);
   }
 
+  private firstFilterValue(value: string | string[] | null | undefined): string | null {
+    return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  }
+
   protected previousPage(): void {
     const response = this.response();
 
@@ -217,10 +223,13 @@ export class FarmUsersPage {
     }
   }
 
-  protected changeFilters(filters: Record<string, string | null>): void {
+  protected changeFilters(filters: ListFilterValues): void {
+    // Temporary fallback until the backend accepts array filters from quick chips.
+    const role = this.firstFilterValue(filters['role']);
+
     this.filters.set({
-      search: filters['search'],
-      role: filters['role'] as FarmUserListParams['role'],
+      search: this.firstFilterValue(filters['search']),
+      role: role as FarmUserListParams['role'],
     });
     this.requestedPage.set(0);
   }

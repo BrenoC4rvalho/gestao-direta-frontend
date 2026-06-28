@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ListFilters, ListFiltersConfig } from './list-filters';
+import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
+import { ListFilterValues, ListFilters, ListFiltersConfig } from './list-filters';
 
 @Component({
   imports: [ListFilters],
@@ -16,6 +17,7 @@ import { ListFilters, ListFiltersConfig } from './list-filters';
 })
 class ListFiltersHost {
   readonly config: ListFiltersConfig = {
+    subtitle: 'Busque por usuário e filtre por status',
     search: { placeholder: 'Buscar usuário' },
     textFields: [{ key: 'document', label: 'Documento', placeholder: 'CPF ou CNPJ' }],
     selects: [
@@ -25,14 +27,36 @@ class ListFiltersHost {
         options: [
           { label: 'Todos', value: null },
           { label: 'Ativo', value: 'ACTIVE' },
+          { label: 'Inativo', value: 'INACTIVE' },
+        ],
+      },
+    ],
+    quickFilters: [
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Ativo', value: 'ACTIVE' },
+          { label: 'Inativo', value: 'INACTIVE' },
+        ],
+      },
+      {
+        key: 'role',
+        label: 'Papel',
+        multiple: true,
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Produtor', value: 'PRODUCER' },
+          { label: 'Contador', value: 'ACCOUNTANT' },
         ],
       },
     ],
   };
-  readonly changes: Record<string, string | null>[] = [];
+  readonly changes: ListFilterValues[] = [];
   clearCount = 0;
 
-  filtersChange(filters: Record<string, string | null>): void {
+  filtersChange(filters: ListFilterValues): void {
     this.changes.push(filters);
   }
 
@@ -42,94 +66,163 @@ class ListFiltersHost {
 }
 
 describe('ListFilters', () => {
+  let fixture: ComponentFixture<ListFiltersHost>;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ListFiltersHost],
+      providers: [provideGestaoDiretaIcons()],
     }).compileComponents();
+
+    fixture = TestBed.createComponent(ListFiltersHost);
+    fixture.detectChanges();
   });
 
-  it('should render configured search, text fields and selects', () => {
-    const fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
-
+  it('should render title, subtitle, fields and actions', () => {
     const text = fixture.nativeElement.textContent as string;
     const inputs = fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
     const selects = fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>;
 
+    expect(text).toContain('Filtros');
+    expect(text).toContain('Busque por usuário e filtre por status');
     expect(text).toContain('Buscar');
     expect(text).toContain('Documento');
     expect(text).toContain('Status');
+    expect(text).toContain('Aplicar filtros');
+    expect(text).toContain('Limpar filtros');
     expect(inputs.length).toBe(2);
     expect(selects.length).toBe(1);
   });
 
-  it('should debounce text field changes', async () => {
-    const fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
-
-    const search = fixture.nativeElement.querySelector('#filter-search') as HTMLInputElement;
+  it('should not emit automatically when text fields change', async () => {
+    const search = input('#filter-search');
     search.value = 'maria';
     search.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    await wait(99);
-    expect(fixture.componentInstance.changes.length).toBe(0);
+    await wait(120);
 
-    await wait(1);
-    expect(fixture.componentInstance.changes).toEqual([
-      { search: 'maria', document: null, status: null },
-    ]);
+    expect(fixture.componentInstance.changes).toEqual([]);
   });
 
-  it('should emit select changes immediately', () => {
-    const fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
+  it('should emit normalized current values when applying filters', () => {
+    const search = input('#filter-search');
+    const document = input('#filter-document');
+    const status = select('#filter-status');
 
-    const select = fixture.nativeElement.querySelector('#filter-status') as HTMLSelectElement;
-    select.selectedIndex = 1;
-    select.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.changes).toEqual([
-      { search: null, document: null, status: 'ACTIVE' },
-    ]);
-  });
-
-  it('should keep clear button disabled without active filters', () => {
-    const fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
-
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-
-    expect(button.textContent).toContain('Limpar filtros');
-    expect(button.disabled).toBe(true);
-  });
-
-  it('should reset fields and emit filtersChange and clear when clearing', async () => {
-    const fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
-
-    const search = fixture.nativeElement.querySelector('#filter-search') as HTMLInputElement;
     search.value = ' maria ';
     search.dispatchEvent(new Event('input'));
-    await wait(100);
+    document.value = ' 123 ';
+    document.dispatchEvent(new Event('input'));
+    status.selectedIndex = 1;
+    status.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    button.click();
+    clickButton('Aplicar filtros');
+
+    expect(fixture.componentInstance.changes).toEqual([
+      { search: 'maria', document: '123', status: 'ACTIVE', role: null },
+    ]);
+  });
+
+  it('should clear fields, chips and emit clear events', () => {
+    input('#filter-search').value = 'maria';
+    input('#filter-search').dispatchEvent(new Event('input'));
+    clickButton('Ativo');
     fixture.detectChanges();
 
-    expect(search.value).toBe('');
+    clickButton('Limpar filtros');
+    fixture.detectChanges();
+
+    expect(input('#filter-search').value).toBe('');
     expect(fixture.componentInstance.changes.at(-1)).toEqual({
       search: null,
       document: null,
       status: null,
+      role: null,
     });
     expect(fixture.componentInstance.clearCount).toBe(1);
+    expect(button('Todos')?.getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('should render quick filter chips', () => {
+    const text = fixture.nativeElement.textContent as string;
+
+    expect(text).toContain('Filtros rápidos');
+    expect(text).toContain('Ativo');
+    expect(text).toContain('Produtor');
+  });
+
+  it('should apply a single quick filter immediately', () => {
+    clickButton('Ativo');
+
+    expect(fixture.componentInstance.changes).toEqual([
+      { search: null, document: null, status: 'ACTIVE', role: null },
+    ]);
+    expect(button('Ativo')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('should clear a quick filter group when Todos is clicked', () => {
+    clickButton('Ativo');
+    clickButton('Todos');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: null,
+      role: null,
+    });
+  });
+
+  it('should allow multiple selections when quick filter group is multiple', () => {
+    clickButton('Produtor');
+    clickButton('Contador');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: null,
+      role: ['PRODUCER', 'ACCOUNTANT'],
+    });
+  });
+
+  it('should keep one selection when quick filter group is single', () => {
+    clickButton('Ativo');
+    clickButton('Inativo');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: 'INACTIVE',
+      role: null,
+    });
+  });
+
+  function input(selector: string): HTMLInputElement {
+    return fixture.nativeElement.querySelector(selector) as HTMLInputElement;
+  }
+
+  function select(selector: string): HTMLSelectElement {
+    return fixture.nativeElement.querySelector(selector) as HTMLSelectElement;
+  }
+
+  function clickButton(label: string): void {
+    const target = button(label);
+    if (!target) {
+      throw new Error(`Button not found: ${label}`);
+    }
+
+    target.click();
+    fixture.detectChanges();
+  }
+
+  function button(label: string): HTMLButtonElement | undefined {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find((candidate) => candidate.textContent?.includes(label));
+  }
 });
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
-

@@ -31,6 +31,7 @@ import {
   ErrorState,
   ListFilters,
   ListFiltersConfig,
+  ListFilterValues,
   Skeleton,
   StatusActionSection,
 } from '../../shared/ui';
@@ -88,20 +89,10 @@ export class FarmsPage implements OnInit {
     status: null,
   });
   protected readonly filtersConfig: ListFiltersConfig = {
-    search: { placeholder: 'Buscar por nome da fazenda' },
+    subtitle: 'Busque por fazenda e filtre por documento, status ou tipo de produção',
+    search: { placeholder: 'Buscar por fazenda' },
     textFields: [{ key: 'document', label: 'CPF/CNPJ', placeholder: 'CPF ou CNPJ' }],
     selects: [
-      {
-        key: 'productionType',
-        label: 'Tipo de produção',
-        options: [
-          { label: 'Todos', value: null },
-          { label: 'Agricultura', value: 'AGRICULTURE' },
-          { label: 'Pecuária', value: 'LIVESTOCK' },
-          { label: 'Mista', value: 'MIXED' },
-          { label: 'Outro', value: 'OTHER' },
-        ],
-      },
       {
         key: 'status',
         label: 'Status',
@@ -109,6 +100,19 @@ export class FarmsPage implements OnInit {
           { label: 'Todos', value: null },
           { label: 'Ativa', value: 'ACTIVE' },
           { label: 'Inativa', value: 'INACTIVE' },
+        ],
+      },
+    ],
+    quickFilters: [
+      {
+        key: 'productionType',
+        label: 'Produção',
+        options: [
+          { label: 'Todos', value: null },
+          { label: 'Agricultura', value: 'AGRICULTURE' },
+          { label: 'Pecuária', value: 'LIVESTOCK' },
+          { label: 'Mista', value: 'MIXED' },
+          { label: 'Outro', value: 'OTHER' },
         ],
       },
     ],
@@ -160,14 +164,22 @@ export class FarmsPage implements OnInit {
     this.loadPage(this.currentPage());
   }
 
-  protected changeFilters(filters: Record<string, string | null>): void {
+  protected changeFilters(filters: ListFilterValues): void {
+    // Temporary fallback until the backend accepts array filters from quick chips.
+    const productionType = this.firstFilterValue(filters['productionType']);
+    const status = this.firstFilterValue(filters['status']);
+
     this.filters.set({
-      search: filters['search'],
-      document: filters['document'],
-      productionType: filters['productionType'] as FarmListParams['productionType'],
-      status: filters['status'] as FarmListParams['status'],
+      search: this.firstFilterValue(filters['search']),
+      document: this.firstFilterValue(filters['document']),
+      productionType: productionType as FarmListParams['productionType'],
+      status: status as FarmListParams['status'],
     });
     this.loadPage(0);
+  }
+
+  private firstFilterValue(value: string | string[] | null | undefined): string | null {
+    return Array.isArray(value) ? value[0] ?? null : value ?? null;
   }
 
   protected previousPage(): void {

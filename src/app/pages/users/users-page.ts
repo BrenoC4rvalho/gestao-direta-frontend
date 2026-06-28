@@ -22,7 +22,7 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
 import { DocumentFormatPipe } from '../../shared/pipes/document-format.pipe';
-import { Badge, BadgeVariant, Button, EmptyState, ErrorState, ListFilters, ListFiltersConfig, Skeleton } from '../../shared/ui';
+import { Badge, BadgeVariant, Button, EmptyState, ErrorState, ListFilters, ListFiltersConfig, ListFilterValues, Skeleton } from '../../shared/ui';
 import { UserEditForm } from './components/user-edit-form/user-edit-form';
 import { UserForm } from './components/user-form/user-form';
 
@@ -95,7 +95,8 @@ export class UsersPage implements OnInit {
     status: null,
   });
   protected readonly filtersConfig: ListFiltersConfig = {
-    search: { placeholder: 'Buscar por nome ou e-mail' },
+    subtitle: 'Busque por usuário e filtre por tipo ou status',
+    search: { placeholder: 'Buscar por usuário' },
     selects: [
       {
         key: 'userType',
@@ -106,6 +107,8 @@ export class UsersPage implements OnInit {
           { label: 'Usuário', value: 'USER' },
         ],
       },
+    ],
+    quickFilters: [
       {
         key: 'status',
         label: 'Status',
@@ -187,13 +190,21 @@ export class UsersPage implements OnInit {
     this.loadPage(this.currentPage());
   }
 
-  protected changeFilters(filters: Record<string, string | null>): void {
+  protected changeFilters(filters: ListFilterValues): void {
+    // Temporary fallback until the backend accepts array filters from quick chips.
+    const userType = this.firstFilterValue(filters['userType']);
+    const status = this.firstFilterValue(filters['status']);
+
     this.filters.set({
-      search: filters['search'],
-      userType: filters['userType'] as UserListParams['userType'],
-      status: filters['status'] as UserListParams['status'],
+      search: this.firstFilterValue(filters['search']),
+      userType: userType as UserListParams['userType'],
+      status: status as UserListParams['status'],
     });
     this.loadPage(0);
+  }
+
+  private firstFilterValue(value: string | string[] | null | undefined): string | null {
+    return Array.isArray(value) ? value[0] ?? null : value ?? null;
   }
 
   protected previousPage(): void {

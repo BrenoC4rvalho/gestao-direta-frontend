@@ -213,6 +213,71 @@ describe('UsersPage', () => {
     expect(findButton(fixture.nativeElement, 'Tornar administrador')).toBeUndefined();
   });
 
+  it('should render status quick filters without duplicated status select', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    const filters = getListFilters();
+    expect(filters.querySelector('#filter-status')).toBeNull();
+    expect(filters.querySelector('#filter-userType')).toBeTruthy();
+    expect(filters.textContent).toContain('Status');
+    expect(findButton(filters, 'Todos')).toBeTruthy();
+    expect(findButton(filters, 'Ativo')).toBeTruthy();
+    expect(findButton(filters, 'Inativo')).toBeTruthy();
+    expect(findButton(filters, 'Bloqueado')).toBeTruthy();
+  });
+
+  it('should apply status quick filter immediately', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    clickFilterButton('Bloqueado');
+
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: 'BLOCKED',
+    });
+  });
+
+  it('should apply manual user filters without status select', () => {
+    sessionStore.setUser(admin);
+    createPage();
+
+    setFilterInput('#filter-search', ' Maria ');
+    setFilterSelect('#filter-userType', 'Administrador');
+    clickFilterButton('Aplicar filtros');
+
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      search: 'Maria',
+      userType: 'ADMIN',
+    });
+  });
+
+  it('should clear selected status quick filter', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    clickFilterButton('Bloqueado');
+
+    expect(findButton(getListFilters(), 'Bloqueado')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickFilterButton('Limpar filtros');
+
+    expect(findButton(getListFilters(), 'Bloqueado')?.getAttribute('aria-pressed')).toBe('false');
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
+  });
+
   it('should show skeletons while loading', () => {
     userService.list.mockReturnValueOnce(new Subject<PageResponse<User>>());
     sessionStore.setUser(admin);
@@ -652,6 +717,35 @@ describe('UsersPage', () => {
     expect(fixture.nativeElement.querySelector('gd-user-edit-form')).toBeFalsy();
     expect(getConfirmDialog()).toBeNull();
   });
+
+  function clickFilterButton(label: string): void {
+    findButton(getListFilters(), label)?.click();
+    fixture.detectChanges();
+  }
+
+  function setFilterInput(selector: string, value: string): void {
+    const input = getListFilters().querySelector<HTMLInputElement>(selector) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function setFilterSelect(selector: string, label: string): void {
+    const select = getListFilters().querySelector<HTMLSelectElement>(selector) as HTMLSelectElement;
+    const option = Array.from(select.options).find((item) => item.textContent?.trim() === label);
+
+    if (!option) {
+      throw new Error('Option not found: ' + label);
+    }
+
+    select.selectedIndex = option.index;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function getListFilters(): HTMLElement {
+    return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
+  }
 
   async function finishDrawerClose(): Promise<void> {
     await wait(drawerAnimationDurationMs + 10);

@@ -157,6 +157,71 @@ describe('FarmsPage', () => {
     });
   });
 
+  it('should render production quick filters without duplicated production select', () => {
+    createPage();
+
+    const filters = getListFilters();
+    expect(filters.textContent).toContain('Busque por fazenda e filtre por documento, status ou tipo de produção');
+    expect(filters.querySelector('#filter-productionType')).toBeNull();
+    expect(filters.querySelector('#filter-status')).toBeTruthy();
+    expect(filters.textContent).toContain('Produção');
+    expect(findButton(filters, 'Todos')).toBeTruthy();
+    expect(findButton(filters, 'Agricultura')).toBeTruthy();
+    expect(findButton(filters, 'Pecuária')).toBeTruthy();
+    expect(findButton(filters, 'Mista')).toBeTruthy();
+    expect(findButton(filters, 'Outro')).toBeTruthy();
+  });
+
+  it('should apply production quick filter immediately', () => {
+    createPage();
+
+    clickFilterButton('Agricultura');
+
+    expect(farmService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      productionType: 'AGRICULTURE',
+    });
+  });
+
+  it('should apply manual farm filters without production select', () => {
+    createPage();
+
+    setFilterInput('#filter-search', ' Boa Safra ');
+    setFilterInput('#filter-document', ' 12345678900 ');
+    setFilterSelect('#filter-status', 'Ativa');
+    clickFilterButton('Aplicar filtros');
+
+    expect(farmService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      search: 'Boa Safra',
+      document: '12345678900',
+      status: 'ACTIVE',
+    });
+  });
+
+  it('should clear selected production quick filter', () => {
+    createPage();
+    clickFilterButton('Agricultura');
+
+    expect(findButton(getListFilters(), 'Agricultura')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickFilterButton('Limpar filtros');
+
+    expect(findButton(getListFilters(), 'Agricultura')?.getAttribute('aria-pressed')).toBe('false');
+    expect(farmService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
+  });
+
   it('should show skeletons while loading', () => {
     farmService.list.mockReturnValueOnce(new Subject<PageResponse<Farm>>());
     createPage();
@@ -417,6 +482,35 @@ describe('FarmsPage', () => {
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+  }
+
+  function clickFilterButton(label: string): void {
+    findButton(getListFilters(), label)?.click();
+    fixture.detectChanges();
+  }
+
+  function setFilterInput(selector: string, value: string): void {
+    const input = getListFilters().querySelector<HTMLInputElement>(selector) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function setFilterSelect(selector: string, label: string): void {
+    const select = getListFilters().querySelector<HTMLSelectElement>(selector) as HTMLSelectElement;
+    const option = Array.from(select.options).find((item) => item.textContent?.trim() === label);
+
+    if (!option) {
+      throw new Error('Option not found: ' + label);
+    }
+
+    select.selectedIndex = option.index;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function getListFilters(): HTMLElement {
+    return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
   }
 
   function submitForm(): void {
