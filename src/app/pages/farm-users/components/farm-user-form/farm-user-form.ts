@@ -73,15 +73,22 @@ export class FarmUserForm {
     effect(() => {
       const user = this.foundUser();
 
-      if (this.mode() === 'email-search') {
-        this.form.controls.userId.setValue(user?.id ?? '');
+      if (user || this.mode() === 'email-search') {
+        this.form.controls.userId.setValue('', { emitEvent: false });
       }
     });
 
     this.form.controls.email.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        if (this.mode() === 'email-search') {
+        this.form.controls.userId.setValue('', { emitEvent: false });
+        this.emailChanged.emit();
+      });
+
+    this.form.controls.userId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => {
+        if (this.mode() === 'admin-list' && value) {
           this.emailChanged.emit();
         }
       });
@@ -108,19 +115,18 @@ export class FarmUserForm {
       return;
     }
 
-    if (this.mode() === 'email-search') {
-      const user = this.foundUser();
-      this.form.controls.userId.setValue(user?.id ?? '');
-    }
+    const userId = this.activeUserId();
 
-    if (this.form.controls.userId.invalid || this.form.controls.role.invalid) {
-      this.form.controls.userId.markAsTouched();
+    if (!userId || this.form.controls.role.invalid) {
+      if (!userId) {
+        this.form.controls.userId.markAsTouched();
+      }
       this.form.controls.role.markAsTouched();
       return;
     }
 
     this.submitted.emit({
-      userId: Number(this.form.controls.userId.value),
+      userId: Number(userId),
       role: `${this.form.controls.role.value ?? ''}` as FarmUserRole,
     });
   }
@@ -131,11 +137,7 @@ export class FarmUserForm {
       return true;
     }
 
-    if (this.mode() === 'email-search') {
-      return this.foundUser() === null || this.form.controls.role.invalid;
-    }
-
-    return false;
+    return !this.activeUserId() || this.form.controls.role.invalid;
   }
 
   protected cancel(): void {
@@ -155,13 +157,19 @@ export class FarmUserForm {
   }
 
   protected userErrorMessage(): string | null {
-    return this.form.controls.userId.hasError('required') ? 'Selecione um usuário.' : null;
+    return this.form.controls.userId.hasError('required')
+      ? 'Selecione ou pesquise um usuário para vincular.'
+      : null;
   }
 
   protected roleErrorMessage(): string | null {
     return this.form.controls.role.hasError('required')
       ? 'Selecione o papel na fazenda.'
       : null;
+  }
+
+  private activeUserId(): number | string | boolean | null {
+    return this.foundUser()?.id ?? this.form.controls.userId.value;
   }
 
   private roleLabel(role: FarmUserRole): string {

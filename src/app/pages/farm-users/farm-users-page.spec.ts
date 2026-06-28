@@ -143,6 +143,17 @@ const availableUsers: User[] = [
   },
 ];
 
+const searchedUser: User = {
+  id: 8,
+  name: 'Carlos Fora da Lista',
+  email: 'carlos@example.com',
+  document: null,
+  userType: 'USER',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-02T00:00:00Z',
+};
+
 const producerAccess: FarmAccessResponse = {
   farmId: 10,
   farmName: 'Fazenda Boa Safra',
@@ -331,6 +342,67 @@ describe('FarmUsersPage', () => {
     });
     expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Usuário vinculado com sucesso.');
+  });
+
+  it('should search by email for an admin', () => {
+    userService.searchByEmail.mockReturnValueOnce(of(searchedUser));
+    setupAdminFarm();
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, ' carlos@example.com ');
+    clickButton('Buscar usuário');
+
+    expect(userService.searchByEmail).toHaveBeenCalledWith('carlos@example.com');
+    expect(fixture.nativeElement.textContent).toContain('Carlos Fora da Lista');
+    expect(fixture.nativeElement.textContent).toContain('carlos@example.com');
+  });
+
+  it('should link an admin searched user by email', () => {
+    userService.searchByEmail.mockReturnValueOnce(of(searchedUser));
+    setupAdminFarm();
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, 'carlos@example.com');
+    clickButton('Buscar usuário');
+    selectInForm('gd-farm-user-form', 1, 1);
+    submitForm('gd-farm-user-form');
+
+    expect(farmUserService.linkUser).toHaveBeenCalledWith(10, {
+      userId: 8,
+      role: 'PRODUCER',
+    });
+    expect(farmUserService.listByFarm).toHaveBeenCalledTimes(2);
+  });
+
+  it('should keep admin submit disabled when email search returns 404', () => {
+    userService.searchByEmail.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 404 })),
+    );
+    setupAdminFarm();
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, 'desconhecido@example.com');
+    clickButton('Buscar usuário');
+
+    expect(fixture.nativeElement.textContent).toContain('Usuário não encontrado.');
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
+  });
+
+  it.each([
+    [availableUsers[2], 'Não é possível vincular um administrador.'],
+    [{ ...searchedUser, status: 'INACTIVE' }, 'Este usuário não está ativo e não pode ser vinculado.'],
+    [availableUsers[1], 'Este usuário não está ativo e não pode ser vinculado.'],
+  ])('should not link invalid admin search result %#', (user, message) => {
+    userService.searchByEmail.mockReturnValueOnce(of(user));
+    setupAdminFarm();
+    createPage();
+    clickButton('Vincular usuário');
+    setInput('gd-farm-user-form', 0, user.email);
+    clickButton('Buscar usuário');
+
+    expect(fixture.nativeElement.textContent).toContain(message);
+    expect(findButton(fixture.nativeElement, 'Vincular')?.disabled).toBe(true);
+    expect(farmUserService.linkUser).not.toHaveBeenCalled();
   });
 
   it('should show only the edit action in the listing', () => {

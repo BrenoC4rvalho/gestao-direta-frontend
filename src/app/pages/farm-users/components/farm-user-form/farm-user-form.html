@@ -1,52 +1,71 @@
 <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
   <div class="grid gap-4">
     @if (mode() === 'admin-list') {
-      <gd-select
-        id="farm-user-user"
-        label="Usuário"
-        placeholder="Selecione um usuário"
-        [control]="form.controls.userId"
-        [options]="userOptions()"
-        [required]="true"
-        [disabled]="submitting()"
-        [errorMessage]="userErrorMessage()"
-      />
-    } @else {
-      <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <gd-input
-          id="farm-user-email"
-          label="E-mail do usuário"
-          placeholder="usuario@exemplo.com"
-          type="email"
-          autocomplete="email"
-          [control]="form.controls.email"
+      <div class="grid gap-2">
+        <gd-select
+          id="farm-user-user"
+          label="Usuário"
+          placeholder="Selecione um usuário"
+          [control]="form.controls.userId"
+          [options]="userOptions()"
           [required]="true"
-          [disabled]="submitting() || searchLoading()"
-          [errorMessage]="emailErrorMessage()"
-        />
-        <gd-button
-          type="button"
-          variant="outline"
-          [loading]="searchLoading()"
           [disabled]="submitting()"
-          (click)="requestSearch()"
-        >
-          Buscar usuário
-        </gd-button>
+          [errorMessage]="userErrorMessage()"
+        />
+        <p class="text-sm text-text-muted">
+          Selecione um usuário da lista ou pesquise pelo e-mail exato caso ele não apareça.
+        </p>
       </div>
 
-      @if (searchError(); as error) {
-        <p class="rounded-control border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
-          {{ error }}
-        </p>
-      }
+      <div class="border-t border-border pt-4">
+        <p class="text-sm font-semibold text-text-primary">Ou pesquise pelo e-mail exato</p>
+      </div>
+    }
 
-      @if (foundUser(); as user) {
-        <article class="rounded-app border border-border bg-background p-4" aria-label="Usuário encontrado">
-          <p class="font-semibold text-text-primary">{{ user.name }}</p>
-          <p class="mt-1 break-all text-sm text-text-muted">{{ user.email }}</p>
-        </article>
-      }
+    <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <gd-input
+        id="farm-user-email"
+        label="E-mail do usuário"
+        placeholder="usuario@email.com"
+        type="email"
+        autocomplete="email"
+        [control]="form.controls.email"
+        [required]="true"
+        [disabled]="submitting() || searchLoading()"
+        [errorMessage]="emailErrorMessage()"
+      />
+      <gd-button
+        type="button"
+        variant="outline"
+        [loading]="searchLoading()"
+        [disabled]="submitting()"
+        (click)="requestSearch()"
+      >
+        Buscar usuário
+      </gd-button>
+    </div>
+
+    @if (searchError(); as error) {
+      <p class="rounded-control border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+        {{ error }}
+      </p>
+    }
+
+    @if (foundUser(); as user) {
+      <article class="rounded-app border border-border bg-background p-4" aria-label="Usuário encontrado">
+        <p class="font-semibold text-text-primary">{{ user.name }}</p>
+        <p class="mt-1 break-all text-sm text-text-muted">{{ user.email }}</p>
+        <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-text-muted">Status</dt>
+            <dd class="font-medium text-text-primary">{{ user.status }}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Tipo</dt>
+            <dd class="font-medium text-text-primary">{{ user.userType }}</dd>
+          </div>
+        </dl>
+      </article>
     }
 
     <gd-select
@@ -72,7 +91,7 @@
       Cancelar
     </gd-button>
     <gd-button type="submit" [loading]="submitting()" [disabled]="submitDisabled()" [fullWidth]="true">
-      {{ mode() === 'email-search' ? 'Vincular' : 'Salvar' }}
+      Vincular
     </gd-button>
   </div>
 </form>

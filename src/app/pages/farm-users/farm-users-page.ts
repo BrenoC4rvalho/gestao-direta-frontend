@@ -191,7 +191,7 @@ export class FarmUsersPage {
   }
 
   protected searchUserByEmail(email: string): void {
-    if (this.sessionStore.isAdmin() || !this.canManageContext() || this.userSearchLoading()) {
+    if (!this.canManageContext() || this.userSearchLoading()) {
       return;
     }
 
@@ -220,28 +220,40 @@ export class FarmUsersPage {
   protected linkUser(payload: CreateFarmUserRequest): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
 
-    if (
-      !farmId ||
-      this.linkSubmitting() ||
-      !this.canManageContext() ||
-      !this.allowedRoles().includes(payload.role)
-    ) {
+    if (!farmId || this.linkSubmitting() || !this.canManageContext()) {
       return;
     }
 
-    if (!this.sessionStore.isAdmin()) {
-      const foundUser = this.foundUser();
+    if (!payload.userId) {
+      this.toastStore.error('Selecione ou pesquise um usuário para vincular.');
+      return;
+    }
 
-      if (
-        !foundUser ||
-        payload.userId !== foundUser.id ||
-        foundUser.userType === 'ADMIN' ||
-        foundUser.status !== 'ACTIVE' ||
-        !['EMPLOYEE', 'ACCOUNTANT'].includes(payload.role)
-      ) {
-        this.toastStore.error('Não foi possível concluir a ação. Verifique as regras do vínculo.');
-        return;
-      }
+    if (!this.allowedRoles().includes(payload.role)) {
+      this.toastStore.error('Selecione o papel do usuário na fazenda.');
+      return;
+    }
+
+    const candidate = this.activeLinkUser(payload.userId);
+
+    if (!candidate || candidate.id !== payload.userId) {
+      this.toastStore.error('Selecione ou pesquise um usuário para vincular.');
+      return;
+    }
+
+    if (candidate.userType === 'ADMIN') {
+      this.toastStore.error('Não é possível vincular um administrador.');
+      return;
+    }
+
+    if (candidate.status !== 'ACTIVE') {
+      this.toastStore.error('Este usuário não está ativo e não pode ser vinculado.');
+      return;
+    }
+
+    if (!this.sessionStore.isAdmin() && !['EMPLOYEE', 'ACCOUNTANT'].includes(payload.role)) {
+      this.toastStore.error('Não foi possível concluir a ação. Verifique as regras do vínculo.');
+      return;
     }
 
     this.linkSubmitting.set(true);
@@ -478,6 +490,15 @@ export class FarmUsersPage {
       });
   }
 
+  private activeLinkUser(userId: number): User | null {
+    const foundUser = this.foundUser();
+
+    if (foundUser?.id === userId) {
+      return foundUser;
+    }
+
+    return this.availableUsers().find((user) => user.id === userId) ?? null;
+  }
 
   private isValidSearchResult(user: User): boolean {
     if (user.userType === 'ADMIN') {
@@ -486,7 +507,7 @@ export class FarmUsersPage {
     }
 
     if (user.status !== 'ACTIVE') {
-      this.userSearchError.set('Não é possível vincular um usuário inativo ou bloqueado.');
+      this.userSearchError.set('Este usuário não está ativo e não pode ser vinculado.');
       return false;
     }
 

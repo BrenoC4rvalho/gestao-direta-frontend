@@ -195,19 +195,18 @@
         actionLabel="Tentar novamente"
         (action)="retryAvailableUsers()"
       />
-    } @else if (availableUsers().length === 0) {
-      <gd-empty-state
-        title="Nenhum usuário disponível"
-        description="Não há usuários ativos disponíveis para vincular a esta fazenda."
-        icon="users"
-      />
     } @else {
       <gd-farm-user-form
         [open]="linkDrawerOpen()"
         mode="admin-list"
         [users]="availableUsers()"
+        [foundUser]="foundUser()"
         [roles]="allowedRoles()"
         [submitting]="linkSubmitting()"
+        [searchLoading]="userSearchLoading()"
+        [searchError]="userSearchError()"
+        (searchEmail)="searchUserByEmail($event)"
+        (emailChanged)="clearUserSearchResult()"
         (submitted)="linkUser($event)"
         (cancelled)="closeLinkDrawer()"
       />
@@ -260,7 +259,7 @@
       />
 
       @if (canShowEditAction(farmUser)) {
-        <section class="border-t border-border pt-5">
+        <section class="mt-6 border-t border-border pt-6">
           @if (farmUser.role === 'INACTIVE') {
             <gd-status-action-section
               title="Status do Vínculo"
