@@ -102,35 +102,27 @@
           </dl>
 
           <div class="mt-5 border-t border-border pt-4">
-            <h3 class="text-xs font-medium uppercase tracking-wide text-text-muted">Ações</h3>
-            @if (isCurrentUser(user)) {
-              <p class="mt-2 text-sm font-medium text-text-muted">
-                Sua conta — acesso protegido
-              </p>
-            } @else {
-              <div class="mt-3 grid gap-2">
-                @if (user.status !== "ACTIVE") {
-                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'ACTIVE')">Ativar</gd-button>
-                }
-                @if (user.status !== "BLOCKED") {
-                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'BLOCKED')">Bloquear</gd-button>
-                }
-                @if (user.status !== "INACTIVE") {
-                  <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestStatusChange(user, 'INACTIVE')">Inativar</gd-button>
-                }
-                <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="requestTypeChange(user)">
-                  {{ user.userType === 'ADMIN' ? 'Tornar usuário' : 'Tornar administrador' }}
-                </gd-button>
-              </div>
-            }
+            <gd-button
+              type="button"
+              size="sm"
+              variant="outline"
+              [fullWidth]="true"
+              (click)="openEditDrawer(user)"
+            >
+              Editar
+            </gd-button>
           </div>
         </article>
       }
     </div>
 
-    <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+    <div
+      class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+    >
       <table class="w-full border-collapse text-left">
-        <caption class="sr-only">Usuários cadastrados no sistema</caption>
+        <caption class="sr-only">
+          Usuários cadastrados no sistema
+        </caption>
         <thead class="border-b border-border bg-background">
           <tr class="text-xs font-semibold uppercase tracking-wide text-text-muted">
             <th class="px-5 py-4" scope="col">Usuário</th>
@@ -163,26 +155,9 @@
               </td>
               <td class="px-5 py-4 text-sm text-text-primary">{{ createdAtLabel(user) }}</td>
               <td class="px-5 py-4">
-                @if (isCurrentUser(user)) {
-                  <p class="max-w-40 text-sm font-medium text-text-muted">
-                    Sua conta — acesso protegido
-                  </p>
-                } @else {
-                  <div class="flex max-w-64 flex-wrap gap-2">
-                    @if (user.status !== "ACTIVE") {
-                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'ACTIVE')">Ativar</gd-button>
-                    }
-                    @if (user.status !== "BLOCKED") {
-                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'BLOCKED')">Bloquear</gd-button>
-                    }
-                    @if (user.status !== "INACTIVE") {
-                      <gd-button type="button" size="sm" variant="outline" (click)="requestStatusChange(user, 'INACTIVE')">Inativar</gd-button>
-                    }
-                    <gd-button type="button" size="sm" variant="outline" (click)="requestTypeChange(user)">
-                      {{ user.userType === 'ADMIN' ? 'Tornar usuário' : 'Tornar administrador' }}
-                    </gd-button>
-                  </div>
-                }
+                <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(user)">
+                  Editar
+                </gd-button>
               </td>
             </tr>
           }
@@ -243,14 +218,38 @@
   />
 </gd-drawer>
 
+<gd-drawer
+  [open]="editDrawerOpen()"
+  title="Editar usuário"
+  description="Atualize os dados, permissões, status ou senha do usuário."
+  size="lg"
+  [closeOnBackdrop]="!editBusy()"
+  [showCloseButton]="!editBusy()"
+  (closed)="closeEditDrawer()"
+>
+  <gd-user-edit-form
+    [user]="editingUser()"
+    [isCurrentUser]="isEditingCurrentUser()"
+    [savingProfile]="profileSubmitting()"
+    [changingType]="typeSubmitting()"
+    [changingStatus]="statusSubmitting()"
+    [resettingPassword]="resetSubmitting()"
+    (saveProfile)="saveProfile($event)"
+    (changeType)="requestTypeChange($event)"
+    (changeStatus)="requestStatusChange($event)"
+    (resetPassword)="requestPasswordReset($event)"
+    (cancel)="closeEditDrawer()"
+  />
+</gd-drawer>
+
 <gd-confirm-dialog
-  [open]="pendingAction() !== null"
+  [open]="pendingEditAction() !== null"
   [title]="actionConfirmation().title"
   [description]="actionConfirmation().description"
   [confirmLabel]="actionConfirmation().confirmLabel"
   cancelLabel="Cancelar"
   [variant]="actionConfirmation().variant"
-  [loading]="actionSubmitting()"
+  [loading]="editActionSubmitting()"
   (confirmed)="confirmAction()"
   (cancelled)="closeActionConfirmation()"
   (closed)="closeActionConfirmation()"

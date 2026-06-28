@@ -6,7 +6,9 @@ import { environment } from '../../../environments/environment';
 import { PageRequest, PageResponse } from '../models/page-response.model';
 import {
   CreateUserRequest,
+  ResetUserPasswordRequest,
   UpdateProfileRequest,
+  UpdateUserRequest,
   UpdateUserStatusRequest,
   UpdateUserTypeRequest,
   User,
@@ -43,12 +45,20 @@ export class UserService {
     return this.http.put<User>(`${this.apiUrl}/users/me`, payload);
   }
 
+  update(id: number, payload: UpdateUserRequest): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/users/${id}`, payload);
+  }
+
   updateStatus(id: number, payload: UpdateUserStatusRequest): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/users/${id}/status`, payload);
   }
 
   updateType(id: number, payload: UpdateUserTypeRequest): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/users/${id}/type`, payload);
+  }
+
+  resetPassword(id: number, payload: ResetUserPasswordRequest): Observable<User> {
+    return this.http.patch<User>(`${this.apiUrl}/users/${id}/reset-password`, payload);
   }
 
   private buildParams(params?: PageRequest): HttpParams {

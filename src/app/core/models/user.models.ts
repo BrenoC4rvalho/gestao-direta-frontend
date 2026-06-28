@@ -18,10 +18,19 @@ export interface UpdateProfileRequest {
   document?: string | null;
 }
 
+export interface UpdateUserRequest {
+  name: string;
+  document?: string | null;
+}
+
 export interface UpdateUserStatusRequest {
   status: UserStatus;
 }
 
 export interface UpdateUserTypeRequest {
   userType: UserType;
+}
+
+export interface ResetUserPasswordRequest {
+  password: string;
 }

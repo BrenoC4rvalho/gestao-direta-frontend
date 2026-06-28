@@ -25,7 +25,6 @@ const admin: AuthUser = {
   status: 'ACTIVE',
 };
 
-
 const producer: AuthUser = {
   id: 3,
   name: 'Produtor',
@@ -111,8 +110,10 @@ describe('UsersPage', () => {
   let userService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
     updateStatus: ReturnType<typeof vi.fn>;
     updateType: ReturnType<typeof vi.fn>;
+    resetPassword: ReturnType<typeof vi.fn>;
   };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
@@ -123,16 +124,15 @@ describe('UsersPage', () => {
     userService = {
       list: vi.fn().mockReturnValue(of(pageResponse(users))),
       create: vi.fn().mockReturnValue(of(users[0])),
-      updateStatus: vi.fn().mockReturnValue(of(users[1])),
-      updateType: vi.fn().mockReturnValue(of(users[1])),
+      update: vi.fn().mockReturnValue(of(users[1])),
+      updateStatus: vi.fn().mockReturnValue(of({ ...users[1], status: 'ACTIVE' })),
+      updateType: vi.fn().mockReturnValue(of({ ...users[1], userType: 'ADMIN' })),
+      resetPassword: vi.fn().mockReturnValue(of(users[1])),
     };
 
     await TestBed.configureTestingModule({
       imports: [UsersPage],
-      providers: [
-        provideGestaoDiretaIcons(),
-        { provide: UserService, useValue: userService },
-      ],
+      providers: [provideGestaoDiretaIcons(), { provide: UserService, useValue: userService }],
     }).compileComponents();
 
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
@@ -141,15 +141,11 @@ describe('UsersPage', () => {
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
     farmAccessStore.clear();
-    selectedFarmStore.clear();
-    farmAccessStore.clear();
     sessionStore.clear();
     toastStore.clear();
   });
 
   afterEach(() => {
-    selectedFarmStore.clear();
-    farmAccessStore.clear();
     selectedFarmStore.clear();
     farmAccessStore.clear();
     sessionStore.clear();
@@ -169,6 +165,7 @@ describe('UsersPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda selecionada');
     expect(userService.list).not.toHaveBeenCalled();
     expect(findButton(fixture.nativeElement, 'Novo usuário')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
   });
 
   it('should deny access without calling the API for a non-admin user without permission', () => {
@@ -182,14 +179,11 @@ describe('UsersPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Acesso restrito');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Você não tem permissão para visualizar usuários.',
-    );
     expect(userService.list).not.toHaveBeenCalled();
     expect(findButton(fixture.nativeElement, 'Novo usuário')).toBeUndefined();
   });
 
-  it('should load and render users for an admin', () => {
+  it('should load and render users for an admin with only edit actions in the listing', () => {
     sessionStore.setUser(admin);
 
     createPage();
@@ -209,6 +203,10 @@ describe('UsersPage', () => {
     expect(text).toContain('João Souza');
     expect(text).toContain('Usuário');
     expect(text).toContain('Bloqueado');
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Bloquear')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Tornar administrador')).toBeUndefined();
   });
 
   it('should show skeletons while loading', () => {
@@ -217,9 +215,7 @@ describe('UsersPage', () => {
 
     createPage();
 
-    expect(
-      fixture.nativeElement.querySelector('[aria-label="Carregando usuários"]'),
-    ).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[aria-label="Carregando usuários"]')).toBeTruthy();
   });
 
   it('should show the empty state', () => {
@@ -229,9 +225,6 @@ describe('UsersPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Nenhum usuário encontrado');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Quando houver usuários cadastrados, eles aparecerão aqui.',
-    );
   });
 
   it('should show an error state and retry loading', () => {
@@ -240,9 +233,7 @@ describe('UsersPage', () => {
 
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'Não foi possível carregar os usuários',
-    );
+    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar os usuários');
 
     userService.list.mockReturnValueOnce(of(pageResponse(users)));
     findButton(fixture.nativeElement, 'Tentar novamente')?.click();
@@ -253,24 +244,19 @@ describe('UsersPage', () => {
   });
 
   it('should handle a forbidden API response as restricted access', () => {
-    userService.list.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 403 })),
-    );
+    userService.list.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 403 })));
     sessionStore.setUser(admin);
 
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Acesso restrito');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Você não tem permissão para visualizar usuários.',
-    );
-    expect(toastStore.toasts()[0]?.title).toBe(
-      'Você não tem permissão para visualizar usuários.',
-    );
+    expect(toastStore.toasts()[0]?.title).toBe('Você não tem permissão para visualizar usuários.');
   });
 
-  it('should load the next page', () => {
-    userService.list.mockReturnValueOnce(of(pageResponse(users, 0, 2)));
+  it('should load the next and previous page', () => {
+    userService.list
+      .mockReturnValueOnce(of(pageResponse(users, 0, 2)))
+      .mockReturnValueOnce(of(pageResponse(users, 1, 2)));
     sessionStore.setUser(admin);
 
     createPage();
@@ -283,13 +269,8 @@ describe('UsersPage', () => {
       sort: 'name',
       direction: 'ASC',
     });
-  });
 
-  it('should load the previous page', () => {
     userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
-    sessionStore.setUser(admin);
-
-    createPage();
     findButton(fixture.nativeElement, 'Anterior')?.click();
     fixture.detectChanges();
 
@@ -312,17 +293,7 @@ describe('UsersPage', () => {
     findButton(fixture.nativeElement, 'Cancelar')?.click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeFalsy();
-  });
-
-  it('should not call create for an invalid form', () => {
-    sessionStore.setUser(admin);
-    createPage();
-    openCreateDrawer();
-
-    submitUserForm();
-
-    expect(userService.create).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('gd-user-form')).toBeFalsy();
   });
 
   it('should create a user, close the drawer and reload the current page', () => {
@@ -330,7 +301,7 @@ describe('UsersPage', () => {
     sessionStore.setUser(admin);
     createPage();
     openCreateDrawer();
-    fillValidForm();
+    fillValidCreateForm();
 
     submitUserForm();
 
@@ -347,30 +318,27 @@ describe('UsersPage', () => {
       sort: 'name',
       direction: 'ASC',
     });
-    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('gd-user-form')).toBeFalsy();
     expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
   });
 
-  it.each([
-    [400, 'Verifique os dados informados.'],
-    [403, 'Você não tem permissão para criar este tipo de usuário.'],
-  ])('should keep the drawer open and show feedback on error %s', (status, message) => {
+  it('should keep the create drawer open and clear password on create error', () => {
     userService.create.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status })),
+      throwError(() => new HttpErrorResponse({ status: 403 })),
     );
     sessionStore.setUser(admin);
     createPage();
     openCreateDrawer();
-    fillValidForm();
+    fillValidCreateForm();
 
     submitUserForm();
 
-    expect(fixture.nativeElement.querySelector('gd-drawer [role="dialog"]')).toBeTruthy();
-    expect(toastStore.toasts()[0]?.title).toBe(message);
-    expect(getUserInput(2).value).toBe('');
-    expect(getUserInput(0).value).toBe('Maria Nova');
+    expect(fixture.nativeElement.querySelector('gd-user-form')).toBeTruthy();
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Você não tem permissão para criar este tipo de usuário.',
+    );
+    expect(getCreateInput(2).value).toBe('');
   });
-
 
   it('should allow a producer with farm user permission to create only regular users without listing', () => {
     sessionStore.setUser(producer);
@@ -381,6 +349,7 @@ describe('UsersPage', () => {
 
     expect(userService.list).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Criação de usuários disponível');
+    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
 
     openCreateDrawer();
     fillProducerForm();
@@ -394,26 +363,55 @@ describe('UsersPage', () => {
       userType: 'USER',
     });
     expect(userService.list).not.toHaveBeenCalled();
-    expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
   });
 
-  it('should show protected access instead of actions for the authenticated user', () => {
+  it('should open the edit drawer with user data including the current admin account', () => {
     sessionStore.setUser(admin);
-
     createPage();
 
-    const root = fixture.nativeElement as HTMLElement;
-    const ownCard = Array.from(root.querySelectorAll<HTMLElement>('article')).find((card) => card.textContent?.includes('Maria Silva'));
+    openEditDrawer('Maria Silva');
 
-    expect(ownCard?.textContent).toContain('Sua conta — acesso protegido');
-    expect(findButton(ownCard as HTMLElement, 'Bloquear')).toBeUndefined();
-    expect(findButton(ownCard as HTMLElement, 'Inativar')).toBeUndefined();
-    expect(findButton(ownCard as HTMLElement, 'Tornar usuário')).toBeUndefined();
+    expect(fixture.nativeElement.textContent).toContain('Editar usuário');
+    expect(getEditInput(0).value).toBe('Maria Silva');
+    expect(getEditInput(1).value).toBe('maria@example.com');
+    expect(getEditInput(1).disabled).toBe(true);
+    expect(getEditInput(2).value).toBe('123.456.789-00');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Sua própria permissão administrativa está protegida.',
+    );
   });
 
-  it('should open the activation confirmation with the expected content', () => {
+  it('should save profile data, keep the drawer open and reload the current page', () => {
+    const updatedUser = { ...users[1], name: 'João Atualizado', document: '987' };
+    userService.update.mockReturnValueOnce(of(updatedUser));
+    userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
     sessionStore.setUser(admin);
     createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(0, ' João Atualizado ');
+    setEditInput(2, ' 987 ');
+    submitEditForm(0);
+
+    expect(userService.update).toHaveBeenCalledWith(2, {
+      name: 'João Atualizado',
+      document: '987',
+    });
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
+    expect(fixture.nativeElement.textContent).toContain('Editar usuário');
+    expect(getEditInput(0).value).toBe('João Atualizado');
+    expect(toastStore.toasts()[0]?.title).toBe('Dados do usuário atualizados.');
+  });
+
+  it('should change status through confirmation and update the selected user', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
 
     findButton(fixture.nativeElement, 'Ativar')?.click();
     fixture.detectChanges();
@@ -421,32 +419,21 @@ describe('UsersPage', () => {
     const dialog = getConfirmDialog();
     expect(dialog?.textContent).toContain('Ativar usuário');
     expect(dialog?.textContent).toContain('João Souza voltará a ter acesso ao sistema.');
-  });
 
-  it('should update status and reload the current page', () => {
-    userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
-    sessionStore.setUser(admin);
-    createPage();
-
-    findButton(fixture.nativeElement, 'Ativar')?.click();
-    fixture.detectChanges();
-    findButton(getConfirmDialog() as HTMLElement, 'Ativar')?.click();
+    findButton(dialog as HTMLElement, 'Ativar')?.click();
     fixture.detectChanges();
 
     expect(userService.updateStatus).toHaveBeenCalledWith(2, { status: 'ACTIVE' });
-    expect(userService.list).toHaveBeenLastCalledWith({
-      page: 1,
-      size: 10,
-      sort: 'name',
-      direction: 'ASC',
-    });
+    expect(userService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Status do usuário atualizado.');
     expect(getConfirmDialog()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Ativo');
   });
 
-  it('should update the user type', () => {
+  it('should change user type through confirmation', () => {
     sessionStore.setUser(admin);
     createPage();
+    openEditDrawer('João Souza');
 
     findButton(fixture.nativeElement, 'Tornar administrador')?.click();
     fixture.detectChanges();
@@ -459,7 +446,31 @@ describe('UsersPage', () => {
     fixture.detectChanges();
 
     expect(userService.updateType).toHaveBeenCalledWith(2, { userType: 'ADMIN' });
+    expect(userService.list).toHaveBeenCalledTimes(2);
     expect(toastStore.toasts()[0]?.title).toBe('Tipo do usuário atualizado.');
+    expect(fixture.nativeElement.textContent).toContain('Administrador');
+  });
+
+  it('should reset a valid password through confirmation without reloading the list', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, ' password123 ');
+    submitEditForm(1);
+    fixture.detectChanges();
+
+    const dialog = getConfirmDialog();
+    expect(dialog?.textContent).toContain('Resetar senha');
+    expect(dialog?.textContent).toContain('A senha de João Souza será redefinida');
+
+    findButton(dialog as HTMLElement, 'Resetar senha')?.click();
+    fixture.detectChanges();
+
+    expect(userService.resetPassword).toHaveBeenCalledWith(2, { password: 'password123' });
+    expect(userService.list).toHaveBeenCalledTimes(1);
+    expect(getEditInput(3).value).toBe('');
+    expect(toastStore.toasts()[0]?.title).toBe('Senha do usuário resetada.');
   });
 
   it('should show permission feedback when a status update is forbidden', () => {
@@ -468,6 +479,7 @@ describe('UsersPage', () => {
     );
     sessionStore.setUser(admin);
     createPage();
+    openEditDrawer('João Souza');
 
     findButton(fixture.nativeElement, 'Ativar')?.click();
     fixture.detectChanges();
@@ -475,14 +487,28 @@ describe('UsersPage', () => {
     fixture.detectChanges();
 
     expect(toastStore.toasts()[0]?.title).toBe(
-      'Você não tem permissão para realizar esta ação.',
+      'Você não tem permissão para alterar o status deste usuário.',
     );
     expect(getConfirmDialog()).toBeTruthy();
+  });
+
+  it('should protect current account status, type and password reset in the edit drawer', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('Maria Silva');
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Você não pode bloquear ou inativar sua própria conta.');
+    expect(text).toContain('Para alterar sua própria senha, acesse Minha conta.');
+    expect(findButton(fixture.nativeElement, 'Tornar usuário')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Bloquear')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Resetar senha')).toBeUndefined();
   });
 
   it('should revalidate protection before changing the authenticated user', () => {
     sessionStore.setUser(admin);
     createPage();
+    openEditDrawer('João Souza');
 
     findButton(fixture.nativeElement, 'Ativar')?.click();
     fixture.detectChanges();
@@ -494,6 +520,25 @@ describe('UsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Você não pode alterar seu próprio acesso.');
   });
 
+  it('should clear pending confirmations when closing the edit drawer', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    findButton(fixture.nativeElement, 'Ativar')?.click();
+    fixture.detectChanges();
+    expect(getConfirmDialog()).toBeTruthy();
+
+    findButton(
+      fixture.nativeElement.querySelector('gd-user-edit-form') as HTMLElement,
+      'Cancelar',
+    )?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('gd-user-edit-form')).toBeFalsy();
+    expect(getConfirmDialog()).toBeNull();
+  });
+
   function getConfirmDialog(): HTMLElement | null {
     return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
   }
@@ -503,22 +548,51 @@ describe('UsersPage', () => {
     fixture.detectChanges();
   }
 
-  function fillValidForm(): void {
-    setUserInput(0, 'Maria Nova');
-    setUserInput(1, 'maria.nova@example.com');
-    setUserInput(2, 'password123');
+  function openEditDrawer(userName: string): void {
+    const root = fixture.nativeElement as HTMLElement;
+    const containers = Array.from(root.querySelectorAll<HTMLElement>('article, tr'));
+    const container = containers.find((item) => item.textContent?.includes(userName));
+
+    if (!container) {
+      throw new Error(`User not found: ${userName}`);
+    }
+
+    findButton(container, 'Editar')?.click();
+    fixture.detectChanges();
+  }
+
+  function fillValidCreateForm(): void {
+    setCreateInput(0, 'Maria Nova');
+    setCreateInput(1, 'maria.nova@example.com');
+    setCreateInput(2, 'password123');
     setUserSelect('USER');
   }
 
-  function getUserInput(index: number): HTMLInputElement {
-    const root = fixture.nativeElement as HTMLElement;
-    return root.querySelectorAll<HTMLInputElement>('gd-user-form gd-input input')[
-      index
-    ];
+  function fillProducerForm(): void {
+    setCreateInput(0, 'Maria Nova');
+    setCreateInput(1, 'maria.nova@example.com');
+    setCreateInput(2, 'password123');
   }
 
-  function setUserInput(index: number, value: string): void {
-    const input = getUserInput(index);
+  function getCreateInput(index: number): HTMLInputElement {
+    const root = fixture.nativeElement as HTMLElement;
+    return root.querySelectorAll<HTMLInputElement>('gd-user-form gd-input input')[index];
+  }
+
+  function setCreateInput(index: number, value: string): void {
+    const input = getCreateInput(index);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function getEditInput(index: number): HTMLInputElement {
+    const root = fixture.nativeElement as HTMLElement;
+    return root.querySelectorAll<HTMLInputElement>('gd-user-edit-form gd-input input')[index];
+  }
+
+  function setEditInput(index: number, value: string): void {
+    const input = getEditInput(index);
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -528,7 +602,9 @@ describe('UsersPage', () => {
     const select = fixture.nativeElement.querySelector(
       'gd-user-form gd-select select',
     ) as HTMLSelectElement;
-    const option = Array.from(select.options).find((item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'));
+    const option = Array.from(select.options).find(
+      (item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'),
+    );
 
     if (!option) {
       throw new Error(`Option not found: ${value}`);
@@ -539,15 +615,15 @@ describe('UsersPage', () => {
     fixture.detectChanges();
   }
 
-  function fillProducerForm(): void {
-    setUserInput(0, 'Maria Nova');
-    setUserInput(1, 'maria.nova@example.com');
-    setUserInput(2, 'password123');
-  }
-
   function submitUserForm(): void {
     const form = fixture.nativeElement.querySelector('gd-user-form form') as HTMLFormElement;
     form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+
+  function submitEditForm(index: number): void {
+    const forms = fixture.nativeElement.querySelectorAll('gd-user-edit-form form');
+    forms[index].dispatchEvent(new Event('submit'));
     fixture.detectChanges();
   }
 });

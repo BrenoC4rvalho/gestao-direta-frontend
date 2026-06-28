@@ -5,7 +5,9 @@ import { TestBed } from '@angular/core/testing';
 import { PageResponse } from '../models/page-response.model';
 import {
   CreateUserRequest,
+  ResetUserPasswordRequest,
   UpdateProfileRequest,
+  UpdateUserRequest,
   UpdateUserStatusRequest,
   UpdateUserTypeRequest,
   User,
@@ -58,7 +60,6 @@ describe('UserService', () => {
     expect(request.request.method).toBe('GET');
     request.flush(response);
   });
-
 
   it('should search a user by email', () => {
     service.searchByEmail('user@email.com').subscribe((result) => expect(result).toEqual(user));
@@ -119,6 +120,20 @@ describe('UserService', () => {
     request.flush(user);
   });
 
+  it('should call PUT /api/users/{id} with profile fields', () => {
+    const payload: UpdateUserRequest = {
+      name: 'Maria Silva',
+      document: '12345678900',
+    };
+
+    service.update(2, payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/2');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
+  });
+
   it('should call PATCH /api/users/{id}/status with the payload', () => {
     const payload: UpdateUserStatusRequest = { status: 'BLOCKED' };
 
@@ -136,6 +151,17 @@ describe('UserService', () => {
     service.updateType(2, payload).subscribe((result) => expect(result).toEqual(user));
 
     const request = http.expectOne('http://localhost:8080/api/users/2/type');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual(payload);
+    request.flush(user);
+  });
+
+  it('should call PATCH /api/users/{id}/reset-password with the payload', () => {
+    const payload: ResetUserPasswordRequest = { password: 'password123' };
+
+    service.resetPassword(2, payload).subscribe((result) => expect(result).toEqual(user));
+
+    const request = http.expectOne('http://localhost:8080/api/users/2/reset-password');
     expect(request.request.method).toBe('PATCH');
     expect(request.request.body).toEqual(payload);
     request.flush(user);

@@ -14,7 +14,7 @@ import { finalize } from 'rxjs';
 
 import { UserStatus, UserType } from '../../core/models/auth.models';
 import { PageResponse } from '../../core/models/page-response.model';
-import { CreateUserRequest, User } from '../../core/models/user.models';
+import { CreateUserRequest, UpdateUserRequest, User } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -22,9 +22,10 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { UserEditForm } from './components/user-edit-form/user-edit-form';
 import { UserForm } from './components/user-form/user-form';
 
-type UserAction =
+type UserEditAction =
   | {
       kind: 'status';
       user: User;
@@ -34,6 +35,11 @@ type UserAction =
       kind: 'type';
       user: User;
       nextType: UserType;
+    }
+  | {
+      kind: 'resetPassword';
+      user: User;
+      password: string;
     };
 
 interface UserActionConfirmation {
@@ -53,6 +59,7 @@ interface UserActionConfirmation {
     EmptyState,
     ErrorState,
     Skeleton,
+    UserEditForm,
     UserForm,
   ],
   templateUrl: './users-page.html',
@@ -72,8 +79,12 @@ export class UsersPage implements OnInit {
   protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
   protected readonly submitting = signal(false);
-  protected readonly pendingAction = signal<UserAction | null>(null);
-  protected readonly actionSubmitting = signal(false);
+  protected readonly editingUser = signal<User | null>(null);
+  protected readonly profileSubmitting = signal(false);
+  protected readonly typeSubmitting = signal(false);
+  protected readonly statusSubmitting = signal(false);
+  protected readonly resetSubmitting = signal(false);
+  protected readonly pendingEditAction = signal<UserEditAction | null>(null);
   protected readonly skeletons = [1, 2, 3, 4, 5];
 
   protected readonly canListUsers = computed(() => this.sessionStore.isAdmin());
@@ -105,10 +116,22 @@ export class UsersPage implements OnInit {
 
   protected readonly users = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
+  protected readonly editDrawerOpen = computed(() => this.editingUser() !== null);
+  protected readonly isEditingCurrentUser = computed(() => {
+    const user = this.editingUser();
+    return user !== null && this.isCurrentUser(user);
+  });
+  protected readonly editActionSubmitting = computed(
+    () => this.typeSubmitting() || this.statusSubmitting() || this.resetSubmitting(),
+  );
+  protected readonly editBusy = computed(
+    () => this.profileSubmitting() || this.editActionSubmitting(),
+  );
   protected readonly actionConfirmation = computed<UserActionConfirmation>(() =>
-    this.getActionConfirmation(this.pendingAction()),
+    this.getActionConfirmation(this.pendingEditAction()),
   );
   private readonly userForm = viewChild(UserForm);
+  private readonly userEditForm = viewChild(UserEditForm);
 
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'medium',
@@ -152,6 +175,20 @@ export class UsersPage implements OnInit {
     }
   }
 
+  protected openEditDrawer(user: User): void {
+    if (this.sessionStore.isAdmin()) {
+      this.pendingEditAction.set(null);
+      this.editingUser.set(user);
+    }
+  }
+
+  protected closeEditDrawer(): void {
+    if (!this.editBusy()) {
+      this.pendingEditAction.set(null);
+      this.editingUser.set(null);
+    }
+  }
+
   protected createUser(payload: CreateUserRequest): void {
     if (!this.canCreateUsers() || this.submitting()) {
       return;
@@ -178,63 +215,175 @@ export class UsersPage implements OnInit {
       });
   }
 
-  protected requestStatusChange(user: User, nextStatus: UserStatus): void {
-    if (!this.actionSubmitting() && this.canManageUser(user)) {
-      this.pendingAction.set({ kind: 'status', user, nextStatus });
+  protected saveProfile(payload: UpdateUserRequest): void {
+    const user = this.editingUser();
+
+    if (!user || !this.sessionStore.isAdmin() || this.profileSubmitting()) {
+      return;
     }
+
+    this.profileSubmitting.set(true);
+
+    this.userService
+      .update(user.id, payload)
+      .pipe(
+        finalize(() => this.profileSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (updatedUser) => {
+          this.updateEditedUser(updatedUser);
+          this.toastStore.success('Dados do usuário atualizados.');
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.handleUpdateError(error),
+      });
   }
 
-  protected requestTypeChange(user: User): void {
-    if (!this.actionSubmitting() && this.canManageUser(user)) {
-      this.pendingAction.set({
-        kind: 'type',
-        user,
-        nextType: user.userType === 'ADMIN' ? 'USER' : 'ADMIN',
-      });
+  protected requestStatusChange(nextStatus: UserStatus): void {
+    const user = this.editingUser();
+
+    if (!user || this.editActionSubmitting() || !this.canManageUserAccess(user)) {
+      return;
     }
+
+    this.pendingEditAction.set({ kind: 'status', user, nextStatus });
+  }
+
+  protected requestTypeChange(nextType: UserType): void {
+    const user = this.editingUser();
+
+    if (!user || this.editActionSubmitting() || !this.canManageUserAccess(user)) {
+      return;
+    }
+
+    this.pendingEditAction.set({ kind: 'type', user, nextType });
+  }
+
+  protected requestPasswordReset(password: string): void {
+    const user = this.editingUser();
+
+    if (!user || this.editActionSubmitting()) {
+      return;
+    }
+
+    if (this.isCurrentUser(user)) {
+      this.toastStore.error('Para alterar sua própria senha, acesse Minha conta.');
+      this.userEditForm()?.clearPassword();
+      return;
+    }
+
+    if (!this.sessionStore.isAdmin()) {
+      this.toastStore.error('Você não tem permissão para realizar esta ação.');
+      return;
+    }
+
+    this.pendingEditAction.set({ kind: 'resetPassword', user, password });
   }
 
   protected closeActionConfirmation(): void {
-    if (!this.actionSubmitting()) {
-      this.pendingAction.set(null);
+    if (!this.editActionSubmitting()) {
+      this.pendingEditAction.set(null);
     }
   }
 
   protected confirmAction(): void {
-    const action = this.pendingAction();
+    const action = this.pendingEditAction();
 
-    if (!action || this.actionSubmitting() || !this.canManageUser(action.user)) {
+    if (!action || this.editActionSubmitting()) {
       return;
     }
 
-    this.actionSubmitting.set(true);
+    if (action.kind === 'resetPassword') {
+      this.confirmPasswordReset(action);
+      return;
+    }
 
-    const request$ =
-      action.kind === 'status'
-        ? this.userService.updateStatus(action.user.id, { status: action.nextStatus })
-        : this.userService.updateType(action.user.id, { userType: action.nextType });
+    if (!this.canManageUserAccess(action.user)) {
+      return;
+    }
 
-    request$
-      .pipe(
-        finalize(() => this.actionSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.pendingAction.set(null);
-          this.toastStore.success(
-            action.kind === 'status'
-              ? 'Status do usuário atualizado.'
-              : 'Tipo do usuário atualizado.',
-          );
-          this.loadPage(this.currentPage());
-        },
-        error: (error: unknown) => this.handleActionError(error),
-      });
+    if (action.kind === 'status') {
+      this.confirmStatusChange(action);
+      return;
+    }
+
+    this.confirmTypeChange(action);
   }
 
   protected isCurrentUser(user: User): boolean {
     return this.sessionStore.user()?.id === user.id;
+  }
+
+  private confirmStatusChange(action: Extract<UserEditAction, { kind: 'status' }>): void {
+    this.statusSubmitting.set(true);
+
+    this.userService
+      .updateStatus(action.user.id, { status: action.nextStatus })
+      .pipe(
+        finalize(() => this.statusSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (updatedUser) => {
+          this.pendingEditAction.set(null);
+          this.updateEditedUser(updatedUser);
+          this.toastStore.success('Status do usuário atualizado.');
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.handleStatusError(error),
+      });
+  }
+
+  private confirmTypeChange(action: Extract<UserEditAction, { kind: 'type' }>): void {
+    this.typeSubmitting.set(true);
+
+    this.userService
+      .updateType(action.user.id, { userType: action.nextType })
+      .pipe(
+        finalize(() => this.typeSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (updatedUser) => {
+          this.pendingEditAction.set(null);
+          this.updateEditedUser(updatedUser);
+          this.toastStore.success('Tipo do usuário atualizado.');
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.handleTypeError(error),
+      });
+  }
+
+  private confirmPasswordReset(action: Extract<UserEditAction, { kind: 'resetPassword' }>): void {
+    if (this.isCurrentUser(action.user)) {
+      this.toastStore.error('Para alterar sua própria senha, acesse Minha conta.');
+      this.userEditForm()?.clearPassword();
+      return;
+    }
+
+    if (!this.sessionStore.isAdmin()) {
+      this.toastStore.error('Você não tem permissão para realizar esta ação.');
+      return;
+    }
+
+    this.resetSubmitting.set(true);
+
+    this.userService
+      .resetPassword(action.user.id, { password: action.password })
+      .pipe(
+        finalize(() => this.resetSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (updatedUser) => {
+          this.pendingEditAction.set(null);
+          this.updateEditedUser(updatedUser);
+          this.userEditForm()?.clearPassword();
+          this.toastStore.success('Senha do usuário resetada.');
+        },
+        error: (error: unknown) => this.handleResetPasswordError(error, action.user),
+      });
   }
 
   private handleCreateError(error: unknown): void {
@@ -293,7 +442,7 @@ export class UsersPage implements OnInit {
     return Number.isNaN(date.getTime()) ? 'Data não informada' : this.dateFormatter.format(date);
   }
 
-  private canManageUser(user: User): boolean {
+  private canManageUserAccess(user: User): boolean {
     if (this.isCurrentUser(user)) {
       this.toastStore.error('Você não pode alterar seu próprio acesso.');
       return false;
@@ -307,13 +456,22 @@ export class UsersPage implements OnInit {
     return true;
   }
 
-  private getActionConfirmation(action: UserAction | null): UserActionConfirmation {
+  private getActionConfirmation(action: UserEditAction | null): UserActionConfirmation {
     if (!action) {
       return {
         title: 'Alterar usuário',
-        description: 'Confirme a alteração de acesso deste usuário.',
+        description: 'Confirme a alteração deste usuário.',
         confirmLabel: 'Confirmar',
         variant: 'info',
+      };
+    }
+
+    if (action.kind === 'resetPassword') {
+      return {
+        title: 'Resetar senha',
+        description: `A senha de ${action.user.name} será redefinida para a senha temporária informada.`,
+        confirmLabel: 'Resetar senha',
+        variant: 'warning',
       };
     }
 
@@ -354,12 +512,14 @@ export class UsersPage implements OnInit {
       },
     };
 
-    return confirmations[action.nextStatus] ?? {
-      title: 'Alterar status',
-      description: `Confirme a alteração de status de ${action.user.name}.`,
-      confirmLabel: 'Confirmar',
-      variant: 'warning',
-    };
+    return (
+      confirmations[action.nextStatus] ?? {
+        title: 'Alterar status',
+        description: `Confirme a alteração de status de ${action.user.name}.`,
+        confirmLabel: 'Confirmar',
+        variant: 'warning',
+      }
+    );
   }
 
   private loadPage(page: number): void {
@@ -395,19 +555,84 @@ export class UsersPage implements OnInit {
     this.error.set(true);
   }
 
-  private handleActionError(error: unknown): void {
+  private handleUpdateError(error: unknown): void {
     if (!(error instanceof HttpErrorResponse)) {
-      this.toastStore.error('Não foi possível concluir a operação.');
+      this.toastStore.error('Não foi possível atualizar os dados do usuário.');
       return;
     }
 
     const messages: Record<number, string> = {
       400: 'Verifique os dados informados.',
       401: 'Sua sessão expirou. Faça login novamente.',
-      403: 'Você não tem permissão para realizar esta ação.',
+      403: 'Você não tem permissão para editar este usuário.',
       404: 'Usuário não encontrado.',
     };
 
-    this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
+    this.toastStore.error(
+      messages[error.status] ?? 'Não foi possível atualizar os dados do usuário.',
+    );
+  }
+
+  private handleStatusError(error: unknown): void {
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível atualizar o status do usuário.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique os dados informados.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para alterar o status deste usuário.',
+      404: 'Usuário não encontrado.',
+    };
+
+    this.toastStore.error(
+      messages[error.status] ?? 'Não foi possível atualizar o status do usuário.',
+    );
+  }
+
+  private handleTypeError(error: unknown): void {
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível atualizar o tipo do usuário.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique os dados informados.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para alterar o tipo deste usuário.',
+      404: 'Usuário não encontrado.',
+    };
+
+    this.toastStore.error(
+      messages[error.status] ?? 'Não foi possível atualizar o tipo do usuário.',
+    );
+  }
+
+  private handleResetPasswordError(error: unknown, user: User): void {
+    this.userEditForm()?.clearPassword();
+
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível resetar a senha do usuário.');
+      return;
+    }
+
+    if (error.status === 400 && this.isCurrentUser(user)) {
+      this.toastStore.error('Para alterar sua própria senha, acesse Minha conta.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique a senha temporária informada.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para resetar a senha deste usuário.',
+      404: 'Usuário não encontrado.',
+    };
+
+    this.toastStore.error(messages[error.status] ?? 'Não foi possível resetar a senha do usuário.');
+  }
+
+  private updateEditedUser(updatedUser: User): void {
+    this.editingUser.set(updatedUser);
   }
 }

@@ -1,0 +1,169 @@
+@if (user(); as selectedUser) {
+  <div class="grid gap-5">
+    <form
+      class="grid gap-4 rounded-app border border-border bg-surface p-4"
+      [formGroup]="profileForm"
+      (ngSubmit)="submitProfile()"
+    >
+      <div>
+        <h3 class="text-base font-semibold text-text-primary">Dados do usuário</h3>
+        <p class="mt-1 text-sm text-text-muted">Atualize as informações básicas do cadastro.</p>
+      </div>
+
+      <gd-input
+        id="edit-user-name"
+        label="Nome"
+        placeholder="Ex.: Maria Silva"
+        autocomplete="name"
+        [control]="profileForm.controls.name"
+        [required]="true"
+        [disabled]="savingProfile()"
+        [errorMessage]="nameErrorMessage()"
+      />
+
+      <gd-input
+        id="edit-user-email"
+        label="E-mail"
+        type="email"
+        [control]="profileForm.controls.email"
+        [readonly]="true"
+        [disabled]="true"
+      />
+
+      <gd-input
+        id="edit-user-document"
+        label="Documento"
+        placeholder="CPF ou CNPJ"
+        [control]="profileForm.controls.document"
+        [disabled]="savingProfile()"
+      />
+
+      <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+        <gd-button
+          type="button"
+          variant="outline"
+          [disabled]="isBusy()"
+          [fullWidth]="true"
+          (click)="cancelEdit()"
+        >
+          Cancelar
+        </gd-button>
+        <gd-button type="submit" [loading]="savingProfile()" [fullWidth]="true">
+          Salvar dados
+        </gd-button>
+      </div>
+    </form>
+
+    <section class="grid gap-4 rounded-app border border-border bg-surface p-4">
+      <div>
+        <h3 class="text-base font-semibold text-text-primary">Tipo de acesso</h3>
+        <p class="mt-1 text-sm text-text-muted">Controle o nível global de acesso ao sistema.</p>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-medium text-text-muted">Tipo atual</p>
+          <gd-badge class="mt-2 block" [variant]="userTypeVariant(selectedUser.userType)">
+            {{ userTypeLabel(selectedUser.userType) }}
+          </gd-badge>
+        </div>
+
+        @if (isCurrentUser()) {
+          <p class="text-sm font-medium text-text-muted">
+            Sua própria permissão administrativa está protegida.
+          </p>
+        } @else {
+          <gd-button
+            type="button"
+            variant="outline"
+            [loading]="changingType()"
+            [disabled]="isBusy()"
+            (click)="requestTypeChange()"
+          >
+            {{ nextType() === 'ADMIN' ? 'Tornar administrador' : 'Tornar usuário' }}
+          </gd-button>
+        }
+      </div>
+    </section>
+
+    <section class="grid gap-4 rounded-app border border-border bg-surface p-4">
+      <div>
+        <h3 class="text-base font-semibold text-text-primary">Status do usuário</h3>
+        <p class="mt-1 text-sm text-text-muted">Controle se o usuário pode acessar o sistema.</p>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-medium text-text-muted">Status atual</p>
+          <gd-badge class="mt-2 block" [variant]="statusVariant(selectedUser.status)">
+            {{ statusLabel(selectedUser.status) }}
+          </gd-badge>
+        </div>
+
+        @if (isCurrentUser()) {
+          <p class="text-sm font-medium text-text-muted">
+            Você não pode bloquear ou inativar sua própria conta.
+          </p>
+        } @else {
+          <div class="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            @for (action of statusActions(); track action.status) {
+              <gd-button
+                type="button"
+                size="sm"
+                [variant]="action.variant"
+                [loading]="changingStatus()"
+                [disabled]="isBusy()"
+                (click)="requestStatusChange(action.status)"
+              >
+                {{ action.label }}
+              </gd-button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="grid gap-4 rounded-app border border-border bg-surface p-4">
+      <div>
+        <h3 class="text-base font-semibold text-text-primary">Resetar senha</h3>
+        <p class="mt-1 text-sm text-text-muted">
+          Defina uma senha temporária para o próximo acesso.
+        </p>
+      </div>
+
+      @if (isCurrentUser()) {
+        <p
+          class="rounded-control border border-info/20 bg-info/10 p-3 text-sm font-medium text-info"
+        >
+          Para alterar sua própria senha, acesse Minha conta.
+        </p>
+      } @else {
+        <form class="grid gap-4" [formGroup]="passwordForm" (ngSubmit)="submitPassword()">
+          <gd-input
+            id="edit-user-password"
+            label="Senha temporária"
+            placeholder="Mínimo de 8 caracteres"
+            type="password"
+            autocomplete="new-password"
+            [control]="passwordForm.controls.password"
+            [required]="true"
+            [disabled]="resettingPassword()"
+            [errorMessage]="passwordErrorMessage()"
+          />
+
+          <div class="sm:flex sm:justify-end">
+            <gd-button
+              type="submit"
+              variant="warning"
+              [loading]="resettingPassword()"
+              [disabled]="isBusy()"
+              [fullWidth]="true"
+            >
+              Resetar senha
+            </gd-button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}
