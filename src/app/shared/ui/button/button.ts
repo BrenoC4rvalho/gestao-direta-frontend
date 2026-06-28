@@ -29,9 +29,9 @@ export class Button {
   protected readonly buttonClasses = computed(() =>
     [
       'inline-flex items-center justify-center gap-2 rounded-control font-medium',
-      'transition-colors duration-150',
+      'transition-all duration-200 ease-out active:scale-[0.98]',
       'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2',
-      'disabled:cursor-not-allowed disabled:opacity-60',
+      'disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100',
       this.fullWidth() ? 'w-full' : '',
       this.sizeClasses(),
       this.variantClasses(),

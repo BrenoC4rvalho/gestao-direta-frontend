@@ -15,6 +15,7 @@ export class Card {
   protected readonly cardClasses = computed(() =>
     [
       'rounded-app bg-surface text-text-primary',
+      'transition-all duration-200 ease-out sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
       this.variantClasses(),
       this.paddingClasses(),
     ].join(' '),

@@ -22,5 +22,7 @@ describe('Card', () => {
     expect(card.textContent).toContain('Card content');
     expect(card.className).toContain('shadow-soft');
     expect(card.className).toContain('p-6');
+    expect(card.className).toContain('transition-all');
+    expect(card.className).toContain('duration-200');
   });
 });

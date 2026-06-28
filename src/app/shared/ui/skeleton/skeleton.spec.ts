@@ -22,5 +22,6 @@ describe('Skeleton', () => {
     expect(skeleton.style.width).toBe('160px');
     expect(skeleton.style.height).toBe('24px');
     expect(skeleton.className).toContain('rounded-app');
+    expect(skeleton.className).toContain('animate-pulse');
   });
 });

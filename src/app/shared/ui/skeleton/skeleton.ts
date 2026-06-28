@@ -13,7 +13,10 @@ export class Skeleton {
   readonly rounded = input<SkeletonRounded>('md');
 
   protected readonly skeletonClasses = computed(() =>
-    ['animate-pulse bg-border/70 dark:bg-border', this.roundedClasses()].join(' '),
+    [
+      'animate-pulse bg-border/50 transition-colors duration-200 dark:bg-border/60',
+      this.roundedClasses(),
+    ].join(' '),
   );
 
   protected readonly skeletonStyles = computed(() => ({

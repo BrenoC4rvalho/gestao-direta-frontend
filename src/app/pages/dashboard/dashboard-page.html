@@ -1,4 +1,4 @@
-<section class="space-y-6">
+<section class="gd-fade-in-up space-y-6">
   @if (!selectedFarmStore.selectedFarmId()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"
@@ -6,7 +6,7 @@
       icon="tractor"
     />
   } @else if (farmAccessStore.loading() || (!farmAccessStore.access() && !farmAccessStore.error())) {
-    <div class="rounded-app border border-border bg-surface p-5" aria-label="Carregando permissões">
+    <div class="gd-fade-in-up rounded-app border border-border bg-surface p-5" aria-label="Carregando permissões">
       <gd-skeleton width="40%" height="1rem" />
       <gd-skeleton class="mt-4 block" width="70%" height="0.875rem" />
     </div>
@@ -21,7 +21,7 @@
     />
   } @else {
     @if (summaryLoading()) {
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="gd-fade-in-up grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @for (item of summarySkeletons; track item) {
           <div class="rounded-app border border-border bg-surface p-5">
             <gd-skeleton width="45%" height="0.875rem" />
@@ -33,7 +33,7 @@
     } @else if (summaryError(); as errorMessage) {
       <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage" />
     } @else {
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="gd-fade-in-up grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @for (card of summaryCards(); track card.title) {
           <gd-summary-card
             [title]="card.title"
@@ -48,7 +48,7 @@
 
     <a
       routerLink="/upcoming-bills"
-      class="flex flex-col gap-4 rounded-app border border-warning/25 bg-warning/10 p-5 text-text-primary transition-colors hover:border-warning/40 hover:bg-warning/15 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:items-center sm:justify-between"
+      class="gd-fade-in-up flex flex-col gap-4 rounded-app border border-warning/25 bg-warning/10 p-5 text-text-primary transition-all duration-200 ease-out hover:border-warning/40 hover:bg-warning/15 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:items-center sm:justify-between sm:hover:-translate-y-0.5"
     >
       <div class="flex items-center gap-4">
         <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-warning">
@@ -65,7 +65,7 @@
       <span class="text-sm font-semibold text-primary">Ver todas</span>
     </a>
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
+    <div class="gd-fade-in-up grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
       <gd-latest-transactions-card
         [transactions]="transactions()"
         [loading]="transactionsLoading()"

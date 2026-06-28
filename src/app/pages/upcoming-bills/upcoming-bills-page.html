@@ -1,4 +1,4 @@
-<section class="space-y-6">
+<section class="gd-fade-in-up space-y-6">
   @if (!selectedFarmName()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"
@@ -12,7 +12,7 @@
     !sessionStore.isAdmin() &&
     (farmAccessStore.loading() || (!farmAccessStore.access() && !farmAccessStore.error()))
   ) {
-    <div class="grid gap-4 md:grid-cols-3" aria-label="Carregando permissões">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-3" aria-label="Carregando permissões">
       @for (item of [1, 2, 3]; track item) {
         <gd-card>
           <gd-skeleton width="45%" height="0.875rem" />
@@ -26,7 +26,7 @@
       description="Você não tem permissão para visualizar contas a vencer."
     />
   } @else if (selectedFarmStore.selectedFarmId()) {
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-3">
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Total pendente</p>
         <p class="mt-2 text-2xl font-semibold text-warning">
@@ -72,7 +72,7 @@
     </gd-card>
 
     @if (loading()) {
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando contas a vencer">
+      <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando contas a vencer">
         @for (item of skeletons; track item) {
           <gd-card variant="elevated">
             <div class="flex items-start justify-between gap-4">
@@ -104,7 +104,7 @@
         icon="calendar-clock"
       />
     } @else {
-      <div class="grid gap-4 md:hidden">
+      <div class="gd-fade-in-up grid gap-4 md:hidden">
         @for (bill of filteredBills(); track bill.id) {
           <gd-upcoming-bill-card
             [bill]="bill"
@@ -118,7 +118,7 @@
         }
       </div>
 
-      <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+      <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
         <table class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Contas a vencer da fazenda selecionada</caption>
           <thead class="border-b border-border bg-background">
@@ -132,7 +132,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             @for (bill of filteredBills(); track bill.id) {
-              <tr>
+              <tr class="transition-colors duration-200 hover:bg-background/60">
                 <td class="px-5 py-4">
                   <p class="font-semibold text-text-primary">{{ bill.description }}</p>
                   <p class="mt-1 text-sm text-text-muted">{{ bill.categoryName ?? 'Sem categoria' }}</p>

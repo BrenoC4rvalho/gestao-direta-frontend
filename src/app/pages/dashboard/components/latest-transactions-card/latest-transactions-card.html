@@ -33,7 +33,7 @@
         icon="receipt-text"
       />
     } @else {
-      <div class="hidden overflow-hidden rounded-control border border-border md:block">
+      <div class="gd-fade-in-up hidden overflow-hidden rounded-control border border-border md:block">
         <table class="w-full table-fixed text-left text-sm">
           <thead class="bg-background-secondary text-xs font-semibold uppercase text-text-muted">
             <tr>
@@ -45,7 +45,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             @for (transaction of transactions(); track transaction.id) {
-              <tr>
+              <tr class="transition-colors duration-200 hover:bg-background/60">
                 <td class="px-4 py-3">
                   <p class="truncate font-semibold text-text-primary">{{ transaction.description }}</p>
                   <p class="mt-1 text-xs text-text-muted">{{ formatDate(transaction.transactionDate) }}</p>
@@ -70,9 +70,9 @@
         </table>
       </div>
 
-      <ul class="space-y-3 md:hidden">
+      <ul class="gd-fade-in-up space-y-3 md:hidden">
         @for (transaction of transactions(); track transaction.id) {
-          <li class="rounded-control border border-border p-4">
+          <li class="rounded-control border border-border p-4 transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-text-primary">

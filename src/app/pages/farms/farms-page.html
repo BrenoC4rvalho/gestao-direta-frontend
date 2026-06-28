@@ -1,4 +1,4 @@
-<section class="space-y-6">
+<section class="gd-fade-in-up space-y-6">
   @if (sessionStore.isAdmin()) {
     <div class="flex justify-end">
       <gd-button type="button" (click)="openCreateDrawer()">Nova fazenda</gd-button>
@@ -8,9 +8,9 @@
   <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
 
   @if (loading()) {
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">
       @for (item of skeletons; track item) {
-        <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+        <div class="rounded-app border border-border bg-surface p-5 shadow-soft transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1">
               <gd-skeleton width="70%" height="1.25rem" />
@@ -41,7 +41,7 @@
       icon="tractor"
     />
   } @else {
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       @for (farm of farms(); track farm.id) {
         <gd-farm-card
           [farm]="farm"

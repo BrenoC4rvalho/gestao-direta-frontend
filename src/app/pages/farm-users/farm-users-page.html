@@ -1,4 +1,4 @@
-<section class="space-y-6">
+<section class="gd-fade-in-up space-y-6">
   @if (canManageContext() && !accessDenied()) {
     <div class="flex justify-end">
       <gd-button type="button" (click)="openLinkDrawer()">Vincular usuário</gd-button>
@@ -20,7 +20,7 @@
     (farmAccessStore.loading() ||
       (!farmAccessStore.access() && !farmAccessStore.error()))
   ) {
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
       @for (item of skeletons; track item) {
         <gd-card variant="elevated">
           <gd-skeleton width="65%" height="1.25rem" />
@@ -35,7 +35,7 @@
       description="Você não tem permissão para gerenciar vínculos desta fazenda."
     />
   } @else if (loading()) {
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando vínculos">
+    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando vínculos">
       @for (item of skeletons; track item) {
         <gd-card variant="elevated">
           <div class="flex items-start justify-between gap-4">
@@ -64,7 +64,7 @@
       icon="user-round-cog"
     />
   } @else {
-    <div class="grid gap-4 md:hidden">
+    <div class="gd-fade-in-up grid gap-4 md:hidden">
       @for (farmUser of farmUsers(); track farmUser.id) {
         <gd-card variant="elevated">
           <article [attr.aria-label]="'Vínculo de ' + farmUser.userName">
@@ -121,7 +121,7 @@
       }
     </div>
 
-    <div class="hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+    <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
       <table class="w-full border-collapse text-left">
         <caption class="sr-only">Usuários vinculados à fazenda selecionada</caption>
         <thead class="border-b border-border bg-background">
@@ -136,7 +136,7 @@
         </thead>
         <tbody class="divide-y divide-border">
           @for (farmUser of farmUsers(); track farmUser.id) {
-            <tr>
+            <tr class="transition-colors duration-200 hover:bg-background/60">
               <td class="px-5 py-4">
                 <p class="font-semibold text-text-primary">{{ farmUser.userName }}</p>
                 <p class="mt-1 text-sm text-text-muted">{{ farmUser.userEmail }}</p>
