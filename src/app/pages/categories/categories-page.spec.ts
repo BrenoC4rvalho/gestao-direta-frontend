@@ -116,6 +116,13 @@ const inactiveGlobalCategory: FinancialCategory = {
   status: 'INACTIVE',
 };
 
+const inactiveGlobalTypeCategory: FinancialCategory = {
+  ...inactiveFarmCategory,
+  id: 5,
+  name: 'Tipo global legado',
+  type: 'GLOBAL',
+};
+
 describe('CategoriesPage', () => {
   let fixture: ComponentFixture<CategoriesPage>;
   let categoryService: {
@@ -124,6 +131,7 @@ describe('CategoriesPage', () => {
     getById: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    activate: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
   let selectedFarmStore: SelectedFarmStore;
@@ -138,6 +146,7 @@ describe('CategoriesPage', () => {
       getById: vi.fn().mockReturnValue(of(farmCategory)),
       create: vi.fn().mockReturnValue(of({ ...farmCategory, id: 3 })),
       update: vi.fn().mockReturnValue(of({ ...farmCategory, name: 'Adubo e insumos' })),
+      activate: vi.fn().mockReturnValue(of({ ...inactiveFarmCategory, status: 'ACTIVE' })),
       delete: vi.fn().mockReturnValue(of(undefined)),
     };
 
@@ -296,6 +305,7 @@ describe('CategoriesPage', () => {
     harness.saveCategory({ name: 'Adubo global indevido', type: 'GLOBAL' });
     fixture.detectChanges();
 
+    expect(categoryService.activate).not.toHaveBeenCalled();
     expect(categoryService.update).not.toHaveBeenCalled();
   });
 
@@ -330,6 +340,7 @@ describe('CategoriesPage', () => {
     harness.openEditDrawer(globalCategory);
     fixture.detectChanges();
 
+    expect(categoryService.activate).not.toHaveBeenCalled();
     expect(categoryService.update).not.toHaveBeenCalled();
     expect(toastStore.toasts()[0]?.title).toBe(
       'Você não tem permissão para realizar esta ação.',
@@ -388,6 +399,17 @@ describe('CategoriesPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Categoria inativada com sucesso.');
   });
 
+  it('should show activate only for inactive categories', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    createPage();
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
+
+    categoryService.listByFarm.mockReturnValue(of([farmCategory]));
+    createPage();
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
+  });
+
   it('should open activation confirmation for an inactive category', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
@@ -400,15 +422,34 @@ describe('CategoriesPage', () => {
 
     expect(dialog.textContent).toContain('Ativar categoria');
     expect(dialog.textContent).toContain(
-      'Esta categoria voltará a ficar disponível para novas movimentações.',
+      'Esta categoria voltará a ficar disponível para uso em movimentações financeiras.',
     );
     expect(findButton(dialog, 'Ativar')).toBeTruthy();
   });
 
-  it('should activate a category with preserved data and reload lists', () => {
+  it('should not activate a category when confirmation is cancelled', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
-    categoryService.update.mockReturnValueOnce(
+    createPage();
+    clickButton('Ativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    findButton(dialog, 'Cancelar')?.click();
+    fixture.detectChanges();
+
+    expect(categoryService.activate).not.toHaveBeenCalled();
+    expect(categoryService.update).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]'),
+    ).toBeNull();
+  });
+
+  it('should activate a category and reload lists', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    categoryService.activate.mockReturnValueOnce(
       of({ ...inactiveFarmCategory, status: 'ACTIVE' }),
     );
     createPage();
@@ -420,16 +461,48 @@ describe('CategoriesPage', () => {
     findButton(dialog, 'Ativar')?.click();
     fixture.detectChanges();
 
-    expect(categoryService.update).toHaveBeenCalledWith(3, {
-      name: 'Defensivos',
-      type: 'EXPENSE',
-      color: '#15803D',
-      icon: 'sprout',
-      farmId: 1,
-      isDefault: false,
-      status: 'ACTIVE',
-    });
+    expect(categoryService.activate).toHaveBeenCalledWith(3);
+    expect(categoryService.update).not.toHaveBeenCalled();
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
+  });
+
+  it('should show specific toast when activation fails', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    categoryService.activate.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400 })),
+    );
+    createPage();
+    clickButton('Ativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    findButton(dialog, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(categoryService.activate).toHaveBeenCalledOnce();
+    expect(categoryService.update).not.toHaveBeenCalled();
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Não foi possível ativar a categoria.',
+    );
+  });
+
+  it('should activate without sending global type payload', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveGlobalTypeCategory]));
+    createPage();
+    clickButton('Ativar');
+
+    const dialog = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog [role="dialog"]',
+    ) as HTMLElement;
+    findButton(dialog, 'Ativar')?.click();
+    fixture.detectChanges();
+
+    expect(categoryService.activate).toHaveBeenCalledWith(5);
+    expect(categoryService.update).not.toHaveBeenCalled();
     expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
   });
 
@@ -481,6 +554,7 @@ describe('CategoriesPage', () => {
     harness.requestActivate(inactiveGlobalCategory);
     fixture.detectChanges();
 
+    expect(categoryService.activate).not.toHaveBeenCalled();
     expect(categoryService.update).not.toHaveBeenCalled();
     expect(toastStore.toasts()[0]?.title).toBe(
       'Você não tem permissão para realizar esta ação.',

@@ -256,20 +256,10 @@ export class CategoriesPage {
       return;
     }
 
-    const request: UpdateFinancialCategoryRequest = {
-      name: category.name,
-      type: category.type,
-      color: category.color,
-      icon: category.icon,
-      farmId: isGlobalCategory(category) ? null : category.farmId,
-      isDefault: isGlobalCategory(category),
-      status: 'ACTIVE',
-    };
-
     this.activateSubmitting.set(true);
 
     this.categoryService
-      .update(category.id, request)
+      .activate(category.id)
       .pipe(
         finalize(() => this.activateSubmitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -280,7 +270,7 @@ export class CategoriesPage {
           this.toastStore.success('Categoria ativada com sucesso.');
           this.retry();
         },
-        error: (error: unknown) => this.showOperationError(error),
+        error: () => this.showActivateError(),
       });
   }
 
@@ -475,6 +465,10 @@ export class CategoriesPage {
     };
 
     this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
+  }
+
+  private showActivateError(): void {
+    this.toastStore.error('Não foi possível ativar a categoria.');
   }
 
   private showPermissionError(): void {

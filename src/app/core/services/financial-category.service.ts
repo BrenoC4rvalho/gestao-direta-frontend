@@ -52,6 +52,13 @@ export class FinancialCategoryService {
     );
   }
 
+  activate(id: number): Observable<FinancialCategory> {
+    return this.http.patch<FinancialCategory>(
+      `${this.apiUrl}/financial/categories/${id}/activate`,
+      {},
+    );
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/financial/categories/${id}`);
   }

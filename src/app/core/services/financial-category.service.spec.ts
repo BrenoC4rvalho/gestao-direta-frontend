@@ -106,6 +106,18 @@ describe('FinancialCategoryService', () => {
     request.flush(category);
   });
 
+  it('should activate a category', () => {
+    service.activate(1).subscribe((result) => expect(result).toEqual(category));
+
+    const request = http.expectOne(apiUrl + '/financial/categories/1/activate');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({});
+    expect(request.request.body).not.toHaveProperty('name');
+    expect(request.request.body).not.toHaveProperty('type');
+    expect(request.request.body).not.toHaveProperty('status');
+    request.flush(category);
+  });
+
   it('should delete a category', () => {
     service.delete(1).subscribe();
 
