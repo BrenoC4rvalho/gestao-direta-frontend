@@ -456,7 +456,7 @@ describe('UsersPage', () => {
     createPage();
     openEditDrawer('João Souza');
 
-    setEditInput(3, ' password123 ');
+    setEditInput(3, ' NewPassword@123 ');
     submitEditForm(1);
     fixture.detectChanges();
 
@@ -467,10 +467,95 @@ describe('UsersPage', () => {
     findButton(dialog as HTMLElement, 'Resetar senha')?.click();
     fixture.detectChanges();
 
-    expect(userService.resetPassword).toHaveBeenCalledWith(2, { password: 'password123' });
+    expect(userService.resetPassword).toHaveBeenCalledWith(2, { newPassword: 'NewPassword@123' });
+    expect(userService.resetPassword).not.toHaveBeenCalledWith(2, { password: 'NewPassword@123' });
+    expect(userService.resetPassword).not.toHaveBeenCalledWith(2, { newPassword: null });
     expect(userService.list).toHaveBeenCalledTimes(1);
     expect(getEditInput(3).value).toBe('');
     expect(toastStore.toasts()[0]?.title).toBe('Senha do usuário resetada.');
+  });
+
+  it('should not open password reset confirmation with an empty password', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, ' ');
+    submitEditForm(1);
+
+    expect(getConfirmDialog()).toBeNull();
+    expect(userService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('should not open password reset confirmation with a short password', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, '1234567');
+    submitEditForm(1);
+
+    expect(getConfirmDialog()).toBeNull();
+    expect(userService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('should cancel password reset confirmation without calling the service', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, ' NewPassword@123 ');
+    submitEditForm(1);
+    fixture.detectChanges();
+
+    findButton(getConfirmDialog() as HTMLElement, 'Cancelar')?.click();
+    fixture.detectChanges();
+
+    expect(getConfirmDialog()).toBeNull();
+    expect(userService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('should clear password reset confirmation when closing the edit drawer', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, ' NewPassword@123 ');
+    submitEditForm(1);
+    fixture.detectChanges();
+    expect(getConfirmDialog()).toBeTruthy();
+
+    findButton(
+      fixture.nativeElement.querySelector('gd-user-edit-form') as HTMLElement,
+      'Cancelar',
+    )?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('gd-user-edit-form')).toBeFalsy();
+    expect(getConfirmDialog()).toBeNull();
+    expect(userService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [400, 'Verifique a nova senha informada.'],
+    [403, 'Você não tem permissão para resetar senha.'],
+    [404, 'Usuário não encontrado.'],
+  ])('should show reset password error feedback for status %s', (status, message) => {
+    userService.resetPassword.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status })),
+    );
+    sessionStore.setUser(admin);
+    createPage();
+    openEditDrawer('João Souza');
+
+    setEditInput(3, ' NewPassword@123 ');
+    submitEditForm(1);
+    fixture.detectChanges();
+    findButton(getConfirmDialog() as HTMLElement, 'Resetar senha')?.click();
+    fixture.detectChanges();
+
+    expect(toastStore.toasts()[0]?.title).toBe(message);
+    expect(getEditInput(3).value).toBe('');
   });
 
   it('should show permission feedback when a status update is forbidden', () => {

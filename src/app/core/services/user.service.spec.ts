@@ -156,8 +156,8 @@ describe('UserService', () => {
     request.flush(user);
   });
 
-  it('should call PATCH /api/users/{id}/reset-password with the payload', () => {
-    const payload: ResetUserPasswordRequest = { password: 'password123' };
+  it('should call PATCH /api/users/{id}/reset-password with only the new password payload', () => {
+    const payload: ResetUserPasswordRequest = { newPassword: 'NewPassword@123' };
 
     service.resetPassword(2, payload).subscribe((result) => expect(result).toEqual(user));
 

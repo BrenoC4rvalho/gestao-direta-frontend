@@ -32,5 +32,5 @@ export interface UpdateUserTypeRequest {
 }
 
 export interface ResetUserPasswordRequest {
-  password: string;
+  newPassword: string;
 }

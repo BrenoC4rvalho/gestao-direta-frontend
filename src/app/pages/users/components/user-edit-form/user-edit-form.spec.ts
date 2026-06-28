@@ -99,6 +99,19 @@ describe('UserEditForm', () => {
     expect(findButton(fixture.nativeElement, 'Resetar senha')).toBeUndefined();
   });
 
+  it('should not emit password reset with an empty password', () => {
+    const fixture = createForm(user);
+    const resetPassword = vi.fn();
+    fixture.componentInstance.resetPassword.subscribe(resetPassword);
+
+    setInput(fixture.nativeElement, 3, ' ');
+    submitForm(fixture.nativeElement, 1);
+    fixture.detectChanges();
+
+    expect(resetPassword).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Informe a senha temporária.');
+  });
+
   it('should validate temporary password length', () => {
     const fixture = createForm(user);
     const resetPassword = vi.fn();
@@ -119,10 +132,10 @@ describe('UserEditForm', () => {
     const resetPassword = vi.fn();
     fixture.componentInstance.resetPassword.subscribe(resetPassword);
 
-    setInput(fixture.nativeElement, 3, ' password123 ');
+    setInput(fixture.nativeElement, 3, ' NewPassword@123 ');
     submitForm(fixture.nativeElement, 1);
 
-    expect(resetPassword).toHaveBeenCalledWith('password123');
+    expect(resetPassword).toHaveBeenCalledWith('NewPassword@123');
 
     fixture.componentInstance.clearPassword();
     fixture.detectChanges();

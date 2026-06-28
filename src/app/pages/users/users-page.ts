@@ -39,7 +39,7 @@ type UserEditAction =
   | {
       kind: 'resetPassword';
       user: User;
-      password: string;
+      newPassword: string;
     };
 
 interface UserActionConfirmation {
@@ -275,10 +275,12 @@ export class UsersPage implements OnInit {
 
     if (!this.sessionStore.isAdmin()) {
       this.toastStore.error('Você não tem permissão para realizar esta ação.');
+      this.pendingEditAction.set(null);
+      this.userEditForm()?.clearPassword();
       return;
     }
 
-    this.pendingEditAction.set({ kind: 'resetPassword', user, password });
+    this.pendingEditAction.set({ kind: 'resetPassword', user, newPassword: password });
   }
 
   protected closeActionConfirmation(): void {
@@ -358,19 +360,22 @@ export class UsersPage implements OnInit {
   private confirmPasswordReset(action: Extract<UserEditAction, { kind: 'resetPassword' }>): void {
     if (this.isCurrentUser(action.user)) {
       this.toastStore.error('Para alterar sua própria senha, acesse Minha conta.');
+      this.pendingEditAction.set(null);
       this.userEditForm()?.clearPassword();
       return;
     }
 
     if (!this.sessionStore.isAdmin()) {
       this.toastStore.error('Você não tem permissão para realizar esta ação.');
+      this.pendingEditAction.set(null);
+      this.userEditForm()?.clearPassword();
       return;
     }
 
     this.resetSubmitting.set(true);
 
     this.userService
-      .resetPassword(action.user.id, { password: action.password })
+      .resetPassword(action.user.id, { newPassword: action.newPassword })
       .pipe(
         finalize(() => this.resetSubmitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -623,9 +628,9 @@ export class UsersPage implements OnInit {
     }
 
     const messages: Record<number, string> = {
-      400: 'Verifique a senha temporária informada.',
+      400: 'Verifique a nova senha informada.',
       401: 'Sua sessão expirou. Faça login novamente.',
-      403: 'Você não tem permissão para resetar a senha deste usuário.',
+      403: 'Você não tem permissão para resetar senha.',
       404: 'Usuário não encontrado.',
     };
 
