@@ -3,13 +3,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { SessionStore } from '../../../core/stores/session.store';
 import { ToastStore } from '../../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, Input } from '../../../shared/forms';
-import { Button, Card } from '../../../shared/ui';
+import { GdFormControl, GdFormValue } from '../../../shared/forms';
+import { Button } from '../../../shared/ui';
 
 interface LoginForm {
   email: GdFormControl;
@@ -18,7 +19,7 @@ interface LoginForm {
 
 @Component({
   selector: 'gd-login-page',
-  imports: [Button, Card, Input, NgOptimizedImage, ReactiveFormsModule],
+  imports: [Button, LucideDynamicIcon, NgOptimizedImage, ReactiveFormsModule],
   templateUrl: './login-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -29,6 +30,7 @@ export class LoginPage {
   private readonly toastStore = inject(ToastStore);
 
   protected readonly submitting = signal(false);
+  protected readonly showPassword = signal(false);
 
   protected readonly form = new FormGroup<LoginForm>({
     email: new FormControl<GdFormValue>('', {
@@ -66,6 +68,18 @@ export class LoginPage {
       });
   }
 
+  protected showEmailError(): boolean {
+    const control = this.form.controls.email;
+
+    return control.invalid && (control.touched || control.dirty);
+  }
+
+  protected showPasswordError(): boolean {
+    const control = this.form.controls.password;
+
+    return control.invalid && (control.touched || control.dirty);
+  }
+
   protected emailErrorMessage(): string | null {
     const control = this.form.controls.email;
 
@@ -82,6 +96,14 @@ export class LoginPage {
 
   protected passwordErrorMessage(): string | null {
     return this.form.controls.password.hasError('required') ? 'Informe sua senha.' : null;
+  }
+
+  protected passwordInputType(): 'password' | 'text' {
+    return this.showPassword() ? 'text' : 'password';
+  }
+
+  protected togglePasswordVisibility(): void {
+    this.showPassword.update((visible) => !visible);
   }
 
   private showLoginError(error: unknown): void {

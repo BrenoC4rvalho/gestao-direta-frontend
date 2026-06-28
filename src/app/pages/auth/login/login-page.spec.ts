@@ -1,31 +1,31 @@
-import { HttpErrorResponse } from "@angular/common/http";
-import { Component } from "@angular/core";
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { provideRouter } from "@angular/router";
-import { of, throwError } from "rxjs";
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of, Subject, throwError } from 'rxjs';
 
-import { provideGestaoDiretaIcons } from "../../../core/constants/lucide-icons";
-import { AuthUser } from "../../../core/models/auth.models";
-import { AuthService } from "../../../core/services/auth.service";
-import { ToastStore } from "../../../core/stores/toast.store";
+import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
+import { AuthResponse, AuthUser } from '../../../core/models/auth.models';
+import { AuthService } from '../../../core/services/auth.service';
+import { ToastStore } from '../../../core/stores/toast.store';
 
-import { LoginPage } from "./login-page";
+import { LoginPage } from './login-page';
 
 @Component({
-  template: "",
+  template: '',
 })
 class DashboardStub {}
 
 const user: AuthUser = {
   id: 1,
-  name: "Maria Silva",
-  email: "maria@example.com",
+  name: 'Maria Silva',
+  email: 'maria@example.com',
   document: null,
-  userType: "ADMIN",
-  status: "ACTIVE",
+  userType: 'ADMIN',
+  status: 'ACTIVE',
 };
 
-describe("LoginPage", () => {
+describe('LoginPage', () => {
   let fixture: ComponentFixture<LoginPage>;
   let authService: { login: ReturnType<typeof vi.fn> };
   let toastStore: ToastStore;
@@ -39,7 +39,7 @@ describe("LoginPage", () => {
       imports: [LoginPage],
       providers: [
         provideGestaoDiretaIcons(),
-        provideRouter([{ path: "dashboard", component: DashboardStub }]),
+        provideRouter([{ path: 'dashboard', component: DashboardStub }]),
         { provide: AuthService, useValue: authService },
       ],
     }).compileComponents();
@@ -54,111 +54,175 @@ describe("LoginPage", () => {
     toastStore.clear();
   });
 
-  it("should render the horizontal logo", () => {
-    const logo = fixture.nativeElement.querySelector(
-      "img[alt=\"Gestão Direta\"]",
-    ) as HTMLImageElement | null;
+  function textContent(): string {
+    return fixture.nativeElement.textContent as string;
+  }
+
+  function query<T extends Element>(selector: string): T | null {
+    return fixture.nativeElement.querySelector(selector) as T | null;
+  }
+
+  function fillValidForm(): void {
+    query<HTMLInputElement>('[data-testid="login-email"]')!.value = 'maria@example.com';
+    query<HTMLInputElement>('[data-testid="login-email"]')!.dispatchEvent(new Event('input'));
+    query<HTMLInputElement>('[data-testid="login-password"]')!.value = 'secret';
+    query<HTMLInputElement>('[data-testid="login-password"]')!.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  it('should render the brand logo', () => {
+    const logo = query<HTMLImageElement>('[data-testid="login-logo"]');
 
     expect(logo).not.toBeNull();
-    expect(logo?.getAttribute("ng-reflect-ng-src") ?? logo?.getAttribute("src")).toContain(
-      "/assets/brand/logo_horizontal.svg",
+    expect(logo?.alt).toBe('Gestão Direta');
+    expect(logo?.getAttribute('ng-reflect-ng-src') ?? logo?.getAttribute('src')).toContain(
+      '/assets/brand/logo_horizontal.svg',
     );
   });
 
-  it("should render email and password fields", () => {
-    const text = fixture.nativeElement.textContent as string;
-    const inputs = fixture.nativeElement.querySelectorAll("input") as NodeListOf<HTMLInputElement>;
-    const email = inputs[0];
-    const password = inputs[1];
+  it('should render the rural illustration asset', () => {
+    const illustration = query<HTMLImageElement>('[data-testid="login-illustration"]');
 
-    expect(text).toContain("Entrar no Gestão Direta");
-    expect(email.type).toBe("email");
-    expect(password.type).toBe("password");
+    expect(illustration).not.toBeNull();
+    expect(illustration?.alt).toBe('Ilustração rural');
+    expect(
+      illustration?.getAttribute('ng-reflect-ng-src') ?? illustration?.getAttribute('src'),
+    ).toContain('/assets/img/login-farm-illustration.png');
   });
 
-  it("should validate required fields", () => {
-    const form = (fixture.componentInstance as unknown as { form: { invalid: boolean } }).form;
-    const submit = fixture.nativeElement.querySelector("button[type=\"submit\"]") as HTMLButtonElement;
+  it('should render desktop and mobile titles and subtitles', () => {
+    expect(textContent()).toContain('Bem-vindo ao');
+    expect(textContent()).toContain('Gestão Direta');
+    expect(textContent()).toContain('Controle financeiro simples e confiável para sua propriedade.');
+    expect(textContent()).toContain('Entrar no Gestão Direta');
+    expect(textContent()).toContain('Entrar na sua conta');
+    expect(textContent()).toContain(
+      'Acesse sua conta para acompanhar suas fazendas e movimentações financeiras.',
+    );
+    expect(textContent()).toContain('Acesse sua gestão financeira rural com segurança.');
+  });
 
-    submit.click();
+  it('should render feature pills and support footer', () => {
+    expect(textContent()).toContain('Fluxo de caixa');
+    expect(textContent()).toContain('Safras e lotes');
+    expect(textContent()).toContain('Contas a vencer');
+    expect(textContent()).toContain('Precisa de ajuda?');
+    expect(textContent()).toContain('Fale com o suporte');
+  });
+
+  it('should render email and password fields', () => {
+    const email = query<HTMLInputElement>('[data-testid="login-email"]');
+    const password = query<HTMLInputElement>('[data-testid="login-password"]');
+
+    expect(textContent()).toContain('E-mail');
+    expect(textContent()).toContain('Senha');
+    expect(email?.type).toBe('email');
+    expect(password?.type).toBe('password');
+  });
+
+  it('should toggle password visibility', () => {
+    const password = query<HTMLInputElement>('[data-testid="login-password"]');
+    const toggle = query<HTMLButtonElement>('[data-testid="password-toggle"]');
+
+    expect(password?.type).toBe('password');
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(password?.type).toBe('text');
+    expect(toggle?.getAttribute('aria-label')).toBe('Ocultar senha');
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(password?.type).toBe('password');
+    expect(toggle?.getAttribute('aria-label')).toBe('Mostrar senha');
+  });
+
+  it('should render the submit button', () => {
+    const submit = query<HTMLButtonElement>('button[type="submit"]');
+
+    expect(submit).not.toBeNull();
+    expect(submit?.textContent).toContain('Entrar');
+  });
+
+  it('should validate required fields and not call login', () => {
+    const form = (fixture.componentInstance as unknown as { form: { invalid: boolean } }).form;
+    const submit = query<HTMLButtonElement>('button[type="submit"]');
+
+    submit?.click();
     fixture.detectChanges();
 
     expect(form.invalid).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain("Informe seu e-mail.");
-    expect(fixture.nativeElement.textContent).toContain("Informe sua senha.");
+    expect(textContent()).toContain('Informe seu e-mail.');
+    expect(textContent()).toContain('Informe sua senha.');
     expect(authService.login).not.toHaveBeenCalled();
   });
 
-  it("should call AuthService.login when valid", () => {
-    const component = fixture.componentInstance as unknown as {
-      form: {
-        controls: {
-          email: { setValue(value: string): void };
-          password: { setValue(value: string): void };
-        };
-      };
-    };
-
-    component.form.controls.email.setValue("maria@example.com");
-    component.form.controls.password.setValue("secret");
+  it('should validate email format and not call login', () => {
+    query<HTMLInputElement>('[data-testid="login-email"]')!.value = 'invalid-email';
+    query<HTMLInputElement>('[data-testid="login-email"]')!.dispatchEvent(new Event('input'));
+    query<HTMLInputElement>('[data-testid="login-password"]')!.value = 'secret';
+    query<HTMLInputElement>('[data-testid="login-password"]')!.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const submit = fixture.nativeElement.querySelector("button[type=\"submit\"]") as HTMLButtonElement;
-    submit.click();
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
+    fixture.detectChanges();
+
+    expect(textContent()).toContain('Informe um e-mail válido.');
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('should call AuthService.login when valid', () => {
+    fillValidForm();
+
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
 
     expect(authService.login).toHaveBeenCalledWith({
-      email: "maria@example.com",
-      password: "secret",
+      email: 'maria@example.com',
+      password: 'secret',
     });
   });
 
-  it("should show invalid credentials toast and clear password on 401 error", () => {
-    authService.login.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 401 })),
-    );
-    const component = fixture.componentInstance as unknown as {
-      form: {
-        controls: {
-          email: { setValue(value: string): void; value: string | null };
-          password: { setValue(value: string): void; value: string | null };
-        };
-      };
-    };
+  it('should keep the submit button in loading state while login is pending', () => {
+    const loginResponse$ = new Subject<AuthResponse>();
+    authService.login.mockReturnValueOnce(loginResponse$);
+    fillValidForm();
 
-    component.form.controls.email.setValue("maria@example.com");
-    component.form.controls.password.setValue("wrong-secret");
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
     fixture.detectChanges();
 
-    const submit = fixture.nativeElement.querySelector("button[type=\"submit\"]") as HTMLButtonElement;
-    submit.click();
-    fixture.detectChanges();
+    const submit = query<HTMLButtonElement>('button[type="submit"]');
+    expect(submit?.disabled).toBe(true);
+    expect(submit?.textContent).toContain('Entrar');
 
-    expect(component.form.controls.email.value).toBe("maria@example.com");
-    expect(component.form.controls.password.value).toBe("");
-    expect(toastStore.toasts()[0]?.title).toBe("E-mail ou senha inválidos.");
+    loginResponse$.next({ user });
+    loginResponse$.complete();
   });
 
-  it("should show invalid credentials toast on 403 error", () => {
-    authService.login.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 403 })),
-    );
-    const component = fixture.componentInstance as unknown as {
-      form: {
-        controls: {
-          email: { setValue(value: string): void };
-          password: { setValue(value: string): void };
-        };
-      };
-    };
+  it('should show invalid credentials toast and clear password on 401 error', () => {
+    authService.login.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 401 })));
+    fillValidForm();
 
-    component.form.controls.email.setValue("maria@example.com");
-    component.form.controls.password.setValue("wrong-secret");
+    query<HTMLInputElement>('[data-testid="login-password"]')!.value = 'wrong-secret';
+    query<HTMLInputElement>('[data-testid="login-password"]')!.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const submit = fixture.nativeElement.querySelector("button[type=\"submit\"]") as HTMLButtonElement;
-    submit.click();
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
     fixture.detectChanges();
 
-    expect(toastStore.toasts()[0]?.title).toBe("E-mail ou senha inválidos.");
+    expect(query<HTMLInputElement>('[data-testid="login-email"]')?.value).toBe('maria@example.com');
+    expect(query<HTMLInputElement>('[data-testid="login-password"]')?.value).toBe('');
+    expect(toastStore.toasts()[0]?.title).toBe('E-mail ou senha inválidos.');
+  });
+
+  it('should show invalid credentials toast on 403 error', () => {
+    authService.login.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 403 })));
+    fillValidForm();
+
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
+    fixture.detectChanges();
+
+    expect(toastStore.toasts()[0]?.title).toBe('E-mail ou senha inválidos.');
   });
 });
