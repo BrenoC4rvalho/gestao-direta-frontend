@@ -1,5 +1,5 @@
 <section class="space-y-6">
-  @if (canCreateFarmCategory() && !accessDenied()) {
+  @if (canCreateCategory() && !accessDenied()) {
     <div class="flex justify-end">
       <gd-button type="button" (click)="openCreateDrawer()">Nova categoria</gd-button>
     </div>
@@ -154,6 +154,8 @@
     [category]="editingCategory()"
     [open]="drawerOpen()"
     [submitting]="submitting()"
+    [showScopeField]="showScopeField()"
+    [defaultScope]="defaultScope()"
     [typeOptions]="typeOptions"
     (submitted)="saveCategory($event)"
     (cancelled)="closeDrawer()"

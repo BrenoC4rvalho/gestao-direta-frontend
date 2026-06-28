@@ -1,6 +1,7 @@
 export type TransactionType = 'INCOME' | 'EXPENSE' | string;
 
 export type FinancialCategoryType = 'INCOME' | 'EXPENSE' | 'GLOBAL' | string;
+export type FinancialCategoryFormType = 'INCOME' | 'EXPENSE';
 
 export type FinancialCategoryStatus = 'ACTIVE' | 'INACTIVE' | string;
 
@@ -21,7 +22,7 @@ export interface FinancialCategory {
 
 export interface CreateFinancialCategoryRequest {
   name: string;
-  type: FinancialCategoryType;
+  type: FinancialCategoryFormType;
   farmId?: number | null;
   isDefault?: boolean;
   color?: string | null;

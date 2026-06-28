@@ -2,7 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { FinancialCategory } from '../models/financial-category.models';
+import {
+  CreateFinancialCategoryRequest,
+  FinancialCategory,
+} from '../models/financial-category.models';
 import { PageResponse } from '../models/page-response.model';
 
 import { FinancialCategoryService } from './financial-category.service';
@@ -79,7 +82,28 @@ describe('FinancialCategoryService', () => {
   });
 
   it('should create a category', () => {
-    const payload = { name: 'Adubo', type: 'EXPENSE', farmId: 1, isDefault: false };
+    const payload: CreateFinancialCategoryRequest = {
+      name: 'Adubo',
+      type: 'EXPENSE',
+      farmId: 1,
+      isDefault: false,
+    };
+
+    service.create(payload).subscribe((result) => expect(result).toEqual(category));
+
+    const request = http.expectOne(apiUrl + '/financial/categories');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush(category);
+  });
+
+  it('should create a global category with null farmId', () => {
+    const payload: CreateFinancialCategoryRequest = {
+      name: 'Serviços globais',
+      type: 'INCOME',
+      farmId: null,
+      isDefault: true,
+    };
 
     service.create(payload).subscribe((result) => expect(result).toEqual(category));
 

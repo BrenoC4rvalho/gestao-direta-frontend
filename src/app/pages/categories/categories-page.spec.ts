@@ -251,6 +251,89 @@ describe('CategoriesPage', () => {
     expect(findButton(fixture.nativeElement, 'Nova categoria')).toBeUndefined();
   });
 
+  it('should show create button for admin without selected farm', () => {
+    createPage();
+
+    expect(findButton(fixture.nativeElement, 'Nova categoria')).toBeTruthy();
+  });
+
+  it('should show scope field for admin when creating', () => {
+    createPage();
+    clickButton('Nova categoria');
+
+    expect(fixture.nativeElement.textContent).toContain('Escopo da categoria');
+  });
+
+  it('should create a global category without selected farm and reload globals', () => {
+    createPage();
+    clickButton('Nova categoria');
+    setInput('Serviços globais');
+    setSelect('INCOME');
+    setScope('GLOBAL');
+    submitForm();
+
+    expect(categoryService.create).toHaveBeenCalledWith({
+      name: 'Serviços globais',
+      type: 'INCOME',
+      farmId: null,
+      isDefault: true,
+    });
+    expect(categoryService.create.mock.calls[0][0].type).not.toBe('GLOBAL');
+    expect(categoryService.listGlobal).toHaveBeenCalledTimes(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Categoria global criada com sucesso.');
+  });
+
+  it('should create an admin farm category with selected farm scope', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova categoria');
+    setInput('Adubo novo');
+    setSelect('EXPENSE');
+    setScope('FARM');
+    submitForm();
+
+    expect(categoryService.create).toHaveBeenCalledWith({
+      name: 'Adubo novo',
+      type: 'EXPENSE',
+      farmId: 1,
+      isDefault: false,
+    });
+  });
+
+  it('should let producer create only farm categories without scope field', () => {
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess(access);
+    createPage();
+    clickButton('Nova categoria');
+
+    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
+
+    setInput('Venda local');
+    setSelect('INCOME');
+    submitForm();
+
+    expect(categoryService.create).toHaveBeenCalledWith({
+      name: 'Venda local',
+      type: 'INCOME',
+      farmId: 1,
+      isDefault: false,
+    });
+  });
+
+  it('should not create a farm category for non admin without selected farm', () => {
+    sessionStore.setUser(user);
+    createPage();
+
+    expect(findButton(fixture.nativeElement, 'Nova categoria')).toBeUndefined();
+
+    const harness = fixture.componentInstance as unknown as CategoriesPageHarness;
+    harness.saveCategory({ name: 'Adubo', type: 'EXPENSE' });
+    fixture.detectChanges();
+
+    expect(categoryService.create).not.toHaveBeenCalled();
+  });
+
   it('should create a farm category and reload lists', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -595,6 +678,17 @@ describe('CategoriesPage', () => {
     const select = fixture.nativeElement.querySelector(
       'gd-category-form gd-select select',
     ) as HTMLSelectElement;
+    setSelectValue(select, value);
+  }
+
+  function setScope(value: string): void {
+    const select = fixture.nativeElement.querySelectorAll(
+      'gd-category-form gd-select select',
+    ).item(1) as HTMLSelectElement;
+    setSelectValue(select, value);
+  }
+
+  function setSelectValue(select: HTMLSelectElement, value: string): void {
     const option = Array.from(select.options).find((item) => item.value.includes(value));
     select.selectedIndex = option?.index ?? 0;
     select.dispatchEvent(new Event('change'));

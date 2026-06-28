@@ -113,6 +113,76 @@ describe('CategoryForm', () => {
     expect(submitted).toEqual([]);
   });
 
+  it('should not render scope by default or while editing', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
+
+    fixture.componentRef.setInput('category', category);
+    fixture.componentRef.setInput('showScopeField', true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
+  });
+
+  it('should render scope field when enabled for create', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('showScopeField', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Escopo da categoria');
+    expect(scopeOptionLabels(fixture.nativeElement)).toEqual([
+      'Selecione o escopo',
+      'Fazenda selecionada',
+      'Global',
+    ]);
+    expect(fixture.nativeElement.textContent).toContain(
+      'Categorias da fazenda ficam disponíveis apenas para a fazenda selecionada.',
+    );
+  });
+
+  it('should emit global scope when selected', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    const submitted: unknown[] = [];
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('showScopeField', true);
+    fixture.componentRef.setInput('defaultScope', 'GLOBAL');
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
+    fixture.detectChanges();
+
+    setInput(fixture.nativeElement, 'Serviços');
+    setSelect(fixture.nativeElement, 'INCOME');
+    setScope(fixture.nativeElement, 'GLOBAL');
+    submitForm(fixture.nativeElement);
+
+    expect(submitted).toEqual([{ name: 'Serviços', type: 'INCOME', scope: 'GLOBAL' }]);
+  });
+
+  it('should validate required scope when scope field is enabled', () => {
+    const fixture = TestBed.createComponent(CategoryForm);
+    const submitted: unknown[] = [];
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('showScopeField', true);
+    fixture.componentRef.setInput('typeOptions', typeOptions);
+    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
+    fixture.detectChanges();
+
+    setInput(fixture.nativeElement, 'Serviços');
+    setSelect(fixture.nativeElement, 'INCOME');
+    setScope(fixture.nativeElement, '');
+    submitForm(fixture.nativeElement);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Selecione o escopo da categoria.');
+    expect(submitted).toEqual([]);
+  });
+
   it('should validate required fields', () => {
     const fixture = TestBed.createComponent(CategoryForm);
     fixture.componentRef.setInput('open', true);
@@ -185,6 +255,10 @@ function getSelect(root: HTMLElement): HTMLSelectElement {
   return root.querySelector('gd-select select') as HTMLSelectElement;
 }
 
+function getScopeSelect(root: HTMLElement): HTMLSelectElement {
+  return root.querySelectorAll('gd-select select').item(1) as HTMLSelectElement;
+}
+
 function setInput(root: HTMLElement, value: string): void {
   const input = getInput(root);
   input.value = value;
@@ -192,16 +266,29 @@ function setInput(root: HTMLElement, value: string): void {
 }
 
 function setSelect(root: HTMLElement, value: string): void {
-  const select = getSelect(root);
+  setSelectValue(getSelect(root), value);
+}
+
+function setScope(root: HTMLElement, value: string): void {
+  setSelectValue(getScopeSelect(root), value);
+}
+
+function setSelectValue(select: HTMLSelectElement, value: string): void {
   const option = Array.from(select.options).find((item) => item.value.includes(value));
   select.selectedIndex = option?.index ?? 0;
   select.dispatchEvent(new Event('change'));
 }
 
 function optionLabels(root: HTMLElement): string[] {
-  return Array.from(getSelect(root).options).map(
-    (option) => option.textContent?.trim() ?? '',
-  );
+  return selectOptionLabels(getSelect(root));
+}
+
+function scopeOptionLabels(root: HTMLElement): string[] {
+  return selectOptionLabels(getScopeSelect(root));
+}
+
+function selectOptionLabels(select: HTMLSelectElement): string[] {
+  return Array.from(select.options).map((option) => option.textContent?.trim() ?? '');
 }
 
 function selectedOptionLabel(root: HTMLElement): string {

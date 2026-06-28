@@ -10,7 +10,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 
 import {
   FinancialCategory,
-  UpdateFinancialCategoryRequest,
+  FinancialCategoryFormType,
 } from '../../../../core/models/financial-category.models';
 import {
   GdFormControl,
@@ -21,9 +21,18 @@ import {
 } from '../../../../shared/forms';
 import { Button } from '../../../../shared/ui';
 
+export type CategoryScope = 'FARM' | 'GLOBAL';
+
+export interface CategoryFormPayload {
+  name: string;
+  type: FinancialCategoryFormType;
+  scope?: CategoryScope;
+}
+
 interface CategoryFormControls {
   name: GdFormControl;
   type: GdFormControl;
+  scope: GdFormControl;
 }
 
 @Component({
@@ -36,12 +45,24 @@ export class CategoryForm {
   readonly category = input<FinancialCategory | null>(null);
   readonly open = input(false);
   readonly submitting = input(false);
+  readonly showScopeField = input(false);
+  readonly defaultScope = input<CategoryScope>('FARM');
   readonly typeOptions = input.required<readonly GdSelectOption[]>();
 
-  readonly submitted = output<UpdateFinancialCategoryRequest>();
+  readonly submitted = output<CategoryFormPayload>();
   readonly cancelled = output<void>();
 
   protected readonly editing = computed(() => this.category() !== null);
+  protected readonly scopeOptions: readonly GdSelectOption[] = [
+    { label: 'Fazenda selecionada', value: 'FARM' },
+    { label: 'Global', value: 'GLOBAL' },
+  ];
+  protected readonly scopeHint = computed(() =>
+    this.stringValue(this.form.controls.scope.value) === 'GLOBAL'
+      ? 'Categorias globais ficam disponíveis como padrão no sistema.'
+      : 'Categorias da fazenda ficam disponíveis apenas para a fazenda selecionada.',
+  );
+
   private readonly allowedTypeValues = computed(() =>
     new Set(this.typeOptions().map((option) => this.stringValue(option.value))),
   );
@@ -51,6 +72,9 @@ export class CategoryForm {
       validators: [Validators.required],
     }),
     type: new FormControl<GdFormValue>('', {
+      validators: [Validators.required],
+    }),
+    scope: new FormControl<GdFormValue>('FARM', {
       validators: [Validators.required],
     }),
   });
@@ -63,10 +87,14 @@ export class CategoryForm {
 
       const category = this.category();
       const type = this.stringValue(category?.type ?? '');
+      const defaultScope = this.isAllowedScope(this.defaultScope())
+        ? this.defaultScope()
+        : 'FARM';
 
       this.form.reset({
         name: category?.name ?? '',
         type: this.isAllowedType(type) ? type : '',
+        scope: category ? 'FARM' : defaultScope,
       });
     });
   }
@@ -74,6 +102,7 @@ export class CategoryForm {
   protected submit(): void {
     const name = this.stringValue(this.form.controls.name.value);
     const type = this.stringValue(this.form.controls.type.value);
+    const scope = this.stringValue(this.form.controls.scope.value);
 
     if (!name) {
       this.form.controls.name.setErrors({ required: true });
@@ -83,12 +112,28 @@ export class CategoryForm {
       this.form.controls.type.setErrors({ required: true });
     }
 
+    if (this.showScopeField() && !this.isAllowedScope(scope)) {
+      this.form.controls.scope.setErrors({ required: true });
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    this.submitted.emit({ name, type });
+    if (!this.isCategoryFormType(type)) {
+      this.form.controls.type.setErrors({ required: true });
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const payload: CategoryFormPayload = { name, type };
+
+    if (this.showScopeField()) {
+      payload.scope = this.isAllowedScope(scope) ? scope : 'FARM';
+    }
+
+    this.submitted.emit(payload);
   }
 
   protected cancel(): void {
@@ -109,8 +154,22 @@ export class CategoryForm {
       : null;
   }
 
+  protected scopeErrorMessage(): string | null {
+    return this.form.controls.scope.hasError('required')
+      ? 'Selecione o escopo da categoria.'
+      : null;
+  }
+
   private isAllowedType(type: string): boolean {
     return this.allowedTypeValues().has(type);
+  }
+
+  private isCategoryFormType(type: string): type is FinancialCategoryFormType {
+    return type === 'INCOME' || type === 'EXPENSE';
+  }
+
+  private isAllowedScope(scope: string): scope is CategoryScope {
+    return scope === 'FARM' || scope === 'GLOBAL';
   }
 
   private stringValue(value: GdFormValue): string {

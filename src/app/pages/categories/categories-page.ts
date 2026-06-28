@@ -14,6 +14,7 @@ import { finalize, forkJoin, map, Observable, of } from 'rxjs';
 import {
   CreateFinancialCategoryRequest,
   FinancialCategory,
+  FinancialCategoryFormType,
   isGlobalCategory,
   UpdateFinancialCategoryRequest,
 } from '../../core/models/financial-category.models';
@@ -26,7 +27,7 @@ import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import { Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
-import { CategoryForm } from './components/category-form/category-form';
+import { CategoryForm, CategoryFormPayload, CategoryScope } from './components/category-form/category-form';
 
 interface CategoryLists {
   farm: FinancialCategory[];
@@ -73,7 +74,7 @@ export class CategoriesPage {
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
-  private readonly allowedFormTypes = new Set(['INCOME', 'EXPENSE']);
+  private readonly allowedFormTypes = new Set<FinancialCategoryFormType>(['INCOME', 'EXPENSE']);
 
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
@@ -85,6 +86,12 @@ export class CategoriesPage {
     this.editingCategory()
       ? 'Atualize os dados da categoria financeira.'
       : 'Crie uma categoria para organizar as movimentações da fazenda.',
+  );
+  protected readonly showScopeField = computed(
+    () => !this.editingCategory() && this.sessionStore.isAdmin(),
+  );
+  protected readonly defaultScope = computed<CategoryScope>(() =>
+    this.selectedFarmStore.selectedFarmId() ? 'FARM' : 'GLOBAL',
   );
   protected readonly typeOptions: readonly GdSelectOption[] = [
     { label: 'Receita', value: 'INCOME' },
@@ -145,7 +152,7 @@ export class CategoriesPage {
   }
 
   protected openCreateDrawer(): void {
-    if (!this.canCreateFarmCategory()) {
+    if (!this.canCreateCategory()) {
       this.showPermissionError();
       return;
     }
@@ -173,7 +180,7 @@ export class CategoriesPage {
     this.editingCategory.set(null);
   }
 
-  protected saveCategory(payload: UpdateFinancialCategoryRequest): void {
+  protected saveCategory(payload: CategoryFormPayload): void {
     const editingCategory = this.editingCategory();
 
     if (editingCategory) {
@@ -306,33 +313,62 @@ export class CategoriesPage {
     return this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory();
   }
 
-  protected canCreateFarmCategory(): boolean {
-    return (
-      this.selectedFarmStore.selectedFarmId() !== null &&
-      (this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory())
-    );
+  protected canCreateCategory(): boolean {
+    if (this.sessionStore.isAdmin()) {
+      return true;
+    }
+
+    return this.canManageSelectedFarmCategory();
   }
 
-  private createCategory(payload: UpdateFinancialCategoryRequest): void {
-    const farmId = this.selectedFarmStore.selectedFarmId();
-
-    if (
-      !farmId ||
-      this.submitting() ||
-      !this.canCreateFarmCategory() ||
-      !this.isAllowedFormType(payload.type)
-    ) {
+  private createCategory(payload: CategoryFormPayload): void {
+    if (this.submitting() || !this.isAllowedFormType(payload.type)) {
       this.showPermissionError();
       return;
     }
 
-    const request: CreateFinancialCategoryRequest = {
-      name: payload.name,
-      type: payload.type,
-      farmId,
-      isDefault: false,
-    };
+    const scope = this.categoryScope(payload);
 
+    if (scope === 'GLOBAL') {
+      if (!this.sessionStore.isAdmin()) {
+        this.showPermissionError();
+        return;
+      }
+
+      this.submitCreateCategory(
+        {
+          name: payload.name,
+          type: payload.type,
+          farmId: null,
+          isDefault: true,
+        },
+        'Categoria global criada com sucesso.',
+      );
+      return;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    if (!farmId || !this.canCreateFarmCategory()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.submitCreateCategory(
+      {
+        name: payload.name,
+        type: payload.type,
+        farmId,
+        isDefault: false,
+      },
+      'Categoria criada com sucesso.',
+    );
+  }
+
+  private submitCreateCategory(
+    request: CreateFinancialCategoryRequest,
+    successMessage: string,
+  ): void {
     this.submitting.set(true);
 
     this.categoryService
@@ -344,7 +380,7 @@ export class CategoriesPage {
       .subscribe({
         next: () => {
           this.drawerOpen.set(false);
-          this.toastStore.success('Categoria criada com sucesso.');
+          this.toastStore.success(successMessage);
           this.retry();
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -418,6 +454,21 @@ export class CategoriesPage {
     );
   }
 
+  private categoryScope(payload: CategoryFormPayload): CategoryScope {
+    if (!this.sessionStore.isAdmin()) {
+      return 'FARM';
+    }
+
+    return payload.scope ?? this.defaultScope();
+  }
+
+  private canCreateFarmCategory(): boolean {
+    return (
+      this.selectedFarmStore.selectedFarmId() !== null &&
+      (this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory())
+    );
+  }
+
   private canManageSelectedFarmCategory(): boolean {
     const farmId = this.selectedFarmStore.selectedFarmId();
 
@@ -447,8 +498,8 @@ export class CategoriesPage {
     this.error.set(true);
   }
 
-  private isAllowedFormType(type: string): boolean {
-    return this.allowedFormTypes.has(type);
+  private isAllowedFormType(type: string): type is FinancialCategoryFormType {
+    return type === 'INCOME' || type === 'EXPENSE';
   }
 
   private showOperationError(error: unknown): void {
