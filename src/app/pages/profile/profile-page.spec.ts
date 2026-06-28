@@ -16,7 +16,8 @@ interface ProfilePageHarness {
     controls: {
       name: { setValue(value: string): void; value: string | null; hasError(error: string): boolean };
       email: { value: string | null };
-      document: { setValue(value: string): void; value: string | null };
+      documentType: { setValue(value: string): void; value: string | null };
+      document: { setValue(value: string): void; value: string | null; hasError(error: string): boolean };
     };
     invalid: boolean;
   };
@@ -103,7 +104,8 @@ describe('ProfilePage', () => {
     expect(userService.getMe).toHaveBeenCalled();
     expect(component.profileForm.controls.name.value).toBe('Maria Silva');
     expect(component.profileForm.controls.email.value).toBe('maria@example.com');
-    expect(component.profileForm.controls.document.value).toBe('12345678900');
+    expect(component.profileForm.controls.documentType.value).toBe('CPF');
+    expect(component.profileForm.controls.document.value).toBe('123.456.789-00');
   });
 
   it('should render readonly email and translated badges', () => {
@@ -142,6 +144,45 @@ describe('ProfilePage', () => {
       document: null,
     });
   });
+
+  it('should save profile with document digits only', () => {
+    const component = createPage();
+
+    component.profileForm.controls.name.setValue('Maria Silva');
+    component.profileForm.controls.document.setValue('123.456.789-00');
+    component.saveProfile();
+    fixture.detectChanges();
+
+    expect(userService.updateMe).toHaveBeenCalledWith({
+      name: 'Maria Silva',
+      document: '12345678900',
+    });
+  });
+
+  it('should load CNPJ formatted and infer document type', () => {
+    userService.getMe.mockReturnValueOnce(of({ ...user, document: '12345678901234' }));
+    const component = createPage();
+
+    expect(component.profileForm.controls.documentType.value).toBe('CNPJ');
+    expect(component.profileForm.controls.document.value).toBe('12.345.678/9012-34');
+  });
+
+  it('should validate incomplete CPF and CNPJ documents', () => {
+    const component = createPage();
+
+    component.profileForm.controls.document.setValue('123');
+    component.saveProfile();
+    fixture.detectChanges();
+    expect(component.profileForm.controls.document.hasError('cpfLength')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('CPF deve conter 11 dígitos.');
+
+    component.profileForm.controls.documentType.setValue('CNPJ');
+    component.saveProfile();
+    fixture.detectChanges();
+    expect(component.profileForm.controls.document.hasError('cnpjLength')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('CNPJ deve conter 14 dígitos.');
+  });
+
 
   it('should show success toast, update session and repopulate profile form', () => {
     const component = createPage();
@@ -244,6 +285,45 @@ describe('ProfilePage', () => {
       newPassword: 'new-secret',
     });
   });
+
+  it('should save profile with document digits only', () => {
+    const component = createPage();
+
+    component.profileForm.controls.name.setValue('Maria Silva');
+    component.profileForm.controls.document.setValue('123.456.789-00');
+    component.saveProfile();
+    fixture.detectChanges();
+
+    expect(userService.updateMe).toHaveBeenCalledWith({
+      name: 'Maria Silva',
+      document: '12345678900',
+    });
+  });
+
+  it('should load CNPJ formatted and infer document type', () => {
+    userService.getMe.mockReturnValueOnce(of({ ...user, document: '12345678901234' }));
+    const component = createPage();
+
+    expect(component.profileForm.controls.documentType.value).toBe('CNPJ');
+    expect(component.profileForm.controls.document.value).toBe('12.345.678/9012-34');
+  });
+
+  it('should validate incomplete CPF and CNPJ documents', () => {
+    const component = createPage();
+
+    component.profileForm.controls.document.setValue('123');
+    component.saveProfile();
+    fixture.detectChanges();
+    expect(component.profileForm.controls.document.hasError('cpfLength')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('CPF deve conter 11 dígitos.');
+
+    component.profileForm.controls.documentType.setValue('CNPJ');
+    component.saveProfile();
+    fixture.detectChanges();
+    expect(component.profileForm.controls.document.hasError('cnpjLength')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('CNPJ deve conter 14 dígitos.');
+  });
+
 
   it('should show success toast and clear password form', () => {
     const component = createPage();

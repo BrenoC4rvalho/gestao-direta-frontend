@@ -19,7 +19,12 @@ describe('UserForm', () => {
     expect(getInput(fixture.nativeElement, 1).id).toBe('user-email');
     expect(getInput(fixture.nativeElement, 2).id).toBe('user-password');
     expect(getInput(fixture.nativeElement, 3).id).toBe('user-document');
-    expect(fixture.nativeElement.querySelector('gd-select select')?.id).toBe('user-type');
+    const selects = fixture.nativeElement.querySelectorAll('gd-select select');
+    expect(selects[0]?.id).toBe('user-document-type');
+    expect(selects[1]?.id).toBe('user-type');
+    expect(fixture.nativeElement.textContent).toContain('Tipo de documento');
+    expect(selects[0]?.textContent).toContain('CPF');
+    expect(selects[0]?.textContent).toContain('CNPJ');
   });
 
   it('should mark required fields when submitting an empty form', () => {
@@ -67,7 +72,7 @@ describe('UserForm', () => {
         name: 'Maria Silva',
         email: 'maria@example.com',
         password: 'password123',
-        document: '123.456.789-00',
+        document: '12345678900',
         userType: 'USER',
       },
     ]);
@@ -96,13 +101,45 @@ describe('UserForm', () => {
   });
 
 
+  it('should mask CPF and CNPJ documents', () => {
+    const fixture = createForm();
+
+    setInput(fixture.nativeElement, 3, '12345678900');
+    fixture.detectChanges();
+    expect(getInput(fixture.nativeElement, 3).value).toBe('123.456.789-00');
+
+    setDocumentType(fixture.nativeElement, 'CNPJ');
+    setInput(fixture.nativeElement, 3, '12345678901234');
+    fixture.detectChanges();
+    expect(getInput(fixture.nativeElement, 3).value).toBe('12.345.678/9012-34');
+  });
+
+  it('should validate incomplete CPF and CNPJ documents', () => {
+    const fixture = createForm();
+
+    setInput(fixture.nativeElement, 0, 'Maria Silva');
+    setInput(fixture.nativeElement, 1, 'maria@example.com');
+    setInput(fixture.nativeElement, 2, 'password123');
+    setInput(fixture.nativeElement, 3, '123');
+    setSelect(fixture.nativeElement, 'USER');
+    submit(fixture.nativeElement);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('CPF deve conter 11 dígitos.');
+
+    setDocumentType(fixture.nativeElement, 'CNPJ');
+    submit(fixture.nativeElement);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('CNPJ deve conter 14 dígitos.');
+  });
+
+
   it('should limit type options with allowedUserTypes', () => {
     const fixture = TestBed.createComponent(UserForm);
     fixture.componentRef.setInput('open', true);
     fixture.componentRef.setInput('allowedUserTypes', ['USER']);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('gd-select select')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('gd-select select')).toHaveLength(1);
   });
 
   it('should not emit ADMIN when only USER is allowed', () => {
@@ -183,8 +220,20 @@ function setInput(root: HTMLElement, index: number, value: string): void {
 }
 
 function setSelect(root: HTMLElement, value: string): void {
-  const select = root.querySelector('gd-select select') as HTMLSelectElement;
+  const select = root.querySelectorAll<HTMLSelectElement>('gd-select select')[1];
   const option = Array.from(select.options).find((item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'));
+
+  if (!option) {
+    throw new Error(`Option not found: ${value}`);
+  }
+
+  select.value = option.value;
+  select.dispatchEvent(new Event('change'));
+}
+
+function setDocumentType(root: HTMLElement, value: 'CPF' | 'CNPJ'): void {
+  const select = root.querySelectorAll<HTMLSelectElement>('gd-select select')[0];
+  const option = Array.from(select.options).find((item) => item.textContent?.trim() === value);
 
   if (!option) {
     throw new Error(`Option not found: ${value}`);

@@ -198,6 +198,7 @@ describe('UsersPage', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Maria Silva');
     expect(text).toContain('maria@example.com');
+    expect(text).toContain('123.456.789-00');
     expect(text).toContain('Administrador');
     expect(text).toContain('Ativo');
     expect(text).toContain('João Souza');
@@ -322,6 +323,25 @@ describe('UsersPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Usuário criado com sucesso.');
   });
 
+  it('should create a user with document digits only', () => {
+    sessionStore.setUser(admin);
+    createPage();
+    openCreateDrawer();
+    fillValidCreateForm();
+    setCreateInput(3, '123.456.789-00');
+
+    submitUserForm();
+
+    expect(userService.create).toHaveBeenCalledWith({
+      name: 'Maria Nova',
+      email: 'maria.nova@example.com',
+      password: 'password123',
+      document: '12345678900',
+      userType: 'USER',
+    });
+  });
+
+
   it('should keep the create drawer open and clear password on create error', () => {
     userService.create.mockReturnValueOnce(
       throwError(() => new HttpErrorResponse({ status: 403 })),
@@ -382,7 +402,7 @@ describe('UsersPage', () => {
   });
 
   it('should save profile data, keep the drawer open and reload the current page', () => {
-    const updatedUser = { ...users[1], name: 'João Atualizado', document: '987' };
+    const updatedUser = { ...users[1], name: 'João Atualizado', document: '98765432100' };
     userService.update.mockReturnValueOnce(of(updatedUser));
     userService.list.mockReturnValueOnce(of(pageResponse(users, 1, 2)));
     sessionStore.setUser(admin);
@@ -390,12 +410,12 @@ describe('UsersPage', () => {
     openEditDrawer('João Souza');
 
     setEditInput(0, ' João Atualizado ');
-    setEditInput(2, ' 987 ');
+    setEditInput(2, ' 987.654.321-00 ');
     submitEditForm(0);
 
     expect(userService.update).toHaveBeenCalledWith(2, {
       name: 'João Atualizado',
-      document: '987',
+      document: '98765432100',
     });
     expect(userService.list).toHaveBeenLastCalledWith({
       page: 1,
@@ -684,9 +704,8 @@ describe('UsersPage', () => {
   }
 
   function setUserSelect(value: string): void {
-    const select = fixture.nativeElement.querySelector(
-      'gd-user-form gd-select select',
-    ) as HTMLSelectElement;
+    const root = fixture.nativeElement as HTMLElement;
+    const select = root.querySelectorAll<HTMLSelectElement>('gd-user-form gd-select select')[1];
     const option = Array.from(select.options).find(
       (item) => item.textContent?.trim() === (value === 'ADMIN' ? 'Administrador' : 'Usuário'),
     );

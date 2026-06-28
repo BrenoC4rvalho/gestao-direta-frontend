@@ -35,12 +35,24 @@
       [errorMessage]="passwordErrorMessage()"
     />
 
+    <gd-select
+      id="user-document-type"
+      label="Tipo de documento"
+      [control]="form.controls.documentType"
+      [options]="documentTypeOptions"
+      [required]="true"
+      [disabled]="submitting()"
+    />
+
     <gd-input
       id="user-document"
       label="Documento"
-      placeholder="CPF ou CNPJ"
+      placeholder="Informe o documento"
+      type="tel"
+      autocomplete="off"
       [control]="form.controls.document"
       [disabled]="submitting()"
+      [errorMessage]="documentErrorMessage()"
     />
 
     @if (showUserTypeSelect()) {

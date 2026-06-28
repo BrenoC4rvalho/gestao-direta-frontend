@@ -1,14 +1,39 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 
 import { UserStatus, UserType } from '../../../../core/models/auth.models';
 import { UpdateUserRequest, User } from '../../../../core/models/user.models';
-import { GdFormControl, GdFormValue, Input } from '../../../../shared/forms';
+import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../../../shared/forms';
 import { Badge, BadgeVariant, Button } from '../../../../shared/ui';
+import {
+  DocumentType,
+  formatCnpj,
+  formatCpf,
+  inferDocumentType,
+  onlyDigits,
+} from '../../../../shared/utils/document.utils';
 
 interface ProfileFormControls {
   name: GdFormControl;
   email: GdFormControl;
+  documentType: GdFormControl;
   document: GdFormControl;
 }
 
@@ -24,11 +49,13 @@ interface StatusAction {
 
 @Component({
   selector: 'gd-user-edit-form',
-  imports: [Badge, Button, Input, ReactiveFormsModule],
+  imports: [Badge, Button, Input, ReactiveFormsModule, Select],
   templateUrl: './user-edit-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserEditForm {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly user = input<User | null>(null);
   readonly isCurrentUser = input(false);
   readonly savingProfile = input(false);
@@ -42,12 +69,22 @@ export class UserEditForm {
   readonly resetPassword = output<string>();
   readonly cancel = output<void>();
 
+  protected readonly documentTypeOptions: readonly GdSelectOption[] = [
+    { label: 'CPF', value: 'CPF' },
+    { label: 'CNPJ', value: 'CNPJ' },
+  ];
+
   protected readonly profileForm = new FormGroup<ProfileFormControls>({
     name: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
     email: new FormControl<GdFormValue>(''),
-    document: new FormControl<GdFormValue>(''),
+    documentType: new FormControl<GdFormValue>('CPF', {
+      validators: [Validators.required],
+    }),
+    document: new FormControl<GdFormValue>('', {
+      validators: [this.documentValidator()],
+    }),
   });
 
   protected readonly passwordForm = new FormGroup<PasswordFormControls>({
@@ -78,13 +115,25 @@ export class UserEditForm {
   });
 
   constructor() {
+    this.profileForm.controls.document.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyDocumentMask());
+    this.profileForm.controls.documentType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.applyDocumentMask();
+        this.profileForm.controls.document.updateValueAndValidity({ emitEvent: false });
+      });
+
     effect(() => {
       const user = this.user();
+      const documentType = inferDocumentType(user?.document) ?? 'CPF';
 
       this.profileForm.reset({
         name: user?.name ?? '',
         email: user?.email ?? '',
-        document: user?.document ?? '',
+        documentType,
+        document: this.formatDocument(user?.document ?? '', documentType),
       });
       this.profileForm.controls.email.disable({ emitEvent: false });
       this.passwordForm.reset({ password: '' });
@@ -101,7 +150,9 @@ export class UserEditForm {
     }
 
     const name = this.stringValue(this.profileForm.controls.name.value);
+    this.profileForm.controls.document.updateValueAndValidity({ emitEvent: false });
     this.setRequiredErrorIfEmpty(this.profileForm.controls.name, name);
+    this.setRequiredErrorIfEmpty(this.profileForm.controls.documentType, this.documentType());
 
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
@@ -110,7 +161,7 @@ export class UserEditForm {
 
     this.saveProfile.emit({
       name,
-      document: this.nullableString(this.profileForm.controls.document.value),
+      document: this.documentPayload(),
     });
   }
 
@@ -152,6 +203,16 @@ export class UserEditForm {
     return this.profileForm.controls.name.hasError('required')
       ? 'Informe o nome do usuário.'
       : null;
+  }
+
+  protected documentErrorMessage(): string | null {
+    const control = this.profileForm.controls.document;
+
+    if (control.hasError('cpfLength')) {
+      return 'CPF deve conter 11 dígitos.';
+    }
+
+    return control.hasError('cnpjLength') ? 'CNPJ deve conter 14 dígitos.' : null;
   }
 
   protected passwordErrorMessage(): string | null {
@@ -197,6 +258,48 @@ export class UserEditForm {
     return status ? (variants[status] ?? 'info') : 'neutral';
   }
 
+  private applyDocumentMask(): void {
+    const control = this.profileForm.controls.document;
+    const digits = onlyDigits(control.value).slice(0, this.documentMaxLength());
+    const formatted = this.formatDocument(digits, this.documentType());
+
+    if (control.value !== formatted) {
+      control.setValue(formatted, { emitEvent: false });
+    }
+  }
+
+  private formatDocument(value: GdFormValue, documentType: DocumentType): string {
+    return documentType === 'CNPJ' ? formatCnpj(value) : formatCpf(value);
+  }
+
+  private documentValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control: AbstractControl<GdFormValue>): ValidationErrors | null => {
+      const digits = onlyDigits(control.value);
+
+      if (!digits) {
+        return null;
+      }
+
+      if (this.documentType() === 'CNPJ') {
+        return digits.length === 14 ? null : { cnpjLength: true };
+      }
+
+      return digits.length === 11 ? null : { cpfLength: true };
+    };
+  }
+
+  private documentType(): DocumentType {
+    return this.profileForm.controls.documentType.value === 'CNPJ' ? 'CNPJ' : 'CPF';
+  }
+
+  private documentMaxLength(): number {
+    return this.documentType() === 'CNPJ' ? 14 : 11;
+  }
+
+  private documentPayload(): string | null {
+    return onlyDigits(this.profileForm.controls.document.value) || null;
+  }
+
   private setRequiredErrorIfEmpty(control: GdFormControl, value: string): void {
     if (!value) {
       control.setErrors({ ...control.errors, required: true });
@@ -205,9 +308,5 @@ export class UserEditForm {
 
   private stringValue(value: GdFormValue): string {
     return `${value ?? ''}`.trim();
-  }
-
-  private nullableString(value: GdFormValue): string | null {
-    return this.stringValue(value) || null;
   }
 }

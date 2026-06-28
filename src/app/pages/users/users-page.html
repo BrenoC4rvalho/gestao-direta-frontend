@@ -91,14 +91,14 @@
               <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Cadastro</dt>
               <dd class="mt-1 font-medium text-text-primary">{{ createdAtLabel(user) }}</dd>
             </div>
-            @if (user.document; as document) {
-              <div class="col-span-2">
-                <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">
-                  Documento
-                </dt>
-                <dd class="mt-1 break-all font-medium text-text-primary">{{ document }}</dd>
-              </div>
-            }
+            <div class="col-span-2">
+              <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">
+                Documento
+              </dt>
+              <dd class="mt-1 break-all font-medium text-text-primary">
+                {{ user.document | documentFormat }}
+              </dd>
+            </div>
           </dl>
 
           <div class="mt-5 border-t border-border pt-4">
@@ -141,7 +141,7 @@
                 <p class="mt-1 text-sm text-text-muted">{{ user.email }}</p>
               </td>
               <td class="px-5 py-4 text-sm text-text-primary">
-                {{ user.document ?? 'Não informado' }}
+                {{ user.document | documentFormat }}
               </td>
               <td class="px-5 py-4">
                 <gd-badge [variant]="userTypeVariant(user)" size="sm">

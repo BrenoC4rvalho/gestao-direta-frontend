@@ -63,12 +63,23 @@
             hint="O e-mail não pode ser alterado por aqui."
           />
 
+          <gd-select
+            id="profile-document-type"
+            label="Tipo de documento"
+            [control]="profileForm.controls.documentType"
+            [options]="documentTypeOptions"
+            [required]="true"
+            [disabled]="savingProfile()"
+          />
+
           <gd-input
             id="profile-document"
             label="Documento"
+            type="tel"
             [control]="profileForm.controls.document"
             autocomplete="off"
             hint="Campo opcional."
+            [errorMessage]="documentErrorMessage()"
           />
 
           <div class="pt-2">

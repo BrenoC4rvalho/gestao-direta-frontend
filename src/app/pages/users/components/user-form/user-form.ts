@@ -1,5 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 
 import { UserType } from '../../../../core/models/auth.models';
 import { CreateUserRequest } from '../../../../core/models/user.models';
@@ -11,11 +28,18 @@ import {
   Select,
 } from '../../../../shared/forms';
 import { Button } from '../../../../shared/ui';
+import {
+  DocumentType,
+  formatCnpj,
+  formatCpf,
+  onlyDigits,
+} from '../../../../shared/utils/document.utils';
 
 interface UserFormControls {
   name: GdFormControl;
   email: GdFormControl;
   password: GdFormControl;
+  documentType: GdFormControl;
   document: GdFormControl;
   userType: GdFormControl;
 }
@@ -27,6 +51,8 @@ interface UserFormControls {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserForm {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly open = input(false);
   readonly submitting = input(false);
   readonly allowedUserTypes = input<readonly UserType[]>(['USER', 'ADMIN']);
@@ -37,6 +63,10 @@ export class UserForm {
   protected readonly userTypeOptions = computed<readonly GdSelectOption[]>(() =>
     this.allowedUserTypes().map((type) => ({ label: this.userTypeLabel(type), value: type })),
   );
+  protected readonly documentTypeOptions: readonly GdSelectOption[] = [
+    { label: 'CPF', value: 'CPF' },
+    { label: 'CNPJ', value: 'CNPJ' },
+  ];
   protected readonly showUserTypeSelect = computed(() => this.allowedUserTypes().length > 1);
 
   protected readonly form = new FormGroup<UserFormControls>({
@@ -49,13 +79,28 @@ export class UserForm {
     password: new FormControl<GdFormValue>('', {
       validators: [Validators.required, Validators.minLength(8)],
     }),
-    document: new FormControl<GdFormValue>(''),
+    documentType: new FormControl<GdFormValue>('CPF', {
+      validators: [Validators.required],
+    }),
+    document: new FormControl<GdFormValue>('', {
+      validators: [this.documentValidator()],
+    }),
     userType: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
   });
 
   constructor() {
+    this.form.controls.document.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyDocumentMask());
+    this.form.controls.documentType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.applyDocumentMask();
+        this.form.controls.document.updateValueAndValidity({ emitEvent: false });
+      });
+
     effect(() => {
       this.open();
       const [defaultType = 'USER'] = this.allowedUserTypes();
@@ -63,6 +108,7 @@ export class UserForm {
         name: '',
         email: '',
         password: '',
+        documentType: 'CPF',
         document: '',
         userType: this.showUserTypeSelect() ? '' : defaultType,
       });
@@ -86,10 +132,12 @@ export class UserForm {
     const userType = this.normalizedUserType(selectedUserType, allowedUserTypes);
 
     this.form.controls.userType.setValue(userType);
+    this.form.controls.document.updateValueAndValidity({ emitEvent: false });
 
     this.setRequiredErrorIfEmpty(this.form.controls.name, name);
     this.setRequiredErrorIfEmpty(this.form.controls.email, email);
     this.setRequiredErrorIfEmpty(this.form.controls.password, password);
+    this.setRequiredErrorIfEmpty(this.form.controls.documentType, this.documentType());
     this.setRequiredErrorIfEmpty(this.form.controls.userType, userType);
 
     if (this.form.invalid) {
@@ -101,7 +149,7 @@ export class UserForm {
       name,
       email,
       password,
-      document: this.nullableString(this.form.controls.document.value),
+      document: this.documentPayload(),
       userType,
     });
   }
@@ -145,7 +193,53 @@ export class UserForm {
       : null;
   }
 
+  protected documentErrorMessage(): string | null {
+    const control = this.form.controls.document;
 
+    if (control.hasError('cpfLength')) {
+      return 'CPF deve conter 11 dígitos.';
+    }
+
+    return control.hasError('cnpjLength') ? 'CNPJ deve conter 14 dígitos.' : null;
+  }
+
+  private applyDocumentMask(): void {
+    const control = this.form.controls.document;
+    const digits = onlyDigits(control.value).slice(0, this.documentMaxLength());
+    const formatted = this.documentType() === 'CNPJ' ? formatCnpj(digits) : formatCpf(digits);
+
+    if (control.value !== formatted) {
+      control.setValue(formatted, { emitEvent: false });
+    }
+  }
+
+  private documentValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control: AbstractControl<GdFormValue>): ValidationErrors | null => {
+      const digits = onlyDigits(control.value);
+
+      if (!digits) {
+        return null;
+      }
+
+      if (this.documentType() === 'CNPJ') {
+        return digits.length === 14 ? null : { cnpjLength: true };
+      }
+
+      return digits.length === 11 ? null : { cpfLength: true };
+    };
+  }
+
+  private documentType(): DocumentType {
+    return this.form.controls.documentType.value === 'CNPJ' ? 'CNPJ' : 'CPF';
+  }
+
+  private documentMaxLength(): number {
+    return this.documentType() === 'CNPJ' ? 14 : 11;
+  }
+
+  private documentPayload(): string | null {
+    return onlyDigits(this.form.controls.document.value) || null;
+  }
 
   private normalizedUserType(
     selectedUserType: UserType | '',
@@ -179,9 +273,5 @@ export class UserForm {
 
   private stringValue(value: GdFormValue): string {
     return `${value ?? ''}`.trim();
-  }
-
-  private nullableString(value: GdFormValue): string | null {
-    return this.stringValue(value) || null;
   }
 }

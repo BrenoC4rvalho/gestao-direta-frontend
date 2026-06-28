@@ -31,6 +31,7 @@ describe('UserEditForm', () => {
     expect(getInput(fixture.nativeElement, 1).value).toBe('joao@example.com');
     expect(getInput(fixture.nativeElement, 1).disabled).toBe(true);
     expect(getInput(fixture.nativeElement, 2).value).toBe('123.456.789-00');
+    expect(getDocumentTypeSelect(fixture.nativeElement).selectedOptions[0]?.textContent?.trim()).toBe('CPF');
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Usuário');
@@ -64,6 +65,41 @@ describe('UserEditForm', () => {
       document: null,
     });
   });
+
+  it('should infer CNPJ and save only document digits', () => {
+    const fixture = createForm({ ...user, document: '12345678901234' });
+    const saveProfile = vi.fn();
+    fixture.componentInstance.saveProfile.subscribe(saveProfile);
+
+    expect(getDocumentTypeSelect(fixture.nativeElement).selectedOptions[0]?.textContent?.trim()).toBe('CNPJ');
+    expect(getInput(fixture.nativeElement, 2).value).toBe('12.345.678/9012-34');
+
+    submitForm(fixture.nativeElement, 0);
+
+    expect(saveProfile).toHaveBeenCalledWith({
+      name: 'João Souza',
+      document: '12345678901234',
+    });
+  });
+
+  it('should validate incomplete CPF and CNPJ documents', () => {
+    const fixture = createForm(user);
+    const saveProfile = vi.fn();
+    fixture.componentInstance.saveProfile.subscribe(saveProfile);
+
+    setInput(fixture.nativeElement, 2, '123');
+    submitForm(fixture.nativeElement, 0);
+    fixture.detectChanges();
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('CPF deve conter 11 dígitos.');
+
+    setDocumentType(fixture.nativeElement, 'CNPJ');
+    submitForm(fixture.nativeElement, 0);
+    fixture.detectChanges();
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('CNPJ deve conter 14 dígitos.');
+  });
+
 
   it('should render available status actions without the current status', () => {
     const fixture = createForm(user);
@@ -170,4 +206,21 @@ function findButton(root: HTMLElement, label: string): HTMLButtonElement | undef
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   );
+}
+
+
+function getDocumentTypeSelect(root: HTMLElement): HTMLSelectElement {
+  return root.querySelector('gd-select select') as HTMLSelectElement;
+}
+
+function setDocumentType(root: HTMLElement, value: 'CPF' | 'CNPJ'): void {
+  const select = getDocumentTypeSelect(root);
+  const option = Array.from(select.options).find((item) => item.textContent?.trim() === value);
+
+  if (!option) {
+    throw new Error(`Option not found: ${value}`);
+  }
+
+  select.value = option.value;
+  select.dispatchEvent(new Event('change'));
 }

@@ -21,6 +21,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
+import { DocumentFormatPipe } from '../../shared/pipes/document-format.pipe';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { UserEditForm } from './components/user-edit-form/user-edit-form';
 import { UserForm } from './components/user-form/user-form';
@@ -56,6 +57,7 @@ interface UserActionConfirmation {
     Button,
     ConfirmDialog,
     Drawer,
+    DocumentFormatPipe,
     EmptyState,
     ErrorState,
     Skeleton,

@@ -30,12 +30,24 @@
         [disabled]="true"
       />
 
+      <gd-select
+        id="edit-user-document-type"
+        label="Tipo de documento"
+        [control]="profileForm.controls.documentType"
+        [options]="documentTypeOptions"
+        [required]="true"
+        [disabled]="savingProfile()"
+      />
+
       <gd-input
         id="edit-user-document"
         label="Documento"
-        placeholder="CPF ou CNPJ"
+        placeholder="Informe o documento"
+        type="tel"
+        autocomplete="off"
         [control]="profileForm.controls.document"
         [disabled]="savingProfile()"
+        [errorMessage]="documentErrorMessage()"
       />
 
       <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">

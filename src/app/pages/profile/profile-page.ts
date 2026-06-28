@@ -17,12 +17,20 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, Input } from '../../shared/forms';
+import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../shared/forms';
 import { Badge, BadgeVariant, Button, Card, ErrorState, Skeleton } from '../../shared/ui';
+import {
+  DocumentType,
+  formatCnpj,
+  formatCpf,
+  inferDocumentType,
+  onlyDigits,
+} from '../../shared/utils/document.utils';
 
 interface ProfileFormControls {
   name: GdFormControl;
   email: GdFormControl;
+  documentType: GdFormControl;
   document: GdFormControl;
 }
 
@@ -34,7 +42,7 @@ interface PasswordFormControls {
 
 @Component({
   selector: 'gd-profile-page',
-  imports: [Badge, Button, Card, ErrorState, Input, ReactiveFormsModule, Skeleton],
+  imports: [Badge, Button, Card, ErrorState, Input, ReactiveFormsModule, Select, Skeleton],
   templateUrl: './profile-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -51,13 +59,22 @@ export class ProfilePage implements OnInit {
   protected readonly savingProfile = signal(false);
   protected readonly changingPassword = signal(false);
   protected readonly skeletons = [1, 2, 3];
+  protected readonly documentTypeOptions: readonly GdSelectOption[] = [
+    { label: 'CPF', value: 'CPF' },
+    { label: 'CNPJ', value: 'CNPJ' },
+  ];
 
   protected readonly profileForm = new FormGroup<ProfileFormControls>({
     name: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
     email: new FormControl<GdFormValue>(''),
-    document: new FormControl<GdFormValue>(''),
+    documentType: new FormControl<GdFormValue>('CPF', {
+      validators: [Validators.required],
+    }),
+    document: new FormControl<GdFormValue>('', {
+      validators: [this.documentValidator()],
+    }),
   });
 
   protected readonly passwordForm = new FormGroup<PasswordFormControls>({
@@ -73,6 +90,16 @@ export class ProfilePage implements OnInit {
   });
 
   constructor() {
+    this.profileForm.controls.document.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyDocumentMask());
+    this.profileForm.controls.documentType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.applyDocumentMask();
+        this.profileForm.controls.document.updateValueAndValidity({ emitEvent: false });
+      });
+
     this.passwordForm.controls.newPassword.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -115,7 +142,9 @@ export class ProfilePage implements OnInit {
     }
 
     const name = this.stringValue(this.profileForm.controls.name.value);
+    this.profileForm.controls.document.updateValueAndValidity({ emitEvent: false });
     this.setRequiredErrorIfEmpty(this.profileForm.controls.name, name);
+    this.setRequiredErrorIfEmpty(this.profileForm.controls.documentType, this.documentType());
 
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
@@ -127,7 +156,7 @@ export class ProfilePage implements OnInit {
     this.userService
       .updateMe({
         name,
-        document: this.nullableString(this.profileForm.controls.document.value),
+        document: this.documentPayload(),
       })
       .pipe(
         finalize(() => this.savingProfile.set(false)),
@@ -215,6 +244,16 @@ export class ProfilePage implements OnInit {
     return this.profileForm.controls.name.hasError('required') ? 'Informe seu nome.' : null;
   }
 
+  protected documentErrorMessage(): string | null {
+    const control = this.profileForm.controls.document;
+
+    if (control.hasError('cpfLength')) {
+      return 'CPF deve conter 11 dígitos.';
+    }
+
+    return control.hasError('cnpjLength') ? 'CNPJ deve conter 14 dígitos.' : null;
+  }
+
   protected currentPasswordErrorMessage(): string | null {
     return this.passwordForm.controls.currentPassword.hasError('required')
       ? 'Informe sua senha atual.'
@@ -242,10 +281,13 @@ export class ProfilePage implements OnInit {
   }
 
   private populateProfileForm(user: User): void {
+    const documentType = inferDocumentType(user.document) ?? 'CPF';
+
     this.profileForm.reset({
       name: user.name,
       email: user.email,
-      document: user.document ?? '',
+      documentType,
+      document: this.formatDocument(user.document ?? '', documentType),
     });
   }
 
@@ -292,6 +334,49 @@ export class ProfilePage implements OnInit {
     return fallback;
   }
 
+
+  private applyDocumentMask(): void {
+    const control = this.profileForm.controls.document;
+    const digits = onlyDigits(control.value).slice(0, this.documentMaxLength());
+    const formatted = this.formatDocument(digits, this.documentType());
+
+    if (control.value !== formatted) {
+      control.setValue(formatted, { emitEvent: false });
+    }
+  }
+
+  private formatDocument(value: GdFormValue, documentType: DocumentType): string {
+    return documentType === 'CNPJ' ? formatCnpj(value) : formatCpf(value);
+  }
+
+  private documentValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control: AbstractControl<GdFormValue>): ValidationErrors | null => {
+      const digits = onlyDigits(control.value);
+
+      if (!digits) {
+        return null;
+      }
+
+      if (this.documentType() === 'CNPJ') {
+        return digits.length === 14 ? null : { cnpjLength: true };
+      }
+
+      return digits.length === 11 ? null : { cpfLength: true };
+    };
+  }
+
+  private documentType(): DocumentType {
+    return this.profileForm.controls.documentType.value === 'CNPJ' ? 'CNPJ' : 'CPF';
+  }
+
+  private documentMaxLength(): number {
+    return this.documentType() === 'CNPJ' ? 14 : 11;
+  }
+
+  private documentPayload(): string | null {
+    return onlyDigits(this.profileForm.controls.document.value) || null;
+  }
+
   private confirmPasswordValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
     return (control: AbstractControl<GdFormValue>): ValidationErrors | null => {
       const confirmation = this.stringValue(control.value);
@@ -309,9 +394,5 @@ export class ProfilePage implements OnInit {
 
   private stringValue(value: GdFormValue): string {
     return `${value ?? ''}`.trim();
-  }
-
-  private nullableString(value: GdFormValue): string | null {
-    return this.stringValue(value) || null;
   }
 }
