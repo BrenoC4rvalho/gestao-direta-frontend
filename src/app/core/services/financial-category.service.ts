@@ -8,7 +8,11 @@ import {
   FinancialCategory,
   UpdateFinancialCategoryRequest,
 } from '../models/financial-category.models';
-import { PageResponse } from '../models/page-response.model';
+import { PageRequest, PageResponse } from '../models/page-response.model';
+
+export interface FinancialCategoryListByFarmParams extends PageRequest {
+  includeInactive?: boolean;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -17,10 +21,13 @@ export class FinancialCategoryService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  listByFarm(farmId: number): Observable<FinancialCategory[]> {
+  listByFarm(
+    farmId: number,
+    params: FinancialCategoryListByFarmParams = {},
+  ): Observable<FinancialCategory[]> {
     return this.http
       .get<PageResponse<FinancialCategory>>(`${this.apiUrl}/financial/categories`, {
-        params: new HttpParams().set('farmId', farmId),
+        params: this.buildListParams(farmId, params),
       })
       .pipe(map((response) => response.content));
   }
@@ -61,5 +68,34 @@ export class FinancialCategoryService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/financial/categories/${id}`);
+  }
+
+  private buildListParams(
+    farmId: number,
+    params: FinancialCategoryListByFarmParams,
+  ): HttpParams {
+    let httpParams = new HttpParams().set('farmId', farmId);
+
+    if (params.includeInactive !== undefined) {
+      httpParams = httpParams.set('includeInactive', params.includeInactive);
+    }
+
+    if (params.page !== undefined) {
+      httpParams = httpParams.set('page', params.page);
+    }
+
+    if (params.size !== undefined) {
+      httpParams = httpParams.set('size', params.size);
+    }
+
+    if (params.sort !== undefined) {
+      httpParams = httpParams.set('sort', params.sort);
+    }
+
+    if (params.direction !== undefined) {
+      httpParams = httpParams.set('direction', params.direction);
+    }
+
+    return httpParams;
   }
 }

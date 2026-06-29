@@ -60,8 +60,49 @@ describe('FinancialCategoryService', () => {
   it('should call GET /api/financial/categories with farmId', () => {
     service.listByFarm(1).subscribe((categories) => expect(categories).toEqual([category]));
 
-    const request = http.expectOne(apiUrl + '/financial/categories?farmId=1');
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/categories');
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.has('includeInactive')).toBe(false);
+    request.flush(response);
+  });
+
+  it('should not send includeInactive when it is undefined', () => {
+    service
+      .listByFarm(1, { includeInactive: undefined })
+      .subscribe((categories) => expect(categories).toEqual([category]));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/categories');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.has('includeInactive')).toBe(false);
+    request.flush(response);
+  });
+
+  it('should send includeInactive when listing farm categories with inactive categories', () => {
+    service
+      .listByFarm(1, { includeInactive: true })
+      .subscribe((categories) => expect(categories).toEqual([category]));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/categories');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.get('includeInactive')).toBe('true');
+    request.flush(response);
+  });
+
+  it('should send pagination params when listing farm categories', () => {
+    service
+      .listByFarm(1, { page: 2, size: 20, sort: 'name', direction: 'ASC' })
+      .subscribe((categories) => expect(categories).toEqual([category]));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/categories');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('size')).toBe('20');
+    expect(request.request.params.get('sort')).toBe('name');
+    expect(request.request.params.get('direction')).toBe('ASC');
     request.flush(response);
   });
 

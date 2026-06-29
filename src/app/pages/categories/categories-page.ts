@@ -432,7 +432,9 @@ export class CategoriesPage {
   ): Observable<CategoryLists> {
     if (isAdmin) {
       const global$ = this.categoryService.listGlobal();
-      const farm$ = farmId ? this.categoryService.listByFarm(farmId) : of([]);
+      const farm$ = farmId
+        ? this.categoryService.listByFarm(farmId, { includeInactive: true })
+        : of([]);
 
       return forkJoin({ global: global$, farm: farm$ }).pipe(
         map(({ global, farm }) => ({
@@ -446,7 +448,7 @@ export class CategoriesPage {
       return of({ farm: [], global: [] });
     }
 
-    return this.categoryService.listByFarm(farmId).pipe(
+    return this.categoryService.listByFarm(farmId, { includeInactive: true }).pipe(
       map((categories) => ({
         farm: categories.filter((category) => !isGlobalCategory(category)),
         global: categories.filter((category) => isGlobalCategory(category)),

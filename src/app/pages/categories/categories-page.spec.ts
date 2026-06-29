@@ -194,7 +194,7 @@ describe('CategoriesPage', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { includeInactive: true });
     expect(fixture.nativeElement.textContent).toContain('Adubo');
   });
 
@@ -211,6 +211,19 @@ describe('CategoriesPage', () => {
     expect(listItems.length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Adubo');
     expect(fixture.nativeElement.textContent).toContain('Venda de safra');
+  });
+
+  it('should render active and inactive farm categories with expected actions', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([farmCategory, inactiveFarmCategory]));
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Adubo');
+    expect(fixture.nativeElement.textContent).toContain('Defensivos');
+    expect(fixture.nativeElement.textContent).toContain('Ativa');
+    expect(fixture.nativeElement.textContent).toContain('Inativa');
+    expect(findButton(fixture.nativeElement, 'Inativar')).toBeTruthy();
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
   });
 
   it('should not load farm categories when no farm is selected', () => {
@@ -351,6 +364,7 @@ describe('CategoriesPage', () => {
       isDefault: false,
     });
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
+    expect(categoryService.listByFarm).toHaveBeenLastCalledWith(1, { includeInactive: true });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria criada com sucesso.');
   });
 
@@ -481,6 +495,7 @@ describe('CategoriesPage', () => {
 
     expect(categoryService.delete).toHaveBeenCalledWith(1);
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
+    expect(categoryService.listByFarm).toHaveBeenLastCalledWith(1, { includeInactive: true });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria inativada com sucesso.');
   });
 
@@ -550,6 +565,7 @@ describe('CategoriesPage', () => {
     expect(categoryService.activate).toHaveBeenCalledWith(3);
     expect(categoryService.update).not.toHaveBeenCalled();
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
+    expect(categoryService.listByFarm).toHaveBeenLastCalledWith(1, { includeInactive: true });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
   });
 
