@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { ThemeStore } from '../../core/stores/theme.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
 import { MobileHeader } from './mobile-header';
@@ -84,6 +85,7 @@ describe('MobileHeader', () => {
   let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
+  let themeStore: ThemeStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
@@ -108,6 +110,7 @@ describe('MobileHeader', () => {
     farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
+    themeStore = TestBed.inject(ThemeStore);
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
     toastStore.clear();
@@ -122,6 +125,8 @@ describe('MobileHeader', () => {
     farmAccessStore.clear();
     selectedFarmStore.clear();
     toastStore.clear();
+    localStorage.clear();
+    document.documentElement.classList.remove('dark');
   });
 
   it('should render the mobile brand logo', () => {
@@ -186,6 +191,36 @@ describe('MobileHeader', () => {
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
     expect(profileLink?.getAttribute('href')).toBe('/profile');
+  });
+
+  it('should render the theme toggle button in the drawer', () => {
+    openDrawer();
+
+    const themeButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Alternar tema"]',
+    ) as HTMLButtonElement;
+
+    expect(themeButton).toBeTruthy();
+    expect(themeButton.getAttribute('title')).toBe('Alternar tema');
+    expect(themeButton.textContent).toContain('Modo escuro');
+
+    themeStore.setTheme('dark');
+    fixture.detectChanges();
+
+    expect(themeButton.textContent).toContain('Modo claro');
+  });
+
+  it('should toggle the theme from the drawer button', () => {
+    const toggleTheme = vi.spyOn(themeStore, 'toggleTheme');
+    openDrawer();
+
+    const themeButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Alternar tema"]',
+    ) as HTMLButtonElement;
+
+    themeButton.click();
+
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
   });
 
   it('should close drawer when a navigation link is clicked', async () => {

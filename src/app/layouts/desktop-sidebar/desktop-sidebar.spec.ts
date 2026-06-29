@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { ThemeStore } from '../../core/stores/theme.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
 import { DesktopSidebar } from './desktop-sidebar';
@@ -77,6 +78,7 @@ describe('DesktopSidebar', () => {
   let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
+  let themeStore: ThemeStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
@@ -100,6 +102,7 @@ describe('DesktopSidebar', () => {
     farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
+    themeStore = TestBed.inject(ThemeStore);
     toastStore = TestBed.inject(ToastStore);
     selectedFarmStore.clear();
     toastStore.clear();
@@ -114,6 +117,8 @@ describe('DesktopSidebar', () => {
     farmAccessStore.clear();
     selectedFarmStore.clear();
     toastStore.clear();
+    localStorage.clear();
+    document.documentElement.classList.remove('dark');
   });
 
   it('should render the brand logo', () => {
@@ -169,6 +174,32 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('maria@example.com');
     expect(text).toContain('MS');
     expect(profileLink?.getAttribute('href')).toBe('/profile');
+  });
+
+  it('should render the theme toggle button', () => {
+    const themeButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Alternar tema"]',
+    ) as HTMLButtonElement;
+
+    expect(themeButton).toBeTruthy();
+    expect(themeButton.getAttribute('title')).toBe('Alternar tema');
+    expect(themeButton.textContent).toContain('Modo escuro');
+
+    themeStore.setTheme('dark');
+    fixture.detectChanges();
+
+    expect(themeButton.textContent).toContain('Modo claro');
+  });
+
+  it('should toggle the theme from the sidebar button', () => {
+    const toggleTheme = vi.spyOn(themeStore, 'toggleTheme');
+    const themeButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Alternar tema"]',
+    ) as HTMLButtonElement;
+
+    themeButton.click();
+
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
   });
 
   it('should logout, clear session and farm context, navigate to login and show success toast', () => {

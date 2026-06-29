@@ -9,11 +9,12 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+import { ThemeToggleButton } from '../../shared/ui';
 import { getVisibleNavItems, MAIN_NAV_ITEMS } from '../layout-navigation';
 
 @Component({
   selector: 'gd-desktop-sidebar',
-  imports: [LucideDynamicIcon, NgOptimizedImage, RouterLink, RouterLinkActive],
+  imports: [LucideDynamicIcon, NgOptimizedImage, RouterLink, RouterLinkActive, ThemeToggleButton],
   templateUrl: './desktop-sidebar.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

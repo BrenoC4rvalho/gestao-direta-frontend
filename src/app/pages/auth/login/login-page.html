@@ -7,7 +7,7 @@
     priority
     class="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
   />
-  <div class="absolute inset-0 hidden bg-[#fbf5ee]/20 lg:block"></div>
+  <div class="absolute inset-0 hidden bg-background/20 lg:block"></div>
   <section class="relative z-10 hidden min-h-dvh overflow-hidden p-10 lg:flex lg:flex-col lg:justify-start xl:p-12">
     <div class="relative z-10">
       <img
@@ -32,15 +32,15 @@
       </p>
 
       <div class="mt-7 grid max-w-lg gap-3 sm:grid-cols-3">
-        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-soft backdrop-blur">
+        <div class="rounded-2xl border border-border bg-surface/85 p-4 shadow-soft backdrop-blur">
           <svg lucideIcon="chart-no-axes-column-increasing" class="size-5 text-primary" aria-hidden="true"></svg>
           <p class="mt-3 text-sm font-semibold text-text-primary">Fluxo de caixa</p>
         </div>
-        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-soft backdrop-blur">
+        <div class="rounded-2xl border border-border bg-surface/85 p-4 shadow-soft backdrop-blur">
           <svg lucideIcon="sprout" class="size-5 text-primary" aria-hidden="true"></svg>
           <p class="mt-3 text-sm font-semibold text-text-primary">Safras e lotes</p>
         </div>
-        <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-soft backdrop-blur">
+        <div class="rounded-2xl border border-border bg-surface/85 p-4 shadow-soft backdrop-blur">
           <svg lucideIcon="calendar" class="size-5 text-primary" aria-hidden="true"></svg>
           <p class="mt-3 text-sm font-semibold text-text-primary">Contas a vencer</p>
         </div>
@@ -48,8 +48,8 @@
     </div>
   </section>
 
-  <section class="relative z-10 flex min-h-dvh flex-col bg-[#FAF8F1] lg:items-center lg:justify-center lg:bg-transparent lg:p-10">
-    <div class="relative overflow-hidden bg-[#FAF8F1] pb-7 lg:hidden">
+  <section class="relative z-10 flex min-h-dvh flex-col bg-background lg:items-center lg:justify-center lg:bg-transparent lg:p-10">
+    <div class="relative overflow-hidden bg-background pb-7 lg:hidden">
       <div class="relative h-52 overflow-hidden sm:h-60 md:h-96">
         <img
           ngSrc="/assets/img/login-farm-mobile.png"
@@ -60,7 +60,7 @@
           data-testid="login-illustration"
           class="h-full w-full object-cover object-bottom"
         />
-        <div class="absolute inset-x-0 top-0 h-28 bg-linear-to-b from-[#fbf5ee]/85 to-transparent md:h-32"></div>
+        <div class="absolute inset-x-0 top-0 h-28 bg-linear-to-b from-background/85 to-transparent md:h-32"></div>
         <img
           ngSrc="/assets/brand/logo_horizontal.svg"
           width="990"
@@ -68,7 +68,7 @@
           alt="Gestão Direta"
           class="absolute left-1/2 top-5 z-10 h-auto w-40 max-w-[50vw] -translate-x-1/2 md:top-6 md:w-[150px]"
         />
-        <div class="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-[#FAF8F1] via-[#FAF8F1]/75 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-background via-background/75 to-transparent"></div>
       </div>
 
       <div class="relative z-10 mt-4 px-6 text-center">
@@ -187,7 +187,7 @@
           </label>
           <a
             href="#"
-            class="text-sm font-medium text-primary hover:text-[#166534] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="text-sm font-medium text-primary hover:text-primary-hover focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
             (click)="$event.preventDefault()"
           >
             Esqueci minha senha
@@ -206,7 +206,7 @@
         Precisa de ajuda?
         <a
           href="#"
-          class="font-medium text-primary hover:text-[#166534] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="font-medium text-primary hover:text-primary-hover focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
           (click)="$event.preventDefault()"
         >
           Fale com o suporte

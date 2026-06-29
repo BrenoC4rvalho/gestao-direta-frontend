@@ -50,7 +50,7 @@ export class Button {
 
   private variantClasses(): string {
     const variants: Record<ButtonVariant, string> = {
-      primary: 'bg-primary text-white hover:bg-[#166534] focus-visible:outline-primary',
+      primary: 'bg-primary text-white hover:bg-primary-hover focus-visible:outline-primary',
       secondary:
         'bg-accent/15 text-primary hover:bg-accent/25 focus-visible:outline-primary',
       outline:
