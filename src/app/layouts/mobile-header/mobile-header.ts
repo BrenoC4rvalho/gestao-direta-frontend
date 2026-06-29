@@ -10,7 +10,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { Drawer } from '../../shared/overlays';
-import { MAIN_NAV_ITEMS } from '../layout-navigation';
+import { getVisibleNavItems, MAIN_NAV_ITEMS } from '../layout-navigation';
 
 @Component({
   selector: 'gd-mobile-header',
@@ -33,12 +33,12 @@ export class MobileHeader {
   private readonly farmAccessStore = inject(FarmAccessStore);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly navItems = computed(() =>
-    MAIN_NAV_ITEMS.filter(
-      (item) =>
-        item.route !== '/users' ||
-        this.sessionStore.isAdmin() ||
-        this.farmAccessStore.canManageFarmUsers(),
-    ),
+    getVisibleNavItems(MAIN_NAV_ITEMS, {
+      userType: this.sessionStore.userType(),
+      role: this.farmAccessStore.role(),
+      permissions: this.farmAccessStore.access()?.permissions ?? null,
+      hasSelectedFarm: this.selectedFarmStore.selectedFarmId() !== null,
+    }),
   );
   protected readonly isMenuOpen = signal(false);
 

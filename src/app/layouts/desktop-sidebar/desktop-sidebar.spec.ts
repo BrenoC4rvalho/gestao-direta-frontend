@@ -57,6 +57,19 @@ const producerAccess = {
   },
 };
 
+const selectedFarm = {
+  id: 10,
+  name: 'Fazenda Boa Safra',
+  document: null,
+  city: null,
+  state: null,
+  totalArea: null,
+  productionType: null,
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
 describe('DesktopSidebar', () => {
   let fixture: ComponentFixture<DesktopSidebar>;
   let authService: { logout: ReturnType<typeof vi.fn> };
@@ -126,16 +139,19 @@ describe('DesktopSidebar', () => {
 
   it('should render Users for a producer with farm user management permission', () => {
     sessionStore.setUser(producerUser);
+    selectedFarmStore.selectFarm(selectedFarm);
     farmAccessStore.setAccess(producerAccess);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Usuários');
   });
 
-  it('should hide Users for a non-admin user without farm user management permission', () => {
+  it('should hide Users for an employee without farm user management permission', () => {
     sessionStore.setUser(producerUser);
+    selectedFarmStore.selectFarm(selectedFarm);
     farmAccessStore.setAccess({
       ...producerAccess,
+      role: 'EMPLOYEE',
       permissions: { ...producerAccess.permissions, canManageFarmUsers: false },
     });
     fixture.detectChanges();
