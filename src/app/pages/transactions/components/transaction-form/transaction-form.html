@@ -38,12 +38,11 @@
       <gd-select
         id="transaction-category"
         label="Categoria"
-        placeholder="Selecione a categoria"
+        [placeholder]="categoryPlaceholder()"
         [control]="form.controls.categoryId"
         [options]="categoryOptions()"
         [required]="categoryRequired()"
-        [disabled]="categoryOptions().length === 0"
-        [hint]="categoryOptions().length === 0 ? 'Nenhuma categoria ativa disponível para este tipo.' : null"
+        [disabled]="categoryDisabled()"
         [errorMessage]="categoryErrorMessage()"
       />
     </div>

@@ -12,10 +12,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import {
-  FinancialCategory,
-  isGlobalCategory,
-} from '../../../../core/models/financial-category.models';
+import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
   PaymentMethod,
@@ -63,7 +60,7 @@ export class TransactionForm {
   readonly submitted = output<UpdateFinancialTransactionRequest>();
   readonly cancelled = output<void>();
 
-  protected readonly selectedType = signal<TransactionType>('EXPENSE');
+  protected readonly selectedType = signal<TransactionType | null>('EXPENSE');
   protected readonly editing = computed(() => this.transaction() !== null);
 
   protected readonly typeOptions: readonly GdSelectOption[] = [
@@ -90,10 +87,26 @@ export class TransactionForm {
   protected readonly categoryOptions = computed<readonly GdSelectOption[]>(() => {
     const type = this.selectedType();
 
+    if (!type) {
+      return [];
+    }
+
     return this.categories()
       .filter((category) => category.status === 'ACTIVE')
-      .filter((category) => category.type === type || isGlobalCategory(category))
+      .filter((category) => category.type === type)
       .map((category) => ({ label: category.name, value: category.id }));
+  });
+  protected readonly categoryDisabled = computed(
+    () => this.selectedType() === null || this.categoryOptions().length === 0,
+  );
+  protected readonly categoryPlaceholder = computed(() => {
+    if (!this.selectedType()) {
+      return 'Selecione o tipo primeiro';
+    }
+
+    return this.categoryOptions().length > 0
+      ? 'Selecione a categoria'
+      : 'Nenhuma categoria disponível para este tipo';
   });
 
   protected readonly form = new FormGroup<TransactionFormControls>({
@@ -115,9 +128,9 @@ export class TransactionForm {
     this.form.controls.type.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
-        const type = this.stringValue(value) || 'EXPENSE';
+        const type = this.transactionTypeOrNull(value);
         this.selectedType.set(type);
-        this.form.controls.categoryId.setValue('', { emitEvent: false });
+        this.clearCategoryIfIncompatible(type);
       });
 
     effect(() => {
@@ -140,6 +153,16 @@ export class TransactionForm {
         paymentMethod: transaction?.paymentMethod ?? '',
         notes: transaction?.notes ?? '',
       });
+      this.clearCategoryIfIncompatible(type);
+    });
+
+    effect(() => {
+      if (!this.open()) {
+        return;
+      }
+
+      this.categories();
+      this.clearCategoryIfIncompatible(this.selectedType());
     });
   }
 
@@ -147,7 +170,7 @@ export class TransactionForm {
     const description = this.stringValue(this.form.controls.description.value);
     const type = this.stringValue(this.form.controls.type.value) as TransactionType;
     const amount = Number(this.form.controls.amount.value);
-    const categoryId = this.numberOrNull(this.form.controls.categoryId.value);
+    let categoryId = this.numberOrNull(this.form.controls.categoryId.value);
     const transactionDate = this.stringValue(this.form.controls.transactionDate.value);
     const dueDate = this.nullableString(this.form.controls.dueDate.value);
     const paidAt = this.nullableString(this.form.controls.paidAt.value);
@@ -156,6 +179,11 @@ export class TransactionForm {
       this.form.controls.paymentMethod.value,
     ) as PaymentMethod | null;
     const notes = this.nullableString(this.form.controls.notes.value);
+
+    if (!this.isCategoryCompatible(type, categoryId)) {
+      categoryId = null;
+      this.form.controls.categoryId.setValue('', { emitEvent: false });
+    }
 
     this.validateRequiredFields(description, type, amount, transactionDate, status, categoryId);
 
@@ -257,6 +285,32 @@ export class TransactionForm {
     if (!status) {
       this.form.controls.status.setErrors({ required: true });
     }
+  }
+
+  private clearCategoryIfIncompatible(type: TransactionType | null): void {
+    const categoryId = this.numberOrNull(this.form.controls.categoryId.value);
+
+    if (!this.isCategoryCompatible(type, categoryId)) {
+      this.form.controls.categoryId.setValue('', { emitEvent: false });
+    }
+  }
+
+  private isCategoryCompatible(type: TransactionType | null, categoryId: number | null): boolean {
+    if (!type || categoryId === null) {
+      return false;
+    }
+
+    return this.categories().some(
+      (category) =>
+        category.id === categoryId &&
+        category.status === 'ACTIVE' &&
+        category.type === type,
+    );
+  }
+
+  private transactionTypeOrNull(value: GdFormValue): TransactionType | null {
+    const type = this.stringValue(value);
+    return type ? type : null;
   }
 
   private currentDate(): string {

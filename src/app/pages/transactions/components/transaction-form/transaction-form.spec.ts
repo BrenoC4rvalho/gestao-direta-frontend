@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
 import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
   UpdateFinancialTransactionRequest,
 } from '../../../../core/models/financial-transaction.models';
-import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
 
 import { TransactionForm } from './transaction-form';
 
@@ -34,6 +34,15 @@ const inactiveCategory: FinancialCategory = {
   id: 3,
   name: 'Inativa',
   status: 'INACTIVE',
+};
+
+const globalCategory: FinancialCategory = {
+  ...expenseCategory,
+  id: 4,
+  name: 'Global',
+  type: 'GLOBAL',
+  farmId: null,
+  isDefault: true,
 };
 
 const transaction: FinancialTransaction = {
@@ -75,7 +84,12 @@ const transaction: FinancialTransaction = {
 })
 class TransactionFormHost {
   transaction: FinancialTransaction | null = null;
-  categories: FinancialCategory[] = [expenseCategory, incomeCategory, inactiveCategory];
+  categories: FinancialCategory[] = [
+    expenseCategory,
+    incomeCategory,
+    inactiveCategory,
+    globalCategory,
+  ];
   open = true;
   submitting = false;
   submitted: UpdateFinancialTransactionRequest | null = null;
@@ -114,12 +128,9 @@ describe('TransactionForm', () => {
   });
 
   it('should submit a normalized payload', () => {
-    setInput('#transaction-description', 'Compra de sementes');
-    setInput('#transaction-amount', '2500');
+    fillRequiredFields();
     setSelect('#transaction-category', '1');
-    setInput('#transaction-date', '2026-06-21');
     setInput('#transaction-due-date', '2026-06-30');
-    setSelect('#transaction-payment-method', 'PIX');
     setTextarea('Compra para safra');
     submitForm();
 
@@ -142,8 +153,7 @@ describe('TransactionForm', () => {
     fixture.componentInstance.transaction = transaction;
     fixture.detectChanges();
 
-    const description = Array.from(fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>).find((item) => item.id === 'transaction-description') as HTMLInputElement;
-    expect(description.value).toBe('Compra de sementes');
+    expect(getInput('#transaction-description').value).toBe('Compra de sementes');
   });
 
   it('should emit cancel when not loading and block while submitting', () => {
@@ -159,16 +169,122 @@ describe('TransactionForm', () => {
     expect(fixture.componentInstance.cancelledCount).toBe(0);
   });
 
-  it('should filter categories by selected type and active status', () => {
-    expect(fixture.nativeElement.textContent).toContain('Insumos');
-    expect(fixture.nativeElement.textContent).not.toContain('Venda de leite');
-    expect(fixture.nativeElement.textContent).not.toContain('Inativa');
+  it('should show only active expense categories for expense transactions', () => {
+    expect(categoryOptionLabels()).toEqual(['Selecione a categoria', 'Insumos']);
+  });
 
+  it('should show only active income categories for income transactions', () => {
     setSelect('#transaction-type', 'INCOME');
 
-    expect(fixture.nativeElement.textContent).toContain('Venda de leite');
-    expect(fixture.nativeElement.textContent).not.toContain('Insumos');
+    expect(categoryOptionLabels()).toEqual(['Selecione a categoria', 'Venda de leite']);
   });
+
+  it('should clear an expense category when changing from expense to income', () => {
+    setSelect('#transaction-category', '1');
+    setSelect('#transaction-type', 'INCOME');
+
+    expect(getSelect('#transaction-category').value).toBe('');
+  });
+
+  it('should clear an income category when changing from income to expense', () => {
+    setSelect('#transaction-type', 'INCOME');
+    setSelect('#transaction-category', '2');
+    setSelect('#transaction-type', 'EXPENSE');
+
+    expect(getSelect('#transaction-category').value).toBe('');
+  });
+
+  it('should show only expense categories when editing an expense transaction', () => {
+    openForEdit(transaction);
+
+    expect(categoryOptionLabels()).toEqual(['Selecione a categoria', 'Insumos']);
+  });
+
+  it('should show only income categories when editing an income transaction', () => {
+    openForEdit({ ...transaction, type: 'INCOME', categoryId: 2, categoryName: 'Venda de leite' });
+
+    expect(categoryOptionLabels()).toEqual(['Selecione a categoria', 'Venda de leite']);
+  });
+
+  it('should keep a compatible category when editing', () => {
+    openForEdit(transaction);
+
+    expect(getSelect('#transaction-category').value).toContain('1');
+  });
+
+  it('should clear an incompatible category when editing', () => {
+    openForEdit({ ...transaction, type: 'INCOME', categoryId: 1 });
+
+    expect(getSelect('#transaction-category').value).toBe('');
+  });
+
+  it('should clear a missing category when editing', () => {
+    openForEdit({ ...transaction, categoryId: 999 });
+
+    expect(getSelect('#transaction-category').value).toBe('');
+  });
+
+  it('should disable category and ask for type first when type is empty', () => {
+    setSelect('#transaction-type', '');
+
+    const categorySelect = getSelect('#transaction-category');
+    expect(categorySelect.disabled).toBe(true);
+    expect(categoryOptionLabels()).toEqual(['Selecione o tipo primeiro']);
+  });
+
+  it('should disable category and show unavailable placeholder when no compatible categories exist', () => {
+    openWithCategories([expenseCategory]);
+    setSelect('#transaction-type', 'INCOME');
+
+    const categorySelect = getSelect('#transaction-category');
+    expect(categorySelect.disabled).toBe(true);
+    expect(categoryOptionLabels()).toEqual(['Nenhuma categoria disponível para este tipo']);
+  });
+
+  it('should not show inactive categories', () => {
+    expect(categoryOptionLabels()).not.toContain('Inativa');
+  });
+
+  it('should not emit when a required category becomes incompatible before submit', () => {
+    fillRequiredFields();
+    setSelect('#transaction-category', '1');
+    setSelect('#transaction-type', 'INCOME');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Selecione a categoria.');
+  });
+
+  it('should submit without an incompatible category when no compatible category is required', () => {
+    openWithCategories([expenseCategory]);
+    fillRequiredFields();
+    setSelect('#transaction-category', '1');
+    setSelect('#transaction-type', 'INCOME');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ type: 'INCOME', categoryId: null }),
+    );
+  });
+
+  function openWithCategories(categories: FinancialCategory[]): void {
+    fixture = TestBed.createComponent(TransactionFormHost);
+    fixture.componentInstance.categories = categories;
+    fixture.detectChanges();
+  }
+
+  function openForEdit(value: FinancialTransaction): void {
+    fixture = TestBed.createComponent(TransactionFormHost);
+    fixture.componentInstance.transaction = value;
+    fixture.detectChanges();
+  }
+
+  function fillRequiredFields(): void {
+    setInput('#transaction-description', 'Compra de sementes');
+    setInput('#transaction-amount', '2500');
+    setInput('#transaction-date', '2026-06-21');
+    setSelect('#transaction-payment-method', 'PIX');
+  }
 
   function submitForm(): void {
     const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
@@ -177,10 +293,16 @@ describe('TransactionForm', () => {
   }
 
   function setInput(selector: string, value: string): void {
-    const input = Array.from(fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>).find((item) => item.id === selector.slice(1)) as HTMLInputElement;
+    const input = getInput(selector);
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+  }
+
+  function getInput(selector: string): HTMLInputElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>,
+    ).find((item) => item.id === selector.slice(1)) as HTMLInputElement;
   }
 
   function setTextarea(value: string): void {
@@ -191,16 +313,28 @@ describe('TransactionForm', () => {
   }
 
   function setSelect(selector: string, value: string): void {
-    const select = Array.from(fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>).find((item) => item.id === selector.slice(1)) as HTMLSelectElement;
+    const select = getSelect(selector);
     const option = Array.from(select.options).find((item) => item.value.includes(value));
     select.selectedIndex = option?.index ?? 0;
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
   }
 
-  function findButton(label: string): HTMLButtonElement | undefined {
-    return Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
-      (button) => button.textContent?.trim() === label,
+  function getSelect(selector: string): HTMLSelectElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>,
+    ).find((item) => item.id === selector.slice(1)) as HTMLSelectElement;
+  }
+
+  function categoryOptionLabels(): string[] {
+    return Array.from(getSelect('#transaction-category').options).map(
+      (option) => option.textContent?.trim() ?? '',
     );
+  }
+
+  function findButton(label: string): HTMLButtonElement | undefined {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find((button) => button.textContent?.trim() === label);
   }
 });

@@ -228,6 +228,7 @@ describe('TransactionsPage', () => {
       categoryId: null,
     });
     expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
+    expect(categoryService.listByFarm.mock.calls[0]).toEqual([1]);
     expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
     expect(fixture.nativeElement.textContent).toContain('R$');
   });
