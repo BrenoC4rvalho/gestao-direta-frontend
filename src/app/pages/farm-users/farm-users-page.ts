@@ -90,17 +90,18 @@ export class FarmUsersPage {
   protected readonly inactivationSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
   protected readonly requestedPage = signal(0);
-  protected readonly filters = signal<Pick<FarmUserListParams, 'search' | 'role'>>({
+  protected readonly filters = signal<Pick<FarmUserListParams, 'search' | 'roles'>>({
     search: null,
-    role: null,
+    roles: [],
   });
   protected readonly filtersConfig: ListFiltersConfig = {
     subtitle: 'Busque por usuário e filtre por papel',
     search: { placeholder: 'Buscar por usuário' },
     quickFilters: [
       {
-        key: 'role',
+        key: 'roles',
         label: 'Papel',
+        multiple: true,
         options: [
           { label: 'Todos', value: null },
           { label: 'Produtor', value: 'PRODUCER' },
@@ -127,7 +128,7 @@ export class FarmUsersPage {
   protected readonly farmUsers = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly hasActiveFilters = computed(() =>
-    Object.values(this.filters()).some((value) => value !== null),
+    Object.values(this.filters()).some((value) => Array.isArray(value) ? value.length > 0 : value !== null),
   );
   protected readonly emptyFarmUsersDescription = computed(() =>
     this.hasActiveFilters()
@@ -207,6 +208,14 @@ export class FarmUsersPage {
     return Array.isArray(value) ? value[0] ?? null : value ?? null;
   }
 
+  private filterValues(value: string | string[] | null | undefined): string[] {
+    if (!Array.isArray(value)) {
+      return value ? [value] : [];
+    }
+
+    return value;
+  }
+
   protected previousPage(): void {
     const response = this.response();
 
@@ -224,12 +233,9 @@ export class FarmUsersPage {
   }
 
   protected changeFilters(filters: ListFilterValues): void {
-    // Temporary fallback until the backend accepts array filters from quick chips.
-    const role = this.firstFilterValue(filters['role']);
-
     this.filters.set({
       search: this.firstFilterValue(filters['search']),
-      role: role as FarmUserListParams['role'],
+      roles: this.filterValues(filters['roles']) as FarmUserListParams['roles'],
     });
     this.requestedPage.set(0);
   }
@@ -530,12 +536,12 @@ export class FarmUsersPage {
     );
   }
 
-  private activeFilters(): Pick<FarmUserListParams, 'search' | 'role'> {
+  private activeFilters(): Pick<FarmUserListParams, 'search' | 'roles'> {
     const filters = this.filters();
 
     return {
       ...(filters.search !== null ? { search: filters.search } : {}),
-      ...(filters.role !== null ? { role: filters.role } : {}),
+      ...(filters.roles?.length ? { roles: filters.roles } : {}),
     };
   }
 

@@ -227,18 +227,24 @@ describe('UsersPage', () => {
     expect(findButton(filters, 'Bloqueado')).toBeTruthy();
   });
 
-  it('should apply status quick filter immediately', () => {
+  it('should apply status quick filters when requested', () => {
     sessionStore.setUser(admin);
     createPage();
+    const initialCalls = userService.list.mock.calls.length;
 
+    clickFilterButton('Inativo');
     clickFilterButton('Bloqueado');
+
+    expect(userService.list).toHaveBeenCalledTimes(initialCalls);
+
+    clickFilterButton('Aplicar filtros');
 
     expect(userService.list).toHaveBeenLastCalledWith({
       page: 0,
       size: 10,
       sort: 'name',
       direction: 'ASC',
-      status: 'BLOCKED',
+      statuses: ['INACTIVE', 'BLOCKED'],
     });
   });
 

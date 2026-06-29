@@ -12,6 +12,7 @@ import {
 } from '../models/farm.models';
 import { PageResponse } from '../models/page-response.model';
 import { onlyDigits } from '../../shared/utils/document.utils';
+import { appendQueryParam } from '../../shared/utils/query-params.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -53,36 +54,21 @@ export class FarmService {
       return httpParams;
     }
 
-    if (params.page !== undefined) {
-      httpParams = httpParams.set('page', params.page);
+    httpParams = appendQueryParam(httpParams, 'page', params.page);
+    httpParams = appendQueryParam(httpParams, 'size', params.size);
+    httpParams = appendQueryParam(httpParams, 'sort', params.sort);
+    httpParams = appendQueryParam(httpParams, 'direction', params.direction);
+    httpParams = appendQueryParam(httpParams, 'search', params.search);
+    httpParams = appendQueryParam(httpParams, 'document', onlyDigits(params.document));
+
+    if (params.productionTypes?.length) {
+      httpParams = appendQueryParam(httpParams, 'productionTypes', params.productionTypes);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'productionType', params.productionType);
     }
 
-    if (params.size !== undefined) {
-      httpParams = httpParams.set('size', params.size);
-    }
-
-    if (params.sort) {
-      httpParams = httpParams.set('sort', params.sort);
-    }
-
-    if (params.direction) {
-      httpParams = httpParams.set('direction', params.direction);
-    }
-
-    httpParams = this.setOptionalParam(httpParams, 'search', params.search);
-    httpParams = this.setOptionalParam(httpParams, 'document', onlyDigits(params.document));
-    httpParams = this.setOptionalParam(httpParams, 'productionType', params.productionType);
-    httpParams = this.setOptionalParam(httpParams, 'status', params.status);
+    httpParams = appendQueryParam(httpParams, 'status', params.status);
 
     return httpParams;
-  }
-
-  private setOptionalParam(
-    httpParams: HttpParams,
-    key: string,
-    value: string | null | undefined,
-  ): HttpParams {
-    const normalized = value?.trim() ?? '';
-    return normalized ? httpParams.set(key, normalized) : httpParams;
   }
 }

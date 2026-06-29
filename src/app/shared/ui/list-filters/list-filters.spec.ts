@@ -161,18 +161,26 @@ describe('ListFilters', () => {
     expect(text).toContain('Produtor');
   });
 
-  it('should apply a single quick filter immediately', () => {
+  it('should apply a single quick filter only when applying filters', () => {
     clickButton('Ativo');
+
+    expect(fixture.componentInstance.changes).toEqual([]);
+    expect(button('Ativo')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickActionButton('Aplicar filtros');
 
     expect(fixture.componentInstance.changes).toEqual([
       { search: null, document: null, status: 'ACTIVE', role: null },
     ]);
-    expect(button('Ativo')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('should clear a quick filter group when Todos is clicked', () => {
     clickButton('Ativo');
     clickButton('Todos');
+
+    expect(button('Todos')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickActionButton('Aplicar filtros');
 
     expect(fixture.componentInstance.changes.at(-1)).toEqual({
       search: null,
@@ -186,6 +194,12 @@ describe('ListFilters', () => {
     clickButton('Produtor');
     clickButton('Contador');
 
+    expect(fixture.componentInstance.changes).toEqual([]);
+    expect(button('Produtor')?.getAttribute('aria-pressed')).toBe('true');
+    expect(button('Contador')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickActionButton('Aplicar filtros');
+
     expect(fixture.componentInstance.changes.at(-1)).toEqual({
       search: null,
       document: null,
@@ -194,9 +208,25 @@ describe('ListFilters', () => {
     });
   });
 
+  it('should remove a multiple quick filter when clicked again', () => {
+    clickButton('Produtor');
+    clickButton('Contador');
+    clickButton('Produtor');
+    clickActionButton('Aplicar filtros');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: null,
+      role: ['ACCOUNTANT'],
+    });
+    expect(button('Produtor')?.getAttribute('aria-pressed')).toBe('false');
+  });
+
   it('should keep one selection when quick filter group is single', () => {
     clickButton('Ativo');
     clickButton('Inativo');
+    clickActionButton('Aplicar filtros');
 
     expect(fixture.componentInstance.changes.at(-1)).toEqual({
       search: null,

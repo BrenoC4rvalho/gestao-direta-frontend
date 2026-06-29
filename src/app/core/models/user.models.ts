@@ -40,4 +40,5 @@ export interface UserListParams extends PageRequest {
   search?: string | null;
   userType?: UserType | null;
   status?: UserStatus | null;
+  statuses?: UserStatus[] | null;
 }

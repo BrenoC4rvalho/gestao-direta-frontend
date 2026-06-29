@@ -172,17 +172,23 @@ describe('FarmsPage', () => {
     expect(findButton(filters, 'Outro')).toBeTruthy();
   });
 
-  it('should apply production quick filter immediately', () => {
+  it('should apply production quick filters when requested', () => {
     createPage();
+    const initialCalls = farmService.list.mock.calls.length;
 
     clickFilterButton('Agricultura');
+    clickFilterButton('Mista');
+
+    expect(farmService.list).toHaveBeenCalledTimes(initialCalls);
+
+    clickFilterButton('Aplicar filtros');
 
     expect(farmService.list).toHaveBeenLastCalledWith({
       page: 0,
       size: 10,
       sort: 'name',
       direction: 'ASC',
-      productionType: 'AGRICULTURE',
+      productionTypes: ['AGRICULTURE', 'MIXED'],
     });
   });
 

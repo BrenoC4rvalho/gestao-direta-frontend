@@ -130,7 +130,7 @@
               <button
                 type="button"
                 [class]="categoryChipClasses(category.value)"
-                [attr.aria-pressed]="filterForm.controls.categoryId.value === (category.value ?? '')"
+                [attr.aria-pressed]="isSelected(selectedCategoryIds(), category.value)"
                 (click)="selectCategoryFilter(category.value)"
               >
                 {{ category.label }}
@@ -146,7 +146,7 @@
               <button
                 type="button"
                 [class]="paymentStatusChipClasses(status.value)"
-                [attr.aria-pressed]="filterForm.controls.paymentStatus.value === (status.value ?? '')"
+                [attr.aria-pressed]="isSelected(selectedPaymentStatuses(), status.value)"
                 (click)="selectPaymentStatusFilter(status.value)"
               >
                 {{ status.label }}
@@ -201,7 +201,7 @@
                   <button
                     type="button"
                     [class]="paymentMethodChipClasses(method.value)"
-                    [attr.aria-pressed]="filterForm.controls.paymentMethod.value === (method.value ?? '')"
+                    [attr.aria-pressed]="isSelected(selectedPaymentMethods(), method.value)"
                     (click)="selectPaymentMethodFilter(method.value)"
                   >
                     {{ method.label }}

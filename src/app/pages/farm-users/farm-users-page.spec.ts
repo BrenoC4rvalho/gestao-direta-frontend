@@ -309,11 +309,17 @@ describe('FarmUsersPage', () => {
     expect(findButton(filters, 'Inativo')).toBeTruthy();
   });
 
-  it('should apply role quick filter immediately', () => {
+  it('should apply role quick filters when requested', () => {
     setupAdminFarm();
     createPage();
+    const initialCalls = farmUserService.listByFarm.mock.calls.length;
 
+    clickFilterButton('Produtor');
     clickFilterButton('Contador');
+
+    expect(farmUserService.listByFarm).toHaveBeenCalledTimes(initialCalls);
+
+    clickFilterButton('Aplicar filtros');
 
     expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
       10,
@@ -322,7 +328,7 @@ describe('FarmUsersPage', () => {
         size: 10,
         sort: 'userName',
         direction: 'ASC',
-        role: 'ACCOUNTANT',
+        roles: ['PRODUCER', 'ACCOUNTANT'],
       }),
     );
   });

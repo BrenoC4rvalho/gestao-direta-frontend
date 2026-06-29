@@ -109,4 +109,23 @@ describe("FarmUserService", () => {
     expect(request.request.params.has("role")).toBe(false);
     request.flush(pageResponse);
   });
+
+  it('should send repeated roles params and omit singular role', () => {
+    service.listByFarm(10, { role: 'INACTIVE', roles: ['PRODUCER', 'EMPLOYEE'] }).subscribe();
+
+    const request = http.expectOne((request) => request.url === 'http://localhost:8080/api/farms/10/users');
+    expect(request.request.params.getAll('roles')).toEqual(['PRODUCER', 'EMPLOYEE']);
+    expect(request.request.params.has('role')).toBe(false);
+    request.flush(pageResponse);
+  });
+
+  it('should omit empty roles and keep singular role fallback', () => {
+    service.listByFarm(10, { role: 'EMPLOYEE', roles: [] }).subscribe();
+
+    const request = http.expectOne((request) => request.url === 'http://localhost:8080/api/farms/10/users');
+    expect(request.request.params.has('roles')).toBe(false);
+    expect(request.request.params.get('role')).toBe('EMPLOYEE');
+    request.flush(pageResponse);
+  });
+
 });

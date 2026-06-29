@@ -89,10 +89,10 @@ export class UsersPage implements OnInit {
   protected readonly resetSubmitting = signal(false);
   protected readonly pendingEditAction = signal<UserEditAction | null>(null);
   protected readonly skeletons = [1, 2, 3, 4, 5];
-  protected readonly filters = signal<Pick<UserListParams, 'search' | 'userType' | 'status'>>({
+  protected readonly filters = signal<Pick<UserListParams, 'search' | 'userType' | 'statuses'>>({
     search: null,
     userType: null,
-    status: null,
+    statuses: [],
   });
   protected readonly filtersConfig: ListFiltersConfig = {
     subtitle: 'Busque por usuário e filtre por tipo ou status',
@@ -110,8 +110,9 @@ export class UsersPage implements OnInit {
     ],
     quickFilters: [
       {
-        key: 'status',
+        key: 'statuses',
         label: 'Status',
+        multiple: true,
         options: [
           { label: 'Todos', value: null },
           { label: 'Ativo', value: 'ACTIVE' },
@@ -151,7 +152,7 @@ export class UsersPage implements OnInit {
 
   protected readonly users = computed(() => this.response()?.content ?? []);
   protected readonly hasActiveFilters = computed(() =>
-    Object.values(this.filters()).some((value) => value !== null),
+    Object.values(this.filters()).some((value) => Array.isArray(value) ? value.length > 0 : value !== null),
   );
   protected readonly emptyUsersDescription = computed(() =>
     this.hasActiveFilters()
@@ -191,20 +192,26 @@ export class UsersPage implements OnInit {
   }
 
   protected changeFilters(filters: ListFilterValues): void {
-    // Temporary fallback until the backend accepts array filters from quick chips.
     const userType = this.firstFilterValue(filters['userType']);
-    const status = this.firstFilterValue(filters['status']);
 
     this.filters.set({
       search: this.firstFilterValue(filters['search']),
       userType: userType as UserListParams['userType'],
-      status: status as UserListParams['status'],
+      statuses: this.filterValues(filters['statuses']) as UserListParams['statuses'],
     });
     this.loadPage(0);
   }
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
     return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  }
+
+  private filterValues(value: string | string[] | null | undefined): string[] {
+    if (!Array.isArray(value)) {
+      return value ? [value] : [];
+    }
+
+    return value;
   }
 
   protected previousPage(): void {
@@ -608,13 +615,13 @@ export class UsersPage implements OnInit {
       });
   }
 
-  private activeFilters(): Pick<UserListParams, 'search' | 'userType' | 'status'> {
+  private activeFilters(): Pick<UserListParams, 'search' | 'userType' | 'statuses'> {
     const filters = this.filters();
 
     return {
       ...(filters.search !== null ? { search: filters.search } : {}),
       ...(filters.userType !== null ? { userType: filters.userType } : {}),
-      ...(filters.status !== null ? { status: filters.status } : {}),
+      ...(filters.statuses?.length ? { statuses: filters.statuses } : {}),
     };
   }
 

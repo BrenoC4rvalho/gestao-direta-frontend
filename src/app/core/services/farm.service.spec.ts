@@ -149,4 +149,25 @@ describe('FarmService', () => {
     expect(request.request.params.has("status")).toBe(false);
     request.flush(pageResponse);
   });
+
+  it('should send repeated productionTypes params and omit singular productionType', () => {
+    service
+      .list({ productionType: 'OTHER', productionTypes: ['AGRICULTURE', 'MIXED'] })
+      .subscribe();
+
+    const request = http.expectOne((request) => request.url === apiUrl + '/farms');
+    expect(request.request.params.getAll('productionTypes')).toEqual(['AGRICULTURE', 'MIXED']);
+    expect(request.request.params.has('productionType')).toBe(false);
+    request.flush(pageResponse);
+  });
+
+  it('should omit empty productionTypes and keep singular productionType fallback', () => {
+    service.list({ productionType: 'LIVESTOCK', productionTypes: [] }).subscribe();
+
+    const request = http.expectOne((request) => request.url === apiUrl + '/farms');
+    expect(request.request.params.has('productionTypes')).toBe(false);
+    expect(request.request.params.get('productionType')).toBe('LIVESTOCK');
+    request.flush(pageResponse);
+  });
+
 });

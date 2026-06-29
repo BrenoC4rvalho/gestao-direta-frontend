@@ -49,8 +49,11 @@ export interface FinancialTransactionListParams {
   paidAtEnd?: string | null;
   type?: TransactionType | null;
   categoryId?: number | null;
+  categoryIds?: number[] | null;
   paymentStatus?: PaymentStatus | null;
+  paymentStatuses?: PaymentStatus[] | null;
   paymentMethod?: PaymentMethod | null;
+  paymentMethods?: PaymentMethod[] | null;
   recordStatus?: FinancialRecordStatus | null;
   description?: string | null;
   createdByUserId?: number | null;

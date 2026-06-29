@@ -43,5 +43,6 @@ export interface FarmListParams extends PageRequest {
   search?: string | null;
   document?: string | null;
   productionType?: ProductionType | null;
+  productionTypes?: ProductionType[] | null;
   status?: FarmStatus | null;
 }

@@ -14,6 +14,7 @@ import {
   User,
   UserListParams,
 } from '../models/user.models';
+import { appendQueryParam } from '../../shared/utils/query-params.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -69,35 +70,19 @@ export class UserService {
       return httpParams;
     }
 
-    if (params.page !== undefined) {
-      httpParams = httpParams.set('page', params.page);
-    }
+    httpParams = appendQueryParam(httpParams, 'page', params.page);
+    httpParams = appendQueryParam(httpParams, 'size', params.size);
+    httpParams = appendQueryParam(httpParams, 'sort', params.sort);
+    httpParams = appendQueryParam(httpParams, 'direction', params.direction);
+    httpParams = appendQueryParam(httpParams, 'search', params.search);
+    httpParams = appendQueryParam(httpParams, 'userType', params.userType);
 
-    if (params.size !== undefined) {
-      httpParams = httpParams.set('size', params.size);
+    if (params.statuses?.length) {
+      httpParams = appendQueryParam(httpParams, 'statuses', params.statuses);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'status', params.status);
     }
-
-    if (params.sort) {
-      httpParams = httpParams.set('sort', params.sort);
-    }
-
-    if (params.direction) {
-      httpParams = httpParams.set('direction', params.direction);
-    }
-
-    httpParams = this.setOptionalParam(httpParams, 'search', params.search);
-    httpParams = this.setOptionalParam(httpParams, 'userType', params.userType);
-    httpParams = this.setOptionalParam(httpParams, 'status', params.status);
 
     return httpParams;
-  }
-
-  private setOptionalParam(
-    httpParams: HttpParams,
-    key: string,
-    value: string | null | undefined,
-  ): HttpParams {
-    const normalized = value?.trim() ?? '';
-    return normalized ? httpParams.set(key, normalized) : httpParams;
   }
 }

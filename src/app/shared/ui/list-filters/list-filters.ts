@@ -126,8 +126,6 @@ export class ListFilters {
     if (control && !group.multiple) {
       control.setValue(nextSelection[0] ?? null, { emitEvent: false });
     }
-
-    this.emitFilters();
   }
 
   protected isQuickFilterActive(group: ListQuickFilterGroup, filter: ListQuickFilter): boolean {

@@ -242,4 +242,56 @@ describe('FinancialTransactionService', () => {
     expect(request.request.body).toEqual({});
     request.flush({ ...transaction, status: 'CANCELED' });
   });
+
+  it('should send repeated plural quick filter params and preserve other filters', () => {
+    service
+      .listByFarm({
+        farmId: 1,
+        type: 'EXPENSE',
+        categoryId: 99,
+        categoryIds: [1, 2],
+        paymentStatus: 'PENDING',
+        paymentStatuses: ['PAID', 'OVERDUE'],
+        paymentMethod: 'CASH',
+        paymentMethods: ['PIX', 'BOLETO'],
+        description: 'sementes',
+      })
+      .subscribe((result) => expect(result).toEqual(response));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/transactions');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.get('type')).toBe('EXPENSE');
+    expect(request.request.params.get('description')).toBe('sementes');
+    expect(request.request.params.getAll('categoryIds')).toEqual(['1', '2']);
+    expect(request.request.params.has('categoryId')).toBe(false);
+    expect(request.request.params.getAll('paymentStatuses')).toEqual(['PAID', 'OVERDUE']);
+    expect(request.request.params.has('paymentStatus')).toBe(false);
+    expect(request.request.params.getAll('paymentMethods')).toEqual(['PIX', 'BOLETO']);
+    expect(request.request.params.has('paymentMethod')).toBe(false);
+    request.flush(response);
+  });
+
+  it('should omit empty plural quick filter params and keep singular fallbacks', () => {
+    service
+      .listByFarm({
+        farmId: 1,
+        categoryId: 1,
+        categoryIds: [],
+        paymentStatus: 'PENDING',
+        paymentStatuses: [],
+        paymentMethod: 'PIX',
+        paymentMethods: [],
+      })
+      .subscribe((result) => expect(result).toEqual(response));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/transactions');
+    expect(request.request.params.has('categoryIds')).toBe(false);
+    expect(request.request.params.get('categoryId')).toBe('1');
+    expect(request.request.params.has('paymentStatuses')).toBe(false);
+    expect(request.request.params.get('paymentStatus')).toBe('PENDING');
+    expect(request.request.params.has('paymentMethods')).toBe(false);
+    expect(request.request.params.get('paymentMethod')).toBe('PIX');
+    request.flush(response);
+  });
+
 });

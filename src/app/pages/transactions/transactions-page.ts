@@ -68,9 +68,9 @@ type AppliedTransactionFilters = Pick<
   | 'paidAtStart'
   | 'paidAtEnd'
   | 'type'
-  | 'categoryId'
-  | 'paymentStatus'
-  | 'paymentMethod'
+  | 'categoryIds'
+  | 'paymentStatuses'
+  | 'paymentMethods'
   | 'recordStatus'
   | 'description'
   | 'createdByUserId'
@@ -150,6 +150,9 @@ export class TransactionsPage {
 
   private readonly reloadTrigger = signal(0);
   private readonly draftTypeFilter = signal<TransactionType | null>(null);
+  protected readonly selectedCategoryIds = signal<readonly number[]>([]);
+  protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
+  protected readonly selectedPaymentMethods = signal<readonly PaymentMethod[]>([]);
   private readonly appliedFilters = signal<AppliedTransactionFilters>({});
 
   protected readonly filterForm = new FormGroup<TransactionFiltersControls>({
@@ -239,7 +242,7 @@ export class TransactionsPage {
     return [
       filters.paidAtStart,
       filters.paidAtEnd,
-      filters.paymentMethod,
+      filters.paymentMethods,
       filters.recordStatus,
       filters.createdByUserId,
       filters.minAmount,
@@ -255,9 +258,9 @@ export class TransactionsPage {
       filters.paidAtStart,
       filters.paidAtEnd,
       filters.type,
-      filters.categoryId,
-      filters.paymentStatus,
-      filters.paymentMethod,
+      filters.categoryIds,
+      filters.paymentStatuses,
+      filters.paymentMethods,
       filters.recordStatus,
       filters.description,
       filters.createdByUserId,
@@ -369,6 +372,9 @@ export class TransactionsPage {
   protected resetFilters(): void {
     this.filterForm.reset(EMPTY_FILTER_FORM_VALUE, { emitEvent: false });
     this.draftTypeFilter.set(null);
+    this.selectedCategoryIds.set([]);
+    this.selectedPaymentStatuses.set([]);
+    this.selectedPaymentMethods.set([]);
     this.appliedFilters.set({});
     this.resetPageAndReload();
   }
@@ -378,15 +384,15 @@ export class TransactionsPage {
   }
 
   protected selectCategoryFilter(categoryId: number | null): void {
-    this.filterForm.controls.categoryId.setValue(categoryId ?? '');
+    this.selectedCategoryIds.update((selected) => this.toggleSelection(selected, categoryId));
   }
 
   protected selectPaymentStatusFilter(status: PaymentStatus | null): void {
-    this.filterForm.controls.paymentStatus.setValue(status ?? '');
+    this.selectedPaymentStatuses.update((selected) => this.toggleSelection(selected, status));
   }
 
   protected selectPaymentMethodFilter(method: PaymentMethod | null): void {
-    this.filterForm.controls.paymentMethod.setValue(method ?? '');
+    this.selectedPaymentMethods.update((selected) => this.toggleSelection(selected, method));
   }
 
   protected sanitizeMoneyFilter(control: GdFormControl): void {
@@ -558,15 +564,15 @@ export class TransactionsPage {
   }
 
   protected categoryChipClasses(categoryId: number | null): string {
-    return this.chipClasses(this.numberOrNull(this.filterForm.controls.categoryId.value) === categoryId);
+    return this.chipClasses(this.isSelected(this.selectedCategoryIds(), categoryId));
   }
 
   protected paymentStatusChipClasses(status: PaymentStatus | null): string {
-    return this.chipClasses(this.nullableString(this.filterForm.controls.paymentStatus.value) === status);
+    return this.chipClasses(this.isSelected(this.selectedPaymentStatuses(), status));
   }
 
   protected paymentMethodChipClasses(method: PaymentMethod | null): string {
-    return this.chipClasses(this.nullableString(this.filterForm.controls.paymentMethod.value) === method);
+    return this.chipClasses(this.isSelected(this.selectedPaymentMethods(), method));
   }
 
   protected advancedFiltersLabel(): string {
@@ -720,9 +726,9 @@ export class TransactionsPage {
       paidAtStart: this.nullableString(this.filterForm.controls.paidAtStart.value),
       paidAtEnd: this.nullableString(this.filterForm.controls.paidAtEnd.value),
       type: this.nullableString(this.filterForm.controls.type.value) as TransactionType | null,
-      categoryId: this.numberOrNull(this.filterForm.controls.categoryId.value),
-      paymentStatus: this.nullableString(this.filterForm.controls.paymentStatus.value) as PaymentStatus | null,
-      paymentMethod: this.nullableString(this.filterForm.controls.paymentMethod.value) as PaymentMethod | null,
+      categoryIds: [...this.selectedCategoryIds()],
+      paymentStatuses: [...this.selectedPaymentStatuses()],
+      paymentMethods: [...this.selectedPaymentMethods()],
       recordStatus: this.nullableString(this.filterForm.controls.recordStatus.value) as FinancialRecordStatus | null,
       description: this.nullableString(this.filterForm.controls.description.value),
       createdByUserId: this.numberOrNull(this.filterForm.controls.createdByUserId.value),
@@ -741,18 +747,35 @@ export class TransactionsPage {
   }
 
   private clearIncompatibleCategory(): void {
-    const categoryId = this.numberOrNull(this.filterForm.controls.categoryId.value);
     const type = this.draftTypeFilter();
 
-    if (categoryId === null || !type) {
+    if (!type) {
       return;
     }
 
-    const category = this.categories().find((item) => item.id === categoryId);
+    const compatibleIds = new Set(
+      this.categories()
+        .filter((category) => category.type === type)
+        .map((category) => category.id),
+    );
 
-    if (category && category.type !== type) {
-      this.filterForm.controls.categoryId.setValue('', { emitEvent: false });
+    this.selectedCategoryIds.update((selected) =>
+      selected.filter((categoryId) => compatibleIds.has(categoryId)),
+    );
+  }
+
+  protected isSelected<T extends string | number>(selected: readonly T[], value: T | null): boolean {
+    return value === null ? selected.length === 0 : selected.includes(value);
+  }
+
+  private toggleSelection<T extends string | number>(selected: readonly T[], value: T | null): T[] {
+    if (value === null) {
+      return [];
     }
+
+    return selected.includes(value)
+      ? selected.filter((selectedValue) => selectedValue !== value)
+      : [...selected, value];
   }
 
   private chipClasses(active: boolean): string {
@@ -839,6 +862,10 @@ export class TransactionsPage {
 
     if (typeof value === 'string') {
       return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
     }
 
     return true;

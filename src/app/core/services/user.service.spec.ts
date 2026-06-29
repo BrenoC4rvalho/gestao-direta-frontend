@@ -201,4 +201,23 @@ describe('UserService', () => {
     expect(request.request.params.has("status")).toBe(false);
     request.flush(response);
   });
+
+  it('should send repeated statuses params and omit singular status', () => {
+    service.list({ status: 'ACTIVE', statuses: ['INACTIVE', 'BLOCKED'] }).subscribe();
+
+    const request = http.expectOne((request) => request.url === 'http://localhost:8080/api/users');
+    expect(request.request.params.getAll('statuses')).toEqual(['INACTIVE', 'BLOCKED']);
+    expect(request.request.params.has('status')).toBe(false);
+    request.flush(response);
+  });
+
+  it('should omit empty statuses and keep singular status fallback', () => {
+    service.list({ status: 'ACTIVE', statuses: [] }).subscribe();
+
+    const request = http.expectOne((request) => request.url === 'http://localhost:8080/api/users');
+    expect(request.request.params.has('statuses')).toBe(false);
+    expect(request.request.params.get('status')).toBe('ACTIVE');
+    request.flush(response);
+  });
+
 });

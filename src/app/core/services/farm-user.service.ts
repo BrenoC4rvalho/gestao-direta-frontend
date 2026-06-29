@@ -10,6 +10,7 @@ import {
   UpdateFarmUserRoleRequest,
 } from '../models/farm-user.models';
 import { PageResponse } from '../models/page-response.model';
+import { appendQueryParam } from '../../shared/utils/query-params.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -31,35 +32,19 @@ export class FarmUserService {
       return httpParams;
     }
 
-    if (params.page !== undefined) {
-      httpParams = httpParams.set('page', params.page);
-    }
+    httpParams = appendQueryParam(httpParams, 'page', params.page);
+    httpParams = appendQueryParam(httpParams, 'size', params.size);
+    httpParams = appendQueryParam(httpParams, 'sort', params.sort);
+    httpParams = appendQueryParam(httpParams, 'direction', params.direction);
+    httpParams = appendQueryParam(httpParams, 'search', params.search);
 
-    if (params.size !== undefined) {
-      httpParams = httpParams.set('size', params.size);
+    if (params.roles?.length) {
+      httpParams = appendQueryParam(httpParams, 'roles', params.roles);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'role', params.role);
     }
-
-    if (params.sort) {
-      httpParams = httpParams.set('sort', params.sort);
-    }
-
-    if (params.direction) {
-      httpParams = httpParams.set('direction', params.direction);
-    }
-
-    httpParams = this.setOptionalParam(httpParams, 'search', params.search);
-    httpParams = this.setOptionalParam(httpParams, 'role', params.role);
 
     return httpParams;
-  }
-
-  private setOptionalParam(
-    httpParams: HttpParams,
-    key: string,
-    value: string | null | undefined,
-  ): HttpParams {
-    const normalized = value?.trim() ?? '';
-    return normalized ? httpParams.set(key, normalized) : httpParams;
   }
 
   linkUser(farmId: number, payload: CreateFarmUserRequest): Observable<FarmUser> {

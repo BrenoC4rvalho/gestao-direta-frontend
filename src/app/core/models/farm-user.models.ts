@@ -31,4 +31,5 @@ export interface UpdateFarmUserRoleRequest {
 export interface FarmUserListParams extends PageRequest {
   search?: string | null;
   role?: FarmUserRole | null;
+  roles?: FarmUserRole[] | null;
 }

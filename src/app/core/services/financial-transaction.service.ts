@@ -11,6 +11,7 @@ import {
   MarkFinancialTransactionAsPaidRequest,
   UpdateFinancialTransactionRequest,
 } from '../models/financial-transaction.models';
+import { appendQueryParam } from '../../shared/utils/query-params.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -81,9 +82,6 @@ export class FinancialTransactionService {
       paidAtStart: params.paidAtStart,
       paidAtEnd: params.paidAtEnd,
       type: params.type,
-      categoryId: params.categoryId,
-      paymentStatus: params.paymentStatus,
-      paymentMethod: params.paymentMethod,
       recordStatus: params.recordStatus,
       description: params.description,
       createdByUserId: params.createdByUserId,
@@ -92,23 +90,27 @@ export class FinancialTransactionService {
     };
 
     for (const [key, value] of Object.entries(optionalParams)) {
-      if (this.hasParamValue(value)) {
-        httpParams = httpParams.set(key, value);
-      }
+      httpParams = appendQueryParam(httpParams, key, value);
+    }
+
+    if (params.categoryIds?.length) {
+      httpParams = appendQueryParam(httpParams, 'categoryIds', params.categoryIds);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'categoryId', params.categoryId);
+    }
+
+    if (params.paymentStatuses?.length) {
+      httpParams = appendQueryParam(httpParams, 'paymentStatuses', params.paymentStatuses);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'paymentStatus', params.paymentStatus);
+    }
+
+    if (params.paymentMethods?.length) {
+      httpParams = appendQueryParam(httpParams, 'paymentMethods', params.paymentMethods);
+    } else {
+      httpParams = appendQueryParam(httpParams, 'paymentMethod', params.paymentMethod);
     }
 
     return httpParams;
-  }
-
-  private hasParamValue(value: unknown): value is string | number | boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    if (typeof value === 'string') {
-      return value.trim().length > 0;
-    }
-
-    return true;
   }
 }

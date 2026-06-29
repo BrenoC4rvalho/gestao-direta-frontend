@@ -324,9 +324,9 @@ describe('TransactionsPage', () => {
       paidAtStart: '2026-06-10',
       paidAtEnd: '2026-06-20',
       type: 'EXPENSE',
-      categoryId: 1,
-      paymentStatus: 'PAID',
-      paymentMethod: 'PIX',
+      categoryIds: [1],
+      paymentStatuses: ['PAID'],
+      paymentMethods: ['PIX'],
       recordStatus: 'ACTIVE',
       description: 'sementes',
       minAmount: 99.99,
@@ -386,7 +386,7 @@ describe('TransactionsPage', () => {
     expect(findButton(fixture.nativeElement, 'Insumos')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Venda de safra')).toBeTruthy();
     clickButtonByAccessibleName('Aplicar filtros');
-    expect(lastListParams()).toEqual(expect.objectContaining({ type: 'INCOME', categoryId: null }));
+    expect(lastListParams()).toEqual(expect.objectContaining({ type: 'INCOME', categoryIds: [] }));
   });
 
   it('should show filtered empty state message when filters are active', () => {

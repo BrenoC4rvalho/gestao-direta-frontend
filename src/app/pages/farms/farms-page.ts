@@ -81,11 +81,11 @@ export class FarmsPage implements OnInit {
   protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
   protected readonly filters = signal<
-    Pick<FarmListParams, 'search' | 'document' | 'productionType' | 'status'>
+    Pick<FarmListParams, 'search' | 'document' | 'productionTypes' | 'status'>
   >({
     search: null,
     document: null,
-    productionType: null,
+    productionTypes: [],
     status: null,
   });
   protected readonly filtersConfig: ListFiltersConfig = {
@@ -105,8 +105,9 @@ export class FarmsPage implements OnInit {
     ],
     quickFilters: [
       {
-        key: 'productionType',
+        key: 'productionTypes',
         label: 'Produção',
+        multiple: true,
         options: [
           { label: 'Todos', value: null },
           { label: 'Agricultura', value: 'AGRICULTURE' },
@@ -120,7 +121,7 @@ export class FarmsPage implements OnInit {
 
   protected readonly farms = computed(() => this.response()?.content ?? []);
   protected readonly hasActiveFilters = computed(() =>
-    Object.values(this.filters()).some((value) => value !== null),
+    Object.values(this.filters()).some((value) => Array.isArray(value) ? value.length > 0 : value !== null),
   );
   protected readonly emptyFarmsDescription = computed(() =>
     this.hasActiveFilters()
@@ -165,14 +166,12 @@ export class FarmsPage implements OnInit {
   }
 
   protected changeFilters(filters: ListFilterValues): void {
-    // Temporary fallback until the backend accepts array filters from quick chips.
-    const productionType = this.firstFilterValue(filters['productionType']);
     const status = this.firstFilterValue(filters['status']);
 
     this.filters.set({
       search: this.firstFilterValue(filters['search']),
       document: this.firstFilterValue(filters['document']),
-      productionType: productionType as FarmListParams['productionType'],
+      productionTypes: this.filterValues(filters['productionTypes']) as FarmListParams['productionTypes'],
       status: status as FarmListParams['status'],
     });
     this.loadPage(0);
@@ -180,6 +179,14 @@ export class FarmsPage implements OnInit {
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
     return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  }
+
+  private filterValues(value: string | string[] | null | undefined): string[] {
+    if (!Array.isArray(value)) {
+      return value ? [value] : [];
+    }
+
+    return value;
   }
 
   protected previousPage(): void {
@@ -349,13 +356,13 @@ export class FarmsPage implements OnInit {
       });
   }
 
-  private activeFilters(): Pick<FarmListParams, 'search' | 'document' | 'productionType' | 'status'> {
+  private activeFilters(): Pick<FarmListParams, 'search' | 'document' | 'productionTypes' | 'status'> {
     const filters = this.filters();
 
     return {
       ...(filters.search !== null ? { search: filters.search } : {}),
       ...(filters.document !== null ? { document: filters.document } : {}),
-      ...(filters.productionType !== null ? { productionType: filters.productionType } : {}),
+      ...(filters.productionTypes?.length ? { productionTypes: filters.productionTypes } : {}),
       ...(filters.status !== null ? { status: filters.status } : {}),
     };
   }
