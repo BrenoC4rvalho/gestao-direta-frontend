@@ -68,7 +68,7 @@ describe('FinancialTransactionService', () => {
     http.verify();
   });
 
-  it('should list transactions with farmId and pagination params only', () => {
+  it('should list transactions with supported filter params', () => {
     service
       .listByFarm({
         farmId: 1,
@@ -76,19 +76,81 @@ describe('FinancialTransactionService', () => {
         size: 10,
         sort: 'transactionDate',
         direction: 'DESC',
+        transactionDateStart: '2026-06-01',
+        transactionDateEnd: '2026-06-30',
+        paidAtStart: '2026-06-10',
+        paidAtEnd: '2026-06-20',
         type: 'EXPENSE',
-        status: 'PENDING',
         categoryId: 1,
+        paymentStatus: 'PENDING',
+        paymentMethod: 'PIX',
+        recordStatus: 'ACTIVE',
+        description: 'sementes',
+        createdByUserId: 2,
+        minAmount: 99.99,
+        maxAmount: 1000.5,
       })
       .subscribe((result) => expect(result).toEqual(response));
 
-    const request = http.expectOne(
-      apiUrl + '/financial/transactions?farmId=1&page=2&size=10&sort=transactionDate&direction=DESC',
-    );
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/transactions');
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('size')).toBe('10');
+    expect(request.request.params.get('sort')).toBe('transactionDate');
+    expect(request.request.params.get('direction')).toBe('DESC');
+    expect(request.request.params.get('transactionDateStart')).toBe('2026-06-01');
+    expect(request.request.params.get('transactionDateEnd')).toBe('2026-06-30');
+    expect(request.request.params.get('paidAtStart')).toBe('2026-06-10');
+    expect(request.request.params.get('paidAtEnd')).toBe('2026-06-20');
+    expect(request.request.params.get('type')).toBe('EXPENSE');
+    expect(request.request.params.get('categoryId')).toBe('1');
+    expect(request.request.params.get('paymentStatus')).toBe('PENDING');
+    expect(request.request.params.get('paymentMethod')).toBe('PIX');
+    expect(request.request.params.get('recordStatus')).toBe('ACTIVE');
+    expect(request.request.params.get('description')).toBe('sementes');
+    expect(request.request.params.get('createdByUserId')).toBe('2');
+    expect(request.request.params.get('minAmount')).toBe('99.99');
+    expect(request.request.params.get('maxAmount')).toBe('1000.5');
+    request.flush(response);
+  });
+
+  it('should not send empty filter values', () => {
+    service
+      .listByFarm({
+        farmId: 1,
+        transactionDateStart: '',
+        transactionDateEnd: '   ',
+        paidAtStart: null,
+        paidAtEnd: undefined,
+        type: null,
+        categoryId: null,
+        paymentStatus: undefined,
+        paymentMethod: null,
+        recordStatus: '',
+        description: '   ',
+        createdByUserId: undefined,
+        minAmount: null,
+        maxAmount: undefined,
+      })
+      .subscribe((result) => expect(result).toEqual(response));
+
+    const request = http.expectOne((req) => req.url === apiUrl + '/financial/transactions');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.has('transactionDateStart')).toBe(false);
+    expect(request.request.params.has('transactionDateEnd')).toBe(false);
+    expect(request.request.params.has('paidAtStart')).toBe(false);
+    expect(request.request.params.has('paidAtEnd')).toBe(false);
     expect(request.request.params.has('type')).toBe(false);
-    expect(request.request.params.has('status')).toBe(false);
     expect(request.request.params.has('categoryId')).toBe(false);
+    expect(request.request.params.has('paymentStatus')).toBe(false);
+    expect(request.request.params.has('paymentMethod')).toBe(false);
+    expect(request.request.params.has('recordStatus')).toBe(false);
+    expect(request.request.params.has('description')).toBe(false);
+    expect(request.request.params.has('createdByUserId')).toBe(false);
+    expect(request.request.params.has('minAmount')).toBe(false);
+    expect(request.request.params.has('maxAmount')).toBe(false);
     request.flush(response);
   });
 

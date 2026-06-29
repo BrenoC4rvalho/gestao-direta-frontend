@@ -50,34 +50,172 @@
     </div>
 
     <gd-card>
-      <form class="grid gap-4 md:grid-cols-4" [formGroup]="filterForm">
-        <gd-select
-          id="transaction-filter-type"
-          label="Tipo"
-          placeholder="Todos"
-          [control]="filterForm.controls.type"
-          [options]="typeFilterOptions"
-        />
-        <gd-select
-          id="transaction-filter-status"
-          label="Status"
-          placeholder="Todos"
-          [control]="filterForm.controls.status"
-          [options]="statusFilterOptions"
-        />
-        <gd-select
-          id="transaction-filter-category"
-          label="Categoria"
-          placeholder="Todas"
-          [control]="filterForm.controls.categoryId"
-          [options]="categoryFilterOptions()"
-          [disabled]="categoryFilterOptions().length === 0"
-        />
-        <div class="flex items-end">
-          <gd-button type="button" variant="outline" [fullWidth]="true" (click)="resetFilters()">
-            Limpar filtros
-          </gd-button>
+      <form class="space-y-5" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
         </div>
+
+        <div class="grid gap-4 lg:grid-cols-[minmax(16rem,1.4fr)_minmax(10rem,0.7fr)_minmax(14rem,1fr)_auto] lg:items-end">
+          <fieldset class="grid gap-3 sm:grid-cols-2">
+            <legend class="col-span-full text-sm font-medium text-text-primary">Período da movimentação</legend>
+            <gd-input
+              id="transaction-filter-date-start"
+              label="Data inicial"
+              type="date"
+              [control]="filterForm.controls.transactionDateStart"
+            />
+            <gd-input
+              id="transaction-filter-date-end"
+              label="Data final"
+              type="date"
+              [control]="filterForm.controls.transactionDateEnd"
+            />
+          </fieldset>
+
+          <gd-select
+            id="transaction-filter-type"
+            label="Tipo"
+            placeholder="Todos"
+            [control]="filterForm.controls.type"
+            [options]="typeFilterOptions"
+          />
+
+          <gd-input
+            id="transaction-filter-description"
+            label="Descrição"
+            placeholder="Buscar por descrição"
+            type="search"
+            [control]="filterForm.controls.description"
+          />
+
+          <div class="grid gap-2 sm:grid-cols-3 lg:flex lg:items-end">
+            <gd-button type="submit" [fullWidth]="true">
+              <svg lucideIcon="search" class="size-4" aria-hidden="true"></svg>
+              Aplicar filtros
+            </gd-button>
+            <gd-button type="button" variant="outline" [fullWidth]="true" (click)="resetFilters()">
+              <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
+              Limpar filtros
+            </gd-button>
+            <gd-button
+              type="button"
+              [variant]="activeAdvancedFiltersCount() > 0 ? 'secondary' : 'outline'"
+              [fullWidth]="true"
+              [attr.aria-expanded]="showAdvancedFilters()"
+              aria-controls="transaction-advanced-filters"
+              (click)="toggleAdvancedFilters()"
+            >
+              <svg [lucideIcon]="showAdvancedFilters() ? 'chevron-up' : 'chevron-down'" class="size-4" aria-hidden="true"></svg>
+              {{ advancedFiltersLabel() }}
+            </gd-button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-medium text-text-primary">Categoria</p>
+          <div class="flex flex-wrap gap-2" aria-label="Filtro de categoria">
+            @for (category of categoryChips(); track category.value ?? 'all') {
+              <button
+                type="button"
+                [class]="categoryChipClasses(category.value)"
+                [attr.aria-pressed]="filterForm.controls.categoryId.value === (category.value ?? '')"
+                (click)="selectCategoryFilter(category.value)"
+              >
+                {{ category.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-medium text-text-primary">Status do pagamento</p>
+          <div class="flex flex-wrap gap-2" aria-label="Filtro de status do pagamento">
+            @for (status of paymentStatusChips; track status.value ?? 'all') {
+              <button
+                type="button"
+                [class]="paymentStatusChipClasses(status.value)"
+                [attr.aria-pressed]="filterForm.controls.paymentStatus.value === (status.value ?? '')"
+                (click)="selectPaymentStatusFilter(status.value)"
+              >
+                {{ status.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (showAdvancedFilters()) {
+          <div id="transaction-advanced-filters" class="space-y-5 border-t border-border pt-5">
+            <div class="grid gap-4 lg:grid-cols-3">
+              <fieldset class="grid gap-3 sm:grid-cols-2">
+                <legend class="col-span-full text-sm font-medium text-text-primary">Data de pagamento</legend>
+                <gd-input
+                  id="transaction-filter-paid-start"
+                  label="Data inicial"
+                  type="date"
+                  [control]="filterForm.controls.paidAtStart"
+                />
+                <gd-input
+                  id="transaction-filter-paid-end"
+                  label="Data final"
+                  type="date"
+                  [control]="filterForm.controls.paidAtEnd"
+                />
+              </fieldset>
+
+              <gd-select
+                id="transaction-filter-record-status"
+                label="Status do registro"
+                placeholder="Todos"
+                [control]="filterForm.controls.recordStatus"
+                [options]="recordStatusOptions"
+              />
+
+              <gd-select
+                id="transaction-filter-created-by"
+                label="Criado por"
+                placeholder="Todos os usuários"
+                [control]="filterForm.controls.createdByUserId"
+                [options]="createdByUserOptions"
+                [disabled]="true"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-text-primary">Forma de pagamento</p>
+              <div class="flex flex-wrap gap-2" aria-label="Filtro de forma de pagamento">
+                @for (method of paymentMethodChips; track method.value ?? 'all') {
+                  <button
+                    type="button"
+                    [class]="paymentMethodChipClasses(method.value)"
+                    [attr.aria-pressed]="filterForm.controls.paymentMethod.value === (method.value ?? '')"
+                    (click)="selectPaymentMethodFilter(method.value)"
+                  >
+                    {{ method.label }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <gd-input
+                id="transaction-filter-min-amount"
+                label="Valor mínimo"
+                placeholder="99,99"
+                inputmode="decimal"
+                [control]="filterForm.controls.minAmount"
+                (input)="sanitizeMoneyFilter(filterForm.controls.minAmount)"
+              />
+              <gd-input
+                id="transaction-filter-max-amount"
+                label="Valor máximo"
+                placeholder="1000,50"
+                inputmode="decimal"
+                [control]="filterForm.controls.maxAmount"
+                (input)="sanitizeMoneyFilter(filterForm.controls.maxAmount)"
+              />
+            </div>
+          </div>
+        }
       </form>
     </gd-card>
 
@@ -110,7 +248,7 @@
     } @else if (filteredTransactions().length === 0) {
       <gd-empty-state
         title="Nenhuma movimentação encontrada"
-        description="As receitas e despesas da fazenda aparecerão aqui."
+        [description]="emptyStateDescription()"
         icon="receipt-text"
       />
     } @else {

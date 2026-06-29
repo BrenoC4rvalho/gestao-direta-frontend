@@ -21,12 +21,7 @@ export class FinancialTransactionService {
 
   listByFarm(params: FinancialTransactionListParams): Observable<FinancialTransactionPage> {
     return this.http.get<FinancialTransactionPage>(`${this.apiUrl}/financial/transactions`, {
-      params: new HttpParams()
-        .set('farmId', params.farmId)
-        .set('page', params.page ?? 0)
-        .set('size', params.size ?? 10)
-        .set('sort', params.sort ?? 'transactionDate')
-        .set('direction', params.direction ?? 'DESC'),
+      params: this.buildListParams(params),
     });
   }
 
@@ -70,5 +65,50 @@ export class FinancialTransactionService {
       `${this.apiUrl}/financial/transactions/${id}/cancel`,
       {},
     );
+  }
+
+  private buildListParams(params: FinancialTransactionListParams): HttpParams {
+    let httpParams = new HttpParams()
+      .set('farmId', params.farmId)
+      .set('page', params.page ?? 0)
+      .set('size', params.size ?? 10)
+      .set('sort', params.sort ?? 'transactionDate')
+      .set('direction', params.direction ?? 'DESC');
+
+    const optionalParams = {
+      transactionDateStart: params.transactionDateStart,
+      transactionDateEnd: params.transactionDateEnd,
+      paidAtStart: params.paidAtStart,
+      paidAtEnd: params.paidAtEnd,
+      type: params.type,
+      categoryId: params.categoryId,
+      paymentStatus: params.paymentStatus,
+      paymentMethod: params.paymentMethod,
+      recordStatus: params.recordStatus,
+      description: params.description,
+      createdByUserId: params.createdByUserId,
+      minAmount: params.minAmount,
+      maxAmount: params.maxAmount,
+    };
+
+    for (const [key, value] of Object.entries(optionalParams)) {
+      if (this.hasParamValue(value)) {
+        httpParams = httpParams.set(key, value);
+      }
+    }
+
+    return httpParams;
+  }
+
+  private hasParamValue(value: unknown): value is string | number | boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+
+    return true;
   }
 }

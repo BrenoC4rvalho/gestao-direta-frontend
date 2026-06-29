@@ -94,6 +94,13 @@ const category: FinancialCategory = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
+const incomeCategory: FinancialCategory = {
+  ...category,
+  id: 2,
+  name: 'Venda de safra',
+  type: 'INCOME',
+};
+
 const transaction: FinancialTransaction = {
   id: 1,
   description: 'Compra de sementes',
@@ -158,7 +165,7 @@ describe('TransactionsPage', () => {
       cancel: vi.fn().mockReturnValue(of({ ...transaction, status: 'CANCELED' })),
     };
     categoryService = {
-      listByFarm: vi.fn().mockReturnValue(of([category])),
+      listByFarm: vi.fn().mockReturnValue(of([category, incomeCategory])),
     };
 
     await TestBed.configureTestingModule({
@@ -223,9 +230,6 @@ describe('TransactionsPage', () => {
       size: 10,
       sort: 'transactionDate',
       direction: 'DESC',
-      type: null,
-      status: null,
-      categoryId: null,
     });
     expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
     expect(categoryService.listByFarm.mock.calls[0]).toEqual([1]);
@@ -244,6 +248,148 @@ describe('TransactionsPage', () => {
     );
     createPage();
     expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar as movimentações');
+  });
+
+  it('should render simple filters and keep advanced filters hidden initially', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Filtros');
+    expect(fixture.nativeElement.textContent).toContain('Período da movimentação');
+    expect(fixture.nativeElement.textContent).toContain('Tipo');
+    expect(fixture.nativeElement.textContent).toContain('Descrição');
+    expect(fixture.nativeElement.textContent).toContain('Categoria');
+    expect(fixture.nativeElement.textContent).toContain('Status do pagamento');
+    expect(fixture.nativeElement.textContent).toContain('Insumos');
+    expect(fixture.nativeElement.textContent).toContain('Pendente');
+    expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
+    expect(fixture.nativeElement.textContent).not.toContain('Forma de pagamento');
+    expect(fixture.nativeElement.textContent).not.toContain('Status do registro');
+  });
+
+  it('should toggle advanced filters', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    expect(fixture.nativeElement.textContent).toContain('Data de pagamento');
+    expect(fixture.nativeElement.textContent).toContain('Forma de pagamento');
+    expect(fixture.nativeElement.textContent).toContain('Status do registro');
+    expect(fixture.nativeElement.textContent).toContain('Valor mínimo');
+
+    clickButton('Filtros avançados');
+    expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
+  });
+
+  it('should apply simple and advanced filters only when requested', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    const initialCalls = transactionService.listByFarm.mock.calls.length;
+
+    setInput('#transaction-filter-date-start', '2026-06-01');
+    setInput('#transaction-filter-date-end', '2026-06-30');
+    setSelect('#transaction-filter-type', 'EXPENSE');
+    setInput('#transaction-filter-description', 'sementes');
+    clickButton('Insumos');
+    clickButton('Pago');
+    clickButton('Filtros avançados');
+    setInput('#transaction-filter-paid-start', '2026-06-10');
+    setInput('#transaction-filter-paid-end', '2026-06-20');
+    clickButton('PIX');
+    setSelect('#transaction-filter-record-status', 'ACTIVE');
+    setInput('#transaction-filter-min-amount', '99,99');
+    setInput('#transaction-filter-max-amount', '1000,50');
+
+    expect(transactionService.listByFarm).toHaveBeenCalledTimes(initialCalls);
+
+    clickButton('Aplicar filtros');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      transactionDateStart: '2026-06-01',
+      transactionDateEnd: '2026-06-30',
+      paidAtStart: '2026-06-10',
+      paidAtEnd: '2026-06-20',
+      type: 'EXPENSE',
+      categoryId: 1,
+      paymentStatus: 'PAID',
+      paymentMethod: 'PIX',
+      recordStatus: 'ACTIVE',
+      description: 'sementes',
+      minAmount: 99.99,
+      maxAmount: 1000.5,
+    }));
+    expect(findButton(fixture.nativeElement, 'Filtros avançados (6)')).toBeTruthy();
+  });
+
+  it('should clear all filters and reload without extra params', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    setInput('#transaction-filter-description', 'sementes');
+    clickButton('Pendente');
+    clickButton('Filtros avançados');
+    clickButton('PIX');
+    setInput('#transaction-filter-min-amount', '99,99');
+    clickButton('Aplicar filtros');
+    clickButton('Limpar filtros');
+
+    expect(lastListParams()).toEqual({
+      farmId: 1,
+      page: 0,
+      size: 10,
+      sort: 'transactionDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should reset page when applying filters and keep filters on pagination', () => {
+    transactionService.listByFarm.mockReturnValue(of({
+      ...pageResponse([transaction]),
+      totalPages: 2,
+      last: false,
+    }));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    setInput('#transaction-filter-description', 'sementes');
+    clickButton('Aplicar filtros');
+    clickButton('Próxima');
+    expect(lastListParams()).toEqual(expect.objectContaining({ page: 1, description: 'sementes' }));
+
+    setInput('#transaction-filter-description', 'sementes novas');
+    clickButton('Aplicar filtros');
+    expect(lastListParams()).toEqual(expect.objectContaining({ page: 0, description: 'sementes novas' }));
+  });
+
+  it('should clear incompatible category when type changes', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Insumos');
+    setSelect('#transaction-filter-type', 'INCOME');
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement, 'Insumos')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Venda de safra')).toBeTruthy();
+    clickButton('Aplicar filtros');
+    expect(lastListParams()).toEqual(expect.objectContaining({ type: 'INCOME', categoryId: null }));
+  });
+
+  it('should show filtered empty state message when filters are active', () => {
+    transactionService.listByFarm.mockReturnValue(of(pageResponse([])));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('As receitas e despesas da fazenda aparecerão aqui.');
+
+    setInput('#transaction-filter-description', 'sem resultado');
+    clickButton('Aplicar filtros');
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Nenhuma movimentação encontrada para os filtros informados.',
+    );
   });
 
   it('should show create button only with management permission', () => {
@@ -371,6 +517,11 @@ describe('TransactionsPage', () => {
 
     expect(transactionService.listByFarm).toHaveBeenCalledWith(expect.objectContaining({ farmId: 2 }));
   });
+
+  function lastListParams(): Record<string, unknown> {
+    const calls = transactionService.listByFarm.mock.calls;
+    return calls[calls.length - 1][0];
+  }
 
   function clickButton(label: string): void {
     findButton(fixture.nativeElement, label)?.click();

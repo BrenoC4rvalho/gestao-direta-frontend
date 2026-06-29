@@ -43,13 +43,23 @@ export interface FinancialTransaction {
 
 export interface FinancialTransactionListParams {
   farmId: number;
+  transactionDateStart?: string | null;
+  transactionDateEnd?: string | null;
+  paidAtStart?: string | null;
+  paidAtEnd?: string | null;
+  type?: TransactionType | null;
+  categoryId?: number | null;
+  paymentStatus?: PaymentStatus | null;
+  paymentMethod?: PaymentMethod | null;
+  recordStatus?: FinancialRecordStatus | null;
+  description?: string | null;
+  createdByUserId?: number | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
   page?: number;
   size?: number;
   sort?: string;
   direction?: 'ASC' | 'DESC';
-  type?: TransactionType | null;
-  status?: PaymentStatus | null;
-  categoryId?: number | null;
 }
 
 export interface CreateFinancialTransactionRequest {

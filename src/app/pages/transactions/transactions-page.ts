@@ -7,15 +7,19 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize, forkJoin, Observable } from 'rxjs';
 
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
   CreateFinancialTransactionRequest,
+  FinancialRecordStatus,
   FinancialTransaction,
+  FinancialTransactionListParams,
   PaymentMethod,
   PaymentStatus,
   TransactionType,
@@ -28,9 +32,10 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
-import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
+import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
+import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
+import { brazilianMoneyToNumber, sanitizeBrazilianMoneyInput } from '../../shared/utils/money.utils';
 import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { TransactionCard } from './components/transaction-card/transaction-card';
 import { TransactionForm } from './components/transaction-form/transaction-form';
@@ -41,10 +46,58 @@ interface TransactionLists {
 }
 
 interface TransactionFiltersControls {
+  transactionDateStart: GdFormControl;
+  transactionDateEnd: GdFormControl;
+  paidAtStart: GdFormControl;
+  paidAtEnd: GdFormControl;
   type: GdFormControl;
-  status: GdFormControl;
   categoryId: GdFormControl;
+  paymentStatus: GdFormControl;
+  paymentMethod: GdFormControl;
+  recordStatus: GdFormControl;
+  description: GdFormControl;
+  createdByUserId: GdFormControl;
+  minAmount: GdFormControl;
+  maxAmount: GdFormControl;
 }
+
+type AppliedTransactionFilters = Pick<
+  FinancialTransactionListParams,
+  | 'transactionDateStart'
+  | 'transactionDateEnd'
+  | 'paidAtStart'
+  | 'paidAtEnd'
+  | 'type'
+  | 'categoryId'
+  | 'paymentStatus'
+  | 'paymentMethod'
+  | 'recordStatus'
+  | 'description'
+  | 'createdByUserId'
+  | 'minAmount'
+  | 'maxAmount'
+>;
+
+interface ChipOption<T extends string | number> {
+  label: string;
+  value: T | null;
+}
+
+const EMPTY_FILTER_FORM_VALUE = {
+  transactionDateStart: '',
+  transactionDateEnd: '',
+  paidAtStart: '',
+  paidAtEnd: '',
+  type: '',
+  categoryId: '',
+  paymentStatus: '',
+  paymentMethod: '',
+  recordStatus: '',
+  description: '',
+  createdByUserId: '',
+  minAmount: '',
+  maxAmount: '',
+};
 
 @Component({
   selector: 'gd-transactions-page',
@@ -57,6 +110,8 @@ interface TransactionFiltersControls {
     Drawer,
     EmptyState,
     ErrorState,
+    Input,
+    LucideDynamicIcon,
     ReactiveFormsModule,
     Select,
     Skeleton,
@@ -90,17 +145,27 @@ export class TransactionsPage {
   protected readonly paidSubmitting = signal(false);
   protected readonly cancelTarget = signal<FinancialTransaction | null>(null);
   protected readonly cancelSubmitting = signal(false);
+  protected readonly showAdvancedFilters = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
-  private readonly typeFilter = signal<TransactionType | null>(null);
-  private readonly statusFilter = signal<PaymentStatus | null>(null);
-  private readonly categoryFilter = signal<number | null>(null);
+  private readonly draftTypeFilter = signal<TransactionType | null>(null);
+  private readonly appliedFilters = signal<AppliedTransactionFilters>({});
 
   protected readonly filterForm = new FormGroup<TransactionFiltersControls>({
+    transactionDateStart: new FormControl<GdFormValue>(''),
+    transactionDateEnd: new FormControl<GdFormValue>(''),
+    paidAtStart: new FormControl<GdFormValue>(''),
+    paidAtEnd: new FormControl<GdFormValue>(''),
     type: new FormControl<GdFormValue>(''),
-    status: new FormControl<GdFormValue>(''),
     categoryId: new FormControl<GdFormValue>(''),
+    paymentStatus: new FormControl<GdFormValue>(''),
+    paymentMethod: new FormControl<GdFormValue>(''),
+    recordStatus: new FormControl<GdFormValue>(''),
+    description: new FormControl<GdFormValue>(''),
+    createdByUserId: new FormControl<GdFormValue>({ value: '', disabled: true }),
+    minAmount: new FormControl<GdFormValue>(''),
+    maxAmount: new FormControl<GdFormValue>(''),
   });
 
   protected readonly selectedFarmName = computed(
@@ -140,19 +205,7 @@ export class TransactionsPage {
       this.farmAccessStore.canManageTransactions()
     );
   });
-  protected readonly filteredTransactions = computed(() => {
-    const type = this.typeFilter();
-    const status = this.statusFilter();
-    const categoryId = this.categoryFilter();
-
-    return this.transactions().filter((transaction) => {
-      const matchesType = !type || transaction.type === type;
-      const matchesStatus = !status || transaction.status === status;
-      const matchesCategory = categoryId === null || transaction.categoryId === categoryId;
-
-      return matchesType && matchesStatus && matchesCategory;
-    });
-  });
+  protected readonly filteredTransactions = computed(() => this.transactions());
   protected readonly summary = computed(() => {
     const totals = this.filteredTransactions().reduce(
       (current, transaction) => {
@@ -171,36 +224,90 @@ export class TransactionsPage {
 
     return { ...totals, balance: totals.income - totals.expense };
   });
-  protected readonly categoryFilterOptions = computed<readonly GdSelectOption[]>(() =>
-    this.categories()
+  protected readonly categoryChips = computed<readonly ChipOption<number>[]>(() => {
+    const type = this.draftTypeFilter();
+    const categoryOptions = this.categories()
       .filter((category) => category.status === 'ACTIVE')
-      .map((category) => ({ label: category.name, value: category.id })),
+      .filter((category) => !type || category.type === type)
+      .map((category) => ({ label: category.name, value: category.id }));
+
+    return [{ label: 'Todas', value: null }, ...categoryOptions];
+  });
+  protected readonly activeAdvancedFiltersCount = computed(() => {
+    const filters = this.appliedFilters();
+
+    return [
+      filters.paidAtStart,
+      filters.paidAtEnd,
+      filters.paymentMethod,
+      filters.recordStatus,
+      filters.createdByUserId,
+      filters.minAmount,
+      filters.maxAmount,
+    ].filter((value) => this.hasFilterValue(value)).length;
+  });
+  protected readonly hasActiveFilters = computed(() => {
+    const filters = this.appliedFilters();
+
+    return [
+      filters.transactionDateStart,
+      filters.transactionDateEnd,
+      filters.paidAtStart,
+      filters.paidAtEnd,
+      filters.type,
+      filters.categoryId,
+      filters.paymentStatus,
+      filters.paymentMethod,
+      filters.recordStatus,
+      filters.description,
+      filters.createdByUserId,
+      filters.minAmount,
+      filters.maxAmount,
+    ].some((value) => this.hasFilterValue(value));
+  });
+  protected readonly emptyStateDescription = computed(() =>
+    this.hasActiveFilters()
+      ? 'Nenhuma movimentação encontrada para os filtros informados.'
+      : 'As receitas e despesas da fazenda aparecerão aqui.',
   );
 
   protected readonly typeFilterOptions: readonly GdSelectOption[] = [
-    { label: 'Receitas', value: 'INCOME' },
-    { label: 'Despesas', value: 'EXPENSE' },
+    { label: 'Receita', value: 'INCOME' },
+    { label: 'Despesa', value: 'EXPENSE' },
   ];
-  protected readonly statusFilterOptions: readonly GdSelectOption[] = [
+  protected readonly recordStatusOptions: readonly GdSelectOption[] = [
+    { label: 'Ativo', value: 'ACTIVE' },
+    { label: 'Excluído', value: 'DELETED' },
+  ];
+  // TODO: Habilitar quando houver uma lista de usuários disponível para este filtro.
+  protected readonly createdByUserOptions: readonly GdSelectOption[] = [];
+  protected readonly paymentStatusChips: readonly ChipOption<PaymentStatus>[] = [
+    { label: 'Todos', value: null },
     { label: 'Pendente', value: 'PENDING' },
-    { label: 'Paga', value: 'PAID' },
-    { label: 'Atrasada', value: 'OVERDUE' },
-    { label: 'Cancelada', value: 'CANCELED' },
+    { label: 'Pago', value: 'PAID' },
+    { label: 'Vencido', value: 'OVERDUE' },
+    { label: 'Cancelado', value: 'CANCELED' },
+  ];
+  protected readonly paymentMethodChips: readonly ChipOption<PaymentMethod>[] = [
+    { label: 'Todas', value: null },
+    { label: 'PIX', value: 'PIX' },
+    { label: 'Dinheiro', value: 'CASH' },
+    { label: 'Cartão de crédito', value: 'CREDIT_CARD' },
+    { label: 'Cartão de débito', value: 'DEBIT_CARD' },
+    { label: 'Transferência', value: 'BANK_TRANSFER' },
+    { label: 'Boleto', value: 'BOLETO' },
+    { label: 'Cheque', value: 'CHECK' },
+    { label: 'Outro', value: 'OTHER' },
   ];
 
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
   constructor() {
     this.filterForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.typeFilter.set(this.nullableString(this.filterForm.controls.type.value) as TransactionType | null);
-      this.statusFilter.set(
-        this.nullableString(this.filterForm.controls.status.value) as PaymentStatus | null,
+      this.draftTypeFilter.set(
+        this.nullableString(this.filterForm.controls.type.value) as TransactionType | null,
       );
-      this.categoryFilter.set(this.numberOrNull(this.filterForm.controls.categoryId.value));
-
-      if (this.page() !== 0) {
-        this.page.set(0);
-      }
+      this.clearIncompatibleCategory();
     });
 
     effect((onCleanup) => {
@@ -235,6 +342,7 @@ export class TransactionsPage {
           next: (lists) => {
             this.transactions.set(lists.transactions.content);
             this.categories.set(lists.categories);
+            untracked(() => this.clearIncompatibleCategory());
             this.pageInfo.set({
               totalPages: lists.transactions.totalPages,
               totalElements: lists.transactions.totalElements,
@@ -253,8 +361,37 @@ export class TransactionsPage {
     this.reloadTrigger.update((value) => value + 1);
   }
 
+  protected applyFilters(): void {
+    this.appliedFilters.set(this.buildAppliedFilters());
+    this.resetPageAndReload();
+  }
+
   protected resetFilters(): void {
-    this.filterForm.reset({ type: '', status: '', categoryId: '' });
+    this.filterForm.reset(EMPTY_FILTER_FORM_VALUE, { emitEvent: false });
+    this.draftTypeFilter.set(null);
+    this.appliedFilters.set({});
+    this.resetPageAndReload();
+  }
+
+  protected toggleAdvancedFilters(): void {
+    this.showAdvancedFilters.update((value) => !value);
+  }
+
+  protected selectCategoryFilter(categoryId: number | null): void {
+    this.filterForm.controls.categoryId.setValue(categoryId ?? '');
+  }
+
+  protected selectPaymentStatusFilter(status: PaymentStatus | null): void {
+    this.filterForm.controls.paymentStatus.setValue(status ?? '');
+  }
+
+  protected selectPaymentMethodFilter(method: PaymentMethod | null): void {
+    this.filterForm.controls.paymentMethod.setValue(method ?? '');
+  }
+
+  protected sanitizeMoneyFilter(control: GdFormControl): void {
+    const sanitized = sanitizeBrazilianMoneyInput(`${control.value ?? ''}`);
+    control.setValue(sanitized, { emitEvent: false });
   }
 
   protected previousPage(): void {
@@ -420,6 +557,23 @@ export class TransactionsPage {
     return this.canManageTransactions() && transaction.status !== 'CANCELED';
   }
 
+  protected categoryChipClasses(categoryId: number | null): string {
+    return this.chipClasses(this.numberOrNull(this.filterForm.controls.categoryId.value) === categoryId);
+  }
+
+  protected paymentStatusChipClasses(status: PaymentStatus | null): string {
+    return this.chipClasses(this.nullableString(this.filterForm.controls.paymentStatus.value) === status);
+  }
+
+  protected paymentMethodChipClasses(method: PaymentMethod | null): string {
+    return this.chipClasses(this.nullableString(this.filterForm.controls.paymentMethod.value) === method);
+  }
+
+  protected advancedFiltersLabel(): string {
+    const count = this.activeAdvancedFiltersCount();
+
+    return count > 0 ? `Filtros avançados (${count})` : 'Filtros avançados';
+  }
 
   protected formatDate(value: string | null): string {
     return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';
@@ -553,12 +707,62 @@ export class TransactionsPage {
         size: 10,
         sort: 'transactionDate',
         direction: 'DESC',
-        type: this.typeFilter(),
-        status: this.statusFilter(),
-        categoryId: this.categoryFilter(),
+        ...this.appliedFilters(),
       }),
       categories: this.categoryService.listByFarm(farmId),
     });
+  }
+
+  private buildAppliedFilters(): AppliedTransactionFilters {
+    return {
+      transactionDateStart: this.nullableString(this.filterForm.controls.transactionDateStart.value),
+      transactionDateEnd: this.nullableString(this.filterForm.controls.transactionDateEnd.value),
+      paidAtStart: this.nullableString(this.filterForm.controls.paidAtStart.value),
+      paidAtEnd: this.nullableString(this.filterForm.controls.paidAtEnd.value),
+      type: this.nullableString(this.filterForm.controls.type.value) as TransactionType | null,
+      categoryId: this.numberOrNull(this.filterForm.controls.categoryId.value),
+      paymentStatus: this.nullableString(this.filterForm.controls.paymentStatus.value) as PaymentStatus | null,
+      paymentMethod: this.nullableString(this.filterForm.controls.paymentMethod.value) as PaymentMethod | null,
+      recordStatus: this.nullableString(this.filterForm.controls.recordStatus.value) as FinancialRecordStatus | null,
+      description: this.nullableString(this.filterForm.controls.description.value),
+      createdByUserId: this.numberOrNull(this.filterForm.controls.createdByUserId.value),
+      minAmount: brazilianMoneyToNumber(`${this.filterForm.controls.minAmount.value ?? ''}`),
+      maxAmount: brazilianMoneyToNumber(`${this.filterForm.controls.maxAmount.value ?? ''}`),
+    };
+  }
+
+  private resetPageAndReload(): void {
+    if (this.page() === 0) {
+      this.retry();
+      return;
+    }
+
+    this.page.set(0);
+  }
+
+  private clearIncompatibleCategory(): void {
+    const categoryId = this.numberOrNull(this.filterForm.controls.categoryId.value);
+    const type = this.draftTypeFilter();
+
+    if (categoryId === null || !type) {
+      return;
+    }
+
+    const category = this.categories().find((item) => item.id === categoryId);
+
+    if (category && category.type !== type) {
+      this.filterForm.controls.categoryId.setValue('', { emitEvent: false });
+    }
+  }
+
+  private chipClasses(active: boolean): string {
+    return [
+      'min-h-9 rounded-full border px-3 text-sm font-medium transition-colors',
+      'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary',
+      active
+        ? 'border-primary bg-primary text-white hover:bg-primary-hover'
+        : 'border-border bg-surface text-text-primary hover:bg-background',
+    ].join(' ');
   }
 
   private isAccessPending(): boolean {
@@ -626,5 +830,17 @@ export class TransactionsPage {
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private hasFilterValue(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+
+    return true;
   }
 }
