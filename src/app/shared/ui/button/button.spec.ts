@@ -9,6 +9,9 @@ import { Button, ButtonVariant } from './button';
     <gd-button [variant]="variant" [disabled]="disabled" [loading]="loading" [fullWidth]="fullWidth">
       Save
     </gd-button>
+    <gd-button [iconOnly]="true" ariaLabel="Search" title="Search">
+      S
+    </gd-button>
   `,
 })
 class ButtonHost {
@@ -55,5 +58,15 @@ describe('Button', () => {
 
     const loadingButton = loadingFixture.nativeElement.querySelector('button') as HTMLButtonElement;
     expect(loadingButton.disabled).toBe(true);
+  });
+
+  it('should expose icon-only accessibility attributes', () => {
+    const fixture = TestBed.createComponent(ButtonHost);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelectorAll('button')[1] as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBe('Search');
+    expect(button.getAttribute('title')).toBe('Search');
+    expect(button.className).toContain('size-10');
   });
 });

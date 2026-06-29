@@ -1,11 +1,17 @@
-<button [type]="type()" [class]="buttonClasses()" [disabled]="isDisabled()">
+<button
+  [type]="type()"
+  [class]="buttonClasses()"
+  [disabled]="isDisabled()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.title]="title()"
+>
   @if (loading()) {
     <span
       class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
       aria-hidden="true"
     ></span>
   }
-  <span>
+  <span class="inline-flex items-center justify-center gap-2">
     <ng-content />
   </span>
 </button>

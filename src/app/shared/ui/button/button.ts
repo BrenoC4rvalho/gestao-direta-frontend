@@ -23,6 +23,9 @@ export class Button {
   readonly disabled = input(false);
   readonly loading = input(false);
   readonly fullWidth = input(false);
+  readonly iconOnly = input(false);
+  readonly ariaLabel = input<string | null>(null);
+  readonly title = input<string | null>(null);
 
   protected readonly isDisabled = computed(() => this.disabled() || this.loading());
 
@@ -39,6 +42,16 @@ export class Button {
   );
 
   private sizeClasses(): string {
+    if (this.iconOnly()) {
+      const sizes: Record<ButtonSize, string> = {
+        sm: 'size-9 p-0 text-sm',
+        md: 'size-10 p-0 text-sm',
+        lg: 'size-11 p-0 text-base',
+      };
+
+      return sizes[this.size()];
+    }
+
     const sizes: Record<ButtonSize, string> = {
       sm: 'min-h-9 px-3 text-sm',
       md: 'min-h-10 px-4 text-sm',

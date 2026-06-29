@@ -88,14 +88,24 @@
             [control]="filterForm.controls.description"
           />
 
-          <div class="grid gap-2 sm:grid-cols-3 lg:flex lg:items-end">
-            <gd-button type="submit" [fullWidth]="true">
+          <div class="grid grid-cols-[2.5rem_2.5rem_minmax(0,1fr)] gap-2 lg:flex lg:items-end">
+            <gd-button
+              type="submit"
+              [iconOnly]="true"
+              ariaLabel="Aplicar filtros"
+              title="Aplicar filtros"
+            >
               <svg lucideIcon="search" class="size-4" aria-hidden="true"></svg>
-              Aplicar filtros
             </gd-button>
-            <gd-button type="button" variant="outline" [fullWidth]="true" (click)="resetFilters()">
+            <gd-button
+              type="button"
+              variant="outline"
+              [iconOnly]="true"
+              ariaLabel="Limpar filtros"
+              title="Limpar filtros"
+              (click)="resetFilters()"
+            >
               <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
-              Limpar filtros
             </gd-button>
             <gd-button
               type="button"
@@ -105,8 +115,10 @@
               aria-controls="transaction-advanced-filters"
               (click)="toggleAdvancedFilters()"
             >
-              <svg [lucideIcon]="showAdvancedFilters() ? 'chevron-up' : 'chevron-down'" class="size-4" aria-hidden="true"></svg>
-              {{ advancedFiltersLabel() }}
+              <span class="inline-flex min-w-0 items-center justify-center gap-2">
+                <svg [lucideIcon]="showAdvancedFilters() ? 'chevron-up' : 'chevron-down'" class="size-4 shrink-0" aria-hidden="true"></svg>
+                <span class="truncate">{{ advancedFiltersLabel() }}</span>
+              </span>
             </gd-button>
           </div>
         </div>
@@ -145,21 +157,23 @@
 
         @if (showAdvancedFilters()) {
           <div id="transaction-advanced-filters" class="space-y-5 border-t border-border pt-5">
-            <div class="grid gap-4 lg:grid-cols-3">
-              <fieldset class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
+              <fieldset class="grid gap-1.5">
                 <legend class="col-span-full text-sm font-medium text-text-primary">Data de pagamento</legend>
-                <gd-input
-                  id="transaction-filter-paid-start"
-                  label="Data inicial"
-                  type="date"
-                  [control]="filterForm.controls.paidAtStart"
-                />
-                <gd-input
-                  id="transaction-filter-paid-end"
-                  label="Data final"
-                  type="date"
-                  [control]="filterForm.controls.paidAtEnd"
-                />
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <gd-input
+                    id="transaction-filter-paid-start"
+                    label="Data inicial"
+                    type="date"
+                    [control]="filterForm.controls.paidAtStart"
+                  />
+                  <gd-input
+                    id="transaction-filter-paid-end"
+                    label="Data final"
+                    type="date"
+                    [control]="filterForm.controls.paidAtEnd"
+                  />
+                </div>
               </fieldset>
 
               <gd-select
@@ -202,6 +216,7 @@
                 label="Valor mínimo"
                 placeholder="99,99"
                 inputmode="decimal"
+                prefix="R$"
                 [control]="filterForm.controls.minAmount"
                 (input)="sanitizeMoneyFilter(filterForm.controls.minAmount)"
               />
@@ -210,6 +225,7 @@
                 label="Valor máximo"
                 placeholder="1000,50"
                 inputmode="decimal"
+                prefix="R$"
                 [control]="filterForm.controls.maxAmount"
                 (input)="sanitizeMoneyFilter(filterForm.controls.maxAmount)"
               />

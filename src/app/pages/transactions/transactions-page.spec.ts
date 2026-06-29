@@ -262,6 +262,9 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Status do pagamento');
     expect(fixture.nativeElement.textContent).toContain('Insumos');
     expect(fixture.nativeElement.textContent).toContain('Pendente');
+    expect(findButtonByAccessibleName(fixture.nativeElement, 'Aplicar filtros')).toBeTruthy();
+    expect(findButtonByAccessibleName(fixture.nativeElement, 'Limpar filtros')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Filtros avançados');
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
     expect(fixture.nativeElement.textContent).not.toContain('Forma de pagamento');
     expect(fixture.nativeElement.textContent).not.toContain('Status do registro');
@@ -276,6 +279,13 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Forma de pagamento');
     expect(fixture.nativeElement.textContent).toContain('Status do registro');
     expect(fixture.nativeElement.textContent).toContain('Valor mínimo');
+    expect(fixture.nativeElement.textContent).toContain('Valor máximo');
+
+    const minAmountInput = findInput('#transaction-filter-min-amount');
+    const maxAmountInput = findInput('#transaction-filter-max-amount');
+
+    expect(minAmountInput.closest('gd-input')?.textContent).toContain('R$');
+    expect(maxAmountInput.closest('gd-input')?.textContent).toContain('R$');
 
     clickButton('Filtros avançados');
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
@@ -300,9 +310,11 @@ describe('TransactionsPage', () => {
     setInput('#transaction-filter-min-amount', '99,99');
     setInput('#transaction-filter-max-amount', '1000,50');
 
+    expect(findInput('#transaction-filter-min-amount').value).toBe('99,99');
+    expect(findInput('#transaction-filter-max-amount').value).toBe('1000,50');
     expect(transactionService.listByFarm).toHaveBeenCalledTimes(initialCalls);
 
-    clickButton('Aplicar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
 
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
@@ -332,8 +344,8 @@ describe('TransactionsPage', () => {
     clickButton('Filtros avançados');
     clickButton('PIX');
     setInput('#transaction-filter-min-amount', '99,99');
-    clickButton('Aplicar filtros');
-    clickButton('Limpar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
+    clickButtonByAccessibleName('Limpar filtros');
 
     expect(lastListParams()).toEqual({
       farmId: 1,
@@ -354,12 +366,12 @@ describe('TransactionsPage', () => {
     createPage();
 
     setInput('#transaction-filter-description', 'sementes');
-    clickButton('Aplicar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
     clickButton('Próxima');
     expect(lastListParams()).toEqual(expect.objectContaining({ page: 1, description: 'sementes' }));
 
     setInput('#transaction-filter-description', 'sementes novas');
-    clickButton('Aplicar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
     expect(lastListParams()).toEqual(expect.objectContaining({ page: 0, description: 'sementes novas' }));
   });
 
@@ -373,7 +385,7 @@ describe('TransactionsPage', () => {
 
     expect(findButton(fixture.nativeElement, 'Insumos')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Venda de safra')).toBeTruthy();
-    clickButton('Aplicar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
     expect(lastListParams()).toEqual(expect.objectContaining({ type: 'INCOME', categoryId: null }));
   });
 
@@ -385,7 +397,7 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('As receitas e despesas da fazenda aparecerão aqui.');
 
     setInput('#transaction-filter-description', 'sem resultado');
-    clickButton('Aplicar filtros');
+    clickButtonByAccessibleName('Aplicar filtros');
 
     expect(fixture.nativeElement.textContent).toContain(
       'Nenhuma movimentação encontrada para os filtros informados.',
@@ -528,6 +540,11 @@ describe('TransactionsPage', () => {
     fixture.detectChanges();
   }
 
+  function clickButtonByAccessibleName(label: string): void {
+    findButtonByAccessibleName(fixture.nativeElement, label)?.click();
+    fixture.detectChanges();
+  }
+
   function clickDialogButton(label: string): void {
     const dialogs = fixture.nativeElement.querySelectorAll('gd-confirm-dialog [role="dialog"]');
     const button = Array.from(dialogs)
@@ -574,8 +591,14 @@ describe('TransactionsPage', () => {
     fixture.detectChanges();
   }
 
+  function findInput(selector: string): HTMLInputElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>,
+    ).find((item) => item.id === selector.slice(1)) as HTMLInputElement;
+  }
+
   function setInput(selector: string, value: string): void {
-    const input = Array.from(fixture.nativeElement.querySelectorAll('input') as NodeListOf<HTMLInputElement>).find((item) => item.id === selector.slice(1)) as HTMLInputElement;
+    const input = findInput(selector);
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -593,6 +616,12 @@ describe('TransactionsPage', () => {
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
+  );
+}
+
+function findButtonByAccessibleName(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return Array.from(root.querySelectorAll('button')).find(
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }
 
