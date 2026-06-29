@@ -24,6 +24,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
+import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { ConfirmDialog } from '../../shared/overlays';
 import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { UpcomingBillCard } from './components/upcoming-bill-card/upcoming-bill-card';
@@ -50,6 +51,7 @@ interface UpcomingBillSummary {
   selector: 'gd-upcoming-bills-page',
   imports: [
     Badge,
+    BrCurrencyPipe,
     Button,
     Card,
     ConfirmDialog,
@@ -173,10 +175,6 @@ export class UpcomingBillsPage {
     { label: 'Próximos 30 dias', value: 'NEXT_30_DAYS' },
   ];
 
-  private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
   constructor() {
@@ -362,9 +360,6 @@ export class UpcomingBillsPage {
     return this.canManageUpcomingBills() && bill.status !== 'CANCELED';
   }
 
-  protected formatCurrency(value: number): string {
-    return this.currencyFormatter.format(value);
-  }
 
   protected formatDate(value: string | null | undefined): string {
     return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';

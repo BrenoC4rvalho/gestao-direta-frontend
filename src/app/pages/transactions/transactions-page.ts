@@ -29,6 +29,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
+import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { TransactionCard } from './components/transaction-card/transaction-card';
@@ -51,6 +52,7 @@ interface TransactionFiltersControls {
     Badge,
     Button,
     Card,
+    BrCurrencyPipe,
     ConfirmDialog,
     Drawer,
     EmptyState,
@@ -186,10 +188,6 @@ export class TransactionsPage {
     { label: 'Cancelada', value: 'CANCELED' },
   ];
 
-  private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
   constructor() {
@@ -422,9 +420,6 @@ export class TransactionsPage {
     return this.canManageTransactions() && transaction.status !== 'CANCELED';
   }
 
-  protected formatCurrency(value: number): string {
-    return this.currencyFormatter.format(value);
-  }
 
   protected formatDate(value: string | null): string {
     return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';

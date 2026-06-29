@@ -45,7 +45,7 @@
               </div>
 
               <p class="shrink-0 text-sm font-semibold text-text-primary">
-                {{ formatCurrency(bill.amount) }}
+                {{ bill.amount | brCurrency }}
               </p>
             </div>
 

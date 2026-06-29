@@ -35,16 +35,16 @@
     <div class="gd-fade-in-up grid gap-4 md:grid-cols-3">
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Receitas</p>
-        <p class="mt-2 text-2xl font-semibold text-success">{{ formatCurrency(summary().income) }}</p>
+        <p class="mt-2 text-2xl font-semibold text-success">{{ summary().income | brCurrency }}</p>
       </gd-card>
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Despesas</p>
-        <p class="mt-2 text-2xl font-semibold text-danger">{{ formatCurrency(summary().expense) }}</p>
+        <p class="mt-2 text-2xl font-semibold text-danger">{{ summary().expense | brCurrency }}</p>
       </gd-card>
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Saldo</p>
         <p [class]="'mt-2 text-2xl font-semibold ' + (summary().balance >= 0 ? 'text-success' : 'text-danger')">
-          {{ formatCurrency(summary().balance) }}
+          {{ summary().balance | brCurrency }}
         </p>
       </gd-card>
     </div>
@@ -165,7 +165,7 @@
                   <p>Pag.: {{ formatDate(transaction.paidAt) }}</p>
                 </td>
                 <td [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(transaction.type)">
-                  {{ amountPrefix(transaction.type) }}{{ formatCurrency(transaction.amount) }}
+                  {{ amountPrefix(transaction.type) }}{{ transaction.amount | brCurrency }}
                 </td>
                 <td class="px-5 py-4">
                   @if (canEditTransaction(transaction) || canMarkAsPaid(transaction) || canCancelTransaction(transaction)) {

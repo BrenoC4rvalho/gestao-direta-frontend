@@ -30,19 +30,19 @@
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Total pendente</p>
         <p class="mt-2 text-2xl font-semibold text-warning">
-          {{ formatCurrency(summary().pendingTotal) }}
+          {{ summary().pendingTotal | brCurrency }}
         </p>
       </gd-card>
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Vencidas</p>
         <p class="mt-2 text-2xl font-semibold text-danger">
-          {{ summary().overdue.count }} · {{ formatCurrency(summary().overdue.total) }}
+          {{ summary().overdue.count }} · {{ summary().overdue.total | brCurrency }}
         </p>
       </gd-card>
       <gd-card>
         <p class="text-sm font-medium text-text-muted">Vencem em breve</p>
         <p class="mt-2 text-2xl font-semibold text-info">
-          {{ summary().soon.count }} · {{ formatCurrency(summary().soon.total) }}
+          {{ summary().soon.count }} · {{ summary().soon.total | brCurrency }}
         </p>
       </gd-card>
     </div>
@@ -150,7 +150,7 @@
                   </div>
                 </td>
                 <td class="px-5 py-4 text-right font-semibold text-text-primary">
-                  {{ formatCurrency(bill.amount) }}
+                  {{ bill.amount | brCurrency }}
                 </td>
                 <td class="px-5 py-4">
                   @if (canMarkAsPaid(bill) || canCancelBill(bill)) {

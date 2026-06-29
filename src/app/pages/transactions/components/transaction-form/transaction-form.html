@@ -25,12 +25,12 @@
     <gd-input
       id="transaction-amount"
       label="Valor"
-      type="number"
+      type="text"
       placeholder="0,00"
+      inputmode="decimal"
+      prefix="R$"
       [control]="form.controls.amount"
       [required]="true"
-      [min]="0.01"
-      step="0.01"
       [errorMessage]="amountErrorMessage()"
     />
 

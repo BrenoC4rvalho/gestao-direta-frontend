@@ -19,6 +19,7 @@ import { FinancialService } from '../../core/services/financial.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
 import { SummaryCard, SummaryCardTone } from './components/summary-card/summary-card';
@@ -35,6 +36,7 @@ interface SummaryCardViewModel {
 @Component({
   selector: 'gd-dashboard-page',
   imports: [
+    BrCurrencyPipe,
     EmptyState,
     ErrorState,
     LatestTransactionsCard,
@@ -68,10 +70,7 @@ export class DashboardPage {
 
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
 
-  private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
+  private readonly currencyPipe = new BrCurrencyPipe();
 
   protected readonly summaryCards = computed<readonly SummaryCardViewModel[]>(() => {
     const summary = this.summary();
@@ -224,11 +223,8 @@ export class DashboardPage {
     this.upcomingBillsError.set(null);
   }
 
-  protected formatCurrencyValue(value: number): string {
-    return this.formatCurrency(value);
-  }
 
   private formatCurrency(value: number): string {
-    return this.currencyFormatter.format(value);
+    return this.currencyPipe.transform(value);
   }
 }

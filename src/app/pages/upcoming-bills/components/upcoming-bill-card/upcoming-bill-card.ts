@@ -5,11 +5,12 @@ import {
   PaymentStatus,
   UpcomingBill,
 } from '../../../../core/models/financial.models';
+import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
 import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-upcoming-bill-card',
-  imports: [Badge, Button, Card],
+  imports: [Badge, BrCurrencyPipe, Button, Card],
   templateUrl: './upcoming-bill-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,10 +26,6 @@ export class UpcomingBillCard {
 
   protected readonly hasActions = computed(() => this.canMarkAsPaid() || this.canCancel());
 
-  private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
   protected markAsPaid(): void {
@@ -39,9 +36,6 @@ export class UpcomingBillCard {
     this.cancelRequested.emit(this.bill());
   }
 
-  protected formatCurrency(value: number): string {
-    return this.currencyFormatter.format(value);
-  }
 
   protected formatDate(value: string | null | undefined): string {
     return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';

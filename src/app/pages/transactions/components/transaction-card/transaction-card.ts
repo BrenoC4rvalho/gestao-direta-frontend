@@ -6,11 +6,12 @@ import {
   PaymentStatus,
   TransactionType,
 } from '../../../../core/models/financial-transaction.models';
+import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
 import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-transaction-card',
-  imports: [Badge, Button, Card],
+  imports: [Badge, BrCurrencyPipe, Button, Card],
   templateUrl: './transaction-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -24,10 +25,6 @@ export class TransactionCard {
   readonly markAsPaidRequested = output<FinancialTransaction>();
   readonly cancelRequested = output<FinancialTransaction>();
 
-  private readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
   protected editTransaction(): void {
@@ -42,9 +39,6 @@ export class TransactionCard {
     this.cancelRequested.emit(this.transaction());
   }
 
-  protected formatCurrency(value: number): string {
-    return this.currencyFormatter.format(value);
-  }
 
   protected formatDate(value: string | null): string {
     return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';

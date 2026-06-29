@@ -48,7 +48,7 @@ const globalCategory: FinancialCategory = {
 const transaction: FinancialTransaction = {
   id: 1,
   description: 'Compra de sementes',
-  amount: 2500,
+  amount: 99.99,
   type: 'EXPENSE',
   status: 'PENDING',
   paymentMethod: 'PIX',
@@ -136,7 +136,7 @@ describe('TransactionForm', () => {
 
     expect(fixture.componentInstance.submitted).toEqual({
       description: 'Compra de sementes',
-      amount: 2500,
+      amount: 99.99,
       type: 'EXPENSE',
       status: 'PENDING',
       paymentMethod: 'PIX',
@@ -148,12 +148,43 @@ describe('TransactionForm', () => {
     });
   });
 
+  it('should sanitize Brazilian money input', () => {
+    setInput('#transaction-amount', 'R$ 1.234,567abc');
+
+    expect(getInput('#transaction-amount').value).toBe('1234,56');
+  });
+
+  it('should keep only one comma while typing amount', () => {
+    setInput('#transaction-amount', '12,3,4,5');
+
+    expect(getInput('#transaction-amount').value).toBe('12,34');
+  });
+
+  it('should show positive value error for zero', () => {
+    fillRequiredFields();
+    setInput('#transaction-amount', '0,00');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Informe um valor maior que zero.');
+  });
+
   it('should reset with transaction values when editing', () => {
     fixture = TestBed.createComponent(TransactionFormHost);
     fixture.componentInstance.transaction = transaction;
     fixture.detectChanges();
 
     expect(getInput('#transaction-description').value).toBe('Compra de sementes');
+    expect(getInput('#transaction-amount').value).toBe('99,99');
+  });
+
+  it('should submit edited transaction with numeric amount', () => {
+    openForEdit(transaction);
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ amount: 99.99 }),
+    );
   });
 
   it('should emit cancel when not loading and block while submitting', () => {
@@ -281,7 +312,7 @@ describe('TransactionForm', () => {
 
   function fillRequiredFields(): void {
     setInput('#transaction-description', 'Compra de sementes');
-    setInput('#transaction-amount', '2500');
+    setInput('#transaction-amount', '99,99');
     setInput('#transaction-date', '2026-06-21');
     setSelect('#transaction-payment-method', 'PIX');
   }

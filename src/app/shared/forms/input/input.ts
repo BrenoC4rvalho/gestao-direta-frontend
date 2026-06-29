@@ -32,8 +32,10 @@ export class Input {
   readonly hint = input<string | null>(null);
   readonly errorMessage = input<string | null>(null);
   readonly autocomplete = input<string | null>(null);
+  readonly inputmode = input<string | null>(null);
   readonly maxlength = input<number | null>(null);
   readonly min = input<number | null>(null);
+  readonly prefix = input<string | null>(null);
   readonly step = input<number | string | null>(null);
 
   protected hintId(): string {
@@ -60,6 +62,7 @@ export class Input {
   protected fieldClasses(): string {
     return [
       'min-h-10 w-full rounded-control border px-3 text-sm transition-colors',
+      this.prefix() ? 'pl-11' : '',
       'placeholder:text-text-muted/75',
       'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2',
       'disabled:cursor-not-allowed disabled:opacity-60',

@@ -29,6 +29,11 @@ import {
   Textarea,
 } from '../../../../shared/forms';
 import { Button } from '../../../../shared/ui';
+import {
+  brazilianMoneyToNumber,
+  numberToBrazilianMoney,
+  sanitizeBrazilianMoneyInput,
+} from '../../../../shared/utils/money.utils';
 
 interface TransactionFormControls {
   description: GdFormControl;
@@ -112,9 +117,7 @@ export class TransactionForm {
   protected readonly form = new FormGroup<TransactionFormControls>({
     description: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     type: new FormControl<GdFormValue>('EXPENSE', { validators: [Validators.required] }),
-    amount: new FormControl<GdFormValue>('', {
-      validators: [Validators.required, Validators.min(0.01)],
-    }),
+    amount: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     categoryId: new FormControl<GdFormValue>(''),
     transactionDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     dueDate: new FormControl<GdFormValue>(''),
@@ -125,6 +128,10 @@ export class TransactionForm {
   });
 
   constructor() {
+    this.form.controls.amount.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.sanitizeAmount(value));
+
     this.form.controls.type.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
@@ -144,7 +151,7 @@ export class TransactionForm {
       this.form.reset({
         description: transaction?.description ?? '',
         type,
-        amount: transaction?.amount ?? '',
+        amount: numberToBrazilianMoney(transaction?.amount),
         categoryId: transaction?.categoryId ?? '',
         transactionDate: transaction?.transactionDate ?? this.currentDate(),
         dueDate: transaction?.dueDate ?? '',
@@ -169,7 +176,7 @@ export class TransactionForm {
   protected submit(): void {
     const description = this.stringValue(this.form.controls.description.value);
     const type = this.stringValue(this.form.controls.type.value) as TransactionType;
-    const amount = Number(this.form.controls.amount.value);
+    const amount = brazilianMoneyToNumber(this.stringValue(this.form.controls.amount.value));
     let categoryId = this.numberOrNull(this.form.controls.categoryId.value);
     const transactionDate = this.stringValue(this.form.controls.transactionDate.value);
     const dueDate = this.nullableString(this.form.controls.dueDate.value);
@@ -194,7 +201,7 @@ export class TransactionForm {
 
     this.submitted.emit({
       description,
-      amount,
+      amount: amount ?? 0,
       type,
       status,
       paymentMethod,
@@ -255,7 +262,7 @@ export class TransactionForm {
   private validateRequiredFields(
     description: string,
     type: string,
-    amount: number,
+    amount: number | null,
     transactionDate: string,
     status: string,
     categoryId: number | null,
@@ -268,7 +275,7 @@ export class TransactionForm {
       this.form.controls.type.setErrors({ required: true });
     }
 
-    if (!amount) {
+    if (amount === null) {
       this.form.controls.amount.setErrors({ required: true });
     } else if (amount <= 0) {
       this.form.controls.amount.setErrors({ min: true });
@@ -284,6 +291,14 @@ export class TransactionForm {
 
     if (!status) {
       this.form.controls.status.setErrors({ required: true });
+    }
+  }
+
+  private sanitizeAmount(value: GdFormValue): void {
+    const sanitized = sanitizeBrazilianMoneyInput(this.stringValue(value));
+
+    if (sanitized !== value) {
+      this.form.controls.amount.setValue(sanitized, { emitEvent: false });
     }
   }
 

@@ -57,7 +57,7 @@
         <div>
           <p class="text-sm font-semibold text-text-primary">Contas a vencer</p>
           <p class="mt-1 text-sm text-text-muted">
-            {{ upcomingBills().length }} conta(s) somando {{ formatCurrencyValue(upcomingBillsTotal()) }}.
+            {{ upcomingBills().length }} conta(s) somando {{ upcomingBillsTotal() | brCurrency }}.
           </p>
         </div>
       </div>

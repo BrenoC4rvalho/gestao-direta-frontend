@@ -62,7 +62,7 @@
                   </div>
                 </td>
                 <td [class]="'px-4 py-3 text-right font-semibold ' + typeClasses(transaction.type)">
-                  {{ transaction.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
+                  {{ transaction.type === 'INCOME' ? '+' : '-' }}{{ transaction.amount | brCurrency }}
                 </td>
               </tr>
             }
@@ -85,7 +85,7 @@
               </div>
 
               <p [class]="'shrink-0 text-sm font-semibold ' + typeClasses(transaction.type)">
-                {{ transaction.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
+                {{ transaction.type === 'INCOME' ? '+' : '-' }}{{ transaction.amount | brCurrency }}
               </p>
             </div>
 

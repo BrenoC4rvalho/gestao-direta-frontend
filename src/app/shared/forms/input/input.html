@@ -6,22 +6,34 @@
     }
   </label>
 
-  <input
-    [id]="id()"
-    [type]="type()"
-    [formControl]="control()"
-    [placeholder]="placeholder()"
-    [required]="required()"
-    [attr.disabled]="disabled() ? '' : null"
-    [readOnly]="readonly()"
-    [autocomplete]="autocomplete() ?? ''"
-    [attr.maxlength]="maxlength()"
-    [attr.min]="min()"
-    [attr.step]="step()"
-    [attr.aria-invalid]="showError()"
-    [attr.aria-describedby]="describedBy()"
-    [class]="fieldClasses()"
-  />
+  <div class="relative">
+    @if (prefix(); as prefixText) {
+      <span
+        class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-medium text-text-muted"
+        aria-hidden="true"
+      >
+        {{ prefixText }}
+      </span>
+    }
+
+    <input
+      [id]="id()"
+      [type]="type()"
+      [formControl]="control()"
+      [placeholder]="placeholder()"
+      [required]="required()"
+      [attr.disabled]="disabled() ? '' : null"
+      [readOnly]="readonly()"
+      [autocomplete]="autocomplete() ?? ''"
+      [attr.inputmode]="inputmode()"
+      [attr.maxlength]="maxlength()"
+      [attr.min]="min()"
+      [attr.step]="step()"
+      [attr.aria-invalid]="showError()"
+      [attr.aria-describedby]="describedBy()"
+      [class]="fieldClasses()"
+    />
+  </div>
 
   @if (showError()) {
     <gd-field-error [id]="errorId()" [message]="errorMessage()" />

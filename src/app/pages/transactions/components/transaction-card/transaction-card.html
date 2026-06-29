@@ -12,7 +12,7 @@
         </div>
 
         <p [class]="'shrink-0 text-base font-semibold ' + amountClasses()">
-          {{ amountPrefix() }}{{ formatCurrency(transaction().amount) }}
+          {{ amountPrefix() }}{{ transaction().amount | brCurrency }}
         </p>
       </div>
 
