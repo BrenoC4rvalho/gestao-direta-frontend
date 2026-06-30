@@ -63,7 +63,7 @@
               <div class="min-w-0">
                 <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
                 <p class="mt-1 text-sm leading-5 text-text-muted">
-                  Filtre por período, tipo, categoria e status
+                  Filtre por período, tipo, descrição e status de pagamento
                 </p>
               </div>
             </div>
@@ -138,16 +138,16 @@
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm font-medium text-text-primary">Categoria</p>
-          <div class="flex flex-wrap gap-2" aria-label="Filtro de categoria">
-            @for (category of categoryChips(); track category.value ?? 'all') {
+          <p class="text-sm font-medium text-text-primary">Forma de pagamento</p>
+          <div class="flex flex-wrap gap-2" aria-label="Filtro de forma de pagamento">
+            @for (method of paymentMethodChips; track method.value ?? 'all') {
               <button
                 type="button"
-                [class]="categoryChipClasses(category.value)"
-                [attr.aria-pressed]="isSelected(selectedCategoryIds(), category.value)"
-                (click)="selectCategoryFilter(category.value)"
+                [class]="paymentMethodChipClasses(method.value)"
+                [attr.aria-pressed]="isSelected(selectedPaymentMethods(), method.value)"
+                (click)="selectPaymentMethodFilter(method.value)"
               >
-                {{ category.label }}
+                {{ method.label }}
               </button>
             }
           </div>
@@ -209,16 +209,16 @@
             </div>
 
             <div class="space-y-2">
-              <p class="text-sm font-medium text-text-primary">Forma de pagamento</p>
-              <div class="flex flex-wrap gap-2" aria-label="Filtro de forma de pagamento">
-                @for (method of paymentMethodChips; track method.value ?? 'all') {
+              <p class="text-sm font-medium text-text-primary">Categoria</p>
+              <div class="flex flex-wrap gap-2" aria-label="Filtro de categoria">
+                @for (category of categoryChips(); track category.value ?? 'all') {
                   <button
                     type="button"
-                    [class]="paymentMethodChipClasses(method.value)"
-                    [attr.aria-pressed]="isSelected(selectedPaymentMethods(), method.value)"
-                    (click)="selectPaymentMethodFilter(method.value)"
+                    [class]="categoryChipClasses(category.value)"
+                    [attr.aria-pressed]="isSelected(selectedCategoryIds(), category.value)"
+                    (click)="selectCategoryFilter(category.value)"
                   >
-                    {{ method.label }}
+                    {{ category.label }}
                   </button>
                 }
               </div>

@@ -256,20 +256,19 @@ describe('TransactionsPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Filtros');
     expect(fixture.nativeElement.textContent).toContain(
-      'Filtre por período, tipo, categoria e status',
+      'Filtre por período, tipo, descrição e status de pagamento',
     );
     expect(fixture.nativeElement.textContent).toContain('Período da movimentação');
     expect(fixture.nativeElement.textContent).toContain('Tipo');
     expect(fixture.nativeElement.textContent).toContain('Descrição');
-    expect(fixture.nativeElement.textContent).toContain('Categoria');
     expect(fixture.nativeElement.textContent).toContain('Status do pagamento');
-    expect(fixture.nativeElement.textContent).toContain('Insumos');
-    expect(fixture.nativeElement.textContent).toContain('Pendente');
+    expect(findFilterChipGroup('Filtro de status do pagamento')).toBeTruthy();
+    expect(findFilterChipGroup('Filtro de forma de pagamento')).toBeTruthy();
+    expect(findFilterChipGroup('Filtro de categoria')).toBeNull();
     expect(findButtonByAccessibleName(fixture.nativeElement, 'Aplicar filtros')).toBeTruthy();
     expect(findButtonByAccessibleName(fixture.nativeElement, 'Limpar filtros')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Filtros avançados');
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
-    expect(fixture.nativeElement.textContent).not.toContain('Forma de pagamento');
     expect(fixture.nativeElement.textContent).not.toContain('Status do registro');
   });
 
@@ -277,12 +276,16 @@ describe('TransactionsPage', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
+    expect(findFilterChipGroup('Filtro de forma de pagamento')).toBeTruthy();
+    expect(findFilterChipGroup('Filtro de categoria')).toBeNull();
+
     clickButton('Filtros avançados');
     expect(fixture.nativeElement.textContent).toContain('Data de pagamento');
-    expect(fixture.nativeElement.textContent).toContain('Forma de pagamento');
     expect(fixture.nativeElement.textContent).toContain('Status do registro');
     expect(fixture.nativeElement.textContent).toContain('Valor mínimo');
     expect(fixture.nativeElement.textContent).toContain('Valor máximo');
+    expect(findFilterChipGroup('Filtro de categoria')).toBeTruthy();
+    expect(findFilterChipGroup('Filtro de forma de pagamento')).toBeTruthy();
 
     const minAmountInput = findInput('#transaction-filter-min-amount');
     const maxAmountInput = findInput('#transaction-filter-max-amount');
@@ -292,16 +295,18 @@ describe('TransactionsPage', () => {
 
     clickButton('Filtros avançados');
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
+    expect(findFilterChipGroup('Filtro de categoria')).toBeNull();
   });
 
   it('should render selected quick filter chips with the solid green active state', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    clickButton('Insumos');
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
 
-    const selectedChip = findButton(fixture.nativeElement, 'Insumos');
-    const idleChip = findButton(fixture.nativeElement, 'Pendente');
+    const selectedChip = findChipButton('Filtro de categoria', 'Insumos');
+    const idleChip = findChipButton('Filtro de status do pagamento', 'Pendente');
 
     expect(selectedChip?.className).toContain('border-primary');
     expect(selectedChip?.className).toContain('bg-primary');
@@ -326,15 +331,14 @@ describe('TransactionsPage', () => {
     clickButton('Próxima');
     expect(lastListParams()).toEqual(expect.objectContaining({ page: 1 }));
 
-    clickButton('Pendente');
+    clickFilterChip('Filtro de status do pagamento', 'Pendente');
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
       page: 0,
       paymentStatuses: ['PENDING'],
     }));
 
-    clickButton('Filtros avançados');
-    clickButton('PIX');
+    clickFilterChip('Filtro de forma de pagamento', 'PIX');
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
       page: 0,
@@ -342,7 +346,8 @@ describe('TransactionsPage', () => {
       paymentMethods: ['PIX'],
     }));
 
-    clickButton('Insumos');
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
       page: 0,
@@ -351,7 +356,7 @@ describe('TransactionsPage', () => {
       paymentMethods: ['PIX'],
     }));
 
-    clickButton('Todas');
+    clickFilterChip('Filtro de categoria', 'Todas');
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
       page: 0,
@@ -373,7 +378,8 @@ describe('TransactionsPage', () => {
 
     expect(transactionService.listByFarm).toHaveBeenCalledTimes(initialCalls);
 
-    clickButton('Insumos');
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
 
     expect(lastListParams()).toEqual(expect.objectContaining({
       farmId: 1,
@@ -384,7 +390,6 @@ describe('TransactionsPage', () => {
     expect(lastListParams()['transactionDateStart']).toBeUndefined();
     expect(lastListParams()['type']).toBeUndefined();
 
-    clickButton('Filtros avançados');
     setInput('#transaction-filter-paid-start', '2026-06-10');
     setInput('#transaction-filter-paid-end', '2026-06-20');
     setSelect('#transaction-filter-record-status', 'ACTIVE');
@@ -422,9 +427,10 @@ describe('TransactionsPage', () => {
     createPage();
 
     setInput('#transaction-filter-description', 'sementes');
-    clickButton('Pendente');
+    clickFilterChip('Filtro de status do pagamento', 'Pendente');
+    clickFilterChip('Filtro de forma de pagamento', 'PIX');
     clickButton('Filtros avançados');
-    clickButton('PIX');
+    clickFilterChip('Filtro de categoria', 'Insumos');
     setInput('#transaction-filter-min-amount', '99,99');
     clickButtonByAccessibleName('Aplicar filtros');
     clickButtonByAccessibleName('Limpar filtros');
@@ -436,6 +442,18 @@ describe('TransactionsPage', () => {
       sort: 'transactionDate',
       direction: 'DESC',
     });
+  });
+
+  it('should count category as advanced filter but not payment method', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickFilterChip('Filtro de forma de pagamento', 'PIX');
+    expect(findButton(fixture.nativeElement, 'Filtros avançados')).toBeTruthy();
+
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
+    expect(findButton(fixture.nativeElement, 'Filtros avançados (1)')).toBeTruthy();
   });
 
   it('should reset page when applying filters and keep filters on pagination', () => {
@@ -461,12 +479,13 @@ describe('TransactionsPage', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    clickButton('Insumos');
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
     setSelect('#transaction-filter-type', 'INCOME');
     fixture.detectChanges();
 
-    expect(findButton(fixture.nativeElement, 'Insumos')).toBeUndefined();
-    expect(findButton(fixture.nativeElement, 'Venda de safra')).toBeTruthy();
+    expect(findChipButton('Filtro de categoria', 'Insumos')).toBeUndefined();
+    expect(findChipButton('Filtro de categoria', 'Venda de safra')).toBeTruthy();
     clickButtonByAccessibleName('Aplicar filtros');
     expect(lastListParams()).toEqual(expect.objectContaining({ type: 'INCOME', categoryIds: [] }));
   });
@@ -625,6 +644,25 @@ describe('TransactionsPage', () => {
   function clickButtonByAccessibleName(label: string): void {
     findButtonByAccessibleName(fixture.nativeElement, label)?.click();
     fixture.detectChanges();
+  }
+
+  function clickFilterChip(groupLabel: string, label: string): void {
+    findChipButton(groupLabel, label)?.click();
+    fixture.detectChanges();
+  }
+
+  function findFilterChipGroup(label: string): HTMLElement | null {
+    return fixture.nativeElement.querySelector('[aria-label="' + label + '"]');
+  }
+
+  function findChipButton(groupLabel: string, label: string): HTMLButtonElement | undefined {
+    const group = findFilterChipGroup(groupLabel);
+
+    if (!group) {
+      return undefined;
+    }
+
+    return findButton(group, label);
   }
 
   function clickDialogButton(label: string): void {

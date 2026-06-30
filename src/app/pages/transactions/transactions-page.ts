@@ -242,7 +242,7 @@ export class TransactionsPage {
     return [
       filters.paidAtStart,
       filters.paidAtEnd,
-      filters.paymentMethods,
+      filters.categoryIds,
       filters.recordStatus,
       filters.createdByUserId,
       filters.minAmount,
