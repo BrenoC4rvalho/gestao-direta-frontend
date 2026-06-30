@@ -255,6 +255,9 @@ describe('TransactionsPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Filtros');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Filtre por período, tipo, categoria e status',
+    );
     expect(fixture.nativeElement.textContent).toContain('Período da movimentação');
     expect(fixture.nativeElement.textContent).toContain('Tipo');
     expect(fixture.nativeElement.textContent).toContain('Descrição');
