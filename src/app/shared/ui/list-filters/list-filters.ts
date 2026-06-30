@@ -138,6 +138,16 @@ export class ListFilters {
     return selected.includes(filter.value);
   }
 
+  protected quickFilterChipClasses(active: boolean): string {
+    return [
+      'min-h-9 rounded-full border px-3 text-sm font-medium shadow-sm transition-all duration-200 ease-out',
+      'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary',
+      active
+        ? 'border-primary bg-primary text-white hover:bg-primary-hover'
+        : 'border-border bg-surface text-text-primary hover:border-primary/50 hover:text-primary',
+    ].join(' ');
+  }
+
   protected hasActiveFilters(): boolean {
     return Object.values(this.currentFilters()).some((value) =>
       Array.isArray(value) ? value.length > 0 : value !== null,

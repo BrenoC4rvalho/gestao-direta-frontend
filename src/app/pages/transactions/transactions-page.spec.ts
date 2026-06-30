@@ -291,6 +291,22 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
   });
 
+  it('should render selected quick filter chips with the solid green active state', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Insumos');
+
+    const selectedChip = findButton(fixture.nativeElement, 'Insumos');
+    const idleChip = findButton(fixture.nativeElement, 'Pendente');
+
+    expect(selectedChip?.className).toContain('border-primary');
+    expect(selectedChip?.className).toContain('bg-primary');
+    expect(selectedChip?.className).toContain('text-white');
+    expect(idleChip?.className).toContain('border-border');
+    expect(idleChip?.className).toContain('text-text-primary');
+  });
+
   it('should apply simple and advanced filters only when requested', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();

@@ -94,13 +94,7 @@
               @for (filter of group.options; track filter.value ?? 'all') {
                 <button
                   type="button"
-                  class="min-h-9 rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  [class.border-primary]="isQuickFilterActive(group, filter)"
-                  [class.bg-highlight-soft]="isQuickFilterActive(group, filter)"
-                  [class.text-primary]="isQuickFilterActive(group, filter)"
-                  [class.border-border]="!isQuickFilterActive(group, filter)"
-                  [class.bg-surface]="!isQuickFilterActive(group, filter)"
-                  [class.text-text-primary]="!isQuickFilterActive(group, filter)"
+                  [class]="quickFilterChipClasses(isQuickFilterActive(group, filter))"
                   [attr.aria-pressed]="isQuickFilterActive(group, filter)"
                   (click)="toggleQuickFilter(group, filter)"
                 >

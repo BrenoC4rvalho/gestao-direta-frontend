@@ -165,7 +165,12 @@ describe('ListFilters', () => {
     clickButton('Ativo');
 
     expect(fixture.componentInstance.changes).toEqual([]);
-    expect(button('Ativo')?.getAttribute('aria-pressed')).toBe('true');
+    expect(button('Ativo')?.getAttribute('aria-pressed')) .toBe('true');
+    expect(button('Ativo')?.className).toContain('bg-primary');
+    expect(button('Ativo')?.className).toContain('text-white');
+    expect(button('Todos')?.className).toContain('border-border');
+    expect(button('Todos')?.className).toContain('text-text-primary');
+    expect(button('Todos')?.className).not.toContain('bg-highlight-soft');
 
     clickActionButton('Aplicar filtros');
 
