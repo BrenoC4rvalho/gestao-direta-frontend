@@ -310,7 +310,58 @@ describe('TransactionsPage', () => {
     expect(idleChip?.className).toContain('text-text-primary');
   });
 
-  it('should apply simple and advanced filters only when requested', () => {
+  it('should apply quick filters immediately and reset pagination', () => {
+    transactionService.listByFarm.mockImplementation((params: { page?: number }) =>
+      of({
+        ...pageResponse([transaction]),
+        page: params.page ?? 0,
+        totalPages: 2,
+        first: (params.page ?? 0) === 0,
+        last: (params.page ?? 0) === 1,
+      }),
+    );
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Próxima');
+    expect(lastListParams()).toEqual(expect.objectContaining({ page: 1 }));
+
+    clickButton('Pendente');
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      paymentStatuses: ['PENDING'],
+    }));
+
+    clickButton('Filtros avançados');
+    clickButton('PIX');
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      paymentStatuses: ['PENDING'],
+      paymentMethods: ['PIX'],
+    }));
+
+    clickButton('Insumos');
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      categoryIds: [1],
+      paymentStatuses: ['PENDING'],
+      paymentMethods: ['PIX'],
+    }));
+
+    clickButton('Todas');
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      categoryIds: [],
+      paymentStatuses: ['PENDING'],
+      paymentMethods: ['PIX'],
+    }));
+  });
+
+  it('should keep manual filters pending until apply and merge them with quick filters', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     const initialCalls = transactionService.listByFarm.mock.calls.length;
@@ -319,19 +370,34 @@ describe('TransactionsPage', () => {
     setInput('#transaction-filter-date-end', '2026-06-30');
     setSelect('#transaction-filter-type', 'EXPENSE');
     setInput('#transaction-filter-description', 'sementes');
+
+    expect(transactionService.listByFarm).toHaveBeenCalledTimes(initialCalls);
+
     clickButton('Insumos');
-    clickButton('Pago');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      categoryIds: [1],
+    }));
+    expect(lastListParams()['description']).toBeUndefined();
+    expect(lastListParams()['transactionDateStart']).toBeUndefined();
+    expect(lastListParams()['type']).toBeUndefined();
+
     clickButton('Filtros avançados');
     setInput('#transaction-filter-paid-start', '2026-06-10');
     setInput('#transaction-filter-paid-end', '2026-06-20');
-    clickButton('PIX');
     setSelect('#transaction-filter-record-status', 'ACTIVE');
     setInput('#transaction-filter-min-amount', '99,99');
     setInput('#transaction-filter-max-amount', '1000,50');
 
     expect(findInput('#transaction-filter-min-amount').value).toBe('99,99');
     expect(findInput('#transaction-filter-max-amount').value).toBe('1000,50');
-    expect(transactionService.listByFarm).toHaveBeenCalledTimes(initialCalls);
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      categoryIds: [1],
+    }));
 
     clickButtonByAccessibleName('Aplicar filtros');
 
@@ -344,14 +410,11 @@ describe('TransactionsPage', () => {
       paidAtEnd: '2026-06-20',
       type: 'EXPENSE',
       categoryIds: [1],
-      paymentStatuses: ['PAID'],
-      paymentMethods: ['PIX'],
       recordStatus: 'ACTIVE',
       description: 'sementes',
       minAmount: 99.99,
       maxAmount: 1000.5,
     }));
-    expect(findButton(fixture.nativeElement, 'Filtros avançados (6)')).toBeTruthy();
   });
 
   it('should clear all filters and reload without extra params', () => {

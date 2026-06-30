@@ -309,17 +309,41 @@ describe('FarmUsersPage', () => {
     expect(findButton(filters, 'Inativo')).toBeTruthy();
   });
 
-  it('should apply role quick filters when requested', () => {
+  it('should apply role quick filters immediately and reset pagination', () => {
+    farmUserService.listByFarm
+      .mockReturnValueOnce(of(farmUserPage(farmUsers, 0, 2)))
+      .mockReturnValueOnce(of(farmUserPage(farmUsers, 1, 2)))
+      .mockReturnValueOnce(of(farmUserPage(farmUsers, 0, 2)))
+      .mockReturnValueOnce(of(farmUserPage(farmUsers, 0, 2)));
     setupAdminFarm();
     createPage();
-    const initialCalls = farmUserService.listByFarm.mock.calls.length;
+
+    findButton(fixture.nativeElement, 'Próxima')?.click();
+    fixture.detectChanges();
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      10,
+      expect.objectContaining({
+        page: 1,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+      }),
+    );
 
     clickFilterButton('Produtor');
+
+    expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
+      10,
+      expect.objectContaining({
+        page: 0,
+        size: 10,
+        sort: 'userName',
+        direction: 'ASC',
+        roles: ['PRODUCER'],
+      }),
+    );
+
     clickFilterButton('Contador');
-
-    expect(farmUserService.listByFarm).toHaveBeenCalledTimes(initialCalls);
-
-    clickFilterButton('Aplicar filtros');
 
     expect(farmUserService.listByFarm).toHaveBeenLastCalledWith(
       10,

@@ -5,7 +5,7 @@
     </div>
   }
 
-  <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
+  <gd-list-filters [config]="filtersConfig" [quickFiltersApplyOnChange]="true" (filtersChange)="changeFilters($event)" />
 
   @if (loading()) {
     <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando fazendas">

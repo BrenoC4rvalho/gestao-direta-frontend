@@ -63,11 +63,13 @@ export type ListFilterValues = Record<string, string | string[] | null>;
 export class ListFilters {
   readonly config = input.required<ListFiltersConfig>();
   readonly debounceMs = input(300);
+  readonly quickFiltersApplyOnChange = input(false);
   readonly filtersChange = output<ListFilterValues>();
   readonly clear = output<void>();
 
   protected readonly controls: FilterControls = {};
   protected readonly selectedQuickFilters = signal<Record<string, readonly string[]>>({});
+  private readonly appliedControlValues = signal<Record<string, string | null>>({});
 
   protected readonly title = computed(() => this.config().title ?? 'Filtros');
   protected readonly subtitle = computed(() => this.config().subtitle ?? null);
@@ -105,12 +107,16 @@ export class ListFilters {
     }
 
     this.selectedQuickFilters.set({});
-    this.emitFilters();
+    const controlValues = this.currentControlValues();
+    this.appliedControlValues.set(controlValues);
+    this.emitFilters(controlValues);
     this.clear.emit();
   }
 
   protected applyFilters(): void {
-    this.emitFilters();
+    const controlValues = this.currentControlValues();
+    this.appliedControlValues.set(controlValues);
+    this.emitFilters(controlValues);
   }
 
   protected toggleQuickFilter(group: ListQuickFilterGroup, filter: ListQuickFilter): void {
@@ -125,6 +131,10 @@ export class ListFilters {
     const control = this.controls[group.key];
     if (control && !group.multiple) {
       control.setValue(nextSelection[0] ?? null, { emitEvent: false });
+    }
+
+    if (this.quickFiltersApplyOnChange()) {
+      this.emitFilters(this.appliedControlValues());
     }
   }
 
@@ -154,15 +164,15 @@ export class ListFilters {
     );
   }
 
-  private emitFilters(): void {
-    this.filtersChange.emit(this.currentFilters());
+  private emitFilters(controlValues: Record<string, string | null> = this.currentControlValues()): void {
+    this.filtersChange.emit(this.currentFilters(controlValues));
   }
 
-  private currentFilters(): ListFilterValues {
+  private currentFilters(controlValues: Record<string, string | null> = this.currentControlValues()): ListFilterValues {
     const filters: ListFilterValues = {};
 
     for (const key of this.controlKeys()) {
-      filters[key] = this.normalizeValue(this.controls[key]?.value ?? null);
+      filters[key] = controlValues[key] ?? null;
     }
 
     for (const group of this.quickFilters()) {
@@ -177,6 +187,13 @@ export class ListFilters {
     }
 
     return filters;
+  }
+
+  private currentControlValues(): Record<string, string | null> {
+    return this.controlKeys().reduce<Record<string, string | null>>((filters, key) => {
+      filters[key] = this.normalizeValue(this.controls[key]?.value ?? null);
+      return filters;
+    }, {});
   }
 
   private controlKeys(): string[] {

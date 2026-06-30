@@ -6,7 +6,7 @@
   }
 
   @if (selectedFarmStore.selectedFarmId() && canManageContext() && !accessDenied()) {
-    <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
+    <gd-list-filters [config]="filtersConfig" [quickFiltersApplyOnChange]="true" (filtersChange)="changeFilters($event)" />
   }
 
   @if (!selectedFarmStore.selectedFarmId()) {

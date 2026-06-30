@@ -10,6 +10,7 @@ import { ListFilterValues, ListFilters, ListFiltersConfig } from './list-filters
     <gd-list-filters
       [config]="config"
       [debounceMs]="100"
+      [quickFiltersApplyOnChange]="quickFiltersApplyOnChange"
       (filtersChange)="filtersChange($event)"
       (clear)="clear()"
     />
@@ -54,6 +55,7 @@ class ListFiltersHost {
     ],
   };
   readonly changes: ListFilterValues[] = [];
+  quickFiltersApplyOnChange = false;
   clearCount = 0;
 
   filtersChange(filters: ListFilterValues): void {
@@ -74,8 +76,7 @@ describe('ListFilters', () => {
       providers: [provideGestaoDiretaIcons()],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ListFiltersHost);
-    fixture.detectChanges();
+    fixture = createHost();
   });
 
   it('should render title, subtitle, fields and icon actions', () => {
@@ -165,7 +166,7 @@ describe('ListFilters', () => {
     clickButton('Ativo');
 
     expect(fixture.componentInstance.changes).toEqual([]);
-    expect(button('Ativo')?.getAttribute('aria-pressed')) .toBe('true');
+    expect(button('Ativo')?.getAttribute('aria-pressed')).toBe('true');
     expect(button('Ativo')?.className).toContain('bg-primary');
     expect(button('Ativo')?.className).toContain('text-white');
     expect(button('Todos')?.className).toContain('border-border');
@@ -195,6 +196,56 @@ describe('ListFilters', () => {
     });
   });
 
+  it('should emit quick filter changes immediately when auto apply is enabled', () => {
+    fixture = createHost(true);
+
+    clickButton('Ativo');
+
+    expect(fixture.componentInstance.changes).toEqual([
+      { search: null, document: null, status: 'ACTIVE', role: null },
+    ]);
+  });
+
+  it('should keep manual field drafts out of automatic quick filter apply', () => {
+    fixture = createHost(true);
+
+    input('#filter-search').value = ' maria ';
+    input('#filter-search').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    clickButton('Ativo');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: 'ACTIVE',
+      role: null,
+    });
+
+    clickActionButton('Aplicar filtros');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: 'maria',
+      document: null,
+      status: 'ACTIVE',
+      role: null,
+    });
+  });
+
+  it('should clear a quick filter group immediately when Todos is clicked with auto apply', () => {
+    fixture = createHost(true);
+
+    clickButton('Ativo');
+    clickButton('Todos');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: null,
+      role: null,
+    });
+  });
+
   it('should allow multiple selections when quick filter group is multiple', () => {
     clickButton('Produtor');
     clickButton('Contador');
@@ -204,6 +255,20 @@ describe('ListFilters', () => {
     expect(button('Contador')?.getAttribute('aria-pressed')).toBe('true');
 
     clickActionButton('Aplicar filtros');
+
+    expect(fixture.componentInstance.changes.at(-1)).toEqual({
+      search: null,
+      document: null,
+      status: null,
+      role: ['PRODUCER', 'ACCOUNTANT'],
+    });
+  });
+
+  it('should emit multiple quick filter selections immediately when auto apply is enabled', () => {
+    fixture = createHost(true);
+
+    clickButton('Produtor');
+    clickButton('Contador');
 
     expect(fixture.componentInstance.changes.at(-1)).toEqual({
       search: null,
@@ -240,6 +305,13 @@ describe('ListFilters', () => {
       role: null,
     });
   });
+
+  function createHost(quickFiltersApplyOnChange = false): ComponentFixture<ListFiltersHost> {
+    const nextFixture = TestBed.createComponent(ListFiltersHost);
+    nextFixture.componentInstance.quickFiltersApplyOnChange = quickFiltersApplyOnChange;
+    nextFixture.detectChanges();
+    return nextFixture;
+  }
 
   function input(selector: string): HTMLInputElement {
     return fixture.nativeElement.querySelector(selector) as HTMLInputElement;

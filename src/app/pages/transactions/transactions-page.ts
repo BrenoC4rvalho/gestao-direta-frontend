@@ -385,14 +385,17 @@ export class TransactionsPage {
 
   protected selectCategoryFilter(categoryId: number | null): void {
     this.selectedCategoryIds.update((selected) => this.toggleSelection(selected, categoryId));
+    this.applyQuickFilters();
   }
 
   protected selectPaymentStatusFilter(status: PaymentStatus | null): void {
     this.selectedPaymentStatuses.update((selected) => this.toggleSelection(selected, status));
+    this.applyQuickFilters();
   }
 
   protected selectPaymentMethodFilter(method: PaymentMethod | null): void {
     this.selectedPaymentMethods.update((selected) => this.toggleSelection(selected, method));
+    this.applyQuickFilters();
   }
 
   protected sanitizeMoneyFilter(control: GdFormControl): void {
@@ -735,6 +738,16 @@ export class TransactionsPage {
       minAmount: brazilianMoneyToNumber(`${this.filterForm.controls.minAmount.value ?? ''}`),
       maxAmount: brazilianMoneyToNumber(`${this.filterForm.controls.maxAmount.value ?? ''}`),
     };
+  }
+
+  private applyQuickFilters(): void {
+    this.appliedFilters.update((filters) => ({
+      ...filters,
+      categoryIds: [...this.selectedCategoryIds()],
+      paymentStatuses: [...this.selectedPaymentStatuses()],
+      paymentMethods: [...this.selectedPaymentMethods()],
+    }));
+    this.resetPageAndReload();
   }
 
   private resetPageAndReload(): void {

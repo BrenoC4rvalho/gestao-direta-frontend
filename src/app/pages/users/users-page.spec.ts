@@ -227,17 +227,35 @@ describe('UsersPage', () => {
     expect(findButton(filters, 'Bloqueado')).toBeTruthy();
   });
 
-  it('should apply status quick filters when requested', () => {
+  it('should apply status quick filters immediately and reset pagination', () => {
+    userService.list
+      .mockReturnValueOnce(of(pageResponse(users, 0, 2)))
+      .mockReturnValueOnce(of(pageResponse(users, 1, 2)))
+      .mockReturnValueOnce(of(pageResponse(users, 0, 2)))
+      .mockReturnValueOnce(of(pageResponse(users, 0, 2)));
     sessionStore.setUser(admin);
     createPage();
-    const initialCalls = userService.list.mock.calls.length;
+
+    findButton(fixture.nativeElement, 'Próxima')?.click();
+    fixture.detectChanges();
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
 
     clickFilterButton('Inativo');
+
+    expect(userService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      statuses: ['INACTIVE'],
+    });
+
     clickFilterButton('Bloqueado');
-
-    expect(userService.list).toHaveBeenCalledTimes(initialCalls);
-
-    clickFilterButton('Aplicar filtros');
 
     expect(userService.list).toHaveBeenLastCalledWith({
       page: 0,

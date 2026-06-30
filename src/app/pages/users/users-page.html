@@ -6,7 +6,7 @@
   }
 
   @if (canListUsers()) {
-    <gd-list-filters [config]="filtersConfig" (filtersChange)="changeFilters($event)" />
+    <gd-list-filters [config]="filtersConfig" [quickFiltersApplyOnChange]="true" (filtersChange)="changeFilters($event)" />
   }
 
   @if (!canListUsers() && !selectedFarmStore.selectedFarmId()) {

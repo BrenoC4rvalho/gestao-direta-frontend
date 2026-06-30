@@ -172,16 +172,34 @@ describe('FarmsPage', () => {
     expect(findButton(filters, 'Outro')).toBeTruthy();
   });
 
-  it('should apply production quick filters when requested', () => {
+  it('should apply production quick filters immediately and reset pagination', () => {
+    farmService.list
+      .mockReturnValueOnce(of(pageResponse([farms[0]], 0, 2)))
+      .mockReturnValueOnce(of(pageResponse([farms[0]], 1, 2)))
+      .mockReturnValueOnce(of(pageResponse([farms[0]], 0, 2)))
+      .mockReturnValueOnce(of(pageResponse([farms[0]], 0, 2)));
     createPage();
-    const initialCalls = farmService.list.mock.calls.length;
+
+    findButton(fixture.nativeElement, 'Próxima')?.click();
+    fixture.detectChanges();
+    expect(farmService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+    });
 
     clickFilterButton('Agricultura');
+
+    expect(farmService.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      productionTypes: ['AGRICULTURE'],
+    });
+
     clickFilterButton('Mista');
-
-    expect(farmService.list).toHaveBeenCalledTimes(initialCalls);
-
-    clickFilterButton('Aplicar filtros');
 
     expect(farmService.list).toHaveBeenLastCalledWith({
       page: 0,
