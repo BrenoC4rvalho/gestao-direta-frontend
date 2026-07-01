@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
@@ -9,8 +9,10 @@ import { Farm } from '../../core/models/farm.models';
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import { FinancialTransaction } from '../../core/models/financial-transaction.models';
 import { PageResponse } from '../../core/models/page-response.model';
+import { UserOption } from '../../core/models/user.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
+import { FarmUserService } from '../../core/services/farm-user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -122,6 +124,15 @@ const secondFarmUsedCategory: FinancialCategory = {
   name: 'Defensivos',
 };
 
+const createdByUserOptions: UserOption[] = [
+  { id: 2, name: 'Contador' },
+  { id: 3, name: 'Maria Silva' },
+];
+
+const secondFarmUserOptions: UserOption[] = [
+  { id: 4, name: 'José Pereira' },
+];
+
 const transaction: FinancialTransaction = {
   id: 1,
   description: 'Compra de sementes',
@@ -173,6 +184,9 @@ describe('TransactionsPage', () => {
     listByFarm: ReturnType<typeof vi.fn>;
     listUsedInTransactions: ReturnType<typeof vi.fn>;
   };
+  let farmUserService: {
+    listUserOptions: ReturnType<typeof vi.fn>;
+  };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
@@ -194,6 +208,9 @@ describe('TransactionsPage', () => {
         of([category, incomeCategory, inactiveUsedCategory]),
       ),
     };
+    farmUserService = {
+      listUserOptions: vi.fn().mockReturnValue(of(createdByUserOptions)),
+    };
 
     await TestBed.configureTestingModule({
       imports: [TransactionsPage],
@@ -201,6 +218,7 @@ describe('TransactionsPage', () => {
         provideGestaoDiretaIcons(),
         { provide: FinancialTransactionService, useValue: transactionService },
         { provide: FinancialCategoryService, useValue: categoryService },
+        { provide: FarmUserService, useValue: farmUserService },
       ],
     }).compileComponents();
 
@@ -234,6 +252,8 @@ describe('TransactionsPage', () => {
     expect(transactionService.listByFarm).not.toHaveBeenCalled();
     expect(categoryService.listByFarm).not.toHaveBeenCalled();
     expect(categoryService.listUsedInTransactions).not.toHaveBeenCalled();
+    expect(farmUserService.listUserOptions).not.toHaveBeenCalled();
+    expect((fixture.componentInstance as unknown as { createdByUserSelectDisabled: () => boolean }).createdByUserSelectDisabled()).toBe(true);
   });
 
   it('should show access denied and avoid API without view permission', () => {
@@ -365,6 +385,33 @@ describe('TransactionsPage', () => {
     );
   });
 
+  it('should load created-by options, keep the placeholder and enable the select after loading', () => {
+    const userOptionsSubject = new Subject<UserOption[]>();
+    farmUserService.listUserOptions.mockReturnValueOnce(userOptionsSubject.asObservable());
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+
+    expect(farmUserService.listUserOptions).toHaveBeenCalledWith(1);
+    expect(findSelect('#transaction-filter-created-by').disabled).toBe(true);
+    expect(getSelectOptionTexts('#transaction-filter-created-by')).toEqual([
+      'Todos os usuários',
+      'Carregando usuários...',
+    ]);
+
+    userOptionsSubject.next(createdByUserOptions);
+    userOptionsSubject.complete();
+    fixture.detectChanges();
+
+    expect(findSelect('#transaction-filter-created-by').disabled).toBe(false);
+    expect(getSelectOptionTexts('#transaction-filter-created-by')).toEqual([
+      'Todos os usuários',
+      'Contador',
+      'Maria Silva',
+    ]);
+  });
+
   it('should render selected quick filter chips with the solid green active state', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -447,6 +494,33 @@ describe('TransactionsPage', () => {
     }));
   });
 
+  it('should apply createdByUserId when a specific user is selected', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-created-by', '3');
+    clickButtonByAccessibleName('Aplicar filtros');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      createdByUserId: 3,
+    }));
+  });
+
+  it('should omit createdByUserId when all users is selected', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-created-by', '3');
+    clickButtonByAccessibleName('Aplicar filtros');
+    setSelect('#transaction-filter-created-by', '');
+    clickButtonByAccessibleName('Aplicar filtros');
+
+    expect(lastListParams()['createdByUserId']).toBeUndefined();
+  });
+
   it('should keep manual filters pending until apply and merge them with quick filters', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -512,6 +586,7 @@ describe('TransactionsPage', () => {
     clickFilterChip('Filtro de forma de pagamento', 'PIX');
     clickButton('Filtros avançados');
     clickFilterChip('Filtro de categoria', 'Insumos');
+    setSelect('#transaction-filter-created-by', '3');
     setInput('#transaction-filter-min-amount', '99,99');
     clickButtonByAccessibleName('Aplicar filtros');
     clickButtonByAccessibleName('Limpar filtros');
@@ -523,6 +598,22 @@ describe('TransactionsPage', () => {
       sort: 'transactionDate',
       direction: 'DESC',
     });
+    expect(getSelectOptionTexts('#transaction-filter-created-by')).toEqual([
+      'Todos os usuários',
+      'Contador',
+      'Maria Silva',
+    ]);
+  });
+
+  it('should count createdByUserId in the advanced filters label', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-created-by', '3');
+    clickButtonByAccessibleName('Aplicar filtros');
+
+    expect(findButton(fixture.nativeElement, 'Filtros avançados (1)')).toBeTruthy();
   });
 
   it('should count category as advanced filter but not payment method', () => {
@@ -716,6 +807,45 @@ describe('TransactionsPage', () => {
     );
   });
 
+  it('should keep the page working and show a toast when created-by options fail to load', () => {
+    farmUserService.listUserOptions.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
+    clickButton('Filtros avançados');
+    expect(findSelect('#transaction-filter-created-by').disabled).toBe(false);
+    expect(getSelectOptionTexts('#transaction-filter-created-by')).toEqual(['Todos os usuários']);
+    expect(toastStore.toasts()[0]?.title).toBe('Não foi possível carregar os usuários da fazenda.');
+  });
+
+  it('should clear createdByUserId and reload user options when selected farm changes', () => {
+    farmUserService.listUserOptions.mockImplementation((farmId: number) =>
+      of(farmId === 1 ? createdByUserOptions : secondFarmUserOptions),
+    );
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-created-by', '3');
+    clickButtonByAccessibleName('Aplicar filtros');
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 1, createdByUserId: 3 }));
+
+    selectedFarmStore.selectFarmById(2);
+    fixture.detectChanges();
+
+    expect(farmUserService.listUserOptions).toHaveBeenCalledWith(2);
+    expect(findSelect('#transaction-filter-created-by').value).toBe('');
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 2 }));
+    expect(lastListParams()['createdByUserId']).toBeUndefined();
+    expect(getSelectOptionTexts('#transaction-filter-created-by')).toEqual([
+      'Todos os usuários',
+      'José Pereira',
+    ]);
+  });
+
   it('should clear categoryIds and reload used categories when selected farm changes', () => {
     categoryService.listUsedInTransactions.mockImplementation((farmId: number) =>
       of(farmId === 1 ? [category, inactiveUsedCategory] : [secondFarmUsedCategory]),
@@ -848,7 +978,9 @@ describe('TransactionsPage', () => {
 
   function setSelect(selector: string, value: string): void {
     const select = findSelect(selector);
-    const option = Array.from(select.options).find((item) => item.value.includes(value));
+    const option = Array.from(select.options).find((item) =>
+      value === '' ? item.value === '' : item.value === value || item.value.includes(value),
+    );
     select.selectedIndex = option?.index ?? 0;
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();

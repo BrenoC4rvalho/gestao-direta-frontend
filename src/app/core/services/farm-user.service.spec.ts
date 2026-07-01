@@ -9,6 +9,7 @@ import {
   FarmUser,
   UpdateFarmUserRoleRequest,
 } from '../models/farm-user.models';
+import { UserOption } from '../models/user.models';
 
 import { FarmUserService } from './farm-user.service';
 
@@ -33,6 +34,11 @@ const pageResponse: PageResponse<FarmUser> = {
   first: true,
   last: true,
 };
+
+const userOptions: UserOption[] = [
+  { id: 20, name: 'Maria Silva' },
+  { id: 21, name: 'João Souza' },
+];
 
 describe("FarmUserService", () => {
   let service: FarmUserService;
@@ -65,6 +71,14 @@ describe("FarmUserService", () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(payload);
     request.flush(farmUser);
+  });
+
+  it('should list user options by farm', () => {
+    service.listUserOptions(10).subscribe((result) => expect(result).toEqual(userOptions));
+
+    const request = http.expectOne('http://localhost:8080/api/farms/10/users/options');
+    expect(request.request.method).toBe('GET');
+    request.flush(userOptions);
   });
 
   it('should update a farm user role', () => {

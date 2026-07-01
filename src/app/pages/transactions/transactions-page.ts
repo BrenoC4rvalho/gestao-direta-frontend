@@ -26,8 +26,10 @@ import {
   UpdateFinancialTransactionRequest,
 } from '../../core/models/financial-transaction.models';
 import { PageResponse } from '../../core/models/page-response.model';
+import { UserOption } from '../../core/models/user.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
+import { FarmUserService } from '../../core/services/farm-user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -125,6 +127,7 @@ const EMPTY_FILTER_FORM_VALUE = {
 export class TransactionsPage {
   private readonly transactionService = inject(FinancialTransactionService);
   private readonly categoryService = inject(FinancialCategoryService);
+  private readonly farmUserService = inject(FarmUserService);
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -135,6 +138,8 @@ export class TransactionsPage {
   protected readonly transactions = signal<FinancialTransaction[]>([]);
   protected readonly filterCategories = signal<FinancialCategory[]>([]);
   protected readonly formCategories = signal<FinancialCategory[]>([]);
+  protected readonly createdByUsers = signal<UserOption[]>([]);
+  protected readonly createdByUsersLoading = signal(false);
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
   protected readonly loading = signal(false);
@@ -152,7 +157,6 @@ export class TransactionsPage {
 
   private readonly reloadTrigger = signal(0);
   private readonly draftTypeFilter = signal<TransactionType | null>(null);
-  private previousFarmId: number | null = null;
   protected readonly selectedCategoryIds = signal<readonly number[]>([]);
   protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
   protected readonly selectedPaymentMethods = signal<readonly PaymentMethod[]>([]);
@@ -169,7 +173,7 @@ export class TransactionsPage {
     paymentMethod: new FormControl<GdFormValue>(''),
     recordStatus: new FormControl<GdFormValue>(''),
     description: new FormControl<GdFormValue>(''),
-    createdByUserId: new FormControl<GdFormValue>({ value: '', disabled: true }),
+    createdByUserId: new FormControl<GdFormValue>(''),
     minAmount: new FormControl<GdFormValue>(''),
     maxAmount: new FormControl<GdFormValue>(''),
   });
@@ -284,6 +288,11 @@ export class TransactionsPage {
       ? 'Nenhuma movimentação encontrada para os filtros informados.'
       : 'As receitas e despesas da fazenda aparecerão aqui.',
   );
+  protected readonly createdByUserSelectDisabled = computed(() => {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    return !farmId || this.createdByUsersLoading();
+  });
 
   protected readonly typeFilterOptions: readonly GdSelectOption[] = [
     { label: 'Receita', value: 'INCOME' },
@@ -293,8 +302,16 @@ export class TransactionsPage {
     { label: 'Ativo', value: 'ACTIVE' },
     { label: 'Excluído', value: 'DELETED' },
   ];
-  // TODO: Habilitar quando houver uma lista de usuários disponível para este filtro.
-  protected readonly createdByUserOptions: readonly GdSelectOption[] = [];
+  protected readonly createdByUserOptions = computed<readonly GdSelectOption[]>(() => {
+    if (this.createdByUsersLoading()) {
+      return [{ label: 'Carregando usuários...', value: '__loading__' }];
+    }
+
+    return this.createdByUsers().map((user) => ({
+      label: user.name,
+      value: user.id,
+    }));
+  });
   protected readonly paymentStatusChips: readonly ChipOption<PaymentStatus>[] = [
     { label: 'Todos', value: null },
     { label: 'Pendente', value: 'PENDING' },
@@ -326,14 +343,54 @@ export class TransactionsPage {
 
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
+
+      untracked(() => {
+        this.resetCategoryFilterState();
+        this.resetCreatedByUserFilterState();
+        this.createdByUsers.set([]);
+      });
+
+      if (!farmId) {
+        this.createdByUsersLoading.set(false);
+        return;
+      }
+
+      this.createdByUsersLoading.set(true);
+
+      const subscription = this.farmUserService
+        .listUserOptions(farmId)
+        .pipe(finalize(() => this.createdByUsersLoading.set(false)))
+        .subscribe({
+          next: (users) => this.createdByUsers.set(users),
+          error: () => this.handleCreatedByUsersError(),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
+
+    effect(() => {
+      const control = this.filterForm.controls.createdByUserId;
+
+      untracked(() => {
+        if (this.createdByUserSelectDisabled()) {
+          if (control.enabled) {
+            control.disable({ emitEvent: false });
+          }
+
+          return;
+        }
+
+        if (control.disabled) {
+          control.enable({ emitEvent: false });
+        }
+      });
+    });
+
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
       const isAdmin = this.sessionStore.isAdmin();
       const page = this.page();
       this.reloadTrigger();
-
-      if (farmId !== this.previousFarmId) {
-        untracked(() => this.resetCategoryFilterState());
-        this.previousFarmId = farmId;
-      }
 
       if (!farmId) {
         this.clearListState();
@@ -746,6 +803,8 @@ export class TransactionsPage {
   }
 
   private buildAppliedFilters(): AppliedTransactionFilters {
+    const createdByUserId = this.numberOrNull(this.filterForm.controls.createdByUserId.value);
+
     return {
       transactionDateStart: this.nullableString(this.filterForm.controls.transactionDateStart.value),
       transactionDateEnd: this.nullableString(this.filterForm.controls.transactionDateEnd.value),
@@ -757,7 +816,7 @@ export class TransactionsPage {
       paymentMethods: [...this.selectedPaymentMethods()],
       recordStatus: this.nullableString(this.filterForm.controls.recordStatus.value) as FinancialRecordStatus | null,
       description: this.nullableString(this.filterForm.controls.description.value),
-      createdByUserId: this.numberOrNull(this.filterForm.controls.createdByUserId.value),
+      ...(createdByUserId !== null ? { createdByUserId } : {}),
       minAmount: brazilianMoneyToNumber(`${this.filterForm.controls.minAmount.value ?? ''}`),
       maxAmount: brazilianMoneyToNumber(`${this.filterForm.controls.maxAmount.value ?? ''}`),
     };
@@ -856,10 +915,24 @@ export class TransactionsPage {
     }
   }
 
+  private resetCreatedByUserFilterState(): void {
+    this.filterForm.controls.createdByUserId.reset('', { emitEvent: false });
+
+    if (this.hasFilterValue(this.appliedFilters().createdByUserId)) {
+      this.appliedFilters.update(({ createdByUserId: _createdByUserId, ...filters }) => filters);
+    }
+  }
+
   private handleFilterCategoriesError(_error: unknown): void {
     this.filterCategories.set([]);
     this.resetCategoryFilterState();
     this.toastStore.error('Não foi possível carregar as categorias usadas nas movimentações.');
+  }
+
+  private handleCreatedByUsersError(): void {
+    this.createdByUsers.set([]);
+    this.resetCreatedByUserFilterState();
+    this.toastStore.error('Não foi possível carregar os usuários da fazenda.');
   }
 
   private showOperationError(error: unknown): void {
@@ -891,6 +964,7 @@ export class TransactionsPage {
     this.transactions.set([]);
     this.filterCategories.set([]);
     this.formCategories.set([]);
+    this.createdByUsersLoading.set(false);
     this.pageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
     this.loading.set(false);
     this.error.set(false);

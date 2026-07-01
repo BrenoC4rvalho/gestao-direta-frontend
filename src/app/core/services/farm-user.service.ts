@@ -10,6 +10,7 @@ import {
   UpdateFarmUserRoleRequest,
 } from '../models/farm-user.models';
 import { PageResponse } from '../models/page-response.model';
+import { UserOption } from '../models/user.models';
 import { appendQueryParam } from '../../shared/utils/query-params.utils';
 
 @Injectable({
@@ -23,6 +24,10 @@ export class FarmUserService {
     return this.http.get<PageResponse<FarmUser>>(this.apiUrl + '/farms/' + farmId + '/users', {
       params: this.buildParams(params),
     });
+  }
+
+  listUserOptions(farmId: number): Observable<UserOption[]> {
+    return this.http.get<UserOption[]>(`${this.apiUrl}/farms/${farmId}/users/options`);
   }
 
   private buildParams(params?: FarmUserListParams): HttpParams {

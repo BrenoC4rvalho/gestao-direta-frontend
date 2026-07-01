@@ -6,6 +6,11 @@ export interface User extends AuthUser {
   updatedAt: string;
 }
 
+export interface UserOption {
+  id: number;
+  name: string;
+}
+
 export interface CreateUserRequest {
   name: string;
   email: string;

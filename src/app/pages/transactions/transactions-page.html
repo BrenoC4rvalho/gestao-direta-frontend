@@ -203,8 +203,8 @@
                 label="Criado por"
                 placeholder="Todos os usuários"
                 [control]="filterForm.controls.createdByUserId"
-                [options]="createdByUserOptions"
-                [disabled]="true"
+                [options]="createdByUserOptions()"
+                [disabled]="createdByUserSelectDisabled()"
               />
             </div>
 
