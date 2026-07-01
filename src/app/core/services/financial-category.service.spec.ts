@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
@@ -7,6 +7,7 @@ import {
   FinancialCategory,
 } from '../models/financial-category.models';
 import { PageResponse } from '../models/page-response.model';
+import { credentialsInterceptor } from '../interceptors/credentials.interceptor';
 
 import { FinancialCategoryService } from './financial-category.service';
 
@@ -44,7 +45,7 @@ describe('FinancialCategoryService', () => {
     TestBed.configureTestingModule({
       providers: [
         FinancialCategoryService,
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([credentialsInterceptor])),
         provideHttpClientTesting(),
       ],
     });
@@ -104,6 +105,18 @@ describe('FinancialCategoryService', () => {
     expect(request.request.params.get('sort')).toBe('name');
     expect(request.request.params.get('direction')).toBe('ASC');
     request.flush(response);
+  });
+
+  it('should call GET /api/financial/categories/used-in-transactions with farmId', () => {
+    service.listUsedInTransactions(1).subscribe((categories) => expect(categories).toEqual([category]));
+
+    const request = http.expectOne(
+      (req) => req.url === apiUrl + '/financial/categories/used-in-transactions',
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush([category]);
   });
 
   it('should call GET /api/financial/categories/global', () => {

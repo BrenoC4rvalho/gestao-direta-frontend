@@ -210,18 +210,22 @@
 
             <div class="space-y-2">
               <p class="text-sm font-medium text-text-primary">Categoria</p>
-              <div class="flex flex-wrap gap-2" aria-label="Filtro de categoria">
-                @for (category of categoryChips(); track category.value ?? 'all') {
-                  <button
-                    type="button"
-                    [class]="categoryChipClasses(category.value)"
-                    [attr.aria-pressed]="isSelected(selectedCategoryIds(), category.value)"
-                    (click)="selectCategoryFilter(category.value)"
-                  >
-                    {{ category.label }}
-                  </button>
-                }
-              </div>
+              @if (categoryChips().length > 0) {
+                <div class="flex flex-wrap gap-2" aria-label="Filtro de categoria">
+                  @for (category of categoryChips(); track category.value ?? 'all') {
+                    <button
+                      type="button"
+                      [class]="categoryChipClasses(category.value)"
+                      [attr.aria-pressed]="isSelected(selectedCategoryIds(), category.value)"
+                      (click)="selectCategoryFilter(category.value)"
+                    >
+                      {{ category.label }}
+                    </button>
+                  }
+                </div>
+              } @else {
+                <p class="text-sm text-text-muted">Nenhuma categoria usada em movimentações.</p>
+              }
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -393,7 +397,7 @@
 >
   <gd-transaction-form
     [transaction]="editingTransaction()"
-    [categories]="categories()"
+    [categories]="formCategories()"
     [open]="drawerOpen()"
     [submitting]="submitting()"
     (submitted)="saveTransaction($event)"

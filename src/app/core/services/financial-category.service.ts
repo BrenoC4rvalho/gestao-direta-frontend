@@ -32,6 +32,15 @@ export class FinancialCategoryService {
       .pipe(map((response) => response.content));
   }
 
+  listUsedInTransactions(farmId: number): Observable<FinancialCategory[]> {
+    return this.http.get<FinancialCategory[]>(
+      `${this.apiUrl}/financial/categories/used-in-transactions`,
+      {
+        params: new HttpParams().set('farmId', farmId),
+      },
+    );
+  }
+
   listGlobal(): Observable<FinancialCategory[]> {
     return this.http
       .get<PageResponse<FinancialCategory>>(`${this.apiUrl}/financial/categories/global`)

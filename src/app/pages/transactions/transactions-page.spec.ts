@@ -101,6 +101,27 @@ const incomeCategory: FinancialCategory = {
   type: 'INCOME',
 };
 
+const inactiveUsedCategory: FinancialCategory = {
+  ...category,
+  id: 3,
+  name: 'Combustível',
+  status: 'INACTIVE',
+};
+
+const unusedActiveCategory: FinancialCategory = {
+  ...category,
+  id: 4,
+  name: 'Frete futuro',
+};
+
+const secondFarmUsedCategory: FinancialCategory = {
+  ...category,
+  id: 5,
+  farmId: 2,
+  farmName: 'Fazenda Santa Clara',
+  name: 'Defensivos',
+};
+
 const transaction: FinancialTransaction = {
   id: 1,
   description: 'Compra de sementes',
@@ -148,7 +169,10 @@ describe('TransactionsPage', () => {
     markAsPaid: ReturnType<typeof vi.fn>;
     cancel: ReturnType<typeof vi.fn>;
   };
-  let categoryService: { listByFarm: ReturnType<typeof vi.fn> };
+  let categoryService: {
+    listByFarm: ReturnType<typeof vi.fn>;
+    listUsedInTransactions: ReturnType<typeof vi.fn>;
+  };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
@@ -165,7 +189,10 @@ describe('TransactionsPage', () => {
       cancel: vi.fn().mockReturnValue(of({ ...transaction, status: 'CANCELED' })),
     };
     categoryService = {
-      listByFarm: vi.fn().mockReturnValue(of([category, incomeCategory])),
+      listByFarm: vi.fn().mockReturnValue(of([category, incomeCategory, unusedActiveCategory])),
+      listUsedInTransactions: vi.fn().mockReturnValue(
+        of([category, incomeCategory, inactiveUsedCategory]),
+      ),
     };
 
     await TestBed.configureTestingModule({
@@ -205,6 +232,8 @@ describe('TransactionsPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Selecione uma fazenda');
     expect(transactionService.listByFarm).not.toHaveBeenCalled();
+    expect(categoryService.listByFarm).not.toHaveBeenCalled();
+    expect(categoryService.listUsedInTransactions).not.toHaveBeenCalled();
   });
 
   it('should show access denied and avoid API without view permission', () => {
@@ -218,6 +247,8 @@ describe('TransactionsPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Acesso restrito');
     expect(transactionService.listByFarm).not.toHaveBeenCalled();
+    expect(categoryService.listByFarm).not.toHaveBeenCalled();
+    expect(categoryService.listUsedInTransactions).not.toHaveBeenCalled();
   });
 
   it('should load and render transactions with selected farm and permission', () => {
@@ -231,6 +262,8 @@ describe('TransactionsPage', () => {
       sort: 'transactionDate',
       direction: 'DESC',
     });
+    expect(categoryService.listUsedInTransactions).toHaveBeenCalledWith(1);
+    expect(categoryService.listUsedInTransactions.mock.calls[0]).toEqual([1]);
     expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
     expect(categoryService.listByFarm.mock.calls[0]).toEqual([1]);
     expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
@@ -272,7 +305,7 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Status do registro');
   });
 
-  it('should toggle advanced filters', () => {
+  it('should toggle advanced filters and render only categories returned by the used endpoint', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
@@ -286,6 +319,10 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Valor máximo');
     expect(findFilterChipGroup('Filtro de categoria')).toBeTruthy();
     expect(findFilterChipGroup('Filtro de forma de pagamento')).toBeTruthy();
+    expect(findChipButton('Filtro de categoria', 'Insumos')).toBeTruthy();
+    expect(findChipButton('Filtro de categoria', 'Venda de safra')).toBeTruthy();
+    expect(findChipButton('Filtro de categoria', 'Combustível (inativa)')).toBeTruthy();
+    expect(findChipButton('Filtro de categoria', 'Frete futuro')).toBeUndefined();
 
     const minAmountInput = findInput('#transaction-filter-min-amount');
     const maxAmountInput = findInput('#transaction-filter-max-amount');
@@ -296,6 +333,36 @@ describe('TransactionsPage', () => {
     clickButton('Filtros avançados');
     expect(fixture.nativeElement.textContent).not.toContain('Data de pagamento');
     expect(findFilterChipGroup('Filtro de categoria')).toBeNull();
+  });
+
+  it('should show an empty state when no categories were used in transactions', () => {
+    categoryService.listUsedInTransactions.mockReturnValueOnce(of([]));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+
+    expect(findFilterChipGroup('Filtro de categoria')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Nenhuma categoria usada em movimentações.',
+    );
+  });
+
+  it('should keep the page working and show a toast when used categories fail to load', () => {
+    categoryService.listUsedInTransactions
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 500 })))
+      .mockReturnValue(of([]));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
+    clickButton('Filtros avançados');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Nenhuma categoria usada em movimentações.',
+    );
+    expect(toastStore.toasts()[0]?.title).toBe(
+      'Não foi possível carregar as categorias usadas nas movimentações.',
+    );
   });
 
   it('should render selected quick filter chips with the solid green active state', () => {
@@ -313,6 +380,20 @@ describe('TransactionsPage', () => {
     expect(selectedChip?.className).toContain('text-white');
     expect(idleChip?.className).toContain('border-border');
     expect(idleChip?.className).toContain('text-text-primary');
+  });
+
+  it('should apply inactive used categories with categoryIds', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Combustível (inativa)');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      page: 0,
+      categoryIds: [3],
+    }));
   });
 
   it('should apply quick filters immediately and reset pagination', () => {
@@ -505,6 +586,20 @@ describe('TransactionsPage', () => {
     );
   });
 
+  it('should keep the create and edit form using only active categories from the old endpoint', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova movimentação');
+
+    const categoryOptions = getSelectOptionTexts('#transaction-category');
+
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
+    expect(categoryOptions).toContain('Insumos');
+    expect(categoryOptions).toContain('Frete futuro');
+    expect(categoryOptions).not.toContain('Combustível');
+    expect(categoryOptions).not.toContain('Combustível (inativa)');
+  });
+
   it('should show create button only with management permission', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -621,14 +716,29 @@ describe('TransactionsPage', () => {
     );
   });
 
-  it('should reload when selected farm changes', () => {
+  it('should clear categoryIds and reload used categories when selected farm changes', () => {
+    categoryService.listUsedInTransactions.mockImplementation((farmId: number) =>
+      of(farmId === 1 ? [category, inactiveUsedCategory] : [secondFarmUsedCategory]),
+    );
+    categoryService.listByFarm.mockImplementation((farmId: number) =>
+      of(farmId === 1 ? [category, incomeCategory, unusedActiveCategory] : [secondFarmUsedCategory]),
+    );
     selectedFarmStore.setFarms([farm, secondFarm]);
     createPage();
+
+    clickButton('Filtros avançados');
+    clickFilterChip('Filtro de categoria', 'Insumos');
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 1, categoryIds: [1] }));
 
     selectedFarmStore.selectFarmById(2);
     fixture.detectChanges();
 
-    expect(transactionService.listByFarm).toHaveBeenCalledWith(expect.objectContaining({ farmId: 2 }));
+    expect(transactionService.listByFarm).toHaveBeenCalledWith(
+      expect.objectContaining({ farmId: 2, categoryIds: [] }),
+    );
+    expect(categoryService.listUsedInTransactions).toHaveBeenCalledWith(2);
+    expect(findChipButton('Filtro de categoria', 'Insumos')).toBeUndefined();
+    expect(findChipButton('Filtro de categoria', 'Defensivos')).toBeTruthy();
   });
 
   function lastListParams(): Record<string, unknown> {
@@ -724,8 +834,20 @@ describe('TransactionsPage', () => {
     fixture.detectChanges();
   }
 
+  function findSelect(selector: string): HTMLSelectElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>,
+    ).find((item) => item.id === selector.slice(1)) as HTMLSelectElement;
+  }
+
+  function getSelectOptionTexts(selector: string): string[] {
+    return Array.from(findSelect(selector).options)
+      .map((option) => option.textContent?.trim() ?? '')
+      .filter((option) => option.length > 0);
+  }
+
   function setSelect(selector: string, value: string): void {
-    const select = Array.from(fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>).find((item) => item.id === selector.slice(1)) as HTMLSelectElement;
+    const select = findSelect(selector);
     const option = Array.from(select.options).find((item) => item.value.includes(value));
     select.selectedIndex = option?.index ?? 0;
     select.dispatchEvent(new Event('change'));

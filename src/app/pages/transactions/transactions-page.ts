@@ -12,7 +12,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { finalize, forkJoin, Observable } from 'rxjs';
+import { catchError, finalize, forkJoin, Observable, of } from 'rxjs';
 
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
@@ -42,7 +42,8 @@ import { TransactionForm } from './components/transaction-form/transaction-form'
 
 interface TransactionLists {
   transactions: PageResponse<FinancialTransaction>;
-  categories: FinancialCategory[];
+  filterCategories: FinancialCategory[];
+  formCategories: FinancialCategory[];
 }
 
 interface TransactionFiltersControls {
@@ -132,7 +133,8 @@ export class TransactionsPage {
   protected readonly sessionStore = inject(SessionStore);
 
   protected readonly transactions = signal<FinancialTransaction[]>([]);
-  protected readonly categories = signal<FinancialCategory[]>([]);
+  protected readonly filterCategories = signal<FinancialCategory[]>([]);
+  protected readonly formCategories = signal<FinancialCategory[]>([]);
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
   protected readonly loading = signal(false);
@@ -150,6 +152,7 @@ export class TransactionsPage {
 
   private readonly reloadTrigger = signal(0);
   private readonly draftTypeFilter = signal<TransactionType | null>(null);
+  private previousFarmId: number | null = null;
   protected readonly selectedCategoryIds = signal<readonly number[]>([]);
   protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
   protected readonly selectedPaymentMethods = signal<readonly PaymentMethod[]>([]);
@@ -228,11 +231,19 @@ export class TransactionsPage {
     return { ...totals, balance: totals.income - totals.expense };
   });
   protected readonly categoryChips = computed<readonly ChipOption<number>[]>(() => {
+    const allCategories = this.filterCategories();
+
+    if (allCategories.length === 0) {
+      return [];
+    }
+
     const type = this.draftTypeFilter();
-    const categoryOptions = this.categories()
-      .filter((category) => category.status === 'ACTIVE')
+    const categoryOptions = allCategories
       .filter((category) => !type || category.type === type)
-      .map((category) => ({ label: category.name, value: category.id }));
+      .map((category) => ({
+        label: this.categoryChipLabel(category),
+        value: category.id,
+      }));
 
     return [{ label: 'Todas', value: null }, ...categoryOptions];
   });
@@ -319,6 +330,11 @@ export class TransactionsPage {
       const page = this.page();
       this.reloadTrigger();
 
+      if (farmId !== this.previousFarmId) {
+        untracked(() => this.resetCategoryFilterState());
+        this.previousFarmId = farmId;
+      }
+
       if (!farmId) {
         this.clearListState();
         return;
@@ -344,7 +360,8 @@ export class TransactionsPage {
         .subscribe({
           next: (lists) => {
             this.transactions.set(lists.transactions.content);
-            this.categories.set(lists.categories);
+            this.filterCategories.set(lists.filterCategories);
+            this.formCategories.set(lists.formCategories);
             untracked(() => this.clearIncompatibleCategory());
             this.pageInfo.set({
               totalPages: lists.transactions.totalPages,
@@ -718,7 +735,13 @@ export class TransactionsPage {
         direction: 'DESC',
         ...this.appliedFilters(),
       }),
-      categories: this.categoryService.listByFarm(farmId),
+      filterCategories: this.categoryService.listUsedInTransactions(farmId).pipe(
+        catchError((error: unknown) => {
+          this.handleFilterCategoriesError(error);
+          return of([]);
+        }),
+      ),
+      formCategories: this.categoryService.listByFarm(farmId).pipe(catchError(() => of([]))),
     });
   }
 
@@ -761,14 +784,9 @@ export class TransactionsPage {
 
   private clearIncompatibleCategory(): void {
     const type = this.draftTypeFilter();
-
-    if (!type) {
-      return;
-    }
-
     const compatibleIds = new Set(
-      this.categories()
-        .filter((category) => category.type === type)
+      this.filterCategories()
+        .filter((category) => !type || category.type === type)
         .map((category) => category.id),
     );
 
@@ -810,7 +828,8 @@ export class TransactionsPage {
 
   private handleListError(error: unknown): void {
     this.transactions.set([]);
-    this.categories.set([]);
+    this.filterCategories.set([]);
+    this.formCategories.set([]);
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
@@ -818,6 +837,29 @@ export class TransactionsPage {
     }
 
     this.error.set(true);
+  }
+
+  private categoryChipLabel(category: FinancialCategory): string {
+    return category.status === 'INACTIVE' ? category.name + ' (inativa)' : category.name;
+  }
+
+  private resetCategoryFilterState(): void {
+    if (this.selectedCategoryIds().length > 0) {
+      this.selectedCategoryIds.set([]);
+    }
+
+    if (this.hasFilterValue(this.appliedFilters().categoryIds)) {
+      this.appliedFilters.update((filters) => ({
+        ...filters,
+        categoryIds: [],
+      }));
+    }
+  }
+
+  private handleFilterCategoriesError(_error: unknown): void {
+    this.filterCategories.set([]);
+    this.resetCategoryFilterState();
+    this.toastStore.error('Não foi possível carregar as categorias usadas nas movimentações.');
   }
 
   private showOperationError(error: unknown): void {
@@ -847,7 +889,8 @@ export class TransactionsPage {
 
   private clearListState(): void {
     this.transactions.set([]);
-    this.categories.set([]);
+    this.filterCategories.set([]);
+    this.formCategories.set([]);
     this.pageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
     this.loading.set(false);
     this.error.set(false);
