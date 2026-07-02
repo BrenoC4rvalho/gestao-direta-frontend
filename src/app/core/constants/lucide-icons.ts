@@ -1,8 +1,10 @@
 import { Provider } from '@angular/core';
 import {
   LucideAlertCircle,
+  LucideBriefcaseBusiness,
   LucideCalendar,
   LucideCalendarClock,
+  LucideChartNoAxesCombined,
   LucideChartNoAxesColumnIncreasing,
   LucideCheck,
   LucideChevronDown,
@@ -28,6 +30,7 @@ import {
   LucideTags,
   LucideTrash2,
   LucideTractor,
+  LucideTrendingUp,
   LucideUser,
   LucideUserRoundCog,
   LucideUsers,
@@ -39,8 +42,10 @@ import {
 export function provideGestaoDiretaIcons(): Provider {
   return provideLucideIcons(
     LucideAlertCircle,
+    LucideBriefcaseBusiness,
     LucideCalendar,
     LucideCalendarClock,
+    LucideChartNoAxesCombined,
     LucideChartNoAxesColumnIncreasing,
     LucideCheck,
     LucideChevronDown,
@@ -66,6 +71,7 @@ export function provideGestaoDiretaIcons(): Provider {
     LucideTags,
     LucideTrash2,
     LucideTractor,
+    LucideTrendingUp,
     LucideUser,
     LucideUserRoundCog,
     LucideUsers,

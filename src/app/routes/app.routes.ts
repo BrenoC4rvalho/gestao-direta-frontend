@@ -96,6 +96,18 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'harvests',
+        title: 'Safras',
+        data: {
+          title: 'Safras',
+          subtitle: 'Acompanhe ciclos produtivos, custos, receitas e resultados estimados.',
+        },
+        loadComponent: () =>
+          import('../pages/harvests/harvests-page').then(
+            (component) => component.HarvestsPage,
+          ),
+      },
+      {
         path: 'upcoming-bills',
         title: 'Contas a vencer',
         data: {

@@ -45,6 +45,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'viewFinancial',
   },
   {
+    label: 'Safras',
+    route: '/harvests',
+    icon: 'sprout',
+    visibility: 'viewFinancial',
+  },
+  {
     label: 'Contas a vencer',
     route: '/upcoming-bills',
     icon: 'calendar-clock',

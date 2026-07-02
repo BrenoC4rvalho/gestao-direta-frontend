@@ -2,6 +2,7 @@ import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
+import { HarvestsPage } from '../pages/harvests/harvests-page';
 import { ProfilePage } from '../pages/profile/profile-page';
 import { TransactionsPage } from '../pages/transactions/transactions-page';
 import { UpcomingBillsPage } from '../pages/upcoming-bills/upcoming-bills-page';
@@ -39,6 +40,13 @@ describe('routes', () => {
       transactionsRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(transactionsComponent).toBe(TransactionsPage);
+    const harvestsRoute = appLayoutRoute?.children?.find((route) => route.path === 'harvests');
+    expect(harvestsRoute?.data?.['title']).toBe('Safras');
+    expect(harvestsRoute?.loadComponent).toBeTypeOf('function');
+    const harvestsComponent = await (
+      harvestsRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(harvestsComponent).toBe(HarvestsPage);
     const upcomingBillsRoute = appLayoutRoute?.children?.find((route) => route.path === 'upcoming-bills');
     expect(upcomingBillsRoute?.loadComponent).toBeTypeOf('function');
     const upcomingBillsComponent = await (

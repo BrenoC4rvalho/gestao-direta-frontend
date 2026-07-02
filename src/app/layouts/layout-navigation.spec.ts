@@ -33,6 +33,7 @@ const allLabels = [
   'Vínculos',
   'Categorias',
   'Movimentações',
+  'Safras',
   'Contas a vencer',
 ];
 
@@ -40,6 +41,7 @@ const financialLabels = [
   'Dashboard',
   'Fazendas',
   'Movimentações',
+  'Safras',
   'Contas a vencer',
 ];
 
