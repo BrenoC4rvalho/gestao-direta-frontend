@@ -26,6 +26,18 @@ const noPermissions: FarmAccessPermissions = {
   canCreateFarm: false,
 };
 
+const adminLabels = [
+  'Dashboard',
+  'Fazendas',
+  'Usuários',
+  'Vínculos',
+  'Categorias',
+  'Atividades produtivas',
+  'Movimentações',
+  'Safras',
+  'Contas a vencer',
+];
+
 const allLabels = [
   'Dashboard',
   'Fazendas',
@@ -54,7 +66,7 @@ describe('layout navigation visibility', () => {
         permissions: null,
         hasSelectedFarm: false,
       }),
-    ).toEqual(allLabels);
+    ).toEqual(adminLabels);
   });
 
   it('should show all navigation items for a producer with management permissions', () => {

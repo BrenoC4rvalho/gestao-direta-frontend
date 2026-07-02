@@ -6,7 +6,8 @@ export type LayoutNavVisibility =
   | 'authenticated'
   | 'manageFarmUsers'
   | 'manageCategories'
-  | 'viewFinancial';
+  | 'viewFinancial'
+  | 'admin';
 
 export interface LayoutNavItem {
   label: string;
@@ -38,6 +39,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'manageFarmUsers',
   },
   { label: 'Categorias', route: '/categories', icon: 'tags', visibility: 'manageCategories' },
+  {
+    label: 'Atividades produtivas',
+    route: '/production-activities',
+    icon: 'sprout',
+    visibility: 'admin',
+  },
   {
     label: 'Movimentações',
     route: '/transactions',
@@ -99,5 +106,7 @@ export function canShowNavItem(
       );
     case 'viewFinancial':
       return context.permissions.canViewFinancial;
+    case 'admin':
+      return context.userType === 'ADMIN';
   }
 }

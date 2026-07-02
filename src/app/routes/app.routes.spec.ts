@@ -3,6 +3,7 @@ import { guestGuard } from '../core/guards/guest.guard';
 import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
 import { HarvestsPage } from '../pages/harvests/harvests-page';
+import { ProductionActivitiesPage } from '../pages/production-activities/production-activities-page';
 import { ProfilePage } from '../pages/profile/profile-page';
 import { TransactionsPage } from '../pages/transactions/transactions-page';
 import { UpcomingBillsPage } from '../pages/upcoming-bills/upcoming-bills-page';
@@ -34,6 +35,13 @@ describe('routes', () => {
       categoriesRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(categoriesComponent).toBe(CategoriesPage);
+    const productionActivitiesRoute = appLayoutRoute?.children?.find((route) => route.path === 'production-activities');
+    expect(productionActivitiesRoute?.data?.['title']).toBe('Atividades produtivas');
+    expect(productionActivitiesRoute?.loadComponent).toBeTypeOf('function');
+    const productionActivitiesComponent = await (
+      productionActivitiesRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(productionActivitiesComponent).toBe(ProductionActivitiesPage);
     const transactionsRoute = appLayoutRoute?.children?.find((route) => route.path === 'transactions');
     expect(transactionsRoute?.loadComponent).toBeTypeOf('function');
     const transactionsComponent = await (

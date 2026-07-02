@@ -84,6 +84,18 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'production-activities',
+        title: 'Atividades produtivas',
+        data: {
+          title: 'Atividades produtivas',
+          subtitle: 'Gerencie culturas e atividades usadas no planejamento das safras.',
+        },
+        loadComponent: () =>
+          import('../pages/production-activities/production-activities-page').then(
+            (component) => component.ProductionActivitiesPage,
+          ),
+      },
+      {
         path: 'transactions',
         title: 'Transações',
         data: {
