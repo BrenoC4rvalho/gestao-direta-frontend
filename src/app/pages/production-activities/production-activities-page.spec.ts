@@ -1,9 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
+import { PageResponse } from '../../core/models/page-response.model';
+import { ProductionActivity } from '../../core/models/production-activity.models';
+import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+
 import { ProductionActivitiesPage } from './production-activities-page';
 
 const admin: AuthUser = {
@@ -24,15 +29,83 @@ const producer: AuthUser = {
   status: 'ACTIVE',
 };
 
+interface ProductionActivitiesPageHarness {
+  drawerOpen(): boolean;
+  form: {
+    controls: {
+      name: { value: unknown; setValue(value: string): void };
+      description: { setValue(value: string): void };
+    };
+  };
+  saveActivity(): void;
+}
+
+const drawerAnimationDurationMs = 250;
+
+const activities: ProductionActivity[] = [
+  {
+    id: 1,
+    name: 'Soja',
+    description: 'Cultura anual de grãos',
+    status: 'ACTIVE',
+    createdAt: '2026-06-21T10:00:00',
+    updatedAt: '2026-06-21T10:00:00',
+  },
+  {
+    id: 2,
+    name: 'Gado de leite',
+    description: 'Atividade leiteira especializada',
+    status: 'INACTIVE',
+    createdAt: '2026-06-21T10:00:00',
+    updatedAt: '2026-06-21T10:00:00',
+  },
+];
+
+function pageResponse(
+  content: ProductionActivity[],
+  page = 0,
+  totalPages = content.length > 0 ? 1 : 0,
+): PageResponse<ProductionActivity> {
+  return {
+    content,
+    page,
+    size: 10,
+    totalElements: content.length,
+    totalPages,
+    first: page === 0,
+    last: page + 1 >= totalPages,
+  };
+}
+
 describe('ProductionActivitiesPage', () => {
   let fixture: ComponentFixture<ProductionActivitiesPage>;
+  let service: {
+    list: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    activate: ReturnType<typeof vi.fn>;
+    inactivate: ReturnType<typeof vi.fn>;
+  };
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
   beforeEach(async () => {
+    service = {
+      list: vi.fn().mockReturnValue(of(pageResponse(activities))),
+      getById: vi.fn().mockReturnValue(of(activities[0])),
+      create: vi.fn().mockReturnValue(of({ ...activities[0], id: 3, name: 'Milho' })),
+      update: vi.fn().mockReturnValue(of({ ...activities[0], name: 'Soja verão' })),
+      activate: vi.fn().mockReturnValue(of({ ...activities[1], status: 'ACTIVE' })),
+      inactivate: vi.fn().mockReturnValue(of(undefined)),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ProductionActivitiesPage],
-      providers: [provideGestaoDiretaIcons()],
+      providers: [
+        provideGestaoDiretaIcons(),
+        { provide: ProductionActivityService, useValue: service },
+      ],
     }).compileComponents();
 
     sessionStore = TestBed.inject(SessionStore);
@@ -49,117 +122,207 @@ describe('ProductionActivitiesPage', () => {
     document.body.classList.remove('gd-overlay-open');
   });
 
-  it('should render the production activities page and summary cards for admin', () => {
+  it('should render title content, load service, and show returned activities', () => {
     createPage();
 
     const text = fixture.nativeElement.textContent;
+    expect(service.list).toHaveBeenCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: null,
+    });
+    expect(text).toContain('Atividades produtivas');
     expect(text).toContain('Total de atividades');
-    expect(text).toContain('Cadastros disponíveis');
     expect(text).toContain('Ativas');
     expect(text).toContain('Inativas');
     expect(text).toContain('Mais usadas');
+    expect(text).toContain('Em breve');
     expect(text).toContain('Soja');
+    expect(text).toContain('Cultura anual de grãos');
+    expect(text).toContain('Gado de leite');
+    expect(text).toContain('Ativa');
+    expect(text).toContain('Inativa');
   });
 
-  it('should show access restriction for non-admin users', () => {
+  it('should show access restriction and avoid API calls for non-admin users', () => {
     sessionStore.setUser(producer);
     createPage();
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Acesso restrito');
     expect(text).not.toContain('Nova atividade produtiva');
+    expect(service.list).not.toHaveBeenCalled();
   });
 
-  it('should render filters and mocked activity list', () => {
+  it('should show loading state', () => {
+    service.list.mockReturnValueOnce(new Subject<PageResponse<ProductionActivity>>());
+
     createPage();
 
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Filtros');
-    expect(text).toContain('Busca');
-    expect(text).toContain('Todas');
-    expect(text).toContain('Ativas');
-    expect(text).toContain('Inativas');
-    expect(text).toContain('Milho');
-    expect(text).toContain('Cultura anual para grãos e silagem');
-    expect(text).toContain('Gado de corte');
-    expect(fixture.nativeElement.querySelector('table caption')?.textContent).toContain(
-      'Atividades produtivas cadastradas',
+    expect(fixture.nativeElement.textContent).toContain('Filtros');
+    expect(fixture.nativeElement.querySelector('[aria-label="Carregando atividades produtivas"]')).toBeTruthy();
+  });
+
+  it('should show error state', () => {
+    service.list.mockReturnValueOnce(throwError(() => new Error('fail')));
+
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Não foi possível carregar as atividades produtivas.',
     );
-    expect(fixture.nativeElement.querySelector('[aria-label="Lista mobile de atividades produtivas"]')).toBeTruthy();
   });
 
-  it('should filter locally by activity name', () => {
+  it('should show empty state without filters', () => {
+    service.list.mockReturnValueOnce(of(pageResponse([])));
+
     createPage();
 
-    setSearch('Milho');
-
-    expect(getActivityCard('Milho')).toBeTruthy();
-    expect(getActivityCard('Soja')).toBeNull();
-    expect(getActivityCard('Feijão')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma atividade produtiva cadastrada.');
   });
 
-  it('should filter locally by activity description', () => {
+  it('should filter locally by activity name and description', () => {
     createPage();
 
-    setSearch('silagem');
-
-    expect(getActivityCard('Milho')).toBeTruthy();
-    expect(getActivityCard('Soja')).toBeNull();
-  });
-
-  it('should filter activities locally by status chips', () => {
-    createPage();
-
-    clickButton('Inativas');
+    setSearch('leiteira');
 
     expect(getActivityCard('Gado de leite')).toBeTruthy();
-    expect(getActivityCard('Feijão')).toBeTruthy();
     expect(getActivityCard('Soja')).toBeNull();
-    expect(findButton('Inativas')?.getAttribute('aria-pressed')).toBe('true');
-
-    clickButton('Ativas');
-
-    expect(getActivityCard('Soja')).toBeTruthy();
-    expect(getActivityCard('Gado de leite')).toBeNull();
   });
 
-  it('should open the create drawer placeholder and save without backend', () => {
+  it('should show filtered empty state for local search without matches', () => {
+    createPage();
+
+    setSearch('banana');
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Nenhuma atividade produtiva encontrada para os filtros informados.',
+    );
+  });
+
+  it('should send status ACTIVE and INACTIVE filters from chips', () => {
+    createPage();
+
+    clickButton('Ativas');
+    expect(service.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: 'ACTIVE',
+    });
+    expect(findButton('Ativas')?.getAttribute('aria-pressed')).toBe('true');
+
+    clickButton('Inativas');
+    expect(service.list).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: 'INACTIVE',
+    });
+    expect(findButton('Inativas')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('should keep filters when changing pages', () => {
+    service.list.mockReturnValue(of(pageResponse(activities, 0, 2)));
+    createPage();
+    clickButton('Ativas');
+    service.list.mockReturnValueOnce(of(pageResponse(activities, 1, 2)));
+
+    clickButton('Próxima');
+
+    expect(service.list).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: 'ACTIVE',
+    });
+  });
+
+  it('should open create drawer and call create when saving', async () => {
     createPage();
 
     clickButton('Nova atividade produtiva');
-    expect(getDrawerDialog()?.textContent).toContain(
-      'Cadastro de atividade produtiva será implementado na integração com backend.',
-    );
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+    expect(getPageHarness().drawerOpen()).toBe(true);
+    getPageHarness().form.controls.name.setValue('  Milho  ');
+    getPageHarness().form.controls.description.setValue('  Cultura anual  ');
+    getPageHarness().saveActivity();
+    fixture.detectChanges();
 
-    clickButton('Salvar');
-
-    expect(toastStore.toasts()[0]?.title).toBe('Cadastro será integrado ao backend em breve.');
+    expect(service.create).toHaveBeenCalledWith({
+      name: 'Milho',
+      description: 'Cultura anual',
+    });
+    expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva criada com sucesso.');
+    expect(service.list).toHaveBeenCalledTimes(2);
   });
 
-  it('should open view and edit drawer placeholders', () => {
+  it('should require name when creating', async () => {
     createPage();
 
-    clickButton('Visualizar');
-    expect(getDrawerDialog()?.textContent).toContain('Soja');
-    expect(getDrawerDialog()?.textContent).toContain('Cultura anual de grãos');
-    closeDrawer();
+    clickButton('Nova atividade produtiva');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+    getPageHarness().saveActivity();
+    fixture.detectChanges();
 
-    clickButton('Editar');
-    expect(getDrawerDialog()?.textContent).toContain('Editar atividade produtiva');
-    expect(getDrawerDialog()?.textContent).toContain('Soja');
+    expect(service.create).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Informe o nome da atividade produtiva.');
   });
 
-  it('should toggle status locally and show toast without backend', () => {
+  it('should open edit drawer with selected activity and call update when saving', async () => {
+    createPage();
+
+    clickButton('Editar');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+    expect(getPageHarness().drawerOpen()).toBe(true);
+    expect(getPageHarness().form.controls.name.value).toBe('Soja');
+    getPageHarness().form.controls.name.setValue('Soja verão');
+    getPageHarness().form.controls.description.setValue('Cultivo de soja no verão');
+    getPageHarness().saveActivity();
+    fixture.detectChanges();
+
+    expect(service.update).toHaveBeenCalledWith(1, {
+      name: 'Soja verão',
+      description: 'Cultivo de soja no verão',
+    });
+    expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva atualizada com sucesso.');
+    expect(service.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('should open confirmation and call inactivate for active activities', () => {
     createPage();
 
     clickButton('Inativar');
+    expect(getDialogText()).toContain('Inativar atividade produtiva?');
+    expect(getDialogText()).toContain(
+      'Esta atividade não ficará disponível para novas safras, mas registros existentes serão preservados.',
+    );
     clickDialogButton('Inativar');
 
-    expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva inativada no mock local.');
+    expect(service.inactivate).toHaveBeenCalledWith(1);
+    expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva inativada com sucesso.');
+    expect(service.list).toHaveBeenCalledTimes(2);
+  });
 
-    clickButton('Inativas');
+  it('should open confirmation and call activate for inactive activities', () => {
+    createPage();
 
-    expect(getActivityCard('Soja')).toBeTruthy();
+    clickButton('Ativar');
+    expect(getDialogText()).toContain('Ativar atividade produtiva?');
+    expect(getDialogText()).toContain('Esta atividade voltará a ficar disponível para novas safras.');
+    clickDialogButton('Ativar');
+
+    expect(service.activate).toHaveBeenCalledWith(2);
+    expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva ativada com sucesso.');
+    expect(service.list).toHaveBeenCalledTimes(2);
   });
 
   function createPage(): void {
@@ -205,16 +368,20 @@ describe('ProductionActivitiesPage', () => {
     fixture.detectChanges();
   }
 
-  function closeDrawer(): void {
-    const closeButton = (fixture.nativeElement as HTMLElement).querySelector(
-      'gd-drawer [aria-label="Fechar drawer"]',
-    ) as HTMLButtonElement | null;
-    closeButton?.click();
-    fixture.detectChanges();
+  function getPageHarness(): ProductionActivitiesPageHarness {
+    return fixture.componentInstance as unknown as ProductionActivitiesPageHarness;
   }
 
   function getDrawerDialog(): HTMLElement | null {
     fixture.detectChanges();
     return (fixture.nativeElement as HTMLElement).querySelector('gd-drawer [role="dialog"]');
+  }
+
+  function getDialogText(): string {
+    return (fixture.nativeElement as HTMLElement).querySelector('gd-confirm-dialog [role="dialog"]')
+      ?.textContent ?? '';
+  }
+  function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 });

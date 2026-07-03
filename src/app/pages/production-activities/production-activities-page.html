@@ -55,7 +55,7 @@
         <div>
           <p class="mb-2 text-sm font-medium text-text-primary">Status</p>
           <div class="flex flex-wrap gap-2" aria-label="Filtros por status da atividade produtiva">
-            @for (filter of statusFilters; track filter.value) {
+            @for (filter of statusFilters; track filter.label) {
               <button
                 type="button"
                 [attr.aria-pressed]="isSelectedStatus(filter.value)"
@@ -74,116 +74,138 @@
       </div>
     </gd-card>
 
-    <div class="gd-fade-in-up grid gap-4 md:hidden" aria-label="Lista mobile de atividades produtivas">
-      @for (activity of filteredActivities(); track activity.id) {
-        <article
-          class="rounded-app border border-border bg-surface p-5 shadow-soft transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm"
-          [attr.aria-label]="'Atividade produtiva ' + activity.name"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h2 class="text-lg font-semibold text-text-primary">{{ activity.name }}</h2>
-              <p class="mt-1 text-sm leading-6 text-text-muted">{{ activity.description }}</p>
+    @if (loading()) {
+      <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando atividades produtivas">
+        @for (item of skeletons; track item) {
+          <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <gd-skeleton width="65%" height="1.25rem" />
+                <gd-skeleton class="mt-3 block" width="80%" height="0.875rem" />
+              </div>
+              <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
             </div>
-            <gd-badge [variant]="statusVariant(activity.status)" size="sm">
-              {{ statusLabel(activity.status) }}
-            </gd-badge>
+            <gd-skeleton class="mt-6 block" width="55%" height="0.875rem" />
+            <gd-skeleton class="mt-4 block" width="45%" height="0.875rem" />
           </div>
-
-          <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Tipo</dt>
-              <dd class="mt-1">
-                <gd-badge [variant]="typeVariant(activity.type)" size="sm">
-                  {{ typeLabel(activity.type) }}
-                </gd-badge>
-              </dd>
+        }
+      </div>
+    } @else if (error()) {
+      <gd-error-state
+        title="Não foi possível carregar as atividades produtivas."
+        description="Verifique sua conexão e tente novamente."
+        actionLabel="Tentar novamente"
+        (action)="retry()"
+      />
+    } @else if (activities().length === 0) {
+      <gd-empty-state
+        [title]="emptyStateTitle()"
+        [description]="emptyStateDescription()"
+        icon="sprout"
+      />
+    } @else {
+      <div class="gd-fade-in-up grid gap-4 md:hidden" aria-label="Lista mobile de atividades produtivas">
+        @for (activity of activities(); track activity.id) {
+          <article
+            class="rounded-app border border-border bg-surface p-5 shadow-soft transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm"
+            [attr.aria-label]="'Atividade produtiva ' + activity.name"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h2 class="text-lg font-semibold text-text-primary">{{ activity.name }}</h2>
+                <p class="mt-1 text-sm leading-6 text-text-muted">{{ activity.description || '—' }}</p>
+              </div>
+              <gd-badge [variant]="statusVariant(activity.status)" size="sm">
+                {{ statusLabel(activity.status) }}
+              </gd-badge>
             </div>
-            <div>
-              <dt class="text-xs font-medium uppercase tracking-wide text-text-muted">Uso em safras</dt>
-              <dd class="mt-1 font-medium text-text-primary">{{ usageLabel(activity) }}</dd>
-            </div>
-          </dl>
 
-          <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
-            <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="openViewDrawer(activity)">
-              <svg lucideIcon="eye" class="size-4" aria-hidden="true"></svg>
-              Visualizar
-            </gd-button>
-            <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="openEditDrawer(activity)">
-              <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
-              Editar
-            </gd-button>
-            <gd-button type="button" size="sm" variant="ghost" [fullWidth]="true" (click)="requestStatusToggle(activity)">
-              <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
-              {{ nextStatusActionLabel(activity) }}
-            </gd-button>
-          </div>
-        </article>
-      } @empty {
-        <div class="rounded-app border border-dashed border-border bg-surface p-6 text-center">
-          <p class="font-semibold text-text-primary">Nenhuma atividade encontrada</p>
-          <p class="mt-1 text-sm text-text-muted">Ajuste a busca ou o filtro de status.</p>
-        </div>
+            <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
+              <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="openEditDrawer(activity)">
+                <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                Editar
+              </gd-button>
+              <gd-button type="button" size="sm" variant="ghost" [fullWidth]="true" (click)="requestStatusToggle(activity)">
+                <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
+                {{ nextStatusActionLabel(activity) }}
+              </gd-button>
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+        <table class="w-full border-collapse text-left">
+          <caption class="sr-only">Atividades produtivas cadastradas</caption>
+          <thead class="border-b border-border bg-primary text-white">
+            <tr class="text-xs font-semibold uppercase tracking-wide text-white">
+              <th class="px-5 py-4" scope="col">Nome</th>
+              <th class="px-5 py-4" scope="col">Descrição</th>
+              <th class="px-5 py-4" scope="col">Status</th>
+              <th class="px-5 py-4" scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (activity of activities(); track activity.id) {
+              <tr class="transition-colors duration-200 hover:bg-background/60">
+                <td class="px-5 py-4 font-semibold text-text-primary">{{ activity.name }}</td>
+                <td class="px-5 py-4 text-sm text-text-muted">{{ activity.description || '—' }}</td>
+                <td class="px-5 py-4">
+                  <gd-badge [variant]="statusVariant(activity.status)" size="sm">
+                    {{ statusLabel(activity.status) }}
+                  </gd-badge>
+                </td>
+                <td class="px-5 py-4">
+                  <div class="flex flex-wrap gap-2">
+                    <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(activity)">
+                      <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                      Editar
+                    </gd-button>
+                    <gd-button type="button" size="sm" variant="ghost" (click)="requestStatusToggle(activity)">
+                      <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
+                      {{ nextStatusActionLabel(activity) }}
+                    </gd-button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (response(); as page) {
+        @if (page.totalPages > 1) {
+          <nav
+            class="flex flex-col gap-3 rounded-app border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+            aria-label="Paginação de atividades produtivas"
+          >
+            <p class="text-center text-sm text-text-muted sm:text-left">
+              Página <span class="font-semibold text-text-primary">{{ page.page + 1 }}</span> de
+              <span class="font-semibold text-text-primary">{{ page.totalPages }}</span>
+            </p>
+
+            <div class="grid grid-cols-2 gap-3">
+              <gd-button
+                type="button"
+                variant="outline"
+                [disabled]="page.first || loading()"
+                (click)="previousPage()"
+              >
+                Anterior
+              </gd-button>
+              <gd-button
+                type="button"
+                variant="outline"
+                [disabled]="page.last || loading()"
+                (click)="nextPage()"
+              >
+                Próxima
+              </gd-button>
+            </div>
+          </nav>
+        }
       }
-    </div>
-
-    <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
-      <table class="w-full border-collapse text-left">
-        <caption class="sr-only">Atividades produtivas cadastradas</caption>
-        <thead class="border-b border-border bg-primary text-white">
-          <tr class="text-xs font-semibold uppercase tracking-wide text-white">
-            <th class="px-5 py-4" scope="col">Nome</th>
-            <th class="px-5 py-4" scope="col">Tipo</th>
-            <th class="px-5 py-4" scope="col">Descrição</th>
-            <th class="px-5 py-4" scope="col">Status</th>
-            <th class="px-5 py-4" scope="col">Uso em safras</th>
-            <th class="px-5 py-4" scope="col">Ações</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border">
-          @for (activity of filteredActivities(); track activity.id) {
-            <tr class="transition-colors duration-200 hover:bg-background/60">
-              <td class="px-5 py-4 font-semibold text-text-primary">{{ activity.name }}</td>
-              <td class="px-5 py-4">
-                <gd-badge [variant]="typeVariant(activity.type)" size="sm">
-                  {{ typeLabel(activity.type) }}
-                </gd-badge>
-              </td>
-              <td class="px-5 py-4 text-sm text-text-muted">{{ activity.description }}</td>
-              <td class="px-5 py-4">
-                <gd-badge [variant]="statusVariant(activity.status)" size="sm">
-                  {{ statusLabel(activity.status) }}
-                </gd-badge>
-              </td>
-              <td class="px-5 py-4 text-sm font-medium text-text-primary">{{ usageLabel(activity) }}</td>
-              <td class="px-5 py-4">
-                <div class="flex flex-wrap gap-2">
-                  <gd-button type="button" size="sm" variant="ghost" (click)="openViewDrawer(activity)">
-                    <svg lucideIcon="eye" class="size-4" aria-hidden="true"></svg>
-                    Visualizar
-                  </gd-button>
-                  <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(activity)">
-                    <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
-                    Editar
-                  </gd-button>
-                  <gd-button type="button" size="sm" variant="ghost" (click)="requestStatusToggle(activity)">
-                    <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
-                    {{ nextStatusActionLabel(activity) }}
-                  </gd-button>
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td class="px-5 py-8 text-center text-sm text-text-muted" colspan="6">
-                Nenhuma atividade produtiva encontrada.
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    }
   }
 </section>
 
@@ -192,80 +214,43 @@
   [title]="drawerTitle()"
   [description]="drawerDescription()"
   size="md"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
   (closed)="closeDrawer()"
 >
-  <div class="space-y-5">
-    @if (drawerActivity(); as activity) {
-      <div class="rounded-app border border-border bg-background p-4">
-        <p class="text-sm font-medium text-text-muted">Atividade selecionada</p>
-        <p class="mt-1 text-lg font-semibold text-text-primary">{{ activity.name }}</p>
-        <p class="mt-2 text-sm leading-6 text-text-muted">{{ activity.description }}</p>
-      </div>
-    } @else {
-      <div class="rounded-app border border-dashed border-border bg-background p-4">
-        <p class="text-sm font-semibold text-text-primary">
-          Cadastro de atividade produtiva será implementado na integração com backend.
-        </p>
-      </div>
-    }
+  <form class="grid gap-4" [formGroup]="form" (ngSubmit)="saveActivity()">
+    <gd-input
+      id="production-activity-name"
+      label="Nome"
+      placeholder="Ex.: Soja"
+      autocomplete="off"
+      [control]="form.controls.name"
+      [required]="true"
+      [errorMessage]="nameErrorMessage()"
+    />
 
-    <div class="grid gap-4">
-      <div class="flex flex-col gap-1.5">
-        <label for="production-activity-drawer-name" class="text-sm font-medium text-text-primary">Nome</label>
-        <input
-          id="production-activity-drawer-name"
-          class="min-h-10 rounded-control border border-border bg-surface px-3 text-sm text-text-primary disabled:opacity-70"
-          type="text"
-          [value]="drawerActivity()?.name ?? ''"
-          placeholder="Ex.: Soja"
-          disabled
-        />
-      </div>
+    <gd-textarea
+      id="production-activity-description"
+      label="Descrição"
+      placeholder="Descrição da atividade produtiva"
+      [control]="form.controls.description"
+      [rows]="4"
+      [maxlength]="255"
+    />
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="flex flex-col gap-1.5">
-          <label for="production-activity-drawer-type" class="text-sm font-medium text-text-primary">Tipo</label>
-          <input
-            id="production-activity-drawer-type"
-            class="min-h-10 rounded-control border border-border bg-surface px-3 text-sm text-text-primary disabled:opacity-70"
-            type="text"
-            [value]="drawerActivity() ? typeLabel(drawerActivity()!.type) : ''"
-            placeholder="Agricultura"
-            disabled
-          />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="production-activity-drawer-status" class="text-sm font-medium text-text-primary">Status</label>
-          <input
-            id="production-activity-drawer-status"
-            class="min-h-10 rounded-control border border-border bg-surface px-3 text-sm text-text-primary disabled:opacity-70"
-            type="text"
-            [value]="drawerActivity() ? statusLabel(drawerActivity()!.status) : ''"
-            placeholder="Ativa"
-            disabled
-          />
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label for="production-activity-drawer-description" class="text-sm font-medium text-text-primary">Descrição</label>
-        <textarea
-          id="production-activity-drawer-description"
-          class="min-h-24 rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-primary disabled:opacity-70"
-          [value]="drawerActivity()?.description ?? ''"
-          placeholder="Descrição da atividade produtiva"
-          disabled
-        ></textarea>
-      </div>
+    <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+      <gd-button
+        type="button"
+        variant="outline"
+        [disabled]="submitting()"
+        [fullWidth]="true"
+        (click)="closeDrawer()"
+      >
+        Cancelar
+      </gd-button>
+      <gd-button type="submit" [loading]="submitting()" [fullWidth]="true">Salvar</gd-button>
     </div>
-
-    @if (showSaveAction()) {
-      <div class="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
-        <gd-button type="button" variant="outline" (click)="closeDrawer()">Cancelar</gd-button>
-        <gd-button type="button" (click)="savePlaceholder()">Salvar</gd-button>
-      </div>
-    }
-  </div>
+  </form>
 </gd-drawer>
 
 <gd-confirm-dialog
@@ -275,6 +260,7 @@
   [confirmLabel]="statusConfirmation().confirmLabel"
   cancelLabel="Cancelar"
   [variant]="statusConfirmation().variant"
+  [loading]="statusSubmitting()"
   (confirmed)="confirmStatusToggle()"
   (cancelled)="closeStatusConfirmation()"
   (closed)="closeStatusConfirmation()"

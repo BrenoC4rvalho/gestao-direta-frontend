@@ -1,24 +1,40 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
+import { finalize, Observable } from 'rxjs';
 
-import { GdFormControl, Input } from '../../shared/forms';
-import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
-import { Badge, BadgeVariant, Button, Card, ErrorState } from '../../shared/ui';
+import { PageResponse } from '../../core/models/page-response.model';
+import {
+  CreateProductionActivityRequest,
+  ProductionActivity,
+  ProductionActivityListParams,
+  ProductionActivityStatus,
+  UpdateProductionActivityRequest,
+} from '../../core/models/production-activity.models';
+import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import {
-  PRODUCTION_ACTIVITY_STATUS_LABELS,
-  PRODUCTION_ACTIVITY_TYPE_LABELS,
-  ProductionActivityListItem,
-  ProductionActivityStatus,
-  ProductionActivityType,
-  productionActivitiesMock,
-} from './production-activities.mock';
+import { GdFormControl, GdFormValue, Input, Textarea } from '../../shared/forms';
+import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
+import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 
-type ProductionActivityStatusFilter = 'ALL' | ProductionActivityStatus;
-type DrawerMode = 'create' | 'view' | 'edit';
+type ProductionActivityStatusFilter = ProductionActivityStatus | null;
+type DrawerMode = 'create' | 'edit';
+
+interface ProductionActivityFormControls {
+  name: GdFormControl;
+  description: GdFormControl;
+}
 
 interface StatusFilterOption {
   label: string;
@@ -35,7 +51,7 @@ interface SummaryCard {
 
 interface DrawerState {
   mode: DrawerMode;
-  activity: ProductionActivityListItem | null;
+  activity: ProductionActivity | null;
 }
 
 interface StatusConfirmation {
@@ -53,44 +69,88 @@ interface StatusConfirmation {
     Card,
     ConfirmDialog,
     Drawer,
+    EmptyState,
     ErrorState,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
+    Skeleton,
+    Textarea,
   ],
   templateUrl: './production-activities-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductionActivitiesPage {
+export class ProductionActivitiesPage implements OnInit {
+  private readonly activityService = inject(ProductionActivityService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastStore = inject(ToastStore);
   protected readonly sessionStore = inject(SessionStore);
 
   private readonly searchTerm = signal('');
-  private readonly selectedStatus = signal<ProductionActivityStatusFilter>('ALL');
+  private readonly selectedStatus = signal<ProductionActivityStatusFilter>(null);
 
   protected readonly searchControl: GdFormControl = new FormControl('');
-  protected readonly activities = signal<ProductionActivityListItem[]>([...productionActivitiesMock]);
+  protected readonly response = signal<PageResponse<ProductionActivity> | null>(null);
+  protected readonly loading = signal(false);
+  protected readonly error = signal(false);
   protected readonly drawerOpen = signal(false);
   protected readonly drawerState = signal<DrawerState>({ mode: 'create', activity: null });
-  protected readonly statusTarget = signal<ProductionActivityListItem | null>(null);
+  protected readonly submitting = signal(false);
+  protected readonly statusTarget = signal<ProductionActivity | null>(null);
+  protected readonly statusSubmitting = signal(false);
+  protected readonly skeletons = [1, 2, 3, 4, 5];
   protected readonly statusFilters: readonly StatusFilterOption[] = [
-    { label: 'Todas', value: 'ALL' },
+    { label: 'Todas', value: null },
     { label: 'Ativas', value: 'ACTIVE' },
     { label: 'Inativas', value: 'INACTIVE' },
   ];
 
+  protected readonly form = new FormGroup<ProductionActivityFormControls>({
+    name: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
+    description: new FormControl<GdFormValue>(''),
+  });
+
+  protected readonly activities = computed(() => {
+    const search = this.normalizeText(this.searchTerm());
+    const activities = this.response()?.content ?? [];
+
+    // TODO: enviar search para o backend quando o endpoint documentar esse filtro.
+    return activities.filter((activity) => {
+      if (!search) {
+        return true;
+      }
+
+      return (
+        this.normalizeText(activity.name).includes(search) ||
+        this.normalizeText(activity.description ?? '').includes(search)
+      );
+    });
+  });
+  protected readonly currentPage = computed(() => this.response()?.page ?? 0);
+  protected readonly hasActiveFilters = computed(
+    () => this.selectedStatus() !== null || this.searchTerm().length > 0,
+  );
+  protected readonly emptyStateTitle = computed(() =>
+    this.hasActiveFilters()
+      ? 'Nenhuma atividade produtiva encontrada para os filtros informados.'
+      : 'Nenhuma atividade produtiva cadastrada.',
+  );
+  protected readonly emptyStateDescription = computed(() =>
+    this.hasActiveFilters()
+      ? 'Ajuste a busca ou o filtro de status.'
+      : 'Crie atividades produtivas para usá-las no planejamento das safras.',
+  );
+
   protected readonly summaryCards = computed<readonly SummaryCard[]>(() => {
-    const activities = this.activities();
+    const response = this.response();
+    const activities = response?.content ?? [];
     const active = activities.filter((activity) => activity.status === 'ACTIVE').length;
-    const mostUsed = activities.reduce((current, activity) =>
-      activity.seasonsCount > current.seasonsCount ? activity : current,
-    );
+    const inactive = activities.filter((activity) => activity.status === 'INACTIVE').length;
 
     return [
       {
         label: 'Total de atividades',
-        value: activities.length,
+        value: response?.totalElements ?? 0,
         subtext: 'Cadastros disponíveis',
         icon: 'sprout',
         tone: 'primary',
@@ -104,72 +164,44 @@ export class ProductionActivitiesPage {
       },
       {
         label: 'Inativas',
-        value: activities.length - active,
+        value: inactive,
         subtext: 'Ocultas em novos cadastros',
         icon: 'circle-off',
         tone: 'danger',
       },
       {
         label: 'Mais usadas',
-        value: mostUsed.name,
-        subtext: 'Atividade com mais safras',
+        value: 'Em breve',
+        subtext: 'Uso em safras será exibido futuramente',
         icon: 'trending-up',
         tone: 'info',
       },
     ];
   });
 
-  protected readonly filteredActivities = computed(() => {
-    const search = this.normalizeText(this.searchTerm());
-    const status = this.selectedStatus();
-
-    return this.activities().filter((activity) => {
-      const matchesSearch =
-        !search ||
-        this.normalizeText(activity.name).includes(search) ||
-        this.normalizeText(activity.description).includes(search);
-      const matchesStatus = status === 'ALL' || activity.status === status;
-
-      return matchesSearch && matchesStatus;
-    });
-  });
-
-  protected readonly drawerTitle = computed(() => {
-    const state = this.drawerState();
-
-    if (state.mode === 'create') {
-      return 'Nova atividade produtiva';
-    }
-
-    if (state.mode === 'edit') {
-      return 'Editar atividade produtiva';
-    }
-
-    return 'Atividade produtiva';
-  });
-
-  protected readonly drawerDescription = computed(() =>
-    this.drawerState().mode === 'view'
-      ? 'Visualização mockada da atividade produtiva.'
-      : 'Cadastro será integrado ao backend em uma etapa futura.',
+  protected readonly drawerTitle = computed(() =>
+    this.drawerState().mode === 'edit' ? 'Editar atividade produtiva' : 'Nova atividade produtiva',
   );
-
-  protected readonly drawerActivity = computed(() => this.drawerState().activity);
-  protected readonly showSaveAction = computed(() => this.drawerState().mode !== 'view');
+  protected readonly drawerDescription = computed(() =>
+    this.drawerState().mode === 'edit'
+      ? 'Atualize os dados da atividade produtiva.'
+      : 'Cadastre uma atividade produtiva para uso em safras.',
+  );
   protected readonly statusConfirmation = computed<StatusConfirmation>(() => {
     const target = this.statusTarget();
     const activating = target?.status === 'INACTIVE';
 
     return activating
       ? {
-          title: 'Ativar atividade produtiva',
-          description: 'Esta atividade voltará a ficar disponível para novas safras neste mock local.',
+          title: 'Ativar atividade produtiva?',
+          description: 'Esta atividade voltará a ficar disponível para novas safras.',
           confirmLabel: 'Ativar',
           variant: 'success',
         }
       : {
-          title: 'Inativar atividade produtiva',
-          description: 'Esta atividade será ocultada de novos cadastros neste mock local.',
+          title: 'Inativar atividade produtiva?',
+          description:
+            'Esta atividade não ficará disponível para novas safras, mas registros existentes serão preservados.',
           confirmLabel: 'Inativar',
           variant: 'warning',
         };
@@ -181,95 +213,164 @@ export class ProductionActivitiesPage {
       .subscribe((value) => this.searchTerm.set(String(value ?? '').trim()));
   }
 
+  ngOnInit(): void {
+    if (this.sessionStore.isAdmin()) {
+      this.loadPage(0);
+    }
+  }
+
+  protected retry(): void {
+    this.loadPage(this.currentPage());
+  }
+
   protected selectStatus(status: ProductionActivityStatusFilter): void {
     this.selectedStatus.set(status);
+    this.loadPage(0);
   }
 
   protected isSelectedStatus(status: ProductionActivityStatusFilter): boolean {
     return this.selectedStatus() === status;
   }
 
+  protected previousPage(): void {
+    const response = this.response();
+
+    if (response && !response.first) {
+      this.loadPage(response.page - 1);
+    }
+  }
+
+  protected nextPage(): void {
+    const response = this.response();
+
+    if (response && !response.last) {
+      this.loadPage(response.page + 1);
+    }
+  }
+
   protected openCreateDrawer(): void {
     this.drawerState.set({ mode: 'create', activity: null });
+    this.form.reset({ name: '', description: '' });
     this.drawerOpen.set(true);
   }
 
-  protected openViewDrawer(activity: ProductionActivityListItem): void {
-    this.drawerState.set({ mode: 'view', activity });
-    this.drawerOpen.set(true);
-  }
-
-  protected openEditDrawer(activity: ProductionActivityListItem): void {
+  protected openEditDrawer(activity: ProductionActivity): void {
     this.drawerState.set({ mode: 'edit', activity });
+    this.form.reset({
+      name: activity.name,
+      description: activity.description ?? '',
+    });
     this.drawerOpen.set(true);
   }
 
   protected closeDrawer(): void {
-    this.drawerOpen.set(false);
+    if (!this.submitting()) {
+      this.drawerOpen.set(false);
+    }
   }
 
-  protected savePlaceholder(): void {
-    this.toastStore.info('Cadastro será integrado ao backend em breve.');
-    this.closeDrawer();
+  protected saveActivity(): void {
+    const name = this.stringValue(this.form.controls.name.value);
+    const description = this.stringValue(this.form.controls.description.value);
+
+    if (!name) {
+      this.form.controls.name.setErrors({ required: true });
+    }
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const payload: CreateProductionActivityRequest | UpdateProductionActivityRequest = {
+      name,
+      description: description || null,
+    };
+    const state = this.drawerState();
+
+    this.submitting.set(true);
+
+    const request$ =
+      state.mode === 'edit' && state.activity
+        ? this.activityService.update(state.activity.id, payload)
+        : this.activityService.create(payload);
+
+    request$
+      .pipe(
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.drawerOpen.set(false);
+          this.toastStore.success(
+            state.mode === 'edit'
+              ? 'Atividade produtiva atualizada com sucesso.'
+              : 'Atividade produtiva criada com sucesso.',
+          );
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
   }
 
-  protected requestStatusToggle(activity: ProductionActivityListItem): void {
+  protected requestStatusToggle(activity: ProductionActivity): void {
     this.statusTarget.set(activity);
   }
 
   protected closeStatusConfirmation(): void {
-    this.statusTarget.set(null);
+    if (!this.statusSubmitting()) {
+      this.statusTarget.set(null);
+    }
   }
 
   protected confirmStatusToggle(): void {
     const target = this.statusTarget();
 
-    if (!target) {
+    if (!target || this.statusSubmitting()) {
       return;
     }
 
-    const nextStatus: ProductionActivityStatus = target.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    this.activities.update((activities) =>
-      activities.map((activity) =>
-        activity.id === target.id ? { ...activity, status: nextStatus } : activity,
-      ),
-    );
-    this.statusTarget.set(null);
-    this.toastStore.success(
-      nextStatus === 'ACTIVE'
-        ? 'Atividade produtiva ativada no mock local.'
-        : 'Atividade produtiva inativada no mock local.',
-    );
-  }
+    this.statusSubmitting.set(true);
 
-  protected typeLabel(type: ProductionActivityType): string {
-    return PRODUCTION_ACTIVITY_TYPE_LABELS[type];
-  }
+    const activating = target.status === 'INACTIVE';
+    const request$: Observable<unknown> = activating
+      ? this.activityService.activate(target.id)
+      : this.activityService.inactivate(target.id);
 
-  protected typeVariant(type: ProductionActivityType): BadgeVariant {
-    const variants: Record<ProductionActivityType, BadgeVariant> = {
-      AGRICULTURE: 'success',
-      LIVESTOCK: 'warning',
-      MIXED: 'info',
-      OTHER: 'neutral',
-    };
-
-    return variants[type];
+    request$
+      .pipe(
+        finalize(() => this.statusSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.statusTarget.set(null);
+          this.toastStore.success(
+            activating
+              ? 'Atividade produtiva ativada com sucesso.'
+              : 'Atividade produtiva inativada com sucesso.',
+          );
+          this.loadPage(this.currentPage());
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
   }
 
   protected statusLabel(status: ProductionActivityStatus): string {
-    return PRODUCTION_ACTIVITY_STATUS_LABELS[status];
+    const labels: Record<ProductionActivityStatus, string> = {
+      ACTIVE: 'Ativa',
+      INACTIVE: 'Inativa',
+    };
+
+    return labels[status];
   }
 
   protected statusVariant(status: ProductionActivityStatus): BadgeVariant {
     return status === 'ACTIVE' ? 'success' : 'danger';
   }
 
-  protected usageLabel(activity: ProductionActivityListItem): string {
-    return activity.seasonsCount === 1 ? '1 safra' : activity.seasonsCount + ' safras';
-  }
-
-  protected nextStatusActionLabel(activity: ProductionActivityListItem): string {
+  protected nextStatusActionLabel(activity: ProductionActivity): string {
     return activity.status === 'ACTIVE' ? 'Inativar' : 'Ativar';
   }
 
@@ -284,10 +385,74 @@ export class ProductionActivitiesPage {
     return tones[tone];
   }
 
+  protected nameErrorMessage(): string | null {
+    return this.form.controls.name.hasError('required')
+      ? 'Informe o nome da atividade produtiva.'
+      : null;
+  }
+
+  private loadPage(page: number): void {
+    if (!this.sessionStore.isAdmin() || this.loading()) {
+      return;
+    }
+
+    const params: ProductionActivityListParams = {
+      page,
+      size: this.response()?.size ?? 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: this.selectedStatus(),
+    };
+
+    this.error.set(false);
+    this.loading.set(true);
+
+    this.activityService
+      .list(params)
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => this.response.set(response),
+        error: (error: unknown) => this.handleListError(error),
+      });
+  }
+
+  private handleListError(error: unknown): void {
+    this.response.set(null);
+
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      this.toastStore.error('Você não tem permissão para visualizar atividades produtivas.');
+    }
+
+    this.error.set(true);
+  }
+
+  private showOperationError(error: unknown): void {
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível concluir a operação.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique os dados da atividade produtiva.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para realizar esta ação.',
+      404: 'Atividade produtiva não encontrada.',
+    };
+
+    this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
+  }
+
   private normalizeText(value: string): string {
     return value
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase();
+  }
+
+  private stringValue(value: GdFormValue): string {
+    return `${value ?? ''}`.trim();
   }
 }
