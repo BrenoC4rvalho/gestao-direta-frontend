@@ -1,6 +1,7 @@
 import { Provider } from '@angular/core';
 import {
   LucideAlertCircle,
+  LucideArrowLeft,
   LucideBriefcaseBusiness,
   LucideCalendar,
   LucideCalendarClock,
@@ -46,6 +47,8 @@ import {
 export function provideGestaoDiretaIcons(): Provider {
   return provideLucideIcons(
     LucideAlertCircle,
+    LucideArrowLeft,
+  LucideArrowLeft,
     LucideBriefcaseBusiness,
     LucideCalendar,
     LucideCalendarClock,

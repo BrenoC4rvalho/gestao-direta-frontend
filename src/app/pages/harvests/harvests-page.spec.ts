@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
@@ -110,6 +111,7 @@ describe('HarvestsPage', () => {
       imports: [HarvestsPage],
       providers: [
         provideGestaoDiretaIcons(),
+        provideRouter([]),
         { provide: HarvestSeasonService, useValue: harvestService },
         { provide: ProductionActivityService, useValue: productionActivityService },
       ],
@@ -163,6 +165,18 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Safra Soja Inverno');
     expect(text()).not.toContain('Safra Soja 2026');
     expect(harvestService.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 0 }));
+  });
+
+  it('should render detail links for each harvest', () => {
+    setupSelectedFarm('PRODUCER');
+
+    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
+      .map((link) => link.getAttribute('href'))
+      .filter(Boolean);
+
+    expect(text()).toContain('Ver detalhes');
+    expect(links).toContain('/harvests/1');
+    expect(links).toContain('/harvests/2');
   });
 
   it('should hide management actions for employees', () => {

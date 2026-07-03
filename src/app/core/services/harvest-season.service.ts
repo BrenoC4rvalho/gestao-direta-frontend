@@ -9,6 +9,7 @@ import {
   HarvestSeason,
   HarvestSeasonListParams,
   HarvestSeasonStatus,
+  HarvestSeasonSummary,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -28,6 +29,10 @@ export class HarvestSeasonService {
 
   getById(id: number): Observable<HarvestSeason> {
     return this.http.get<HarvestSeason>(`${this.apiUrl}/${id}`);
+  }
+
+  getSummary(id: number): Observable<HarvestSeasonSummary> {
+    return this.http.get<HarvestSeasonSummary>(`${this.apiUrl}/${id}/summary`);
   }
 
   create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> {

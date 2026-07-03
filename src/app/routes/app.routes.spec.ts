@@ -2,6 +2,7 @@ import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
+import { HarvestSeasonDetailsPage } from '../pages/harvest-season-details/harvest-season-details-page';
 import { HarvestsPage } from '../pages/harvests/harvests-page';
 import { ProductionActivitiesPage } from '../pages/production-activities/production-activities-page';
 import { ProfilePage } from '../pages/profile/profile-page';
@@ -55,6 +56,13 @@ describe('routes', () => {
       harvestsRoute?.loadComponent as () => Promise<unknown>
     )();
     expect(harvestsComponent).toBe(HarvestsPage);
+    const harvestDetailsRoute = appLayoutRoute?.children?.find((route) => route.path === 'harvests/:id');
+    expect(harvestDetailsRoute?.data?.['title']).toBe('Detalhes da safra');
+    expect(harvestDetailsRoute?.loadComponent).toBeTypeOf('function');
+    const harvestDetailsComponent = await (
+      harvestDetailsRoute?.loadComponent as () => Promise<unknown>
+    )();
+    expect(harvestDetailsComponent).toBe(HarvestSeasonDetailsPage);
     const upcomingBillsRoute = appLayoutRoute?.children?.find((route) => route.path === 'upcoming-bills');
     expect(upcomingBillsRoute?.loadComponent).toBeTypeOf('function');
     const upcomingBillsComponent = await (

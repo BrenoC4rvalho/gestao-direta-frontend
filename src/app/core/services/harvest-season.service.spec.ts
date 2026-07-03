@@ -6,6 +6,7 @@ import { credentialsInterceptor } from '../interceptors/credentials.interceptor'
 import {
   CreateHarvestSeasonRequest,
   HarvestSeason,
+  HarvestSeasonSummary,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -30,6 +31,31 @@ const season: HarvestSeason = {
   status: 'PLANNED',
   createdAt: '2026-06-21T10:00:00',
   updatedAt: '2026-06-21T10:00:00',
+};
+
+const summary: HarvestSeasonSummary = {
+  harvestSeasonId: 1,
+  harvestSeasonName: 'Safra Soja 2026',
+  productionActivityId: 2,
+  productionActivityName: 'Soja',
+  farmId: 10,
+  farmName: 'Fazenda Boa Safra',
+  expectedCost: 90000,
+  expectedRevenue: 150000,
+  expectedProfit: 60000,
+  realizedCost: 72500,
+  realizedRevenue: 150000,
+  realizedProfit: 77500,
+  pendingExpenses: 18000,
+  overdueExpenses: 6000,
+  pendingRevenue: 25000,
+  transactionCount: 42,
+  incomeCount: 8,
+  expenseCount: 34,
+  areaHectares: 120.5,
+  costPerHectare: 601.66,
+  revenuePerHectare: 1244.81,
+  profitPerHectare: 643.15,
 };
 
 const response: PageResponse<HarvestSeason> = {
@@ -115,7 +141,17 @@ describe('HarvestSeasonService', () => {
 
     const request = http.expectOne(`${apiUrl}/1`);
     expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
     request.flush(season);
+  });
+
+  it('should call GET /api/harvest/seasons/{id}/summary', () => {
+    service.getSummary(1).subscribe((result) => expect(result).toEqual(summary));
+
+    const request = http.expectOne(`${apiUrl}/1/summary`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(summary);
   });
 
   it('should create a harvest season', () => {

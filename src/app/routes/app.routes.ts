@@ -120,6 +120,18 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'harvests/:id',
+        title: 'Detalhes da safra',
+        data: {
+          title: 'Detalhes da safra',
+          subtitle: 'Acompanhe resultado, indicadores e movimentacoes vinculadas.',
+        },
+        loadComponent: () =>
+          import('../pages/harvest-season-details/harvest-season-details-page').then(
+            (component) => component.HarvestSeasonDetailsPage,
+          ),
+      },
+      {
         path: 'upcoming-bills',
         title: 'Contas a vencer',
         data: {

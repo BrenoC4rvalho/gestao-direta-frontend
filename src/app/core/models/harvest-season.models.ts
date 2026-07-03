@@ -20,6 +20,31 @@ export interface HarvestSeason {
   updatedAt?: string;
 }
 
+export interface HarvestSeasonSummary {
+  harvestSeasonId: number;
+  harvestSeasonName: string;
+  productionActivityId: number;
+  productionActivityName: string;
+  farmId: number;
+  farmName: string;
+  expectedCost: number;
+  expectedRevenue: number;
+  expectedProfit: number;
+  realizedCost: number;
+  realizedRevenue: number;
+  realizedProfit: number;
+  pendingExpenses: number;
+  overdueExpenses: number;
+  pendingRevenue: number;
+  transactionCount: number;
+  incomeCount: number;
+  expenseCount: number;
+  areaHectares: number | null;
+  costPerHectare: number | null;
+  revenuePerHectare: number | null;
+  profitPerHectare: number | null;
+}
+
 export interface CreateHarvestSeasonRequest {
   farmId: number;
   productionActivityId: number;
