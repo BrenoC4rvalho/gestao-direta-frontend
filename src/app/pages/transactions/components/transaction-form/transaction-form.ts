@@ -12,6 +12,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { HarvestSeason } from '../../../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
@@ -40,6 +41,7 @@ interface TransactionFormControls {
   type: GdFormControl;
   amount: GdFormControl;
   categoryId: GdFormControl;
+  harvestSeasonId: GdFormControl;
   transactionDate: GdFormControl;
   dueDate: GdFormControl;
   paidAt: GdFormControl;
@@ -59,6 +61,7 @@ export class TransactionForm {
 
   readonly transaction = input<FinancialTransaction | null>(null);
   readonly categories = input.required<readonly FinancialCategory[]>();
+  readonly harvestSeasons = input<readonly HarvestSeason[]>([]);
   readonly open = input(false);
   readonly submitting = input(false);
 
@@ -113,12 +116,34 @@ export class TransactionForm {
       ? 'Selecione a categoria'
       : 'Nenhuma categoria disponível para este tipo';
   });
+  protected readonly harvestSeasonOptions = computed<readonly GdSelectOption[]>(() => {
+    const allowedOptions = this.harvestSeasons()
+      .filter((season) => season.status === 'PLANNED' || season.status === 'IN_PROGRESS')
+      .map((season) => ({ label: season.name, value: season.id }));
+    const transaction = this.transaction();
+
+    if (
+      !transaction?.harvestSeasonId ||
+      allowedOptions.some((option) => option.value === transaction.harvestSeasonId)
+    ) {
+      return allowedOptions;
+    }
+
+    return [
+      {
+        label: (transaction.harvestSeasonName ?? 'Safra atual') + ' (atual)',
+        value: transaction.harvestSeasonId,
+      },
+      ...allowedOptions,
+    ];
+  });
 
   protected readonly form = new FormGroup<TransactionFormControls>({
     description: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     type: new FormControl<GdFormValue>('EXPENSE', { validators: [Validators.required] }),
     amount: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     categoryId: new FormControl<GdFormValue>(''),
+    harvestSeasonId: new FormControl<GdFormValue>(''),
     transactionDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
     dueDate: new FormControl<GdFormValue>(''),
     paidAt: new FormControl<GdFormValue>(''),
@@ -153,6 +178,7 @@ export class TransactionForm {
         type,
         amount: numberToBrazilianMoney(transaction?.amount),
         categoryId: transaction?.categoryId ?? '',
+        harvestSeasonId: transaction?.harvestSeasonId ?? '',
         transactionDate: transaction?.transactionDate ?? this.currentDate(),
         dueDate: transaction?.dueDate ?? '',
         paidAt: transaction?.paidAt ?? '',
@@ -178,6 +204,7 @@ export class TransactionForm {
     const type = this.stringValue(this.form.controls.type.value) as TransactionType;
     const amount = brazilianMoneyToNumber(this.stringValue(this.form.controls.amount.value));
     let categoryId = this.numberOrNull(this.form.controls.categoryId.value);
+    const harvestSeasonId = this.numberOrNull(this.form.controls.harvestSeasonId.value);
     const transactionDate = this.stringValue(this.form.controls.transactionDate.value);
     const dueDate = this.nullableString(this.form.controls.dueDate.value);
     const paidAt = this.nullableString(this.form.controls.paidAt.value);
@@ -210,6 +237,7 @@ export class TransactionForm {
       paidAt,
       notes,
       categoryId,
+      harvestSeasonId,
     });
   }
 

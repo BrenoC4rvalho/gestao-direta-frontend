@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
+import { HarvestSeason } from '../../../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
@@ -45,6 +46,32 @@ const globalCategory: FinancialCategory = {
   isDefault: true,
 };
 
+const plannedSeason: HarvestSeason = {
+  id: 10,
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  productionActivityId: 1,
+  productionActivityName: 'Soja',
+  name: 'Safra Soja 2025/26',
+  startDate: '2025-09-01',
+  endDate: null,
+  status: 'PLANNED',
+};
+
+const inProgressSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 11,
+  name: 'Safra Milho Verão 2026',
+  status: 'IN_PROGRESS',
+};
+
+const finishedSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 12,
+  name: 'Safra Finalizada',
+  status: 'FINISHED',
+};
+
 const transaction: FinancialTransaction = {
   id: 1,
   description: 'Compra de sementes',
@@ -60,6 +87,8 @@ const transaction: FinancialTransaction = {
   farmName: 'Fazenda Boa Safra',
   categoryId: 1,
   categoryName: 'Insumos',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Safra Soja 2025/26',
   createdByUserId: 2,
   createdByUserName: 'User',
   updatedByUserId: null,
@@ -75,6 +104,7 @@ const transaction: FinancialTransaction = {
     <gd-transaction-form
       [transaction]="transaction"
       [categories]="categories"
+      [harvestSeasons]="harvestSeasons"
       [open]="open"
       [submitting]="submitting"
       (submitted)="submitted = $event"
@@ -84,6 +114,7 @@ const transaction: FinancialTransaction = {
 })
 class TransactionFormHost {
   transaction: FinancialTransaction | null = null;
+  harvestSeasons: HarvestSeason[] = [plannedSeason, inProgressSeason, finishedSeason];
   categories: FinancialCategory[] = [
     expenseCategory,
     incomeCategory,
@@ -145,7 +176,54 @@ describe('TransactionForm', () => {
       paidAt: null,
       notes: 'Compra para safra',
       categoryId: 1,
+      harvestSeasonId: null,
     });
+  });
+
+  it('should submit selected harvest season', () => {
+    fillRequiredFields();
+    setSelect('#transaction-category', '1');
+    setSelect('#transaction-harvest-season', '10');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ harvestSeasonId: 10 }),
+    );
+  });
+
+  it('should keep harvest season optional', () => {
+    fillRequiredFields();
+    setSelect('#transaction-category', '1');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ harvestSeasonId: null }),
+    );
+  });
+
+  it('should allow removing harvest season when editing', () => {
+    openForEdit(transaction);
+    setSelect('#transaction-harvest-season', '');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ harvestSeasonId: null }),
+    );
+  });
+
+  it('should show the current harvest season when it is not an allowed option', () => {
+    openForEdit({
+      ...transaction,
+      harvestSeasonId: 12,
+      harvestSeasonName: 'Safra Finalizada',
+    });
+
+    expect(getSelectOptionTexts('#transaction-harvest-season')).toEqual([
+      'Sem safra',
+      'Safra Finalizada (atual)',
+      'Safra Soja 2025/26',
+      'Safra Milho Verão 2026',
+    ]);
   });
 
   it('should sanitize Brazilian money input', () => {
@@ -358,7 +436,11 @@ describe('TransactionForm', () => {
   }
 
   function categoryOptionLabels(): string[] {
-    return Array.from(getSelect('#transaction-category').options).map(
+    return getSelectOptionTexts('#transaction-category');
+  }
+
+  function getSelectOptionTexts(selector: string): string[] {
+    return Array.from(getSelect(selector).options).map(
       (option) => option.textContent?.trim() ?? '',
     );
   }

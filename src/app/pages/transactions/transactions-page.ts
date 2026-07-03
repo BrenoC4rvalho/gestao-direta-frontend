@@ -14,6 +14,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, forkJoin, Observable, of } from 'rxjs';
 
+import { HarvestSeason } from '../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
   CreateFinancialTransactionRequest,
@@ -28,6 +29,7 @@ import {
 import { PageResponse } from '../../core/models/page-response.model';
 import { UserOption } from '../../core/models/user.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { FarmUserService } from '../../core/services/farm-user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
@@ -60,6 +62,7 @@ interface TransactionFiltersControls {
   recordStatus: GdFormControl;
   description: GdFormControl;
   createdByUserId: GdFormControl;
+  harvestSeasonId: GdFormControl;
   minAmount: GdFormControl;
   maxAmount: GdFormControl;
 }
@@ -77,6 +80,7 @@ type AppliedTransactionFilters = Pick<
   | 'recordStatus'
   | 'description'
   | 'createdByUserId'
+  | 'harvestSeasonId'
   | 'minAmount'
   | 'maxAmount'
 >;
@@ -98,6 +102,7 @@ const EMPTY_FILTER_FORM_VALUE = {
   recordStatus: '',
   description: '',
   createdByUserId: '',
+  harvestSeasonId: '',
   minAmount: '',
   maxAmount: '',
 };
@@ -127,6 +132,7 @@ const EMPTY_FILTER_FORM_VALUE = {
 export class TransactionsPage {
   private readonly transactionService = inject(FinancialTransactionService);
   private readonly categoryService = inject(FinancialCategoryService);
+  private readonly harvestSeasonService = inject(HarvestSeasonService);
   private readonly farmUserService = inject(FarmUserService);
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -138,6 +144,7 @@ export class TransactionsPage {
   protected readonly transactions = signal<FinancialTransaction[]>([]);
   protected readonly filterCategories = signal<FinancialCategory[]>([]);
   protected readonly formCategories = signal<FinancialCategory[]>([]);
+  protected readonly harvestSeasons = signal<HarvestSeason[]>([]);
   protected readonly createdByUsers = signal<UserOption[]>([]);
   protected readonly createdByUsersLoading = signal(false);
   protected readonly page = signal(0);
@@ -174,6 +181,7 @@ export class TransactionsPage {
     recordStatus: new FormControl<GdFormValue>(''),
     description: new FormControl<GdFormValue>(''),
     createdByUserId: new FormControl<GdFormValue>(''),
+    harvestSeasonId: new FormControl<GdFormValue>(''),
     minAmount: new FormControl<GdFormValue>(''),
     maxAmount: new FormControl<GdFormValue>(''),
   });
@@ -260,6 +268,7 @@ export class TransactionsPage {
       filters.categoryIds,
       filters.recordStatus,
       filters.createdByUserId,
+      filters.harvestSeasonId,
       filters.minAmount,
       filters.maxAmount,
     ].filter((value) => this.hasFilterValue(value)).length;
@@ -279,6 +288,7 @@ export class TransactionsPage {
       filters.recordStatus,
       filters.description,
       filters.createdByUserId,
+      filters.harvestSeasonId,
       filters.minAmount,
       filters.maxAmount,
     ].some((value) => this.hasFilterValue(value));
@@ -312,6 +322,12 @@ export class TransactionsPage {
       value: user.id,
     }));
   });
+  protected readonly harvestSeasonFilterOptions = computed<readonly GdSelectOption[]>(() =>
+    this.harvestSeasons().map((season) => ({
+      label: this.harvestSeasonOptionLabel(season),
+      value: season.id,
+    })),
+  );
   protected readonly paymentStatusChips: readonly ChipOption<PaymentStatus>[] = [
     { label: 'Todos', value: null },
     { label: 'Pendente', value: 'PENDING' },
@@ -347,6 +363,7 @@ export class TransactionsPage {
       untracked(() => {
         this.resetCategoryFilterState();
         this.resetCreatedByUserFilterState();
+        this.resetHarvestSeasonFilterState();
         this.createdByUsers.set([]);
       });
 
@@ -363,6 +380,31 @@ export class TransactionsPage {
         .subscribe({
           next: (users) => this.createdByUsers.set(users),
           error: () => this.handleCreatedByUsersError(),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
+
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
+
+      if (!farmId) {
+        this.harvestSeasons.set([]);
+        return;
+      }
+
+      const subscription = this.harvestSeasonService
+        .list({
+          farmId,
+          includeInactive: true,
+          page: 0,
+          size: 100,
+          sort: 'startDate',
+          direction: 'DESC',
+        })
+        .subscribe({
+          next: (response) => this.harvestSeasons.set(response.content),
+          error: () => this.handleHarvestSeasonsError(),
         });
 
       onCleanup(() => subscription.unsubscribe());
@@ -804,6 +846,7 @@ export class TransactionsPage {
 
   private buildAppliedFilters(): AppliedTransactionFilters {
     const createdByUserId = this.numberOrNull(this.filterForm.controls.createdByUserId.value);
+    const harvestSeasonId = this.numberOrNull(this.filterForm.controls.harvestSeasonId.value);
 
     return {
       transactionDateStart: this.nullableString(this.filterForm.controls.transactionDateStart.value),
@@ -817,6 +860,7 @@ export class TransactionsPage {
       recordStatus: this.nullableString(this.filterForm.controls.recordStatus.value) as FinancialRecordStatus | null,
       description: this.nullableString(this.filterForm.controls.description.value),
       ...(createdByUserId !== null ? { createdByUserId } : {}),
+      harvestSeasonId,
       minAmount: brazilianMoneyToNumber(`${this.filterForm.controls.minAmount.value ?? ''}`),
       maxAmount: brazilianMoneyToNumber(`${this.filterForm.controls.maxAmount.value ?? ''}`),
     };
@@ -902,6 +946,15 @@ export class TransactionsPage {
     return category.status === 'INACTIVE' ? category.name + ' (inativa)' : category.name;
   }
 
+  private harvestSeasonOptionLabel(season: HarvestSeason): string {
+    const suffixes: Record<string, string> = {
+      FINISHED: ' (finalizada)',
+      INACTIVE: ' (inativa)',
+    };
+
+    return season.name + (suffixes[season.status] ?? '');
+  }
+
   private resetCategoryFilterState(): void {
     if (this.selectedCategoryIds().length > 0) {
       this.selectedCategoryIds.set([]);
@@ -923,6 +976,14 @@ export class TransactionsPage {
     }
   }
 
+  private resetHarvestSeasonFilterState(): void {
+    this.filterForm.controls.harvestSeasonId.reset('', { emitEvent: false });
+
+    if (this.hasFilterValue(this.appliedFilters().harvestSeasonId)) {
+      this.appliedFilters.update(({ harvestSeasonId: _harvestSeasonId, ...filters }) => filters);
+    }
+  }
+
   private handleFilterCategoriesError(_error: unknown): void {
     this.filterCategories.set([]);
     this.resetCategoryFilterState();
@@ -933,6 +994,12 @@ export class TransactionsPage {
     this.createdByUsers.set([]);
     this.resetCreatedByUserFilterState();
     this.toastStore.error('Não foi possível carregar os usuários da fazenda.');
+  }
+
+  private handleHarvestSeasonsError(): void {
+    this.harvestSeasons.set([]);
+    this.resetHarvestSeasonFilterState();
+    this.toastStore.error('Não foi possível carregar as safras da fazenda.');
   }
 
   private showOperationError(error: unknown): void {

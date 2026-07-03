@@ -87,6 +87,7 @@ export class FinancialTransactionService {
       createdByUserId: params.createdByUserId,
       minAmount: params.minAmount,
       maxAmount: params.maxAmount,
+      harvestSeasonId: params.harvestSeasonId,
     };
 
     for (const [key, value] of Object.entries(optionalParams)) {

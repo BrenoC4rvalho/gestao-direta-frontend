@@ -206,6 +206,14 @@
                 [options]="createdByUserOptions()"
                 [disabled]="createdByUserSelectDisabled()"
               />
+
+              <gd-select
+                id="transaction-filter-harvest-season"
+                label="Safra"
+                placeholder="Todas as safras"
+                [control]="filterForm.controls.harvestSeasonId"
+                [options]="harvestSeasonFilterOptions()"
+              />
             </div>
 
             <div class="space-y-2">
@@ -307,6 +315,7 @@
           <thead class="border-b border-border bg-primary text-white">
             <tr class="text-xs font-semibold uppercase tracking-wide text-white">
               <th class="px-5 py-4" scope="col">Descrição</th>
+              <th class="px-5 py-4" scope="col">Safra</th>
               <th class="px-5 py-4" scope="col">Tipo</th>
               <th class="px-5 py-4" scope="col">Status</th>
               <th class="px-5 py-4" scope="col">Datas</th>
@@ -321,6 +330,13 @@
                   <p class="font-semibold text-text-primary">{{ transaction.description }}</p>
                   <p class="mt-1 text-sm text-text-muted">{{ transaction.categoryName ?? 'Sem categoria' }}</p>
                   <p class="mt-1 text-xs text-text-muted">{{ paymentMethodLabel(transaction.paymentMethod) }}</p>
+                </td>
+                <td class="px-5 py-4">
+                  @if (transaction.harvestSeasonName) {
+                    <gd-badge variant="neutral" size="sm">{{ transaction.harvestSeasonName }}</gd-badge>
+                  } @else {
+                    <span class="text-sm text-text-muted">Sem safra</span>
+                  }
                 </td>
                 <td class="px-5 py-4">
                   <gd-badge [variant]="typeVariant(transaction.type)" size="sm">
@@ -398,6 +414,7 @@
   <gd-transaction-form
     [transaction]="editingTransaction()"
     [categories]="formCategories()"
+    [harvestSeasons]="harvestSeasons()"
     [open]="drawerOpen()"
     [submitting]="submitting()"
     (submitted)="saveTransaction($event)"

@@ -21,6 +21,8 @@ const transaction: FinancialTransaction = {
   farmName: 'Fazenda Boa Safra',
   categoryId: 1,
   categoryName: 'Insumos',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Safra Soja 2025/26',
   createdByUserId: 2,
   createdByUserName: 'User',
   updatedByUserId: null,
@@ -76,6 +78,19 @@ describe('TransactionCard', () => {
     expect(text).toContain('Despesa');
     expect(text).toContain('Pendente');
     expect(text).toContain('Pix');
+    expect(text).toContain('Safra Soja 2025/26');
+  });
+
+  it('should render Sem safra when transaction has no harvest season', () => {
+    fixture = TestBed.createComponent(TransactionCardHost);
+    fixture.componentInstance.transaction = {
+      ...transaction,
+      harvestSeasonId: null,
+      harvestSeasonName: null,
+    };
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Sem safra');
   });
 
   it('should emit actions when permitted', () => {

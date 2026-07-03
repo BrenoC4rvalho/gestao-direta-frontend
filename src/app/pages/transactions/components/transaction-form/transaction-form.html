@@ -47,6 +47,16 @@
       />
     </div>
 
+    <div class="sm:col-span-2">
+      <gd-select
+        id="transaction-harvest-season"
+        label="Safra"
+        placeholder="Sem safra"
+        [control]="form.controls.harvestSeasonId"
+        [options]="harvestSeasonOptions()"
+      />
+    </div>
+
     <gd-input
       id="transaction-date"
       label="Data da movimentação"

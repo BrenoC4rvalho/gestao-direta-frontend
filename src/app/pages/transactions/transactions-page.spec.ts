@@ -6,11 +6,13 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
+import { HarvestSeason } from '../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import { FinancialTransaction } from '../../core/models/financial-transaction.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { UserOption } from '../../core/models/user.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { FarmUserService } from '../../core/services/farm-user.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
@@ -124,6 +126,47 @@ const secondFarmUsedCategory: FinancialCategory = {
   name: 'Defensivos',
 };
 
+const plannedSeason: HarvestSeason = {
+  id: 10,
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  productionActivityId: 1,
+  productionActivityName: 'Soja',
+  name: 'Safra Soja 2025/26',
+  startDate: '2025-09-01',
+  endDate: null,
+  status: 'PLANNED',
+};
+
+const inProgressSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 11,
+  name: 'Safra Milho Verão 2026',
+  status: 'IN_PROGRESS',
+};
+
+const finishedSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 12,
+  name: 'Ciclo Leite 2025',
+  status: 'FINISHED',
+};
+
+const inactiveSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 13,
+  name: 'Safra Algodão Antiga',
+  status: 'INACTIVE',
+};
+
+const secondFarmSeason: HarvestSeason = {
+  ...plannedSeason,
+  id: 20,
+  farmId: 2,
+  farmName: 'Fazenda Santa Clara',
+  name: 'Safra Santa Clara',
+};
+
 const createdByUserOptions: UserOption[] = [
   { id: 2, name: 'Contador' },
   { id: 3, name: 'Maria Silva' },
@@ -148,6 +191,8 @@ const transaction: FinancialTransaction = {
   farmName: 'Fazenda Boa Safra',
   categoryId: 1,
   categoryName: 'Insumos',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Safra Soja 2025/26',
   createdByUserId: 2,
   createdByUserName: 'User',
   updatedByUserId: null,
@@ -184,6 +229,9 @@ describe('TransactionsPage', () => {
     listByFarm: ReturnType<typeof vi.fn>;
     listUsedInTransactions: ReturnType<typeof vi.fn>;
   };
+  let harvestSeasonService: {
+    list: ReturnType<typeof vi.fn>;
+  };
   let farmUserService: {
     listUserOptions: ReturnType<typeof vi.fn>;
   };
@@ -208,6 +256,17 @@ describe('TransactionsPage', () => {
         of([category, incomeCategory, inactiveUsedCategory]),
       ),
     };
+    harvestSeasonService = {
+      list: vi.fn().mockReturnValue(of({
+        content: [plannedSeason, inProgressSeason, finishedSeason, inactiveSeason],
+        page: 0,
+        size: 100,
+        totalElements: 4,
+        totalPages: 1,
+        first: true,
+        last: true,
+      })),
+    };
     farmUserService = {
       listUserOptions: vi.fn().mockReturnValue(of(createdByUserOptions)),
     };
@@ -218,6 +277,7 @@ describe('TransactionsPage', () => {
         provideGestaoDiretaIcons(),
         { provide: FinancialTransactionService, useValue: transactionService },
         { provide: FinancialCategoryService, useValue: categoryService },
+        { provide: HarvestSeasonService, useValue: harvestSeasonService },
         { provide: FarmUserService, useValue: farmUserService },
       ],
     }).compileComponents();
@@ -253,6 +313,7 @@ describe('TransactionsPage', () => {
     expect(categoryService.listByFarm).not.toHaveBeenCalled();
     expect(categoryService.listUsedInTransactions).not.toHaveBeenCalled();
     expect(farmUserService.listUserOptions).not.toHaveBeenCalled();
+    expect(harvestSeasonService.list).not.toHaveBeenCalled();
     expect((fixture.componentInstance as unknown as { createdByUserSelectDisabled: () => boolean }).createdByUserSelectDisabled()).toBe(true);
   });
 
@@ -286,6 +347,14 @@ describe('TransactionsPage', () => {
     expect(categoryService.listUsedInTransactions.mock.calls[0]).toEqual([1]);
     expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
     expect(categoryService.listByFarm.mock.calls[0]).toEqual([1]);
+    expect(harvestSeasonService.list).toHaveBeenCalledWith({
+      farmId: 1,
+      includeInactive: true,
+      page: 0,
+      size: 100,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
     expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
     expect(fixture.nativeElement.textContent).toContain('R$');
   });
@@ -337,6 +406,14 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Status do registro');
     expect(fixture.nativeElement.textContent).toContain('Valor mínimo');
     expect(fixture.nativeElement.textContent).toContain('Valor máximo');
+    expect(fixture.nativeElement.textContent).toContain('Safra');
+    expect(getSelectOptionTexts('#transaction-filter-harvest-season')).toEqual([
+      'Todas as safras',
+      'Safra Soja 2025/26',
+      'Safra Milho Verão 2026',
+      'Ciclo Leite 2025 (finalizada)',
+      'Safra Algodão Antiga (inativa)',
+    ]);
     expect(findFilterChipGroup('Filtro de categoria')).toBeTruthy();
     expect(findFilterChipGroup('Filtro de forma de pagamento')).toBeTruthy();
     expect(findChipButton('Filtro de categoria', 'Insumos')).toBeTruthy();
@@ -705,6 +782,134 @@ describe('TransactionsPage', () => {
     expect(findButton(fixture.nativeElement, 'Nova movimentação')).toBeUndefined();
   });
 
+  it('should show harvest season values in the list', () => {
+    transactionService.listByFarm.mockReturnValueOnce(of(pageResponse([
+      transaction,
+      { ...transaction, id: 2, harvestSeasonId: null, harvestSeasonName: null },
+    ])));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Safra Soja 2025/26');
+    expect(fixture.nativeElement.textContent).toContain('Sem safra');
+  });
+
+  it('should render harvest season options in the create form', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova movimentação');
+
+    expect(getSelectOptionTexts('#transaction-harvest-season')).toEqual([
+      'Sem safra',
+      'Safra Soja 2025/26',
+      'Safra Milho Verão 2026',
+    ]);
+  });
+
+  it('should create a transaction with harvestSeasonId when selected', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova movimentação');
+    fillForm('Compra com safra');
+    setSelect('#transaction-harvest-season', '10');
+    submitForm();
+
+    expect(transactionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'Compra com safra',
+      farmId: 1,
+      harvestSeasonId: 10,
+    }));
+  });
+
+  it('should prefill harvest season when editing and send null when removed', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Editar');
+
+    expect(findSelect('#transaction-harvest-season').value).toContain('10');
+
+    setSelect('#transaction-harvest-season', '');
+    fillForm('Compra sem safra');
+    submitForm();
+
+    expect(transactionService.update).toHaveBeenCalledWith(1, expect.objectContaining({
+      description: 'Compra sem safra',
+      harvestSeasonId: null,
+    }));
+  });
+
+  it('should apply and clear harvest season advanced filter', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-harvest-season', '10');
+    clickButtonByAccessibleName('Aplicar filtros');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 1, harvestSeasonId: 10 }));
+    expect(findButton(fixture.nativeElement, 'Filtros avançados (1)')).toBeTruthy();
+
+    clickButtonByAccessibleName('Limpar filtros');
+
+    expect(lastListParams()['harvestSeasonId']).toBeUndefined();
+    expect(getSelectOptionTexts('#transaction-filter-harvest-season')).toContain('Safra Soja 2025/26');
+  });
+
+  it('should clear harvest filter and reload harvest options when selected farm changes', () => {
+    harvestSeasonService.list.mockImplementation((params: { farmId: number }) =>
+      of({
+        content: params.farmId === 1 ? [plannedSeason] : [secondFarmSeason],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+        first: true,
+        last: true,
+      }),
+    );
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    createPage();
+
+    clickButton('Filtros avançados');
+    setSelect('#transaction-filter-harvest-season', '10');
+    clickButtonByAccessibleName('Aplicar filtros');
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 1, harvestSeasonId: 10 }));
+
+    selectedFarmStore.selectFarmById(2);
+    fixture.detectChanges();
+
+    expect(harvestSeasonService.list).toHaveBeenCalledWith(expect.objectContaining({ farmId: 2 }));
+    expect(findSelect('#transaction-filter-harvest-season').value).toBe('');
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 2 }));
+    expect(lastListParams()['harvestSeasonId']).toBeUndefined();
+    expect(getSelectOptionTexts('#transaction-filter-harvest-season')).toContain('Safra Santa Clara');
+  });
+
+  it('should keep harvest fields usable when no harvest seasons exist or loading fails', () => {
+    harvestSeasonService.list.mockReturnValueOnce(of({
+      content: [],
+      page: 0,
+      size: 100,
+      totalElements: 0,
+      totalPages: 0,
+      first: true,
+      last: true,
+    }));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Nova movimentação');
+
+    expect(getSelectOptionTexts('#transaction-harvest-season')).toEqual(['Sem safra']);
+
+    harvestSeasonService.list.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+    createPage();
+
+    expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
+    expect(toastStore.toasts()[0]?.title).toBe('Não foi possível carregar as safras da fazenda.');
+  });
+
   it('should create a transaction and reload', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -723,6 +928,7 @@ describe('TransactionsPage', () => {
       paidAt: null,
       notes: null,
       categoryId: 1,
+      harvestSeasonId: null,
       farmId: 1,
     });
     expect(transactionService.listByFarm).toHaveBeenCalledTimes(2);

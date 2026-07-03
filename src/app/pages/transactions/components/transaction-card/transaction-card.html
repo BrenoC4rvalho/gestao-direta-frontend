@@ -35,6 +35,12 @@
           <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().paidAt) }}</dd>
         </div>
         <div>
+          <dt class="text-text-muted">Safra</dt>
+          <dd [class]="'mt-1 font-medium ' + (transaction().harvestSeasonName ? 'text-text-primary' : 'text-text-muted')">
+            {{ transaction().harvestSeasonName ?? 'Sem safra' }}
+          </dd>
+        </div>
+        <div>
           <dt class="text-text-muted">Método</dt>
           <dd class="mt-1 font-medium text-text-primary">{{ paymentMethodLabel() }}</dd>
         </div>

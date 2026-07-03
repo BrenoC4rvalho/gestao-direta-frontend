@@ -32,6 +32,8 @@ export interface FinancialTransaction {
   farmName: string;
   categoryId: number | null;
   categoryName: string | null;
+  harvestSeasonId?: number | null;
+  harvestSeasonName?: string | null;
   createdByUserId: number;
   createdByUserName: string;
   updatedByUserId: number | null;
@@ -50,6 +52,7 @@ export interface FinancialTransactionListParams {
   type?: TransactionType | null;
   categoryId?: number | null;
   categoryIds?: number[] | null;
+  harvestSeasonId?: number | null;
   paymentStatus?: PaymentStatus | null;
   paymentStatuses?: PaymentStatus[] | null;
   paymentMethod?: PaymentMethod | null;
@@ -77,6 +80,7 @@ export interface CreateFinancialTransactionRequest {
   notes?: string | null;
   farmId: number;
   categoryId?: number | null;
+  harvestSeasonId?: number | null;
 }
 
 export interface UpdateFinancialTransactionRequest {
@@ -90,6 +94,7 @@ export interface UpdateFinancialTransactionRequest {
   paidAt?: string | null;
   notes?: string | null;
   categoryId?: number | null;
+  harvestSeasonId?: number | null;
 }
 
 export interface MarkFinancialTransactionAsPaidRequest {

@@ -28,6 +28,8 @@ const transaction: FinancialTransaction = {
   farmName: 'Fazenda Boa Safra',
   categoryId: 1,
   categoryName: 'Insumos',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Safra Soja 2025/26',
   createdByUserId: 2,
   createdByUserName: 'User',
   updatedByUserId: null,
@@ -89,6 +91,7 @@ describe('FinancialTransactionService', () => {
         createdByUserId: 2,
         minAmount: 99.99,
         maxAmount: 1000.5,
+        harvestSeasonId: 10,
       })
       .subscribe((result) => expect(result).toEqual(response));
 
@@ -112,6 +115,7 @@ describe('FinancialTransactionService', () => {
     expect(request.request.params.get('createdByUserId')).toBe('2');
     expect(request.request.params.get('minAmount')).toBe('99.99');
     expect(request.request.params.get('maxAmount')).toBe('1000.5');
+    expect(request.request.params.get('harvestSeasonId')).toBe('10');
     request.flush(response);
   });
 
@@ -132,6 +136,7 @@ describe('FinancialTransactionService', () => {
         createdByUserId: undefined,
         minAmount: null,
         maxAmount: undefined,
+        harvestSeasonId: null,
       })
       .subscribe((result) => expect(result).toEqual(response));
 
@@ -151,6 +156,7 @@ describe('FinancialTransactionService', () => {
     expect(request.request.params.has('createdByUserId')).toBe(false);
     expect(request.request.params.has('minAmount')).toBe(false);
     expect(request.request.params.has('maxAmount')).toBe(false);
+    expect(request.request.params.has('harvestSeasonId')).toBe(false);
     request.flush(response);
   });
 
@@ -175,6 +181,7 @@ describe('FinancialTransactionService', () => {
       notes: 'Compra para safra',
       farmId: 1,
       categoryId: 1,
+      harvestSeasonId: 10,
     };
 
     service.create(payload).subscribe((result) => expect(result).toEqual(transaction));
@@ -184,6 +191,7 @@ describe('FinancialTransactionService', () => {
     expect(request.request.body).toEqual(payload);
     expect(request.request.body.createdByUserId).toBeUndefined();
     expect(request.request.body.updatedByUserId).toBeUndefined();
+    expect(request.request.body.harvestSeasonId).toBe(10);
     request.flush(transaction);
   });
 
@@ -210,6 +218,81 @@ describe('FinancialTransactionService', () => {
     expect(request.request.body.createdByUserId).toBeUndefined();
     expect(request.request.body.updatedByUserId).toBeUndefined();
     request.flush(transaction);
+  });
+
+  it('should create a transaction without harvestSeasonId when absent', () => {
+    const payload: CreateFinancialTransactionRequest = {
+      description: 'Compra de sementes',
+      amount: 2500,
+      type: 'EXPENSE',
+      status: 'PENDING',
+      paymentMethod: 'PIX',
+      transactionDate: '2026-06-21',
+      dueDate: '2026-06-30',
+      paidAt: null,
+      notes: 'Compra para safra',
+      farmId: 1,
+      categoryId: 1,
+    };
+
+    service.create(payload).subscribe((result) => expect(result).toEqual(transaction));
+
+    const request = http.expectOne(apiUrl + '/financial/transactions');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.body.harvestSeasonId).toBeUndefined();
+    request.flush(transaction);
+  });
+
+  it('should update a transaction with harvestSeasonId', () => {
+    const payload: UpdateFinancialTransactionRequest = {
+      description: 'Compra atualizada',
+      amount: 2600,
+      type: 'EXPENSE',
+      status: 'PENDING',
+      paymentMethod: 'PIX',
+      transactionDate: '2026-06-21',
+      dueDate: '2026-06-30',
+      paidAt: null,
+      notes: 'Valor corrigido',
+      categoryId: 1,
+      harvestSeasonId: 10,
+    };
+
+    service.update(1, payload).subscribe((result) => expect(result).toEqual(transaction));
+
+    const request = http.expectOne(apiUrl + '/financial/transactions/1');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.body.harvestSeasonId).toBe(10);
+    request.flush(transaction);
+  });
+
+  it('should update a transaction with null harvestSeasonId to remove the link', () => {
+    const payload: UpdateFinancialTransactionRequest = {
+      description: 'Compra atualizada',
+      amount: 2600,
+      type: 'EXPENSE',
+      status: 'PENDING',
+      paymentMethod: 'PIX',
+      transactionDate: '2026-06-21',
+      dueDate: '2026-06-30',
+      paidAt: null,
+      notes: 'Valor corrigido',
+      categoryId: 1,
+      harvestSeasonId: null,
+    };
+
+    service.update(1, payload).subscribe((result) => {
+      expect(result.harvestSeasonId).toBeNull();
+      expect(result.harvestSeasonName).toBeNull();
+    });
+
+    const request = http.expectOne(apiUrl + '/financial/transactions/1');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.body.harvestSeasonId).toBeNull();
+    request.flush({ ...transaction, harvestSeasonId: null, harvestSeasonName: null });
   });
 
   it('should delete a transaction', () => {
