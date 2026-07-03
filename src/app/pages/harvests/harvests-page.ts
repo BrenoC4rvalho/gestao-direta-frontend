@@ -50,6 +50,8 @@ import {
 type HarvestStatusFilter = 'ALL' | HarvestSeasonStatus;
 type DrawerMode = 'create' | 'edit';
 
+const DEFAULT_PAGE_SIZE = 10;
+
 interface HarvestFormControls {
   productionActivityId: GdFormControl;
   name: GdFormControl;
@@ -306,7 +308,7 @@ export class HarvestsPage {
       this.loading.set(true);
 
       const subscription = forkJoin({
-        response: this.harvestService.list(this.listParams(0)),
+        response: this.harvestService.list(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE)),
         activities: this.productionActivityService.listActive(),
       })
         .pipe(finalize(() => this.loading.set(false)))
@@ -603,7 +605,7 @@ export class HarvestsPage {
     this.loading.set(true);
 
     this.harvestService
-      .list(this.listParams(page))
+      .list(this.listParams(farmId, page, this.response()?.size ?? DEFAULT_PAGE_SIZE))
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -614,12 +616,12 @@ export class HarvestsPage {
       });
   }
 
-  private listParams(page: number): HarvestSeasonListParams {
+  private listParams(farmId: number, page: number, size: number): HarvestSeasonListParams {
     return {
-      farmId: this.selectedFarmStore.selectedFarmId(),
+      farmId,
       includeInactive: true,
       page,
-      size: this.response()?.size ?? 10,
+      size,
       sort: 'startDate',
       direction: 'DESC',
     };

@@ -1,11 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { Farm } from '../../core/models/farm.models';
-import { HarvestSeason } from '../../core/models/harvest-season.models';
+import { HarvestSeason, HarvestSeasonListParams } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
@@ -23,6 +23,19 @@ const farm: Farm = {
   city: 'Londrina',
   state: 'PR',
   totalArea: 120,
+  productionType: 'AGRICULTURE',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00',
+  updatedAt: '2026-01-01T00:00:00',
+};
+
+const secondFarm: Farm = {
+  id: 20,
+  name: 'Fazenda Santa Clara',
+  document: null,
+  city: 'Maringa',
+  state: 'PR',
+  totalArea: 80,
   productionType: 'AGRICULTURE',
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00',
@@ -97,6 +110,16 @@ const response: PageResponse<HarvestSeason> = {
   last: true,
 };
 
+const emptyResponse: PageResponse<HarvestSeason> = {
+  content: [],
+  page: 0,
+  size: 10,
+  totalElements: 0,
+  totalPages: 0,
+  first: true,
+  last: true,
+};
+
 describe('HarvestsPage', () => {
   let fixture: ComponentFixture<HarvestsPage>;
   let harvestService: {
@@ -153,6 +176,7 @@ describe('HarvestsPage', () => {
 
     expect(harvestService.list).not.toHaveBeenCalled();
     expect(productionActivityService.listActive).not.toHaveBeenCalled();
+    expect(componentState().loading()).toBe(false);
     expect(text()).toContain('Selecione uma fazenda para visualizar as safras.');
   });
 
@@ -173,6 +197,70 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Safras ativas');
     expect(text()).toContain('270.000,00');
     expect(text()).toContain('130.000,00');
+  });
+
+  it('should finish loading after a successful PageResponse and avoid reloading in a loop', () => {
+    setupSelectedFarm('PRODUCER');
+
+    expect(componentState().loading()).toBe(false);
+    expect(componentState().response()?.content).toEqual(seasons);
+
+    fixture.detectChanges();
+
+    expect(harvestService.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('should show an empty state when the selected farm has no harvest seasons', () => {
+    harvestService.list.mockReturnValueOnce(of(emptyResponse));
+
+    setupSelectedFarm('PRODUCER');
+
+    expect(componentState().loading()).toBe(false);
+    expect(text()).toContain('Nenhuma safra cadastrada.');
+  });
+
+  it('should show an error state and finish loading when the API fails', () => {
+    harvestService.list.mockReturnValueOnce(throwError(() => new Error('list failed')));
+
+    setupSelectedFarm('PRODUCER');
+
+    expect(componentState().loading()).toBe(false);
+    expect(componentState().error()).toBe(true);
+    expect(text()).toContain('Nao foi possivel carregar as safras');
+  });
+
+  it('should clear stale harvests and reload when the selected farm changes', () => {
+    const secondFarmSeason: HarvestSeason = {
+      ...seasons[0],
+      id: 20,
+      farmId: 20,
+      farmName: 'Fazenda Santa Clara',
+      name: 'Safra Milho Santa Clara',
+    };
+
+    harvestService.list.mockImplementation((params: HarvestSeasonListParams) =>
+      of(params.farmId === 20 ? { ...response, content: [secondFarmSeason], totalElements: 1 } : response),
+    );
+
+    setupSelectedFarm('PRODUCER');
+    expect(text()).toContain('Safra Soja 2026');
+
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    setFarmAccess(secondFarm, 'PRODUCER');
+    selectedFarmStore.selectFarmById(20);
+    fixture.detectChanges();
+
+    expect(harvestService.list).toHaveBeenLastCalledWith({
+      farmId: 20,
+      includeInactive: true,
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+    expect(componentState().loading()).toBe(false);
+    expect(text()).toContain('Safra Milho Santa Clara');
+    expect(text()).not.toContain('Safra Soja 2026');
   });
 
   it('should filter the loaded page locally by status', () => {
@@ -302,9 +390,16 @@ describe('HarvestsPage', () => {
   function setupSelectedFarm(role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
     sessionStore.setUser(user('USER'));
     selectedFarmStore.setFarms([farm]);
+    setFarmAccess(farm, role);
+
+    fixture = TestBed.createComponent(HarvestsPage);
+    fixture.detectChanges();
+  }
+
+  function setFarmAccess(item: Farm, role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
     farmAccessStore.setAccess({
-      farmId: 10,
-      farmName: 'Fazenda Boa Safra',
+      farmId: item.id,
+      farmName: item.name,
       userId: 1,
       userType: 'USER',
       role,
@@ -320,9 +415,6 @@ describe('HarvestsPage', () => {
         canCreateFarm: false,
       },
     });
-
-    fixture = TestBed.createComponent(HarvestsPage);
-    fixture.detectChanges();
   }
 
   function user(userType: 'ADMIN' | 'USER') {
@@ -333,6 +425,18 @@ describe('HarvestsPage', () => {
       document: null,
       userType,
       status: 'ACTIVE',
+    };
+  }
+
+  function componentState(): {
+    loading: () => boolean;
+    error: () => boolean;
+    response: () => PageResponse<HarvestSeason> | null;
+  } {
+    return fixture.componentInstance as unknown as {
+      loading: () => boolean;
+      error: () => boolean;
+      response: () => PageResponse<HarvestSeason> | null;
     };
   }
 
