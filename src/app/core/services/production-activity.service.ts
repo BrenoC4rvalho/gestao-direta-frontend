@@ -25,6 +25,10 @@ export class ProductionActivityService {
     });
   }
 
+  listActive(): Observable<ProductionActivity[]> {
+    return this.http.get<ProductionActivity[]>(`${this.apiUrl}/active`);
+  }
+
   getById(id: number): Observable<ProductionActivity> {
     return this.http.get<ProductionActivity>(`${this.apiUrl}/${id}`);
   }

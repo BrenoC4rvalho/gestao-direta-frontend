@@ -1,0 +1,188 @@
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import { credentialsInterceptor } from '../interceptors/credentials.interceptor';
+import {
+  CreateHarvestSeasonRequest,
+  HarvestSeason,
+  UpdateHarvestSeasonRequest,
+} from '../models/harvest-season.models';
+import { PageResponse } from '../models/page-response.model';
+
+import { HarvestSeasonService } from './harvest-season.service';
+
+const apiUrl = 'http://localhost:8080/api/harvest/seasons';
+
+const season: HarvestSeason = {
+  id: 1,
+  farmId: 10,
+  farmName: 'Fazenda Boa Safra',
+  productionActivityId: 2,
+  productionActivityName: 'Soja',
+  name: 'Safra Soja 2026',
+  description: 'Safra de verao',
+  startDate: '2026-01-01',
+  endDate: '2026-06-30',
+  expectedRevenue: 150000,
+  expectedCost: 90000,
+  areaHectares: 120.5,
+  status: 'PLANNED',
+  createdAt: '2026-06-21T10:00:00',
+  updatedAt: '2026-06-21T10:00:00',
+};
+
+const response: PageResponse<HarvestSeason> = {
+  content: [season],
+  page: 0,
+  size: 10,
+  totalElements: 1,
+  totalPages: 1,
+  first: true,
+  last: true,
+};
+
+describe('HarvestSeasonService', () => {
+  let service: HarvestSeasonService;
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        HarvestSeasonService,
+        provideHttpClient(withInterceptors([credentialsInterceptor])),
+        provideHttpClientTesting(),
+      ],
+    });
+
+    service = TestBed.inject(HarvestSeasonService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    http.verify();
+  });
+
+  it('should list harvest seasons with supported params', () => {
+    service
+      .list({
+        farmId: 10,
+        includeInactive: true,
+        page: 2,
+        size: 20,
+        sort: 'startDate',
+        direction: 'DESC',
+      })
+      .subscribe((result) => expect(result).toEqual(response));
+
+    const request = http.expectOne((req) => req.url === apiUrl);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
+    expect(request.request.params.get('includeInactive')).toBe('true');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('size')).toBe('20');
+    expect(request.request.params.get('sort')).toBe('startDate');
+    expect(request.request.params.get('direction')).toBe('DESC');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(response);
+  });
+
+  it('should omit empty params when listing harvest seasons', () => {
+    service
+      .list({
+        farmId: null,
+        includeInactive: null,
+        page: 0,
+        size: undefined,
+        sort: ' ',
+        direction: undefined,
+      })
+      .subscribe((result) => expect(result).toEqual(response));
+
+    const request = http.expectOne((req) => req.url === apiUrl);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('page')).toBe('0');
+    expect(request.request.params.has('farmId')).toBe(false);
+    expect(request.request.params.has('includeInactive')).toBe(false);
+    expect(request.request.params.has('size')).toBe(false);
+    expect(request.request.params.has('sort')).toBe(false);
+    expect(request.request.params.has('direction')).toBe(false);
+    request.flush(response);
+  });
+
+  it('should call GET /api/harvest/seasons/{id}', () => {
+    service.getById(1).subscribe((result) => expect(result).toEqual(season));
+
+    const request = http.expectOne(`${apiUrl}/1`);
+    expect(request.request.method).toBe('GET');
+    request.flush(season);
+  });
+
+  it('should create a harvest season', () => {
+    const payload: CreateHarvestSeasonRequest = {
+      farmId: 10,
+      productionActivityId: 2,
+      name: 'Safra Soja 2026',
+      description: 'Safra de verao',
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      expectedRevenue: 150000,
+      expectedCost: 90000,
+      areaHectares: 120.5,
+    };
+
+    service.create(payload).subscribe((result) => expect(result).toEqual(season));
+
+    const request = http.expectOne(apiUrl);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(season);
+  });
+
+  it('should update a harvest season', () => {
+    const payload: UpdateHarvestSeasonRequest = {
+      productionActivityId: 2,
+      name: 'Safra Soja Atualizada',
+      description: 'Safra atualizada',
+      startDate: '2026-01-01',
+      endDate: '2026-07-15',
+      expectedRevenue: 160000,
+      expectedCost: 95000,
+      areaHectares: 120.5,
+    };
+
+    service.update(1, payload).subscribe((result) => expect(result).toEqual(season));
+
+    const request = http.expectOne(`${apiUrl}/1`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    request.flush(season);
+  });
+
+  it('should update a harvest season status', () => {
+    service.updateStatus(1, 'IN_PROGRESS').subscribe((result) => expect(result).toEqual(season));
+
+    const request = http.expectOne(`${apiUrl}/1/status`);
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ status: 'IN_PROGRESS' });
+    request.flush(season);
+  });
+
+  it('should activate a harvest season', () => {
+    service.activate(1).subscribe((result) => expect(result).toEqual(season));
+
+    const request = http.expectOne(`${apiUrl}/1/activate`);
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({});
+    request.flush(season);
+  });
+
+  it('should inactivate a harvest season', () => {
+    service.inactivate(1).subscribe();
+
+    const request = http.expectOne(`${apiUrl}/1`);
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+  });
+});

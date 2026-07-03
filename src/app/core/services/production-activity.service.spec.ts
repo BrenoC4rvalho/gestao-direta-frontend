@@ -85,6 +85,15 @@ describe('ProductionActivityService', () => {
     request.flush(response);
   });
 
+  it('should list active production activities', () => {
+    service.listActive().subscribe((result) => expect(result).toEqual([activity]));
+
+    const request = http.expectOne(`${apiUrl}/active`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush([activity]);
+  });
+
   it('should call GET /api/harvest/production-activities/{id}', () => {
     service.getById(1).subscribe((result) => expect(result).toEqual(activity));
 
