@@ -133,6 +133,7 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.has('size')).toBe(false);
     expect(request.request.params.has('sort')).toBe(false);
     expect(request.request.params.has('direction')).toBe(false);
+    expect(request.request.withCredentials).toBe(true);
     request.flush(response);
   });
 
@@ -193,6 +194,7 @@ describe('HarvestSeasonService', () => {
     const request = http.expectOne(`${apiUrl}/1`);
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual(payload);
+    expect(request.request.withCredentials).toBe(true);
     request.flush(season);
   });
 
@@ -202,6 +204,7 @@ describe('HarvestSeasonService', () => {
     const request = http.expectOne(`${apiUrl}/1/status`);
     expect(request.request.method).toBe('PATCH');
     expect(request.request.body).toEqual({ status: 'IN_PROGRESS' });
+    expect(request.request.withCredentials).toBe(true);
     request.flush(season);
   });
 
@@ -211,6 +214,7 @@ describe('HarvestSeasonService', () => {
     const request = http.expectOne(`${apiUrl}/1/activate`);
     expect(request.request.method).toBe('PATCH');
     expect(request.request.body).toEqual({});
+    expect(request.request.withCredentials).toBe(true);
     request.flush(season);
   });
 
@@ -219,6 +223,7 @@ describe('HarvestSeasonService', () => {
 
     const request = http.expectOne(`${apiUrl}/1`);
     expect(request.request.method).toBe('DELETE');
+    expect(request.request.withCredentials).toBe(true);
     request.flush(null);
   });
 });

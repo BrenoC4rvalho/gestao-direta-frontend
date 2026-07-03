@@ -57,6 +57,7 @@ describe('routes', () => {
     )();
     expect(harvestsComponent).toBe(HarvestsPage);
     const harvestDetailsRoute = appLayoutRoute?.children?.find((route) => route.path === 'harvests/:id');
+    expect(harvestDetailsRoute?.title).toBe('Detalhes da safra');
     expect(harvestDetailsRoute?.data?.['title']).toBe('Detalhes da safra');
     expect(harvestDetailsRoute?.loadComponent).toBeTypeOf('function');
     const harvestDetailsComponent = await (

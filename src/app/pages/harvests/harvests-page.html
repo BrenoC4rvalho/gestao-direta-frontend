@@ -67,7 +67,12 @@
         }
       </div>
 
-      <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_18rem] lg:items-end">
+      <div class="mt-6 border-t border-border pt-5">
+        <h3 class="text-base font-semibold text-text-primary">Filtros</h3>
+        <p class="mt-1 text-sm leading-6 text-text-muted">Busque e filtre safras da fazenda selecionada.</p>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_18rem] lg:items-end">
         <div>
           <p class="mb-2 text-sm font-medium text-text-primary">Status</p>
           <div class="flex flex-wrap gap-2" aria-label="Filtros por status da safra">
@@ -170,7 +175,17 @@
                     <gd-button type="button" variant="outline" size="sm" (click)="openEditDrawer(harvest)">
                       Editar
                     </gd-button>
-                    @if (harvest.status !== 'INACTIVE') {
+                    @if (harvest.status === 'INACTIVE') {
+                      <gd-button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        [loading]="activatingHarvestId() === harvest.id"
+                        (click)="activateHarvest(harvest)"
+                      >
+                        Ativar
+                      </gd-button>
+                    } @else {
                       <gd-button type="button" variant="ghost" size="sm" (click)="requestInactivate(harvest)">
                         Inativar
                       </gd-button>
@@ -208,7 +223,7 @@
                   </dd>
                 </div>
                 <div class="rounded-control border border-border bg-surface p-3">
-                  <dt class="text-xs font-medium text-text-muted">Lucro estimado</dt>
+                  <dt class="text-xs font-medium text-text-muted">Lucro previsto</dt>
                   <dd class="mt-1 text-sm font-semibold text-primary">
                     {{ estimatedProfit(harvest) | brCurrency }}
                   </dd>
@@ -360,7 +375,7 @@
 <gd-confirm-dialog
   [open]="deleteTarget() !== null"
   title="Inativar safra?"
-  description="Esta safra sera marcada como inativa e ficara oculta nas operacoes futuras."
+  description="Esta safra será marcada como inativa e ficará oculta nas operações futuras."
   confirmLabel="Inativar"
   cancelLabel="Cancelar"
   variant="warning"

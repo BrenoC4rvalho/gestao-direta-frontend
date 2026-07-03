@@ -119,6 +119,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly deleteTarget = signal<HarvestSeason | null>(null);
   protected readonly deleteSubmitting = signal(false);
+  protected readonly activating = signal(false);
   protected readonly skeletons = [1, 2, 3, 4];
 
   private readonly harvestId = signal<number | null>(null);
@@ -233,14 +234,17 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
 
     return [
-      { label: 'Nome', value: harvest.name },
-      { label: 'Fazenda', value: harvest.farmName ?? `Fazenda #${harvest.farmId}` },
-      { label: 'Atividade', value: harvest.productionActivityName },
+      { label: 'Atividade', value: this.emptyLabel(harvest.productionActivityName) },
+      { label: 'Fazenda', value: this.emptyLabel(harvest.farmName ?? `Fazenda #${harvest.farmId}`) },
       { label: 'Status', value: this.statusLabel(harvest.status) },
-      { label: 'Período', value: this.periodLabel(harvest) },
+      { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
+      { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
       { label: 'Área', value: this.hectareLabel(harvest.areaHectares) },
       { label: 'Custo previsto', value: this.currencyLabel(harvest.expectedCost ?? 0) },
       { label: 'Receita prevista', value: this.currencyLabel(harvest.expectedRevenue ?? 0) },
+      { label: 'Descrição', value: this.emptyLabel(harvest.description) },
+      { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
+      { label: 'Atualizado em', value: harvest.updatedAt ? this.dateLabel(harvest.updatedAt) : '—' },
     ];
   });
 
@@ -377,9 +381,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
             return of(updated);
           }
 
-          return requestedStatus === 'INACTIVE'
-            ? this.harvestService.inactivate(updated.id).pipe(concatMap(() => of(updated)))
-            : this.harvestService.updateStatus(updated.id, requestedStatus);
+          return this.updateSavedStatus(harvest.id, harvest.status, requestedStatus, updated);
         }),
         finalize(() => this.submitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -408,6 +410,40 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
 
     this.deleteTarget.set(harvest);
+  }
+
+
+  protected activateHarvest(): void {
+    const harvest = this.harvest();
+
+    if (!harvest) {
+      return;
+    }
+
+    if (!this.canManageHarvests()) {
+      this.showPermissionError();
+      return;
+    }
+
+    if (this.activating()) {
+      return;
+    }
+
+    this.activating.set(true);
+
+    this.harvestService
+      .activate(harvest.id)
+      .pipe(
+        finalize(() => this.activating.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.toastStore.success('Safra ativada com sucesso.');
+          this.loadDetails(harvest.id);
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
   }
 
   protected closeDeleteConfirmation(): void {
@@ -529,6 +565,10 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   protected formatDate(date: string): string {
+    return this.dateLabel(date);
+  }
+
+  protected dateLabel(date: string): string {
     return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(date));
   }
 
@@ -588,7 +628,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
         next: (summary) => this.summary.set(summary),
         error: () => {
           this.summary.set(null);
-          this.summaryError.set('Não foi possível carregar o resumo financeiro.');
+          this.summaryError.set('Não foi possível carregar o resumo financeiro da safra.');
         },
       });
   }
@@ -620,7 +660,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
         next: (response) => this.transactionsPage.set(response),
         error: () => {
           this.transactionsPage.set(null);
-          this.transactionsError.set('Não foi possível carregar as movimentações vinculadas.');
+          this.transactionsError.set('Não foi possível carregar as movimentações da safra.');
         },
       });
   }
@@ -632,6 +672,34 @@ export class HarvestSeasonDetailsPage implements OnInit {
         next: ({ activities }) => this.productionActivities.set(activities),
         error: () => this.productionActivities.set([]),
       });
+  }
+
+
+  private updateSavedStatus(
+    id: number,
+    currentStatus: HarvestSeasonStatus,
+    requestedStatus: HarvestSeasonStatus,
+    updated: HarvestSeason,
+  ) {
+    if (requestedStatus === 'INACTIVE') {
+      return this.harvestService.inactivate(id).pipe(concatMap(() => of(updated)));
+    }
+
+    if (currentStatus === 'INACTIVE') {
+      return this.harvestService.activate(id).pipe(
+        concatMap((activated) =>
+          requestedStatus === 'PLANNED' ? of(activated) : this.harvestService.updateStatus(id, requestedStatus),
+        ),
+      );
+    }
+
+    return this.harvestService.updateStatus(id, requestedStatus);
+  }
+
+  private emptyLabel(value: string | null | undefined): string {
+    const text = `${value ?? ''}`.trim();
+
+    return text || '—';
   }
 
   private handleHarvestError(error: unknown): void {

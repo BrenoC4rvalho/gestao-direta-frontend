@@ -31,6 +31,8 @@ const harvest: HarvestSeason = {
   expectedCost: 90000,
   areaHectares: 120.5,
   status: 'IN_PROGRESS',
+  createdAt: '2026-01-01T00:00:00',
+  updatedAt: '2026-02-01T00:00:00',
 };
 
 const summary: HarvestSeasonSummary = {
@@ -100,6 +102,7 @@ describe('HarvestSeasonDetailsPage', () => {
     getSummary: Mock;
     update: Mock;
     updateStatus: Mock;
+    activate: Mock;
     inactivate: Mock;
   };
   let transactionService: { listByFarm: Mock };
@@ -114,6 +117,7 @@ describe('HarvestSeasonDetailsPage', () => {
       getSummary: vi.fn(() => of(summary)),
       update: vi.fn(() => of(harvest)),
       updateStatus: vi.fn(() => of(harvest)),
+      activate: vi.fn(() => of({ ...harvest, status: 'PLANNED' })),
       inactivate: vi.fn(() => of(undefined)),
     };
     transactionService = {
@@ -175,7 +179,10 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Indicadores por hectare');
     expect(text()).toContain('Informações da safra');
     expect(text()).toContain('Venda de soja');
-    expect(text()).toContain('Movimentações vinculadas');
+    expect(text()).toContain('Movimentações da safra');
+    expect(text()).toContain('Os indicadores por hectare dependem da área informada na safra.');
+    expect(text()).toContain('Data inicial');
+    expect(text()).toContain('Criado em');
   });
 
   it('should show an empty state when there are no linked transactions', () => {
@@ -183,7 +190,37 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Nenhuma movimentação vinculada.');
+    expect(text()).toContain('Nenhuma movimentação vinculada a esta safra.');
+  });
+
+
+  it('should show isolated errors for summary and transactions', () => {
+    harvestService.getSummary.mockReturnValue(throwError(() => new Error('summary')));
+    transactionService.listByFarm.mockReturnValue(throwError(() => new Error('transactions')));
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(text()).toContain('Não foi possível carregar o resumo financeiro da safra.');
+    expect(text()).toContain('Não foi possível carregar as movimentações da safra.');
+  });
+
+  it('should navigate to transactions without query params', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Ver em movimentações');
+
+    expect(router.navigate).toHaveBeenCalledWith(['/transactions']);
+  });
+
+  it('should activate an inactive harvest when permitted', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Ativar');
+
+    expect(harvestService.activate).toHaveBeenCalledWith(1);
   });
 
   it('should show not found message for 404 errors', () => {

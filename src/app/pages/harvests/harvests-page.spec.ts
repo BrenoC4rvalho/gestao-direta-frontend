@@ -69,13 +69,29 @@ const seasons: HarvestSeason[] = [
     areaHectares: 80,
     status: 'IN_PROGRESS',
   },
+
+  {
+    id: 3,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
+    productionActivityId: 2,
+    productionActivityName: 'Soja',
+    name: 'Safra Inativa',
+    description: null,
+    startDate: '2025-01-01',
+    endDate: '2025-06-30',
+    expectedRevenue: 40000,
+    expectedCost: 10000,
+    areaHectares: null,
+    status: 'INACTIVE',
+  },
 ];
 
 const response: PageResponse<HarvestSeason> = {
   content: seasons,
   page: 0,
   size: 10,
-  totalElements: 2,
+  totalElements: 3,
   totalPages: 1,
   first: true,
   last: true,
@@ -88,6 +104,7 @@ describe('HarvestsPage', () => {
     create: Mock;
     update: Mock;
     updateStatus: Mock;
+    activate: Mock;
     inactivate: Mock;
   };
   let productionActivityService: { listActive: Mock };
@@ -101,6 +118,7 @@ describe('HarvestsPage', () => {
       create: vi.fn(() => of(seasons[0])),
       update: vi.fn(() => of(seasons[0])),
       updateStatus: vi.fn(() => of({ ...seasons[0], status: 'IN_PROGRESS' })),
+      activate: vi.fn(() => of({ ...seasons[2], status: 'PLANNED' })),
       inactivate: vi.fn(() => of(undefined)),
     };
     productionActivityService = {
@@ -153,18 +171,20 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Safras');
     expect(text()).toContain('Safra Soja 2026');
     expect(text()).toContain('Safras ativas');
-    expect(text()).toContain('230.000,00');
-    expect(text()).toContain('100.000,00');
+    expect(text()).toContain('270.000,00');
+    expect(text()).toContain('130.000,00');
   });
 
   it('should filter the loaded page locally by status', () => {
     setupSelectedFarm('PRODUCER');
 
+    const initialCalls = harvestService.list.mock.calls.length;
+
     clickButton('Em andamento');
 
     expect(text()).toContain('Safra Soja Inverno');
     expect(text()).not.toContain('Safra Soja 2026');
-    expect(harvestService.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 0 }));
+    expect(harvestService.list).toHaveBeenCalledTimes(initialCalls);
   });
 
   it('should render detail links for each harvest', () => {
@@ -177,6 +197,7 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Ver detalhes');
     expect(links).toContain('/harvests/1');
     expect(links).toContain('/harvests/2');
+    expect(links).toContain('/harvests/3');
   });
 
   it('should hide management actions for employees', () => {
@@ -185,6 +206,7 @@ describe('HarvestsPage', () => {
     expect(text()).not.toContain('Nova safra');
     expect(text()).not.toContain('Editar');
     expect(text()).not.toContain('Inativar');
+    expect(text()).not.toContain('Ativar');
   });
 
   it('should create a harvest season from the drawer form', () => {
@@ -235,6 +257,33 @@ describe('HarvestsPage', () => {
       expect.objectContaining({ name: 'Safra Editada', productionActivityId: 2 }),
     );
     expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
+  });
+
+
+  it('should activate an inactive harvest from the list', () => {
+    setupSelectedFarm('PRODUCER');
+    const component = fixture.componentInstance as unknown as HarvestsPage & {
+      activateHarvest(harvest: HarvestSeason): void;
+    };
+
+    component.activateHarvest(seasons[2]);
+
+    expect(harvestService.activate).toHaveBeenCalledWith(3);
+  });
+
+  it('should activate an inactive harvest when editing to an active status', () => {
+    setupSelectedFarm('PRODUCER');
+    const component = fixture.componentInstance as unknown as HarvestsPage & {
+      openEditDrawer(harvest: HarvestSeason): void;
+      form: any;
+      saveHarvest(): void;
+    };
+
+    component.openEditDrawer(seasons[2]);
+    component.form.patchValue({ status: 'PLANNED' });
+    component.saveHarvest();
+
+    expect(harvestService.activate).toHaveBeenCalledWith(3);
   });
 
   it('should inactivate a harvest after confirmation', () => {

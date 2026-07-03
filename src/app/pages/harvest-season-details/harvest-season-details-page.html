@@ -63,7 +63,11 @@
             <gd-button type="button" variant="outline" (click)="openEditDrawer()">
               Editar
             </gd-button>
-            @if (harvest.status !== 'INACTIVE') {
+            @if (harvest.status === 'INACTIVE') {
+              <gd-button type="button" variant="ghost" [loading]="activating()" (click)="activateHarvest()">
+                Ativar
+              </gd-button>
+            } @else {
               <gd-button type="button" variant="ghost" (click)="requestInactivate()">
                 Inativar
               </gd-button>
@@ -143,6 +147,7 @@
 
         <gd-card>
           <h3 class="text-base font-semibold text-text-primary">Indicadores por hectare</h3>
+          <p class="mt-1 text-sm leading-6 text-text-muted">Os indicadores por hectare dependem da área informada na safra.</p>
           <dl class="mt-4 grid gap-3 sm:grid-cols-3">
             <div class="rounded-control border border-border bg-background/55 p-4">
               <dt class="text-sm font-medium text-text-muted">Custo por hectare</dt>
@@ -164,9 +169,6 @@
     <div class="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)]">
       <gd-card>
         <h2 class="text-lg font-semibold text-text-primary">Informações da safra</h2>
-        @if (harvest.description) {
-          <p class="mt-2 text-sm leading-6 text-text-muted">{{ harvest.description }}</p>
-        }
         <dl class="mt-5 grid gap-3">
           @for (item of infoItems(); track item.label) {
             <div class="rounded-control border border-border bg-background/55 p-3">
@@ -180,7 +182,7 @@
       <gd-card>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 class="text-lg font-semibold text-text-primary">Movimentações vinculadas</h2>
+            <h2 class="text-lg font-semibold text-text-primary">Movimentações da safra</h2>
             <p class="mt-1 text-sm leading-6 text-text-muted">Receitas e despesas registradas nesta safra.</p>
           </div>
           <gd-button type="button" variant="outline" size="sm" (click)="goToTransactions()">
@@ -203,8 +205,8 @@
           />
         } @else if ((transactionsPage()?.content?.length ?? 0) === 0) {
           <gd-empty-state
-            title="Nenhuma movimentação vinculada."
-            description="As receitas e despesas desta safra aparecerão aqui quando forem registradas."
+            title="Nenhuma movimentação vinculada a esta safra."
+            description="As receitas e despesas vinculadas a esta safra aparecerão aqui quando forem registradas."
             icon="receipt-text"
           />
         } @else if (transactionsPage(); as page) {
@@ -404,7 +406,7 @@
 <gd-confirm-dialog
   [open]="deleteTarget() !== null"
   title="Inativar safra?"
-  description="Esta safra sera marcada como inativa e ficara oculta nas operacoes futuras."
+  description="Esta safra será marcada como inativa e ficará oculta nas operações futuras."
   confirmLabel="Inativar"
   cancelLabel="Cancelar"
   variant="warning"
