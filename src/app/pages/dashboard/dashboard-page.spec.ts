@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
@@ -11,8 +11,10 @@ import {
   FinancialTransaction,
   UpcomingBill,
 } from '../../core/models/financial.models';
+import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FinancialService } from '../../core/services/financial.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -117,6 +119,34 @@ const bill: UpcomingBill = {
   categoryName: 'Energia',
 };
 
+const harvest: HarvestSeasonSummaryListItem = {
+  id: 10,
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  productionActivityId: 2,
+  productionActivityName: 'Soja',
+  name: 'Safra Soja 2026',
+  description: null,
+  startDate: '2026-01-01',
+  endDate: null,
+  expectedCost: 9000,
+  expectedRevenue: 18000,
+  expectedProfit: 9000,
+  areaHectares: 50,
+  status: 'IN_PROGRESS',
+  realizedCost: 4200,
+  realizedRevenue: 9500,
+  realizedProfit: 5300,
+  pendingExpenses: 2,
+  overdueExpenses: 1,
+  pendingRevenue: 0,
+  transactionCount: 7,
+  incomeCount: 3,
+  expenseCount: 4,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-10T00:00:00Z',
+};
+
 function pageResponse<T>(content: T[]): PageResponse<T> {
   return {
     content,
@@ -129,11 +159,18 @@ function pageResponse<T>(content: T[]): PageResponse<T> {
   };
 }
 
+function textContent(fixture: ComponentFixture<DashboardPage>): string {
+  return (fixture.nativeElement.textContent as string).replace(/\u00a0/g, ' ');
+}
+
 describe('DashboardPage', () => {
   let financialService: {
     getSummary: ReturnType<typeof vi.fn>;
     getLatestTransactions: ReturnType<typeof vi.fn>;
     getUpcomingBills: ReturnType<typeof vi.fn>;
+  };
+  let harvestSeasonService: {
+    listSummary: ReturnType<typeof vi.fn>;
   };
   let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
@@ -145,6 +182,9 @@ describe('DashboardPage', () => {
       getLatestTransactions: vi.fn().mockReturnValue(of(pageResponse([transaction]))),
       getUpcomingBills: vi.fn().mockReturnValue(of(pageResponse([bill]))),
     };
+    harvestSeasonService = {
+      listSummary: vi.fn().mockReturnValue(of(pageResponse([harvest]))),
+    };
 
     await TestBed.configureTestingModule({
       imports: [DashboardPage],
@@ -153,8 +193,11 @@ describe('DashboardPage', () => {
         provideRouter([
           { path: 'transactions', component: RouteStub },
           { path: 'upcoming-bills', component: RouteStub },
+          { path: 'harvests', component: RouteStub },
+          { path: 'harvests/:id', component: RouteStub },
         ]),
         { provide: FinancialService, useValue: financialService },
+        { provide: HarvestSeasonService, useValue: harvestSeasonService },
       ],
     }).compileComponents();
 
@@ -172,7 +215,7 @@ describe('DashboardPage', () => {
     sessionStore.clear();
   });
 
-  it('should render greeting and empty state without calling financial endpoints', () => {
+  it('should render greeting and empty state without calling dashboard endpoints', () => {
     sessionStore.setUser({
       id: 1,
       name: 'Maria Silva',
@@ -185,11 +228,11 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Nenhuma fazenda selecionada');
+    expect(textContent(fixture)).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
+    expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
   });
 
   it('should call endpoints and render dashboard data when there is a selected farm', () => {
@@ -210,23 +253,91 @@ describe('DashboardPage', () => {
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
     expect(financialService.getUpcomingBills).toHaveBeenCalledWith(1);
+    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
+      farmId: 1,
+      status: 'IN_PROGRESS',
+      page: 0,
+      size: 3,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
 
-    const text = fixture.nativeElement.textContent as string;
-    const normalizedText = text.replace(/\u00a0/g, ' ');
+    const text = textContent(fixture);
 
-    expect(normalizedText).toContain('Saldo atual');
-    expect(normalizedText).toContain('Entradas previstas');
-    expect(normalizedText).toContain('Saídas previstas');
-    expect(normalizedText).toContain('Saldo projetado');
-    expect(normalizedText).toContain('Pendências');
-    expect(normalizedText).toContain('Atrasado');
-    expect(normalizedText).toContain('R$ 7.000,00');
-    expect(normalizedText).toContain('Venda de soja');
-    expect(normalizedText).toContain('Conta de energia');
-    expect(normalizedText).toContain('1 conta(s) somando R$ 320,00');
+    expect(text).toContain('Saldo atual');
+    expect(text).toContain('Entradas previstas');
+    expect(text).toContain('Saídas previstas');
+    expect(text).toContain('Saldo projetado');
+    expect(text).toContain('Pendências');
+    expect(text).toContain('Atrasado');
+    expect(text).toContain('R$ 7.000,00');
+    expect(text).toContain('Venda de soja');
+    expect(text).toContain('Conta de energia');
+    expect(text).toContain('1 conta(s) somando R$ 320,00');
   });
 
-  it('should reload financial data when the global farm selection changes', () => {
+  it('should render in-progress harvest cards and links', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+    const anchors = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
+
+    expect(text).toContain('Safras em andamento');
+    expect(text).toContain('Acompanhe o resultado financeiro dos ciclos produtivos ativos.');
+    expect(text).toContain('Safra Soja 2026');
+    expect(text).toContain('Soja');
+    expect(text).toContain('Em andamento');
+    expect(text).toContain('Custo realizado');
+    expect(text).toContain('R$ 4.200,00');
+    expect(text).toContain('Receita realizada');
+    expect(text).toContain('R$ 9.500,00');
+    expect(text).toContain('Lucro realizado');
+    expect(text).toContain('R$ 5.300,00');
+    expect(text).toContain('Pendentes');
+    expect(text).toContain('Atrasadas');
+    expect(text).toContain('Movimentações');
+    expect(text).toContain('Possui atrasos');
+    expect(text).toContain('Pendências abertas');
+    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver todas') && anchor.getAttribute('href') === '/harvests')).toBe(true);
+    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver detalhes') && anchor.getAttribute('href') === '/harvests/10')).toBe(true);
+  });
+
+  it('should render empty state when there are no in-progress harvests', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    harvestSeasonService.listSummary.mockReturnValueOnce(of(pageResponse([])));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const anchors = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
+
+    expect(textContent(fixture)).toContain('Nenhuma safra em andamento no momento.');
+    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver safras') && anchor.getAttribute('href') === '/harvests')).toBe(true);
+  });
+
+  it('should render harvest error state without breaking financial sections', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    harvestSeasonService.listSummary.mockReturnValueOnce(throwError(() => new Error('harvests')));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+
+    expect(text).toContain('Erro ao carregar safras');
+    expect(text).toContain('Não foi possível carregar as safras em andamento.');
+    expect(text).toContain('Saldo atual');
+    expect(text).toContain('Venda de soja');
+    expect(text).toContain('Conta de energia');
+  });
+
+  it('should reload dashboard and harvest data when the global farm selection changes', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
 
@@ -237,13 +348,30 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
     farmAccessStore.setAccess(farmAccess(2));
     fixture.detectChanges();
+
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getSummary).toHaveBeenCalledWith(2);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
     expect(financialService.getUpcomingBills).toHaveBeenCalledWith(2);
+    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
+      farmId: 1,
+      status: 'IN_PROGRESS',
+      page: 0,
+      size: 3,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
+      farmId: 2,
+      status: 'IN_PROGRESS',
+      page: 0,
+      size: 3,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
   });
 
-  it('should not call financial endpoints without financial permission', () => {
+  it('should not call dashboard endpoints without financial permission', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1, false));
 
@@ -253,12 +381,13 @@ describe('DashboardPage', () => {
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain(
+    expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
+    expect(textContent(fixture)).toContain(
       'Você não tem permissão para visualizar os dados financeiros desta fazenda.',
     );
   });
 
-  it('should render section error states when API calls fail', () => {
+  it('should render section error states when financial API calls fail', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
     financialService.getSummary.mockReturnValueOnce(throwError(() => new Error('summary')));
@@ -270,9 +399,11 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const text = fixture.nativeElement.textContent as string;
+    const text = textContent(fixture);
     expect(text).toContain('Erro ao carregar resumo');
     expect(text).toContain('Erro ao carregar movimentações');
     expect(text).toContain('Erro ao carregar contas');
+    expect(text).toContain('Safras em andamento');
+    expect(text).toContain('Safra Soja 2026');
   });
 });

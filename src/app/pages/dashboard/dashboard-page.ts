@@ -15,12 +15,14 @@ import {
   FinancialTransaction,
   UpcomingBill,
 } from '../../core/models/financial.models';
+import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { FinancialService } from '../../core/services/financial.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Badge, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
 import { SummaryCard, SummaryCardTone } from './components/summary-card/summary-card';
 import { UpcomingBillsCard } from './components/upcoming-bills-card/upcoming-bills-card';
@@ -36,6 +38,7 @@ interface SummaryCardViewModel {
 @Component({
   selector: 'gd-dashboard-page',
   imports: [
+    Badge,
     BrCurrencyPipe,
     EmptyState,
     ErrorState,
@@ -51,6 +54,7 @@ interface SummaryCardViewModel {
 })
 export class DashboardPage {
   private readonly financialService = inject(FinancialService);
+  private readonly harvestSeasonService = inject(HarvestSeasonService);
 
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
@@ -68,7 +72,12 @@ export class DashboardPage {
   protected readonly upcomingBillsLoading = signal(false);
   protected readonly upcomingBillsError = signal<string | null>(null);
 
+  protected readonly inProgressHarvests = signal<readonly HarvestSeasonSummaryListItem[]>([]);
+  protected readonly harvestsLoading = signal(false);
+  protected readonly harvestsError = signal<string | null>(null);
+
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
+  protected readonly harvestSkeletons = [1, 2, 3];
 
   private readonly currencyPipe = new BrCurrencyPipe();
 
@@ -157,6 +166,7 @@ export class DashboardPage {
       this.loadSummary(farmId, subscriptions);
       this.loadTransactions(farmId, subscriptions);
       this.loadUpcomingBills(farmId, subscriptions);
+      this.loadInProgressHarvests(farmId, subscriptions);
 
       onCleanup(() => subscriptions.unsubscribe());
     });
@@ -211,6 +221,30 @@ export class DashboardPage {
     );
   }
 
+  private loadInProgressHarvests(farmId: number, subscriptions: Subscription): void {
+    this.inProgressHarvests.set([]);
+    this.harvestsError.set(null);
+    this.harvestsLoading.set(true);
+
+    subscriptions.add(
+      this.harvestSeasonService
+        .listSummary({
+          farmId,
+          status: 'IN_PROGRESS',
+          page: 0,
+          size: 3,
+          sort: 'startDate',
+          direction: 'DESC',
+        })
+        .pipe(finalize(() => this.harvestsLoading.set(false)))
+        .subscribe({
+          next: (response) => this.inProgressHarvests.set(response.content),
+          error: () =>
+            this.harvestsError.set('Não foi possível carregar as safras em andamento.'),
+        }),
+    );
+  }
+
   private clearDashboardData(): void {
     this.summary.set(null);
     this.summaryLoading.set(false);
@@ -221,8 +255,18 @@ export class DashboardPage {
     this.upcomingBills.set([]);
     this.upcomingBillsLoading.set(false);
     this.upcomingBillsError.set(null);
+    this.inProgressHarvests.set([]);
+    this.harvestsLoading.set(false);
+    this.harvestsError.set(null);
   }
 
+  protected formatHarvestCurrency(value: number | null | undefined): string {
+    return this.formatCurrency(value ?? 0);
+  }
+
+  protected isNegativeHarvestProfit(value: number | null | undefined): boolean {
+    return (value ?? 0) < 0;
+  }
 
   private formatCurrency(value: number): string {
     return this.currencyPipe.transform(value);
