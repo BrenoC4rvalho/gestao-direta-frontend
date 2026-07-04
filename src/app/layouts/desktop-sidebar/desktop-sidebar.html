@@ -18,7 +18,7 @@
             [routerLink]="item.route"
             routerLinkActive="bg-accent/15 text-primary"
             [routerLinkActiveOptions]="{ exact: true }"
-            class="flex min-h-10 items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="flex min-h-10 cursor-pointer items-center gap-3 rounded-control px-3 text-sm font-medium text-text-muted transition-colors hover:bg-accent/10 hover:text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
             <span>{{ item.label }}</span>
@@ -32,7 +32,7 @@
     <div class="border-t border-border p-4">
       <a
         routerLink="/profile"
-        class="-m-2 flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-accent/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="-m-2 flex cursor-pointer items-center gap-3 rounded-control p-2 transition-colors hover:bg-accent/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <div
           class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-sm font-semibold text-primary"
@@ -50,7 +50,7 @@
 
       <button
         type="button"
-        class="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-control border border-border px-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="mt-3 flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border px-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
         (click)="logout()"
       >
         <svg lucideIcon="log-out" class="size-4" aria-hidden="true"></svg>

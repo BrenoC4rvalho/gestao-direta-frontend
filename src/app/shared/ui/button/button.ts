@@ -31,7 +31,7 @@ export class Button {
 
   protected readonly buttonClasses = computed(() =>
     [
-      'inline-flex items-center justify-center gap-2 rounded-control font-medium',
+      'inline-flex cursor-pointer items-center justify-center gap-2 rounded-control font-medium',
       'transition-all duration-200 ease-out active:scale-[0.98]',
       'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2',
       'disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100',

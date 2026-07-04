@@ -99,7 +99,7 @@ export class ConfirmDialog {
 
   protected readonly backdropClasses = computed(() =>
     [
-      'fixed inset-0 z-40 bg-black/45 transition-opacity ease-out',
+      'fixed inset-0 z-40 cursor-pointer bg-black/45 transition-opacity ease-out',
       this.animationDurationClass,
       this.visible() ? 'opacity-100' : 'opacity-0',
     ].join(' '),

@@ -154,7 +154,7 @@ export class ListFilters {
 
   protected quickFilterChipClasses(active: boolean): string {
     return [
-      'min-h-9 rounded-full border px-3 text-sm font-medium shadow-sm transition-all duration-200 ease-out',
+      'min-h-9 cursor-pointer rounded-full border px-3 text-sm font-medium shadow-sm transition-all duration-200 ease-out',
       'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary',
       active
         ? 'border-primary bg-primary text-white hover:bg-primary-hover'

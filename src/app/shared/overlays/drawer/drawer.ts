@@ -98,6 +98,7 @@ export class Drawer {
   protected readonly backdropClasses = computed(() =>
     [
       'fixed inset-0 z-40 bg-black/45 transition-opacity ease-out',
+      this.closeOnBackdrop() ? 'cursor-pointer' : 'cursor-default',
       this.animationDurationClass,
       this.visible() ? 'opacity-100' : 'opacity-0',
     ].join(' '),
