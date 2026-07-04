@@ -59,19 +59,10 @@
         </div>
 
         @if (canManageHarvests()) {
-          <div class="grid gap-2 sm:grid-cols-2 lg:flex lg:shrink-0">
+          <div class="lg:shrink-0">
             <gd-button type="button" variant="outline" (click)="openEditDrawer()">
               Editar
             </gd-button>
-            @if (harvest.status === 'INACTIVE') {
-              <gd-button type="button" variant="ghost" [loading]="activating()" (click)="activateHarvest()">
-                Ativar
-              </gd-button>
-            } @else {
-              <gd-button type="button" variant="ghost" (click)="requestInactivate()">
-                Inativar
-              </gd-button>
-            }
           </div>
         }
       </div>
@@ -288,7 +279,7 @@
 <gd-drawer
   [open]="drawerOpen()"
   title="Editar safra"
-  description="Atualize os dados e o status da safra."
+  description="Atualize os dados da safra."
   size="md"
   [closeOnBackdrop]="!submitting()"
   [showCloseButton]="!submitting()"
@@ -369,28 +360,31 @@
       />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <gd-input
-        id="harvest-detail-area"
-        label="Area em hectares"
-        type="number"
-        [control]="form.controls.areaHectares"
-        placeholder="0"
-        [min]="0"
-        step="0.01"
-        [disabled]="submitting()"
-        [errorMessage]="fieldError('areaHectares')"
+    <gd-input
+      id="harvest-detail-area"
+      label="Area em hectares"
+      type="number"
+      [control]="form.controls.areaHectares"
+      placeholder="0"
+      [min]="0"
+      step="0.01"
+      [disabled]="submitting()"
+      [errorMessage]="fieldError('areaHectares')"
+    />
+
+    @if (canManageHarvests() && harvest(); as currentHarvest) {
+      <gd-status-action-section
+        title="Status da safra"
+        [description]="statusActionDescription(currentHarvest.status)"
+        [badgeLabel]="statusLabel(currentHarvest.status)"
+        [badgeVariant]="statusVariant(currentHarvest.status)"
+        [actionLabel]="statusActionLabel(currentHarvest.status)"
+        [actionVariant]="currentHarvest.status === 'INACTIVE' ? 'primary' : 'danger'"
+        [actionDisabled]="submitting() || statusSubmitting()"
+        [actionLoading]="statusSubmitting()"
+        (action)="requestStatusChange()"
       />
-      <gd-select
-        id="harvest-detail-status"
-        label="Status"
-        [control]="form.controls.status"
-        [options]="statusOptions"
-        [required]="true"
-        [disabled]="submitting()"
-        [errorMessage]="fieldError('status')"
-      />
-    </div>
+    }
 
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
       <gd-button type="button" variant="outline" [fullWidth]="true" [disabled]="submitting()" (click)="closeDrawer()">
@@ -404,14 +398,14 @@
 </gd-drawer>
 
 <gd-confirm-dialog
-  [open]="deleteTarget() !== null"
-  title="Inativar safra?"
-  description="Esta safra será marcada como inativa e ficará oculta nas operações futuras."
-  confirmLabel="Inativar"
+  [open]="statusTarget() !== null"
+  [title]="statusConfirmation().title"
+  [description]="statusConfirmation().description"
+  [confirmLabel]="statusConfirmation().confirmLabel"
   cancelLabel="Cancelar"
-  variant="warning"
-  [loading]="deleteSubmitting()"
-  (confirmed)="confirmInactivate()"
-  (cancelled)="closeDeleteConfirmation()"
-  (closed)="closeDeleteConfirmation()"
+  [variant]="statusConfirmation().variant"
+  [loading]="statusSubmitting()"
+  (confirmed)="confirmStatusChange()"
+  (cancelled)="closeStatusConfirmation()"
+  (closed)="closeStatusConfirmation()"
 />

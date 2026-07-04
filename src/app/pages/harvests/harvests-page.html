@@ -109,7 +109,13 @@
       <div class="gd-fade-in-up grid gap-4">
         @for (harvest of harvests(); track harvest.id) {
           <article
-            class="rounded-app border border-border bg-surface p-5 shadow-sm transition-all duration-200 ease-out sm:p-6 sm:hover:border-primary/25 sm:hover:shadow-md"
+            class="cursor-pointer rounded-app border border-border bg-surface p-5 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:p-6"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Abrir detalhes da safra ' + harvest.name"
+            title="Clique para ver detalhes da safra"
+            (click)="goToDetails(harvest.id)"
+            (keydown)="handleCardKeydown($event, harvest.id)"
           >
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div class="flex min-w-0 gap-4">
@@ -137,53 +143,6 @@
                 </div>
               </div>
 
-              @if (canManageHarvests()) {
-                <div class="grid gap-2 sm:grid-cols-3 lg:flex lg:shrink-0">
-                  <a
-                    class="inline-flex min-h-9 items-center justify-center gap-2 rounded-control border border-border bg-surface px-3 text-sm font-medium text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    [routerLink]="['/harvests', harvest.id]"
-                  >
-                    Ver detalhes
-                  </a>
-                  <gd-button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    (click)="openEditDrawer(harvest)"
-                  >
-                    Editar
-                  </gd-button>
-                  @if (harvest.status === 'INACTIVE') {
-                    <gd-button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      [loading]="activatingHarvestId() === harvest.id"
-                      (click)="activateHarvest(harvest)"
-                    >
-                      Ativar
-                    </gd-button>
-                  } @else {
-                    <gd-button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      (click)="requestInactivate(harvest)"
-                    >
-                      Inativar
-                    </gd-button>
-                  }
-                </div>
-              } @else {
-                <div class="lg:shrink-0">
-                  <a
-                    class="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-control border border-border bg-surface px-3 text-sm font-medium text-text-primary transition-colors hover:bg-background focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
-                    [routerLink]="['/harvests', harvest.id]"
-                  >
-                    Ver detalhes
-                  </a>
-                </div>
-              }
             </div>
 
             <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -318,8 +277,8 @@
 
 <gd-drawer
   [open]="drawerOpen()"
-  [title]="drawerTitle()"
-  [description]="drawerDescription()"
+  [title]="drawerTitle"
+  [description]="drawerDescription"
   size="md"
   [closeOnBackdrop]="!submitting()"
   [showCloseButton]="!submitting()"
@@ -439,16 +398,3 @@
     </div>
   </form>
 </gd-drawer>
-
-<gd-confirm-dialog
-  [open]="deleteTarget() !== null"
-  title="Inativar safra?"
-  description="Esta safra será marcada como inativa e ficará oculta nas operações futuras."
-  confirmLabel="Inativar"
-  cancelLabel="Cancelar"
-  variant="warning"
-  [loading]="deleteSubmitting()"
-  (confirmed)="confirmInactivate()"
-  (cancelled)="closeDeleteConfirmation()"
-  (closed)="closeDeleteConfirmation()"
-/>

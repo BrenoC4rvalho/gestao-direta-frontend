@@ -213,14 +213,13 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/transactions']);
   });
 
-  it('should activate an inactive harvest when permitted', () => {
-    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
+  it('should not show direct activate or inactivate actions in the main details screen', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Ativar');
-
-    expect(harvestService.activate).toHaveBeenCalledWith(1);
+    expect(text()).toContain('Editar');
+    expect(text()).not.toContain('Inativar');
+    expect(text()).not.toContain('Ativar');
   });
 
   it('should show not found message for 404 errors', () => {
@@ -240,23 +239,102 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/harvests']);
   });
 
-  it('should show management actions only for users with permission', () => {
+  it('should hide edit and status section for employees', () => {
     setupUser('EMPLOYEE');
     createComponent();
 
     expect(text()).not.toContain('Editar');
-    expect(text()).not.toContain('Inativar');
-
-    TestBed.resetTestingModule();
+    expect(text()).not.toContain('Status da safra');
   });
 
-  it('should show management actions for producers', () => {
+  it('should hide edit and status section for accountants', () => {
+    setupUser('ACCOUNTANT');
+    createComponent();
+
+    expect(text()).not.toContain('Editar');
+    expect(text()).not.toContain('Status da safra');
+  });
+
+  it('should show edit for producers', () => {
     setupUser('PRODUCER');
     createComponent();
 
     expect(text()).toContain('Editar');
+  });
+
+  it('should open the edit drawer with the harvest status section for active harvests', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+
+    expect(text()).toContain('Status da safra');
+    expect(text()).toContain('Em andamento');
     expect(text()).toContain('Inativar');
   });
+
+  it('should show activate action in the drawer for inactive harvests', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+
+    expect(text()).toContain('Status da safra');
+    expect(text()).toContain('Inativa');
+    expect(text()).toContain('Ativar');
+  });
+
+  it('should inactivate a harvest from the edit drawer after confirmation', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+    clickButton('Inativar');
+    clickLastButton('Inativar');
+
+    expect(harvestService.inactivate).toHaveBeenCalledWith(1);
+    expect(harvestService.activate).not.toHaveBeenCalled();
+    expect(harvestService.getById).toHaveBeenCalledTimes(2);
+  });
+
+  it('should activate an inactive harvest from the edit drawer after confirmation', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+    clickButton('Ativar');
+    clickLastButton('Ativar');
+
+    expect(harvestService.activate).toHaveBeenCalledWith(1);
+    expect(harvestService.inactivate).not.toHaveBeenCalled();
+    expect(harvestService.getById).toHaveBeenCalledTimes(2);
+  });
+
+  it('should save harvest edits without changing status', () => {
+    setupUser('PRODUCER');
+    createComponent();
+    const component = fixture.componentInstance as unknown as HarvestSeasonDetailsPage & {
+      openEditDrawer(): void;
+      form: any;
+      saveHarvest(): void;
+    };
+
+    component.openEditDrawer();
+    component.form.patchValue({ name: 'Safra Editada' });
+    component.saveHarvest();
+    fixture.detectChanges();
+
+    expect(harvestService.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'Safra Editada', productionActivityId: 2 }),
+    );
+    expect(harvestService.updateStatus).not.toHaveBeenCalled();
+    expect(harvestService.activate).not.toHaveBeenCalled();
+    expect(harvestService.inactivate).not.toHaveBeenCalled();
+  });
+
 
   function createComponent(): void {
     fixture = TestBed.createComponent(HarvestSeasonDetailsPage);
@@ -308,6 +386,15 @@ describe('HarvestSeasonDetailsPage', () => {
     const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
       (item) => item.textContent?.trim() === label,
     );
+
+    button?.click();
+    fixture.detectChanges();
+  }
+
+  function clickLastButton(label: string): void {
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'))
+      .reverse()
+      .find((item) => item.textContent?.trim() === label);
 
     button?.click();
     fixture.detectChanges();

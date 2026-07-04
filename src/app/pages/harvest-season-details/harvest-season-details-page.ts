@@ -20,7 +20,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { concatMap, finalize, forkJoin, of } from 'rxjs';
+import { finalize, forkJoin, Observable } from 'rxjs';
 
 import {
   HarvestSeason,
@@ -38,9 +38,9 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select, Textarea } from '../../shared/forms';
-import { ConfirmDialog, Drawer } from '../../shared/overlays';
+import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
   numberToBrazilianMoney,
@@ -56,7 +56,6 @@ interface HarvestFormControls {
   expectedCost: GdFormControl;
   expectedRevenue: GdFormControl;
   areaHectares: GdFormControl;
-  status: GdFormControl;
 }
 
 interface SummaryCard {
@@ -70,6 +69,14 @@ interface SummaryCard {
 interface InfoItem {
   label: string;
   value: string;
+}
+
+interface StatusConfirmation {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  variant: ConfirmDialogVariant;
+  action: 'activate' | 'inactivate';
 }
 
 @Component({
@@ -88,6 +95,7 @@ interface InfoItem {
     ReactiveFormsModule,
     Select,
     Skeleton,
+    StatusActionSection,
     Textarea,
   ],
   templateUrl: './harvest-season-details-page.html',
@@ -117,19 +125,11 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly transactionsError = signal<string | null>(null);
   protected readonly drawerOpen = signal(false);
   protected readonly submitting = signal(false);
-  protected readonly deleteTarget = signal<HarvestSeason | null>(null);
-  protected readonly deleteSubmitting = signal(false);
-  protected readonly activating = signal(false);
+  protected readonly statusTarget = signal<HarvestSeason | null>(null);
+  protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4];
 
   private readonly harvestId = signal<number | null>(null);
-
-  protected readonly statusOptions: readonly GdSelectOption[] = [
-    { label: 'Planejada', value: 'PLANNED' },
-    { label: 'Em andamento', value: 'IN_PROGRESS' },
-    { label: 'Encerrada', value: 'FINISHED' },
-    { label: 'Inativa', value: 'INACTIVE' },
-  ];
 
   protected readonly form = new FormGroup<HarvestFormControls>(
     {
@@ -141,7 +141,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       expectedCost: new FormControl<GdFormValue>(''),
       expectedRevenue: new FormControl<GdFormValue>(''),
       areaHectares: new FormControl<GdFormValue>(''),
-      status: new FormControl<GdFormValue>('PLANNED', { validators: [Validators.required] }),
     },
     { validators: [this.dateRangeValidator()] },
   );
@@ -247,6 +246,26 @@ export class HarvestSeasonDetailsPage implements OnInit {
       { label: 'Atualizado em', value: harvest.updatedAt ? this.dateLabel(harvest.updatedAt) : '—' },
     ];
   });
+  protected readonly statusConfirmation = computed<StatusConfirmation>(() => {
+    const activating = this.statusTarget()?.status === 'INACTIVE';
+
+    return activating
+      ? {
+          title: 'Ativar safra?',
+          description: 'Esta safra voltará a ficar disponível para acompanhamento e novas operações.',
+          confirmLabel: 'Ativar',
+          variant: 'info',
+          action: 'activate',
+        }
+      : {
+          title: 'Inativar safra?',
+          description: 'Esta safra deixará de ficar disponível para novas operações, mas os registros existentes serão preservados.',
+          confirmLabel: 'Inativar',
+          variant: 'warning',
+          action: 'inactivate',
+        };
+  });
+
 
   ngOnInit(): void {
     this.bindMoneySanitizer(this.form.controls.expectedCost);
@@ -329,7 +348,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       expectedCost: numberToBrazilianMoney(harvest.expectedCost),
       expectedRevenue: numberToBrazilianMoney(harvest.expectedRevenue),
       areaHectares: harvest.areaHectares ?? '',
-      status: harvest.status,
     });
     this.drawerOpen.set(true);
   }
@@ -369,20 +387,12 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
 
     const payload = this.buildSavePayload(productionActivityId, name, startDate);
-    const requestedStatus = this.statusValue(this.form.controls.status.value);
 
     this.submitting.set(true);
 
     this.harvestService
       .update(harvest.id, payload)
       .pipe(
-        concatMap((updated) => {
-          if (requestedStatus === harvest.status) {
-            return of(updated);
-          }
-
-          return this.updateSavedStatus(harvest.id, harvest.status, requestedStatus, updated);
-        }),
         finalize(() => this.submitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -397,7 +407,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
       });
   }
 
-  protected requestInactivate(): void {
+  protected requestStatusChange(): void {
     const harvest = this.harvest();
 
     if (!harvest) {
@@ -409,72 +419,57 @@ export class HarvestSeasonDetailsPage implements OnInit {
       return;
     }
 
-    this.deleteTarget.set(harvest);
+    this.statusTarget.set(harvest);
   }
 
+  protected closeStatusConfirmation(): void {
+    if (!this.statusSubmitting()) {
+      this.statusTarget.set(null);
+    }
+  }
 
-  protected activateHarvest(): void {
-    const harvest = this.harvest();
+  protected confirmStatusChange(): void {
+    const harvest = this.statusTarget();
 
-    if (!harvest) {
+    if (!harvest || this.statusSubmitting()) {
       return;
     }
 
-    if (!this.canManageHarvests()) {
-      this.showPermissionError();
-      return;
-    }
+    const confirmation = this.statusConfirmation();
+    const request$: Observable<unknown> = confirmation.action === 'activate'
+      ? this.harvestService.activate(harvest.id)
+      : this.harvestService.inactivate(harvest.id);
 
-    if (this.activating()) {
-      return;
-    }
+    this.statusSubmitting.set(true);
 
-    this.activating.set(true);
-
-    this.harvestService
-      .activate(harvest.id)
+    request$
       .pipe(
-        finalize(() => this.activating.set(false)),
+        finalize(() => this.statusSubmitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: () => {
-          this.toastStore.success('Safra ativada com sucesso.');
+          this.statusTarget.set(null);
+          this.drawerOpen.set(false);
+          this.toastStore.success(
+            confirmation.action === 'activate'
+              ? 'Safra ativada com sucesso.'
+              : 'Safra inativada com sucesso.',
+          );
           this.loadDetails(harvest.id);
         },
         error: (error: unknown) => this.showOperationError(error),
       });
   }
 
-  protected closeDeleteConfirmation(): void {
-    if (!this.deleteSubmitting()) {
-      this.deleteTarget.set(null);
-    }
+  protected statusActionDescription(status: HarvestSeasonStatus): string {
+    return status === 'INACTIVE'
+      ? 'Esta safra está inativa e não fica disponível para novas operações.'
+      : 'Esta safra está disponível para acompanhamento e novas operações.';
   }
 
-  protected confirmInactivate(): void {
-    const harvest = this.deleteTarget();
-
-    if (!harvest || this.deleteSubmitting()) {
-      return;
-    }
-
-    this.deleteSubmitting.set(true);
-
-    this.harvestService
-      .inactivate(harvest.id)
-      .pipe(
-        finalize(() => this.deleteSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.deleteTarget.set(null);
-          this.toastStore.success('Safra inativada com sucesso.');
-          this.loadDetails(harvest.id);
-        },
-        error: (error: unknown) => this.showOperationError(error),
-      });
+  protected statusActionLabel(status: HarvestSeasonStatus): string {
+    return status === 'INACTIVE' ? 'Ativar' : 'Inativar';
   }
 
   protected statusLabel(status: HarvestSeasonStatus): string {
@@ -675,27 +670,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
 
-  private updateSavedStatus(
-    id: number,
-    currentStatus: HarvestSeasonStatus,
-    requestedStatus: HarvestSeasonStatus,
-    updated: HarvestSeason,
-  ) {
-    if (requestedStatus === 'INACTIVE') {
-      return this.harvestService.inactivate(id).pipe(concatMap(() => of(updated)));
-    }
-
-    if (currentStatus === 'INACTIVE') {
-      return this.harvestService.activate(id).pipe(
-        concatMap((activated) =>
-          requestedStatus === 'PLANNED' ? of(activated) : this.harvestService.updateStatus(id, requestedStatus),
-        ),
-      );
-    }
-
-    return this.harvestService.updateStatus(id, requestedStatus);
-  }
-
   private emptyLabel(value: string | null | undefined): string {
     const text = `${value ?? ''}`.trim();
 
@@ -810,12 +784,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
       return endDate >= startDate ? null : { dateRange: true };
     };
-  }
-
-  private statusValue(value: GdFormValue): HarvestSeasonStatus {
-    const status = `${value ?? ''}`;
-
-    return status === 'IN_PROGRESS' || status === 'FINISHED' || status === 'INACTIVE' ? status : 'PLANNED';
   }
 
   private moneyValue(value: GdFormValue): number | null {

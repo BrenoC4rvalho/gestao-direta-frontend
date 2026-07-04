@@ -18,13 +18,11 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { concatMap, finalize, of } from 'rxjs';
+import { finalize } from 'rxjs';
 
 import {
-  CreateHarvestSeasonRequest,
-  HarvestSeason,
   HarvestSeasonStatus,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
@@ -39,7 +37,7 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select, Textarea } from '../../shared/forms';
-import { ConfirmDialog, Drawer } from '../../shared/overlays';
+import { Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import {
   Badge,
@@ -58,8 +56,6 @@ import {
   numberToBrazilianMoney,
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
-
-type DrawerMode = 'create' | 'edit';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -84,11 +80,6 @@ interface HarvestSummaryCard {
   currency: boolean;
 }
 
-interface DrawerState {
-  mode: DrawerMode;
-  harvest: HarvestSeasonSummaryListItem | null;
-}
-
 @Component({
   selector: 'gd-harvests-page',
   imports: [
@@ -96,7 +87,6 @@ interface DrawerState {
     BrCurrencyPipe,
     Button,
     Card,
-    ConfirmDialog,
     Drawer,
     EmptyState,
     ErrorState,
@@ -104,7 +94,6 @@ interface DrawerState {
     ListFilters,
     LucideDynamicIcon,
     ReactiveFormsModule,
-    RouterLink,
     Select,
     Skeleton,
     Textarea,
@@ -117,6 +106,7 @@ export class HarvestsPage {
   private readonly productionActivityService = inject(ProductionActivityService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastStore = inject(ToastStore);
+  private readonly router = inject(Router);
 
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly farmAccessStore = inject(FarmAccessStore);
@@ -137,11 +127,7 @@ export class HarvestsPage {
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
-  protected readonly drawerState = signal<DrawerState>({ mode: 'create', harvest: null });
   protected readonly submitting = signal(false);
-  protected readonly deleteTarget = signal<HarvestSeasonSummaryListItem | null>(null);
-  protected readonly deleteSubmitting = signal(false);
-  protected readonly activatingHarvestId = signal<number | null>(null);
   protected readonly skeletons = [1, 2, 3, 4];
   protected readonly filtersConfig = computed<ListFiltersConfig>(() => ({
     subtitle: 'Busque e filtre safras da fazenda selecionada.',
@@ -299,14 +285,8 @@ export class HarvestsPage {
       },
     ];
   });
-  protected readonly drawerTitle = computed(() =>
-    this.drawerState().mode === 'edit' ? 'Editar safra' : 'Nova safra',
-  );
-  protected readonly drawerDescription = computed(() =>
-    this.drawerState().mode === 'edit'
-      ? 'Atualize os dados e o status da safra.'
-      : 'Cadastre uma safra vinculada à fazenda selecionada.',
-  );
+  protected readonly drawerTitle = 'Nova safra';
+  protected readonly drawerDescription = 'Cadastre uma safra vinculada à fazenda selecionada.';
 
   constructor() {
     this.loadProductionActivities();
@@ -419,13 +399,25 @@ export class HarvestsPage {
     }
   }
 
+  protected goToDetails(id: number): void {
+    void this.router.navigate(['/harvests', id]);
+  }
+
+  protected handleCardKeydown(event: KeyboardEvent, id: number): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.goToDetails(id);
+  }
+
   protected openCreateDrawer(): void {
     if (!this.canManageHarvests()) {
       this.showPermissionError();
       return;
     }
 
-    this.drawerState.set({ mode: 'create', harvest: null });
     this.form.reset({
       productionActivityId: '',
       name: '',
@@ -436,27 +428,6 @@ export class HarvestsPage {
       expectedRevenue: '',
       areaHectares: '',
       status: 'PLANNED',
-    });
-    this.drawerOpen.set(true);
-  }
-
-  protected openEditDrawer(harvest: HarvestSeasonSummaryListItem): void {
-    if (!this.canManageHarvests()) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.drawerState.set({ mode: 'edit', harvest });
-    this.form.reset({
-      productionActivityId: harvest.productionActivityId ?? '',
-      name: harvest.name,
-      description: harvest.description ?? '',
-      startDate: harvest.startDate ?? '',
-      endDate: harvest.endDate ?? '',
-      expectedCost: numberToBrazilianMoney(harvest.expectedCost),
-      expectedRevenue: numberToBrazilianMoney(harvest.expectedRevenue),
-      areaHectares: harvest.areaHectares ?? '',
-      status: harvest.status,
     });
     this.drawerOpen.set(true);
   }
@@ -491,26 +462,11 @@ export class HarvestsPage {
     }
 
     const payload = this.buildSavePayload(productionActivityId, name, startDate);
-    const state = this.drawerState();
-    const editingHarvest = state.mode === 'edit' ? state.harvest : null;
-    const requestedStatus = this.statusValue(this.form.controls.status.value);
 
     this.submitting.set(true);
 
-    const request$ =
-      editingHarvest
-        ? this.harvestService.update(editingHarvest.id, payload).pipe(
-            concatMap((updated) => {
-              if (requestedStatus === editingHarvest.status) {
-                return of(updated);
-              }
-
-              return this.updateSavedStatus(editingHarvest.id, editingHarvest.status, requestedStatus, updated);
-            }),
-          )
-        : this.harvestService.create({ farmId, ...payload });
-
-    request$
+    this.harvestService
+      .create({ farmId, ...payload })
       .pipe(
         finalize(() => this.submitting.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -518,77 +474,7 @@ export class HarvestsPage {
       .subscribe({
         next: () => {
           this.drawerOpen.set(false);
-          this.toastStore.success(
-            state.mode === 'edit' ? 'Safra atualizada com sucesso.' : 'Safra criada com sucesso.',
-          );
-          this.retry();
-        },
-        error: (error: unknown) => this.showOperationError(error),
-      });
-  }
-
-  protected requestInactivate(harvest: HarvestSeasonSummaryListItem): void {
-    if (!this.canManageHarvests()) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.deleteTarget.set(harvest);
-  }
-
-
-  protected activateHarvest(harvest: HarvestSeasonSummaryListItem): void {
-    if (!this.canManageHarvests()) {
-      this.showPermissionError();
-      return;
-    }
-
-    if (this.activatingHarvestId()) {
-      return;
-    }
-
-    this.activatingHarvestId.set(harvest.id);
-
-    this.harvestService
-      .activate(harvest.id)
-      .pipe(
-        finalize(() => this.activatingHarvestId.set(null)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.toastStore.success('Safra ativada com sucesso.');
-          this.retry();
-        },
-        error: (error: unknown) => this.showOperationError(error),
-      });
-  }
-
-  protected closeDeleteConfirmation(): void {
-    if (!this.deleteSubmitting()) {
-      this.deleteTarget.set(null);
-    }
-  }
-
-  protected confirmInactivate(): void {
-    const harvest = this.deleteTarget();
-
-    if (!harvest || this.deleteSubmitting()) {
-      return;
-    }
-
-    this.deleteSubmitting.set(true);
-
-    this.harvestService
-      .inactivate(harvest.id)
-      .pipe(
-        finalize(() => this.deleteSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.deleteTarget.set(null);
-          this.toastStore.success('Safra inativada com sucesso.');
+          this.toastStore.success('Safra criada com sucesso.');
           this.retry();
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -726,27 +612,6 @@ export class HarvestsPage {
     };
   }
 
-  private updateSavedStatus(
-    id: number,
-    currentStatus: HarvestSeasonStatus,
-    requestedStatus: HarvestSeasonStatus,
-    updated: HarvestSeason,
-  ) {
-    if (requestedStatus === 'INACTIVE') {
-      return this.harvestService.inactivate(id).pipe(concatMap(() => of(updated)));
-    }
-
-    if (currentStatus === 'INACTIVE') {
-      return this.harvestService.activate(id).pipe(
-        concatMap((activated) =>
-          requestedStatus === 'PLANNED' ? of(activated) : this.harvestService.updateStatus(id, requestedStatus),
-        ),
-      );
-    }
-
-    return this.harvestService.updateStatus(id, requestedStatus);
-  }
-
   private handleListError(error: unknown): void {
     this.response.set(null);
     if (error instanceof HttpErrorResponse && error.status === 403) {
@@ -868,12 +733,6 @@ export class HarvestsPage {
 
       return endDate >= startDate ? null : { dateRange: true };
     };
-  }
-
-  private statusValue(value: GdFormValue): HarvestSeasonStatus {
-    const status = `${value ?? ''}`;
-
-    return status === 'IN_PROGRESS' || status === 'FINISHED' || status === 'INACTIVE' ? status : 'PLANNED';
   }
 
   private moneyValue(value: GdFormValue): number | null {

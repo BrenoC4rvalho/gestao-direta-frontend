@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
@@ -519,23 +519,52 @@ describe('HarvestsPage', () => {
     expect(errorSpy).toHaveBeenCalledWith('Não foi possível carregar as atividades produtivas.');
   });
 
-  it('should render detail links for each harvest', () => {
+  it('should render clickable harvest cards without inline actions', () => {
     setupSelectedFarm('PRODUCER');
 
-    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
-      .map((link) => link.getAttribute('href'))
-      .filter(Boolean);
+    const cards = harvestCards();
 
-    expect(text()).toContain('Ver detalhes');
-    expect(links).toContain('/harvests/1');
-    expect(links).toContain('/harvests/2');
-    expect(links).toContain('/harvests/3');
+    expect(cards).toHaveLength(3);
+    expect(cards[0].getAttribute('role')).toBe('button');
+    expect(cards[0].getAttribute('tabindex')).toBe('0');
+    expect(cards[0].getAttribute('aria-label')).toBe('Abrir detalhes da safra Safra Soja 2026');
+    expect(cards[0].getAttribute('title')).toBe('Clique para ver detalhes da safra');
+    expect(text()).not.toContain('Ver detalhes');
+    expect(text()).not.toContain('Editar');
+    expect(text()).not.toContain('Inativar');
+    expect(text()).not.toContain('Ativar');
+  });
+
+  it('should navigate to details when clicking a harvest card', () => {
+    setupSelectedFarm('PRODUCER');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    harvestCards()[0].click();
+    fixture.detectChanges();
+
+    expect(navigate).toHaveBeenCalledWith(['/harvests', 1]);
+  });
+
+  it('should navigate to details with Enter and Space on a harvest card', () => {
+    setupSelectedFarm('PRODUCER');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const card = harvestCards()[1];
+    const spaceEvent = new KeyboardEvent('keydown', { key: ' ', cancelable: true });
+
+    card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    card.dispatchEvent(spaceEvent);
+    fixture.detectChanges();
+
+    expect(navigate).toHaveBeenNthCalledWith(1, ['/harvests', 2]);
+    expect(navigate).toHaveBeenNthCalledWith(2, ['/harvests', 2]);
+    expect(spaceEvent.defaultPrevented).toBe(true);
   });
 
   it('should hide management actions for employees', () => {
     setupSelectedFarm('EMPLOYEE');
 
     expect(text()).not.toContain('Nova safra');
+    expect(text()).not.toContain('Ver detalhes');
     expect(text()).not.toContain('Editar');
     expect(text()).not.toContain('Inativar');
     expect(text()).not.toContain('Ativar');
@@ -576,78 +605,12 @@ describe('HarvestsPage', () => {
       expectedRevenue: 20000.75,
       areaHectares: 30,
     });
+    expect(harvestService.update).not.toHaveBeenCalled();
+    expect(harvestService.activate).not.toHaveBeenCalled();
+    expect(harvestService.inactivate).not.toHaveBeenCalled();
     expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
 
-  it('should update a harvest and status when editing', () => {
-    setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & {
-      openEditDrawer(harvest: HarvestSeasonSummaryListItem): void;
-      form: any;
-      saveHarvest(): void;
-    };
-
-    component.openEditDrawer(seasons[0]);
-    component.form.patchValue({ name: 'Safra Editada', status: 'IN_PROGRESS' });
-    const initialCalls = harvestService.listSummary.mock.calls.length;
-    component.saveHarvest();
-    fixture.detectChanges();
-
-    expect(harvestService.update).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({ name: 'Safra Editada', productionActivityId: 2 }),
-    );
-    expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
-    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
-  });
-
-  it('should activate an inactive harvest from the list', () => {
-    setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & {
-      activateHarvest(harvest: HarvestSeasonSummaryListItem): void;
-    };
-
-    const initialCalls = harvestService.listSummary.mock.calls.length;
-    component.activateHarvest(seasons[2]);
-    fixture.detectChanges();
-
-    expect(harvestService.activate).toHaveBeenCalledWith(3);
-    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
-  });
-
-  it('should activate an inactive harvest when editing to an active status', () => {
-    setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & {
-      openEditDrawer(harvest: HarvestSeasonSummaryListItem): void;
-      form: any;
-      saveHarvest(): void;
-    };
-
-    component.openEditDrawer(seasons[2]);
-    component.form.patchValue({ status: 'PLANNED' });
-    const initialCalls = harvestService.listSummary.mock.calls.length;
-    component.saveHarvest();
-    fixture.detectChanges();
-
-    expect(harvestService.activate).toHaveBeenCalledWith(3);
-    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
-  });
-
-  it('should inactivate a harvest after confirmation', () => {
-    setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & {
-      requestInactivate(harvest: HarvestSeasonSummaryListItem): void;
-      confirmInactivate(): void;
-    };
-
-    const initialCalls = harvestService.listSummary.mock.calls.length;
-    component.requestInactivate(seasons[0]);
-    component.confirmInactivate();
-    fixture.detectChanges();
-
-    expect(harvestService.inactivate).toHaveBeenCalledWith(1);
-    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
-  });
 
   function setupSelectedFarm(role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
     sessionStore.setUser(user('USER'));
@@ -731,6 +694,10 @@ describe('HarvestsPage', () => {
 
     button?.click();
     fixture.detectChanges();
+  }
+
+  function harvestCards(): HTMLElement[] {
+    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('article[role="button"]'));
   }
 
   function text(): string {
