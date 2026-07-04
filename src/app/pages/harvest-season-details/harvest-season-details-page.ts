@@ -233,15 +233,16 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
 
     return [
-      { label: 'Atividade', value: this.emptyLabel(harvest.productionActivityName) },
+      { label: 'Nome', value: this.emptyLabel(harvest.name) },
+      { label: 'Descrição', value: this.emptyLabel(harvest.description) },
+      { label: 'Atividade produtiva', value: this.emptyLabel(harvest.productionActivityName) },
       { label: 'Fazenda', value: this.emptyLabel(harvest.farmName ?? `Fazenda #${harvest.farmId}`) },
       { label: 'Status', value: this.statusLabel(harvest.status) },
       { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
       { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
-      { label: 'Área', value: this.hectareLabel(harvest.areaHectares) },
-      { label: 'Custo previsto', value: this.currencyLabel(harvest.expectedCost ?? 0) },
-      { label: 'Receita prevista', value: this.currencyLabel(harvest.expectedRevenue ?? 0) },
-      { label: 'Descrição', value: this.emptyLabel(harvest.description) },
+      { label: 'Área em hectares', value: this.hectareLabel(harvest.areaHectares) },
+      { label: 'Custo previsto', value: this.nullableCurrencyLabel(harvest.expectedCost ?? null) },
+      { label: 'Receita prevista', value: this.nullableCurrencyLabel(harvest.expectedRevenue ?? null) },
       { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
       { label: 'Atualizado em', value: harvest.updatedAt ? this.dateLabel(harvest.updatedAt) : '—' },
     ];

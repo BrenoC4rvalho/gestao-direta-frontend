@@ -169,20 +169,37 @@ describe('HarvestSeasonDetailsPage', () => {
     });
   });
 
-  it('should render header, summary, hectare indicators, general information and transactions', () => {
+  it('should render summary, harvest information, hectare indicators and transactions in order', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Safra Soja 2026');
-    expect(text()).toContain('Resumo financeiro');
     expect(text()).toContain('Custo realizado');
-    expect(text()).toContain('Indicadores por hectare');
-    expect(text()).toContain('Informações da safra');
-    expect(text()).toContain('Venda de soja');
-    expect(text()).toContain('Movimentações da safra');
     expect(text()).toContain('Os indicadores por hectare dependem da área informada na safra.');
-    expect(text()).toContain('Data inicial');
-    expect(text()).toContain('Criado em');
+    expect(text()).toContain('Venda de soja');
+    expect(sectionHeadingTexts()).toEqual([
+      'Resumo financeiro',
+      'Informações da safra',
+      'Indicadores por hectare',
+      'Movimentações da safra',
+    ]);
+  });
+
+  it('should render harvest information with name and description', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(text()).toContain('Nome');
+    expect(text()).toContain('Safra Soja 2026');
+    expect(text()).toContain('Descrição');
+    expect(text()).toContain('Safra de verao');
+  });
+
+  it('should render transaction type in the desktop table', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(tableHeaderTexts()).toEqual(['Data', 'Descrição', 'Tipo', 'Categoria', 'Status', 'Valor']);
+    expect(text()).toContain('Receita');
   });
 
   it('should show an empty state when there are no linked transactions', () => {
@@ -398,6 +415,18 @@ describe('HarvestSeasonDetailsPage', () => {
 
     button?.click();
     fixture.detectChanges();
+  }
+
+  function sectionHeadingTexts(): string[] {
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('section[aria-labelledby] h2'),
+    ).map((item) => item.textContent?.trim() ?? '');
+  }
+
+  function tableHeaderTexts(): string[] {
+    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('table thead th')).map(
+      (item) => item.textContent?.trim() ?? '',
+    );
   }
 
   function text(): string {
