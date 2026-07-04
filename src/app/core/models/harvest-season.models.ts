@@ -109,4 +109,9 @@ export interface HarvestSeasonSummaryListParams extends PageRequest {
   farmId: number;
   search?: string | null;
   status?: HarvestSeasonStatus | null;
+  statuses?: HarvestSeasonStatus[] | null;
+  productionActivityId?: number | null;
+  productionActivityIds?: number[] | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
 }

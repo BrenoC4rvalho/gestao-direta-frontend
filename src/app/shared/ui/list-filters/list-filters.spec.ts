@@ -67,12 +67,37 @@ class ListFiltersHost {
   }
 }
 
+@Component({
+  imports: [ListFilters],
+  template: '<gd-list-filters [config]="config" />',
+})
+class DateListFiltersHost {
+  readonly config: ListFiltersConfig = {
+    textFields: [
+      {
+        key: 'periodStart',
+        label: 'Inicio do periodo',
+        type: 'date',
+        error: 'A data inicial nao pode ser posterior a data final.',
+      },
+    ],
+    quickFilters: [
+      {
+        key: 'activity',
+        label: 'Atividade produtiva',
+        options: [],
+        emptyMessage: 'Nenhuma atividade produtiva disponivel.',
+      },
+    ],
+  };
+}
+
 describe('ListFilters', () => {
   let fixture: ComponentFixture<ListFiltersHost>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ListFiltersHost],
+      imports: [ListFiltersHost, DateListFiltersHost],
       providers: [provideGestaoDiretaIcons()],
     }).compileComponents();
 
@@ -101,6 +126,18 @@ describe('ListFilters', () => {
     expect(clearButton).toBeTruthy();
     expect(clearButton?.getAttribute('title')).toBe('Limpar filtros');
     expect(clearButton?.querySelector('svg')).toBeTruthy();
+  });
+
+  it('should render date fields, configured errors and empty quick filter messages', () => {
+    const dateFixture = TestBed.createComponent(DateListFiltersHost);
+    dateFixture.detectChanges();
+
+    const input = dateFixture.nativeElement.querySelector('#filter-periodStart') as HTMLInputElement;
+    const text = dateFixture.nativeElement.textContent as string;
+
+    expect(input.type).toBe('date');
+    expect(text).toContain('A data inicial nao pode ser posterior a data final.');
+    expect(text).toContain('Nenhuma atividade produtiva disponivel.');
   });
 
   it('should not emit automatically when text fields change', async () => {

@@ -44,6 +44,11 @@
           [control]="control(field.key)"
           autocomplete="off"
         />
+        @if (field.error) {
+          <p [id]="'filter-' + field.key + '-error'" class="text-sm leading-5 text-danger" role="alert">
+            {{ field.error }}
+          </p>
+        }
       </div>
     }
 
@@ -91,17 +96,26 @@
               {{ group.label }}
             </legend>
             <div class="flex flex-wrap gap-2">
-              @for (filter of group.options; track filter.value ?? 'all') {
-                <button
-                  type="button"
-                  [class]="quickFilterChipClasses(isQuickFilterActive(group, filter))"
-                  [attr.aria-pressed]="isQuickFilterActive(group, filter)"
-                  (click)="toggleQuickFilter(group, filter)"
-                >
-                  {{ filter.label }}
-                </button>
+              @if (group.options.length === 0) {
+                <p class="text-sm leading-5 text-text-muted">
+                  {{ group.emptyMessage ?? 'Nenhuma opcao disponivel.' }}
+                </p>
+              } @else {
+                @for (filter of group.options; track filter.value ?? 'all') {
+                  <button
+                    type="button"
+                    [class]="quickFilterChipClasses(isQuickFilterActive(group, filter))"
+                    [attr.aria-pressed]="isQuickFilterActive(group, filter)"
+                    (click)="toggleQuickFilter(group, filter)"
+                  >
+                    {{ filter.label }}
+                  </button>
+                }
               }
             </div>
+            @if (group.error) {
+              <p class="mt-2 text-sm leading-5 text-danger" role="alert">{{ group.error }}</p>
+            }
           </fieldset>
         }
       </div>

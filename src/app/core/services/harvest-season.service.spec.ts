@@ -144,6 +144,10 @@ describe('HarvestSeasonService', () => {
         farmId: 10,
         search: ' soja ',
         status: 'IN_PROGRESS',
+        statuses: ['PLANNED', 'IN_PROGRESS'],
+        productionActivityIds: [2, 3],
+        periodStart: '2026-01-01',
+        periodEnd: '2026-12-31',
         page: 2,
         size: 20,
         sort: 'startDate',
@@ -156,6 +160,10 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.get('farmId')).toBe('10');
     expect(request.request.params.get('search')).toBe('soja');
     expect(request.request.params.get('status')).toBe('IN_PROGRESS');
+    expect(request.request.params.get('statuses')).toBe('PLANNED,IN_PROGRESS');
+    expect(request.request.params.get('productionActivityIds')).toBe('2,3');
+    expect(request.request.params.get('periodStart')).toBe('2026-01-01');
+    expect(request.request.params.get('periodEnd')).toBe('2026-12-31');
     expect(request.request.params.get('page')).toBe('2');
     expect(request.request.params.get('size')).toBe('20');
     expect(request.request.params.get('sort')).toBe('startDate');
@@ -170,6 +178,10 @@ describe('HarvestSeasonService', () => {
         farmId: 10,
         search: ' ',
         status: null,
+        statuses: [],
+        productionActivityIds: [],
+        periodStart: '',
+        periodEnd: undefined,
         page: 0,
         size: undefined,
         sort: '',
@@ -183,6 +195,10 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.get('page')).toBe('0');
     expect(request.request.params.has('search')).toBe(false);
     expect(request.request.params.has('status')).toBe(false);
+    expect(request.request.params.has('statuses')).toBe(false);
+    expect(request.request.params.has('productionActivityIds')).toBe(false);
+    expect(request.request.params.has('periodStart')).toBe(false);
+    expect(request.request.params.has('periodEnd')).toBe(false);
     expect(request.request.params.has('size')).toBe(false);
     expect(request.request.params.has('sort')).toBe(false);
     expect(request.request.params.has('direction')).toBe(false);

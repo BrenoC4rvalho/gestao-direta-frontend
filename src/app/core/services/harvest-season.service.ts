@@ -86,9 +86,26 @@ export class HarvestSeasonService {
     httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
     httpParams = appendQueryParam(httpParams, 'search', params.search);
     httpParams = appendQueryParam(httpParams, 'status', params.status);
+    httpParams = this.appendCommaSeparatedParam(httpParams, 'statuses', params.statuses);
+    httpParams = appendQueryParam(httpParams, 'productionActivityId', params.productionActivityId);
+    httpParams = this.appendCommaSeparatedParam(httpParams, 'productionActivityIds', params.productionActivityIds);
+    httpParams = appendQueryParam(httpParams, 'periodStart', params.periodStart);
+    httpParams = appendQueryParam(httpParams, 'periodEnd', params.periodEnd);
     httpParams = this.appendPageParams(httpParams, params);
 
     return httpParams;
+  }
+
+  private appendCommaSeparatedParam(
+    httpParams: HttpParams,
+    key: string,
+    values: readonly (string | number)[] | null | undefined,
+  ): HttpParams {
+    if (!values || values.length === 0) {
+      return httpParams;
+    }
+
+    return appendQueryParam(httpParams, key, values.join(','));
   }
 
   private appendPageParams(

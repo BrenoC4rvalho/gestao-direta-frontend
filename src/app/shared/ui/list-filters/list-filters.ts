@@ -16,7 +16,8 @@ export interface ListFilterTextField {
   key: string;
   label: string;
   placeholder?: string;
-  type?: Extract<GdInputType, 'search' | 'text'>;
+  type?: Extract<GdInputType, 'date' | 'search' | 'text'>;
+  error?: string | null;
 }
 
 export type ListFilterSelectOption = ListFilterOption;
@@ -35,6 +36,8 @@ export interface ListQuickFilterGroup {
   label: string;
   multiple?: boolean;
   options: readonly ListQuickFilter[];
+  error?: string | null;
+  emptyMessage?: string | null;
 }
 
 export interface ListFiltersConfig {
@@ -44,7 +47,8 @@ export interface ListFiltersConfig {
     key?: string;
     label?: string;
     placeholder?: string;
-    type?: Extract<GdInputType, 'search' | 'text'>;
+    type?: Extract<GdInputType, 'date' | 'search' | 'text'>;
+    error?: string | null;
   };
   textFields?: readonly ListFilterTextField[];
   selects?: readonly ListFilterSelect[];

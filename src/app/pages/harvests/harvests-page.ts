@@ -20,7 +20,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { concatMap, finalize, forkJoin, of } from 'rxjs';
+import { concatMap, finalize, of } from 'rxjs';
 
 import {
   CreateHarvestSeasonRequest,
@@ -59,7 +59,6 @@ import {
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
 
-type HarvestStatusFilter = 'ALL' | HarvestSeasonStatus;
 type DrawerMode = 'create' | 'edit';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -124,7 +123,11 @@ export class HarvestsPage {
   protected readonly sessionStore = inject(SessionStore);
 
   private readonly searchTerm = signal('');
-  private readonly selectedStatus = signal<HarvestStatusFilter>('ALL');
+  private readonly selectedStatuses = signal<HarvestSeasonStatus[]>([]);
+  private readonly selectedProductionActivityIds = signal<number[]>([]);
+  private readonly periodStart = signal('');
+  private readonly periodEnd = signal('');
+  private readonly periodError = signal<string | null>(null);
   private readonly reloadTrigger = signal(0);
   private currentFarmId: number | null = null;
 
@@ -140,13 +143,27 @@ export class HarvestsPage {
   protected readonly deleteSubmitting = signal(false);
   protected readonly activatingHarvestId = signal<number | null>(null);
   protected readonly skeletons = [1, 2, 3, 4];
-  protected readonly filtersConfig: ListFiltersConfig = {
+  protected readonly filtersConfig = computed<ListFiltersConfig>(() => ({
     subtitle: 'Busque e filtre safras da fazenda selecionada.',
     search: { placeholder: 'Buscar por nome ou atividade' },
+    textFields: [
+      {
+        key: 'periodStart',
+        label: 'Inicio do periodo',
+        type: 'date',
+        error: this.periodError(),
+      },
+      {
+        key: 'periodEnd',
+        label: 'Fim do periodo',
+        type: 'date',
+      },
+    ],
     quickFilters: [
       {
         key: 'status',
         label: 'Status',
+        multiple: true,
         options: [
           { label: 'Todas', value: null },
           { label: 'Planejadas', value: 'PLANNED' },
@@ -155,8 +172,23 @@ export class HarvestsPage {
           { label: 'Inativas', value: 'INACTIVE' },
         ],
       },
+      {
+        key: 'productionActivity',
+        label: 'Atividade produtiva',
+        multiple: true,
+        emptyMessage: 'Nenhuma atividade produtiva disponivel.',
+        options: this.productionActivities().length > 0
+          ? [
+              { label: 'Todas', value: null },
+              ...this.productionActivities().map((activity) => ({
+                label: activity.name,
+                value: String(activity.id),
+              })),
+            ]
+          : [],
+      },
     ],
-  };
+  }));
   protected readonly statusOptions: readonly GdSelectOption[] = [
     { label: 'Planejada', value: 'PLANNED' },
     { label: 'Em andamento', value: 'IN_PROGRESS' },
@@ -185,7 +217,11 @@ export class HarvestsPage {
   protected readonly harvests = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly hasActiveFilters = computed(
-    () => this.selectedStatus() !== 'ALL' || this.searchTerm().length > 0,
+    () => this.selectedStatuses().length > 0 ||
+      this.selectedProductionActivityIds().length > 0 ||
+      this.searchTerm().length > 0 ||
+      this.periodStart().length > 0 ||
+      this.periodEnd().length > 0,
   );
   protected readonly canManageHarvests = computed(() => {
     if (this.sessionStore.isAdmin()) {
@@ -273,6 +309,7 @@ export class HarvestsPage {
   );
 
   constructor() {
+    this.loadProductionActivities();
     this.bindMoneySanitizer(this.form.controls.expectedCost);
     this.bindMoneySanitizer(this.form.controls.expectedRevenue);
 
@@ -302,20 +339,21 @@ export class HarvestsPage {
         return;
       }
 
+      if (!this.isPeriodRangeValid()) {
+        this.periodError.set('A data inicial não pode ser posterior à data final.');
+        return;
+      }
+
+      this.periodError.set(null);
       this.accessDenied.set(false);
       this.error.set(false);
       this.loading.set(true);
 
-      const subscription = forkJoin({
-        response: this.harvestService.listSummary(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE)),
-        activities: this.productionActivityService.listActive(),
-      })
+      const subscription = this.harvestService
+        .listSummary(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE))
         .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
-          next: ({ response, activities }) => {
-            this.response.set(response);
-            this.productionActivities.set(activities);
-          },
+          next: (response) => this.response.set(response),
           error: (error: unknown) => this.handleListError(error),
         });
 
@@ -328,15 +366,41 @@ export class HarvestsPage {
   }
 
   protected changeFilters(filters: ListFilterValues): void {
-    const status = this.firstFilterValue(filters['status']) as HarvestSeasonStatus | null;
+    const periodStart = this.firstFilterValue(filters['periodStart']) ?? '';
+    const periodEnd = this.firstFilterValue(filters['periodEnd']) ?? '';
 
     this.searchTerm.set(this.firstFilterValue(filters['search']) ?? '');
-    this.selectedStatus.set(status ?? 'ALL');
-    this.response.set(null);
+    this.selectedStatuses.set(this.filterStatusValues(filters['status']));
+    this.selectedProductionActivityIds.set(this.filterNumberValues(filters['productionActivity']));
+    this.periodStart.set(periodStart);
+    this.periodEnd.set(periodEnd);
+    this.periodError.set(
+      this.isPeriodRangeValid(periodStart, periodEnd)
+        ? null
+        : 'A data inicial não pode ser posterior à data final.',
+    );
   }
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
     return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  }
+
+  private filterStatusValues(value: string | string[] | null | undefined): HarvestSeasonStatus[] {
+    return this.filterStringValues(value) as HarvestSeasonStatus[];
+  }
+
+  private filterNumberValues(value: string | string[] | null | undefined): number[] {
+    return this.filterStringValues(value)
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item));
+  }
+
+  private filterStringValues(value: string | string[] | null | undefined): string[] {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    return value ? [value] : [];
   }
 
   protected previousPage(): void {
@@ -611,7 +675,7 @@ export class HarvestsPage {
   private loadPage(page: number): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
 
-    if (!farmId || this.loading() || !this.canViewHarvests()) {
+    if (!farmId || this.loading() || !this.canViewHarvests() || !this.isPeriodRangeValid()) {
       return;
     }
 
@@ -631,12 +695,13 @@ export class HarvestsPage {
   }
 
   private listParams(farmId: number, page: number, size: number): HarvestSeasonSummaryListParams {
-    const status = this.selectedStatus();
-
     return {
       farmId,
       search: this.searchTerm(),
-      status: status === 'ALL' ? null : status,
+      statuses: this.selectedStatuses(),
+      productionActivityIds: this.selectedProductionActivityIds(),
+      periodStart: this.periodStart(),
+      periodEnd: this.periodEnd(),
       page,
       size,
       sort: 'startDate',
@@ -684,8 +749,6 @@ export class HarvestsPage {
 
   private handleListError(error: unknown): void {
     this.response.set(null);
-    this.productionActivities.set([]);
-
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
       return;
@@ -716,7 +779,6 @@ export class HarvestsPage {
 
   private clearListState(): void {
     this.response.set(null);
-    this.productionActivities.set([]);
     this.error.set(false);
     this.accessDenied.set(false);
     this.loading.set(false);
@@ -724,8 +786,32 @@ export class HarvestsPage {
 
   private resetFiltersForFarmChange(): void {
     this.searchTerm.set('');
-    this.selectedStatus.set('ALL');
+    this.selectedStatuses.set([]);
+    this.selectedProductionActivityIds.set([]);
+    this.periodStart.set('');
+    this.periodEnd.set('');
+    this.periodError.set(null);
     this.response.set(null);
+  }
+
+  private loadProductionActivities(): void {
+    this.productionActivityService
+      .listActive()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (activities) => this.productionActivities.set(activities),
+        error: () => {
+          this.productionActivities.set([]);
+          this.toastStore.error('Não foi possível carregar as atividades produtivas.');
+        },
+      });
+  }
+
+  private isPeriodRangeValid(
+    periodStart = this.periodStart(),
+    periodEnd = this.periodEnd(),
+  ): boolean {
+    return !periodStart || !periodEnd || periodStart <= periodEnd;
   }
 
   private isAccessPending(): boolean {

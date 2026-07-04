@@ -68,7 +68,7 @@
     </div>
 
     <gd-list-filters
-      [config]="filtersConfig"
+      [config]="filtersConfig()"
       [quickFiltersApplyOnChange]="true"
       (filtersChange)="changeFilters($event)"
     />

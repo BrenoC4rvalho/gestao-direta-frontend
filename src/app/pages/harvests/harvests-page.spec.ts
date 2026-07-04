@@ -53,6 +53,12 @@ const activities: ProductionActivity[] = [
     description: 'Cultivo de soja',
     status: 'ACTIVE',
   },
+  {
+    id: 3,
+    name: 'Milho',
+    description: 'Cultivo de milho',
+    status: 'ACTIVE',
+  },
 ];
 
 const seasons: HarvestSeasonSummaryListItem[] = [
@@ -212,7 +218,7 @@ describe('HarvestsPage', () => {
 
     expect(harvestService.listSummary).not.toHaveBeenCalled();
     expect(harvestService.list).not.toHaveBeenCalled();
-    expect(productionActivityService.listActive).not.toHaveBeenCalled();
+    expect(productionActivityService.listActive).toHaveBeenCalled();
     expect(componentState().loading()).toBe(false);
     expect(text()).toContain('Selecione uma fazenda para visualizar as safras.');
   });
@@ -223,7 +229,10 @@ describe('HarvestsPage', () => {
     expect(harvestService.listSummary).toHaveBeenCalledWith({
       farmId: 10,
       search: '',
-      status: null,
+      statuses: [],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -311,7 +320,10 @@ describe('HarvestsPage', () => {
     expect(harvestService.listSummary).toHaveBeenLastCalledWith({
       farmId: 20,
       search: '',
-      status: null,
+      statuses: [],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -322,15 +334,69 @@ describe('HarvestsPage', () => {
     expect(text()).not.toContain('Safra Soja 2026');
   });
 
-  it('should reload harvest summaries when filtering by status', () => {
+  it('should reload harvest summaries when filtering by multiple statuses', () => {
     setupSelectedFarm('PRODUCER');
+
+    clickButton('Em andamento');
+    clickButton('Planejadas');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      statuses: ['IN_PROGRESS', 'PLANNED'],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
 
     clickButton('Em andamento');
 
     expect(harvestService.listSummary).toHaveBeenLastCalledWith({
       farmId: 10,
       search: '',
-      status: 'IN_PROGRESS',
+      statuses: ['PLANNED'],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+
+    clickButton('Todas');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      statuses: [],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should reload harvest summaries when filtering by multiple production activities', () => {
+    setupSelectedFarm('PRODUCER');
+
+    clickButton('Soja');
+    clickButton('Milho');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      statuses: [],
+      productionActivityIds: [2, 3],
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -347,12 +413,110 @@ describe('HarvestsPage', () => {
     expect(harvestService.listSummary).toHaveBeenLastCalledWith({
       farmId: 10,
       search: 'soja',
-      status: null,
+      statuses: [],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
       direction: 'DESC',
     });
+  });
+
+  it('should send search, status, activity and period together', () => {
+    setupSelectedFarm('PRODUCER');
+
+    setFilterInput('#filter-search', 'soja');
+    setFilterInput('#filter-periodStart', '2026-01-01');
+    setFilterInput('#filter-periodEnd', '2026-12-31');
+    clickButton('Em andamento');
+    clickButton('Soja');
+    clickFilterButton('Aplicar filtros');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: 'soja',
+      statuses: ['IN_PROGRESS'],
+      productionActivityIds: [2],
+      periodStart: '2026-01-01',
+      periodEnd: '2026-12-31',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should show period error and avoid loading when the period is invalid', () => {
+    setupSelectedFarm('PRODUCER');
+    const initialCalls = harvestService.listSummary.mock.calls.length;
+
+    setFilterInput('#filter-periodStart', '2026-12-31');
+    setFilterInput('#filter-periodEnd', '2026-01-01');
+    clickFilterButton('Aplicar filtros');
+
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls);
+    expect(text()).toContain('A data inicial não pode ser posterior à data final.');
+    expect(text()).toContain('Safra Soja 2026');
+  });
+
+  it('should clear all filters', () => {
+    setupSelectedFarm('PRODUCER');
+
+    setFilterInput('#filter-search', 'soja');
+    setFilterInput('#filter-periodStart', '2026-01-01');
+    setFilterInput('#filter-periodEnd', '2026-12-31');
+    clickButton('Em andamento');
+    clickButton('Soja');
+    clickFilterButton('Limpar filtros');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      statuses: [],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should keep filters when paginating', () => {
+    harvestService.listSummary.mockReturnValue(of({ ...response, page: 0, totalPages: 2, first: true, last: false }));
+    setupSelectedFarm('PRODUCER');
+
+    clickButton('Em andamento');
+    clickButton('Proxima');
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      statuses: ['IN_PROGRESS'],
+      productionActivityIds: [],
+      periodStart: '',
+      periodEnd: '',
+      page: 1,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should keep harvest list working when production activities fail to load', () => {
+    const toastStore = TestBed.inject(ToastStore);
+    const errorSpy = vi.spyOn(toastStore, 'error');
+    productionActivityService.listActive.mockReturnValueOnce(throwError(() => new Error('activities failed')));
+
+    setupSelectedFarm('PRODUCER');
+
+    expect(harvestService.listSummary).toHaveBeenCalled();
+    expect(text()).toContain('Safra Soja 2026');
+    expect(text()).toContain('Nenhuma atividade produtiva disponivel.');
+    expect(errorSpy).toHaveBeenCalledWith('Não foi possível carregar as atividades produtivas.');
   });
 
   it('should render detail links for each harvest', () => {
