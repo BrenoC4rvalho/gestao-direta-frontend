@@ -6,18 +6,29 @@
     />
   } @else {
     <div class="flex justify-end">
-      <gd-button type="button" class="w-full sm:w-auto" [fullWidth]="true" (click)="openCreateDrawer()">
+      <gd-button
+        type="button"
+        class="w-full sm:w-auto"
+        [fullWidth]="true"
+        (click)="openCreateDrawer()"
+      >
         <svg lucideIcon="plus" class="size-4" aria-hidden="true"></svg>
         Nova atividade produtiva
       </gd-button>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo de atividades produtivas">
+    <div
+      class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      aria-label="Resumo de atividades produtivas"
+    >
       @for (card of summaryCards(); track card.label) {
         <gd-card padding="lg">
           <div class="flex items-start gap-4">
             <div
-              [class]="'flex size-12 shrink-0 items-center justify-center rounded-full ' + summaryToneClasses(card.tone)"
+              [class]="
+                'flex size-12 shrink-0 items-center justify-center rounded-full ' +
+                summaryToneClasses(card.tone)
+              "
             >
               <svg [lucideIcon]="card.icon" class="size-6" aria-hidden="true"></svg>
             </div>
@@ -41,7 +52,10 @@
     />
 
     @if (loading()) {
-      <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando atividades produtivas">
+      <div
+        class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+        aria-label="Carregando atividades produtivas"
+      >
         @for (item of skeletons; track item) {
           <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
             <div class="flex items-start justify-between gap-4">
@@ -70,7 +84,10 @@
         icon="sprout"
       />
     } @else {
-      <div class="gd-fade-in-up grid gap-4 md:hidden" aria-label="Lista mobile de atividades produtivas">
+      <div
+        class="gd-fade-in-up grid gap-4 md:hidden"
+        aria-label="Lista mobile de atividades produtivas"
+      >
         @for (activity of activities(); track activity.id) {
           <article
             class="rounded-app border border-border bg-surface p-5 shadow-soft transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm"
@@ -79,30 +96,38 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-text-primary">{{ activity.name }}</h2>
-                <p class="mt-1 text-sm leading-6 text-text-muted">{{ activity.description || '—' }}</p>
+                <p class="mt-1 text-sm leading-6 text-text-muted">
+                  {{ activity.description || '—' }}
+                </p>
               </div>
               <gd-badge [variant]="statusVariant(activity.status)" size="sm">
                 {{ statusLabel(activity.status) }}
               </gd-badge>
             </div>
 
-            <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
-              <gd-button type="button" size="sm" variant="outline" [fullWidth]="true" (click)="openEditDrawer(activity)">
+            <div class="mt-5 grid gap-2 border-t border-border pt-4">
+              <gd-button
+                type="button"
+                size="sm"
+                variant="outline"
+                [fullWidth]="true"
+                (click)="openEditDrawer(activity)"
+              >
                 <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                 Editar
-              </gd-button>
-              <gd-button type="button" size="sm" variant="ghost" [fullWidth]="true" (click)="requestStatusToggle(activity)">
-                <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
-                {{ nextStatusActionLabel(activity) }}
               </gd-button>
             </div>
           </article>
         }
       </div>
 
-      <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+      <div
+        class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+      >
         <table class="w-full border-collapse text-left">
-          <caption class="sr-only">Atividades produtivas cadastradas</caption>
+          <caption class="sr-only">
+            Atividades produtivas cadastradas
+          </caption>
           <thead class="border-b border-border bg-primary text-white">
             <tr class="text-xs font-semibold uppercase tracking-wide text-white">
               <th class="px-5 py-4" scope="col">Nome</th>
@@ -123,13 +148,14 @@
                 </td>
                 <td class="px-5 py-4">
                   <div class="flex flex-wrap gap-2">
-                    <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(activity)">
+                    <gd-button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      (click)="openEditDrawer(activity)"
+                    >
                       <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                       Editar
-                    </gd-button>
-                    <gd-button type="button" size="sm" variant="ghost" (click)="requestStatusToggle(activity)">
-                      <svg lucideIcon="power" class="size-4" aria-hidden="true"></svg>
-                      {{ nextStatusActionLabel(activity) }}
                     </gd-button>
                   </div>
                 </td>
@@ -203,6 +229,36 @@
       [rows]="4"
       [maxlength]="255"
     />
+
+    @if (drawerState().activity; as activity) {
+      @if (drawerState().mode === 'edit') {
+        <section
+          class="grid gap-4 border-t border-border pt-4"
+        >
+          @if (activity.status === 'ACTIVE') {
+            <gd-status-action-section
+              title="Status da atividade"
+              description="Inative esta atividade caso ela não deva mais ser usada em novas safras."
+              actionLabel="Inativar atividade produtiva"
+              actionVariant="danger"
+              [actionDisabled]="submitting() || statusSubmitting()"
+              [actionLoading]="statusSubmitting() && statusTarget()?.id === activity.id"
+              (action)="requestStatusToggle(activity)"
+            />
+          } @else {
+            <gd-status-action-section
+              title="Status da atividade"
+              description="Ative esta atividade para que ela volte a ficar disponível para novas safras."
+              actionLabel="Ativar atividade produtiva"
+              actionVariant="primary"
+              [actionDisabled]="submitting() || statusSubmitting()"
+              [actionLoading]="statusSubmitting() && statusTarget()?.id === activity.id"
+              (action)="requestStatusToggle(activity)"
+            />
+          }
+        </section>
+      }
+    }
 
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
       <gd-button

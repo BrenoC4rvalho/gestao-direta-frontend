@@ -122,7 +122,7 @@ describe('ProductionActivitiesPage', () => {
     document.body.classList.remove('gd-overlay-open');
   });
 
-  it('should render title content, load service, and show returned activities', () => {
+  it('should render title content, load service, show activities, and avoid direct status actions', () => {
     createPage();
 
     const text = fixture.nativeElement.textContent;
@@ -145,6 +145,9 @@ describe('ProductionActivitiesPage', () => {
     expect(getListFilters().textContent).not.toContain('Nova atividade produtiva');
     expect(text).toContain('Ativa');
     expect(text).toContain('Inativa');
+    expect(findButton('Editar')).toBeTruthy();
+    expect(findButton('Inativar')).toBeUndefined();
+    expect(findButton('Ativar')).toBeUndefined();
   });
 
   it('should show access restriction and avoid API calls for non-admin users', () => {
@@ -163,7 +166,9 @@ describe('ProductionActivitiesPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Filtros');
-    expect(fixture.nativeElement.querySelector('[aria-label="Carregando atividades produtivas"]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('[aria-label="Carregando atividades produtivas"]'),
+    ).toBeTruthy();
   });
 
   it('should show error state', () => {
@@ -298,10 +303,27 @@ describe('ProductionActivitiesPage', () => {
     expect(service.list).toHaveBeenCalledTimes(2);
   });
 
-  it('should open confirmation and call inactivate for active activities', () => {
+  it('should show status action without current status card in the edit drawer for active activities', async () => {
     createPage();
 
-    clickButton('Inativar');
+    clickButton('Editar');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+
+    const drawerText = getDrawerText();
+    expect(drawerText).not.toContain('Status atual');
+    expect(drawerText).toContain('Status da atividade');
+    expect(drawerText).toContain('Inative esta atividade caso ela não deva mais ser usada em novas safras.');
+    expect(drawerText).toContain('Inativar atividade produtiva');
+  });
+
+  it('should open confirmation and call inactivate from the edit drawer for active activities', async () => {
+    createPage();
+
+    clickButton('Editar');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+    clickButton('Inativar atividade produtiva');
     expect(getDialogText()).toContain('Inativar atividade produtiva?');
     expect(getDialogText()).toContain(
       'Esta atividade não ficará disponível para novas safras, mas registros existentes serão preservados.',
@@ -309,19 +331,40 @@ describe('ProductionActivitiesPage', () => {
     clickDialogButton('Inativar');
 
     expect(service.inactivate).toHaveBeenCalledWith(1);
+    expect(getPageHarness().drawerOpen()).toBe(false);
     expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva inativada com sucesso.');
     expect(service.list).toHaveBeenCalledTimes(2);
   });
 
-  it('should open confirmation and call activate for inactive activities', () => {
+  it('should show status action without current status card in the edit drawer for inactive activities', async () => {
     createPage();
 
-    clickButton('Ativar');
+    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+
+    const drawerText = getDrawerText();
+    expect(drawerText).not.toContain('Status atual');
+    expect(drawerText).toContain('Status da atividade');
+    expect(drawerText).toContain('Ative esta atividade para que ela volte a ficar disponível para novas safras.');
+    expect(drawerText).toContain('Ativar atividade produtiva');
+  });
+
+  it('should open confirmation and call activate from the edit drawer for inactive activities', async () => {
+    createPage();
+
+    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar');
+    await wait(drawerAnimationDurationMs + 10);
+    fixture.detectChanges();
+    clickButton('Ativar atividade produtiva');
     expect(getDialogText()).toContain('Ativar atividade produtiva?');
-    expect(getDialogText()).toContain('Esta atividade voltará a ficar disponível para novas safras.');
+    expect(getDialogText()).toContain(
+      'Esta atividade voltará a ficar disponível para novas safras.',
+    );
     clickDialogButton('Ativar');
 
     expect(service.activate).toHaveBeenCalledWith(2);
+    expect(getPageHarness().drawerOpen()).toBe(false);
     expect(toastStore.toasts()[0]?.title).toBe('Atividade produtiva ativada com sucesso.');
     expect(service.list).toHaveBeenCalledTimes(2);
   });
@@ -332,7 +375,9 @@ describe('ProductionActivitiesPage', () => {
   }
 
   function setSearch(value: string): void {
-    const input = getListFilters().querySelector<HTMLInputElement>('#filter-search') as HTMLInputElement;
+    const input = getListFilters().querySelector<HTMLInputElement>(
+      '#filter-search',
+    ) as HTMLInputElement;
 
     input.value = value;
     input.dispatchEvent(new Event('input'));
@@ -359,6 +404,13 @@ describe('ProductionActivitiesPage', () => {
 
   function clickButton(label: string): void {
     findButton(label)?.click();
+    fixture.detectChanges();
+  }
+
+  function clickButtonIn(container: HTMLElement, label: string): void {
+    Array.from(container.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === label)
+      ?.click();
     fixture.detectChanges();
   }
 
@@ -391,9 +443,16 @@ describe('ProductionActivitiesPage', () => {
   }
 
   function getDialogText(): string {
-    return (fixture.nativeElement as HTMLElement).querySelector('gd-confirm-dialog [role="dialog"]')
-      ?.textContent ?? '';
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector('gd-confirm-dialog [role="dialog"]')
+        ?.textContent ?? ''
+    );
   }
+
+  function getDrawerText(): string {
+    return getDrawerDialog()?.textContent ?? '';
+  }
+
   function wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }

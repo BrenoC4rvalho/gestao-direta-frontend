@@ -37,6 +37,7 @@ import {
   ListFiltersConfig,
   ListFilterValues,
   Skeleton,
+  StatusActionSection,
 } from '../../shared/ui';
 
 type ProductionActivityStatusFilter = ProductionActivityStatus | null;
@@ -82,6 +83,7 @@ interface StatusConfirmation {
     LucideDynamicIcon,
     ReactiveFormsModule,
     Skeleton,
+    StatusActionSection,
     Textarea,
   ],
   templateUrl: './production-activities-page.html',
@@ -242,7 +244,7 @@ export class ProductionActivitiesPage implements OnInit {
   }
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
-    return Array.isArray(value) ? value[0] ?? null : value ?? null;
+    return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
   }
 
   protected previousPage(): void {
@@ -277,9 +279,14 @@ export class ProductionActivitiesPage implements OnInit {
   }
 
   protected closeDrawer(): void {
-    if (!this.submitting()) {
-      this.drawerOpen.set(false);
+    if (this.submitting()) {
+      return;
     }
+
+    this.drawerOpen.set(false);
+    this.drawerState.set({ mode: 'create', activity: null });
+    this.statusTarget.set(null);
+    this.statusSubmitting.set(false);
   }
 
   protected saveActivity(): void {
@@ -347,7 +354,7 @@ export class ProductionActivitiesPage implements OnInit {
     this.statusSubmitting.set(true);
 
     const activating = target.status === 'INACTIVE';
-    const request$: Observable<unknown> = activating
+    const request$: Observable<ProductionActivity | void> = activating
       ? this.activityService.activate(target.id)
       : this.activityService.inactivate(target.id);
 
@@ -357,13 +364,25 @@ export class ProductionActivitiesPage implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
+        next: (activity) => {
+          if (activity) {
+            this.drawerState.update((state) =>
+              state.activity?.id === activity.id ? { ...state, activity } : state,
+            );
+          } else {
+            this.drawerState.update((state) =>
+              state.activity?.id === target.id
+                ? { ...state, activity: { ...target, status: 'INACTIVE' } }
+                : state,
+            );
+          }
           this.statusTarget.set(null);
           this.toastStore.success(
             activating
               ? 'Atividade produtiva ativada com sucesso.'
               : 'Atividade produtiva inativada com sucesso.',
           );
+          this.closeDrawer();
           this.loadPage(this.currentPage());
         },
         error: (error: unknown) => this.showOperationError(error),
@@ -381,10 +400,6 @@ export class ProductionActivitiesPage implements OnInit {
 
   protected statusVariant(status: ProductionActivityStatus): BadgeVariant {
     return status === 'ACTIVE' ? 'success' : 'danger';
-  }
-
-  protected nextStatusActionLabel(activity: ProductionActivity): string {
-    return activity.status === 'ACTIVE' ? 'Inativar' : 'Ativar';
   }
 
   protected summaryToneClasses(tone: SummaryCard['tone']): string {
