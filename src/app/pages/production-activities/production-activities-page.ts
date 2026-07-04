@@ -26,7 +26,18 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, Input, Textarea } from '../../shared/forms';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import {
+  Badge,
+  BadgeVariant,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  ListFilters,
+  ListFiltersConfig,
+  ListFilterValues,
+  Skeleton,
+} from '../../shared/ui';
 
 type ProductionActivityStatusFilter = ProductionActivityStatus | null;
 type DrawerMode = 'create' | 'edit';
@@ -34,11 +45,6 @@ type DrawerMode = 'create' | 'edit';
 interface ProductionActivityFormControls {
   name: GdFormControl;
   description: GdFormControl;
-}
-
-interface StatusFilterOption {
-  label: string;
-  value: ProductionActivityStatusFilter;
 }
 
 interface SummaryCard {
@@ -72,6 +78,7 @@ interface StatusConfirmation {
     EmptyState,
     ErrorState,
     Input,
+    ListFilters,
     LucideDynamicIcon,
     ReactiveFormsModule,
     Skeleton,
@@ -89,7 +96,6 @@ export class ProductionActivitiesPage implements OnInit {
   private readonly searchTerm = signal('');
   private readonly selectedStatus = signal<ProductionActivityStatusFilter>(null);
 
-  protected readonly searchControl: GdFormControl = new FormControl('');
   protected readonly response = signal<PageResponse<ProductionActivity> | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
@@ -99,11 +105,21 @@ export class ProductionActivitiesPage implements OnInit {
   protected readonly statusTarget = signal<ProductionActivity | null>(null);
   protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
-  protected readonly statusFilters: readonly StatusFilterOption[] = [
-    { label: 'Todas', value: null },
-    { label: 'Ativas', value: 'ACTIVE' },
-    { label: 'Inativas', value: 'INACTIVE' },
-  ];
+  protected readonly filtersConfig: ListFiltersConfig = {
+    subtitle: 'Busque e filtre atividades produtivas',
+    search: { placeholder: 'Buscar por nome ou descrição' },
+    quickFilters: [
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todas', value: null },
+          { label: 'Ativas', value: 'ACTIVE' },
+          { label: 'Inativas', value: 'INACTIVE' },
+        ],
+      },
+    ],
+  };
 
   protected readonly form = new FormGroup<ProductionActivityFormControls>({
     name: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
@@ -207,12 +223,6 @@ export class ProductionActivitiesPage implements OnInit {
         };
   });
 
-  constructor() {
-    this.searchControl.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((value) => this.searchTerm.set(String(value ?? '').trim()));
-  }
-
   ngOnInit(): void {
     if (this.sessionStore.isAdmin()) {
       this.loadPage(0);
@@ -223,13 +233,16 @@ export class ProductionActivitiesPage implements OnInit {
     this.loadPage(this.currentPage());
   }
 
-  protected selectStatus(status: ProductionActivityStatusFilter): void {
+  protected changeFilters(filters: ListFilterValues): void {
+    const status = this.firstFilterValue(filters['status']) as ProductionActivityStatusFilter;
+
+    this.searchTerm.set(this.firstFilterValue(filters['search']) ?? '');
     this.selectedStatus.set(status);
     this.loadPage(0);
   }
 
-  protected isSelectedStatus(status: ProductionActivityStatusFilter): boolean {
-    return this.selectedStatus() === status;
+  private firstFilterValue(value: string | string[] | null | undefined): string | null {
+    return Array.isArray(value) ? value[0] ?? null : value ?? null;
   }
 
   protected previousPage(): void {

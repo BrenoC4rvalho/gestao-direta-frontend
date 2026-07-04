@@ -41,7 +41,18 @@ import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select, Textarea } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import {
+  Badge,
+  BadgeVariant,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  ListFilters,
+  ListFiltersConfig,
+  ListFilterValues,
+  Skeleton,
+} from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
   numberToBrazilianMoney,
@@ -63,11 +74,6 @@ interface HarvestFormControls {
   expectedRevenue: GdFormControl;
   areaHectares: GdFormControl;
   status: GdFormControl;
-}
-
-interface HarvestStatusFilterOption {
-  label: string;
-  value: HarvestStatusFilter;
 }
 
 interface HarvestSummaryCard {
@@ -96,6 +102,7 @@ interface DrawerState {
     EmptyState,
     ErrorState,
     Input,
+    ListFilters,
     LucideDynamicIcon,
     ReactiveFormsModule,
     RouterLink,
@@ -121,7 +128,6 @@ export class HarvestsPage {
   private readonly reloadTrigger = signal(0);
   private currentFarmId: number | null = null;
 
-  protected readonly searchControl: GdFormControl = new FormControl('');
   protected readonly response = signal<PageResponse<HarvestSeasonSummaryListItem> | null>(null);
   protected readonly productionActivities = signal<ProductionActivity[]>([]);
   protected readonly loading = signal(false);
@@ -134,13 +140,23 @@ export class HarvestsPage {
   protected readonly deleteSubmitting = signal(false);
   protected readonly activatingHarvestId = signal<number | null>(null);
   protected readonly skeletons = [1, 2, 3, 4];
-  protected readonly statusFilters: readonly HarvestStatusFilterOption[] = [
-    { label: 'Todas', value: 'ALL' },
-    { label: 'Planejadas', value: 'PLANNED' },
-    { label: 'Em andamento', value: 'IN_PROGRESS' },
-    { label: 'Encerradas', value: 'FINISHED' },
-    { label: 'Inativas', value: 'INACTIVE' },
-  ];
+  protected readonly filtersConfig: ListFiltersConfig = {
+    subtitle: 'Busque e filtre safras da fazenda selecionada.',
+    search: { placeholder: 'Buscar por nome ou atividade' },
+    quickFilters: [
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todas', value: null },
+          { label: 'Planejadas', value: 'PLANNED' },
+          { label: 'Em andamento', value: 'IN_PROGRESS' },
+          { label: 'Encerradas', value: 'FINISHED' },
+          { label: 'Inativas', value: 'INACTIVE' },
+        ],
+      },
+    ],
+  };
   protected readonly statusOptions: readonly GdSelectOption[] = [
     { label: 'Planejada', value: 'PLANNED' },
     { label: 'Em andamento', value: 'IN_PROGRESS' },
@@ -257,10 +273,6 @@ export class HarvestsPage {
   );
 
   constructor() {
-    this.searchControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
-      this.searchTerm.set(String(value ?? '').trim());
-      this.response.set(null);
-    });
     this.bindMoneySanitizer(this.form.controls.expectedCost);
     this.bindMoneySanitizer(this.form.controls.expectedRevenue);
 
@@ -315,13 +327,16 @@ export class HarvestsPage {
     this.reloadTrigger.update((value) => value + 1);
   }
 
-  protected selectStatus(status: HarvestStatusFilter): void {
-    this.selectedStatus.set(status);
+  protected changeFilters(filters: ListFilterValues): void {
+    const status = this.firstFilterValue(filters['status']) as HarvestSeasonStatus | null;
+
+    this.searchTerm.set(this.firstFilterValue(filters['search']) ?? '');
+    this.selectedStatus.set(status ?? 'ALL');
     this.response.set(null);
   }
 
-  protected isSelectedStatus(status: HarvestStatusFilter): boolean {
-    return this.selectedStatus() === status;
+  private firstFilterValue(value: string | string[] | null | undefined): string | null {
+    return Array.isArray(value) ? value[0] ?? null : value ?? null;
   }
 
   protected previousPage(): void {
@@ -708,7 +723,6 @@ export class HarvestsPage {
   }
 
   private resetFiltersForFarmChange(): void {
-    this.searchControl.setValue('', { emitEvent: false });
     this.searchTerm.set('');
     this.selectedStatus.set('ALL');
     this.response.set(null);

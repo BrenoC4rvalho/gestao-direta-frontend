@@ -5,6 +5,13 @@
       description="Você não tem permissão para gerenciar atividades produtivas."
     />
   } @else {
+    <div class="flex justify-end">
+      <gd-button type="button" class="w-full sm:w-auto" [fullWidth]="true" (click)="openCreateDrawer()">
+        <svg lucideIcon="plus" class="size-4" aria-hidden="true"></svg>
+        Nova atividade produtiva
+      </gd-button>
+    </div>
+
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo de atividades produtivas">
       @for (card of summaryCards(); track card.label) {
         <gd-card padding="lg">
@@ -27,52 +34,11 @@
       }
     </div>
 
-    <gd-card>
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-text-primary">Filtros</h2>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
-            Busque e filtre atividades produtivas
-          </p>
-        </div>
-
-        <gd-button type="button" class="w-full sm:w-auto" [fullWidth]="true" (click)="openCreateDrawer()">
-          <svg lucideIcon="plus" class="size-4" aria-hidden="true"></svg>
-          Nova atividade produtiva
-        </gd-button>
-      </div>
-
-      <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_18rem] lg:items-end">
-        <gd-input
-          id="production-activity-search"
-          label="Busca"
-          type="search"
-          placeholder="Buscar por nome ou descrição"
-          [control]="searchControl"
-          autocomplete="off"
-        />
-
-        <div>
-          <p class="mb-2 text-sm font-medium text-text-primary">Status</p>
-          <div class="flex flex-wrap gap-2" aria-label="Filtros por status da atividade produtiva">
-            @for (filter of statusFilters; track filter.label) {
-              <button
-                type="button"
-                [attr.aria-pressed]="isSelectedStatus(filter.value)"
-                [class]="
-                  isSelectedStatus(filter.value)
-                    ? 'inline-flex min-h-9 items-center rounded-full border border-primary bg-primary px-3 text-sm font-semibold text-white transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary'
-                    : 'inline-flex min-h-9 items-center rounded-full border border-border bg-surface px-3 text-sm font-semibold text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary'
-                "
-                (click)="selectStatus(filter.value)"
-              >
-                {{ filter.label }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-    </gd-card>
+    <gd-list-filters
+      [config]="filtersConfig"
+      [quickFiltersApplyOnChange]="true"
+      (filtersChange)="changeFilters($event)"
+    />
 
     @if (loading()) {
       <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando atividades produtivas">

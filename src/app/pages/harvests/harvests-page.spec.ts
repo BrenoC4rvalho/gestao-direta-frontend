@@ -232,6 +232,7 @@ describe('HarvestsPage', () => {
     expect(harvestService.list).not.toHaveBeenCalled();
     expect(productionActivityService.listActive).toHaveBeenCalled();
     expect(text()).toContain('Safras');
+    expect(getListFilters().textContent).not.toContain('Nova safra');
     expect(text()).toContain('Safra Soja 2026');
     expect(text()).toContain('Safras ativas');
     expect(text()).toContain('114.500,00');
@@ -339,10 +340,9 @@ describe('HarvestsPage', () => {
 
   it('should reload harvest summaries when searching', () => {
     setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & { searchControl: any };
 
-    component.searchControl.setValue('soja');
-    fixture.detectChanges();
+    setFilterInput('#filter-search', 'soja');
+    clickFilterButton('Aplicar filtros');
 
     expect(harvestService.listSummary).toHaveBeenLastCalledWith({
       farmId: 10,
@@ -536,6 +536,28 @@ describe('HarvestsPage', () => {
       error: () => boolean;
       response: () => PageResponse<HarvestSeasonSummaryListItem> | null;
     };
+  }
+
+
+  function getListFilters(): HTMLElement {
+    return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
+  }
+
+  function setFilterInput(selector: string, value: string): void {
+    const input = getListFilters().querySelector<HTMLInputElement>(selector) as HTMLInputElement;
+
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function clickFilterButton(label: string): void {
+    const button = Array.from(getListFilters().querySelectorAll('button')).find(
+      (item) => item.getAttribute('aria-label') === label || item.getAttribute('title') === label,
+    );
+
+    button?.click();
+    fixture.detectChanges();
   }
 
   function clickButton(label: string): void {

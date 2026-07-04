@@ -142,6 +142,7 @@ describe('ProductionActivitiesPage', () => {
     expect(text).toContain('Soja');
     expect(text).toContain('Cultura anual de grãos');
     expect(text).toContain('Gado de leite');
+    expect(getListFilters().textContent).not.toContain('Nova atividade produtiva');
     expect(text).toContain('Ativa');
     expect(text).toContain('Inativa');
   });
@@ -331,11 +332,23 @@ describe('ProductionActivitiesPage', () => {
   }
 
   function setSearch(value: string): void {
-    const component = fixture.componentInstance as unknown as {
-      searchControl: { setValue(value: string): void };
-    };
+    const input = getListFilters().querySelector<HTMLInputElement>('#filter-search') as HTMLInputElement;
 
-    component.searchControl.setValue(value);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    clickFilterButton('Aplicar filtros');
+  }
+
+  function getListFilters(): HTMLElement {
+    return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
+  }
+
+  function clickFilterButton(label: string): void {
+    const button = Array.from(getListFilters().querySelectorAll('button')).find(
+      (item) => item.getAttribute('aria-label') === label || item.getAttribute('title') === label,
+    );
+
+    button?.click();
     fixture.detectChanges();
   }
 
