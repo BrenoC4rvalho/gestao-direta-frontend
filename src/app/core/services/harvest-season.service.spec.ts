@@ -7,6 +7,7 @@ import {
   CreateHarvestSeasonRequest,
   HarvestSeason,
   HarvestSeasonSummary,
+  HarvestSeasonSummaryListItem,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -68,6 +69,30 @@ const response: PageResponse<HarvestSeason> = {
   last: true,
 };
 
+const summaryListItem: HarvestSeasonSummaryListItem = {
+  ...season,
+  expectedProfit: 60000,
+  realizedCost: 72500,
+  realizedRevenue: 150000,
+  realizedProfit: 77500,
+  pendingExpenses: 18000,
+  overdueExpenses: 6000,
+  pendingRevenue: 25000,
+  transactionCount: 6,
+  incomeCount: 3,
+  expenseCount: 3,
+};
+
+const summaryListResponse: PageResponse<HarvestSeasonSummaryListItem> = {
+  content: [summaryListItem],
+  page: 0,
+  size: 10,
+  totalElements: 1,
+  totalPages: 1,
+  first: true,
+  last: true,
+};
+
 describe('HarvestSeasonService', () => {
   let service: HarvestSeasonService;
   let http: HttpTestingController;
@@ -111,6 +136,58 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.get('direction')).toBe('DESC');
     expect(request.request.withCredentials).toBe(true);
     request.flush(response);
+  });
+
+  it('should call GET /api/harvest/seasons/summary-list with supported params', () => {
+    service
+      .listSummary({
+        farmId: 10,
+        search: ' soja ',
+        status: 'IN_PROGRESS',
+        page: 2,
+        size: 20,
+        sort: 'startDate',
+        direction: 'DESC',
+      })
+      .subscribe((result) => expect(result).toEqual(summaryListResponse));
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/summary-list`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
+    expect(request.request.params.get('search')).toBe('soja');
+    expect(request.request.params.get('status')).toBe('IN_PROGRESS');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('size')).toBe('20');
+    expect(request.request.params.get('sort')).toBe('startDate');
+    expect(request.request.params.get('direction')).toBe('DESC');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(summaryListResponse);
+  });
+
+  it('should omit empty optional params when listing harvest season summaries', () => {
+    service
+      .listSummary({
+        farmId: 10,
+        search: ' ',
+        status: null,
+        page: 0,
+        size: undefined,
+        sort: '',
+        direction: undefined,
+      })
+      .subscribe((result) => expect(result).toEqual(summaryListResponse));
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/summary-list`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
+    expect(request.request.params.get('page')).toBe('0');
+    expect(request.request.params.has('search')).toBe(false);
+    expect(request.request.params.has('status')).toBe(false);
+    expect(request.request.params.has('size')).toBe(false);
+    expect(request.request.params.has('sort')).toBe(false);
+    expect(request.request.params.has('direction')).toBe(false);
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(summaryListResponse);
   });
 
   it('should omit empty params when listing harvest seasons', () => {

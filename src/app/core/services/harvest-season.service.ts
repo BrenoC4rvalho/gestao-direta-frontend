@@ -10,6 +10,8 @@ import {
   HarvestSeasonListParams,
   HarvestSeasonStatus,
   HarvestSeasonSummary,
+  HarvestSeasonSummaryListItem,
+  HarvestSeasonSummaryListParams,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -24,6 +26,15 @@ export class HarvestSeasonService {
   list(params?: HarvestSeasonListParams): Observable<PageResponse<HarvestSeason>> {
     return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, {
       params: this.buildParams(params),
+    });
+  }
+
+  listSummary(
+    params: HarvestSeasonSummaryListParams,
+  ): Observable<PageResponse<HarvestSeasonSummaryListItem>> {
+    return this.http.get<PageResponse<HarvestSeasonSummaryListItem>>(this.apiUrl + '/summary-list', {
+      params: this.buildSummaryParams(params),
+      withCredentials: true,
     });
   }
 
@@ -64,11 +75,31 @@ export class HarvestSeasonService {
 
     httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
     httpParams = appendQueryParam(httpParams, 'includeInactive', params.includeInactive);
-    httpParams = appendQueryParam(httpParams, 'page', params.page);
-    httpParams = appendQueryParam(httpParams, 'size', params.size);
-    httpParams = appendQueryParam(httpParams, 'sort', params.sort);
-    httpParams = appendQueryParam(httpParams, 'direction', params.direction);
+    httpParams = this.appendPageParams(httpParams, params);
 
     return httpParams;
+  }
+
+  private buildSummaryParams(params: HarvestSeasonSummaryListParams): HttpParams {
+    let httpParams = new HttpParams();
+
+    httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
+    httpParams = appendQueryParam(httpParams, 'search', params.search);
+    httpParams = appendQueryParam(httpParams, 'status', params.status);
+    httpParams = this.appendPageParams(httpParams, params);
+
+    return httpParams;
+  }
+
+  private appendPageParams(
+    httpParams: HttpParams,
+    params: HarvestSeasonListParams | HarvestSeasonSummaryListParams,
+  ): HttpParams {
+    let nextParams = appendQueryParam(httpParams, 'page', params.page);
+    nextParams = appendQueryParam(nextParams, 'size', params.size);
+    nextParams = appendQueryParam(nextParams, 'sort', params.sort);
+    nextParams = appendQueryParam(nextParams, 'direction', params.direction);
+
+    return nextParams;
   }
 }

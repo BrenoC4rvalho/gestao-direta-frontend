@@ -25,8 +25,9 @@ import { concatMap, finalize, forkJoin, of } from 'rxjs';
 import {
   CreateHarvestSeasonRequest,
   HarvestSeason,
-  HarvestSeasonListParams,
   HarvestSeasonStatus,
+  HarvestSeasonSummaryListItem,
+  HarvestSeasonSummaryListParams,
   UpdateHarvestSeasonRequest,
 } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
@@ -80,7 +81,7 @@ interface HarvestSummaryCard {
 
 interface DrawerState {
   mode: DrawerMode;
-  harvest: HarvestSeason | null;
+  harvest: HarvestSeasonSummaryListItem | null;
 }
 
 @Component({
@@ -121,7 +122,7 @@ export class HarvestsPage {
   private currentFarmId: number | null = null;
 
   protected readonly searchControl: GdFormControl = new FormControl('');
-  protected readonly response = signal<PageResponse<HarvestSeason> | null>(null);
+  protected readonly response = signal<PageResponse<HarvestSeasonSummaryListItem> | null>(null);
   protected readonly productionActivities = signal<ProductionActivity[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
@@ -129,7 +130,7 @@ export class HarvestsPage {
   protected readonly drawerOpen = signal(false);
   protected readonly drawerState = signal<DrawerState>({ mode: 'create', harvest: null });
   protected readonly submitting = signal(false);
-  protected readonly deleteTarget = signal<HarvestSeason | null>(null);
+  protected readonly deleteTarget = signal<HarvestSeasonSummaryListItem | null>(null);
   protected readonly deleteSubmitting = signal(false);
   protected readonly activatingHarvestId = signal<number | null>(null);
   protected readonly skeletons = [1, 2, 3, 4];
@@ -165,22 +166,7 @@ export class HarvestsPage {
   protected readonly activityOptions = computed<readonly GdSelectOption[]>(() =>
     this.productionActivities().map((activity) => ({ label: activity.name, value: activity.id })),
   );
-  protected readonly filteredHarvests = computed(() => {
-    const search = this.normalizeText(this.searchTerm());
-    const status = this.selectedStatus();
-    const seasons = this.response()?.content ?? [];
-
-    return seasons.filter((harvest) => {
-      const matchesSearch =
-        !search ||
-        this.normalizeText(harvest.name).includes(search) ||
-        this.normalizeText(harvest.productionActivityName).includes(search) ||
-        this.normalizeText(harvest.description ?? '').includes(search);
-      const matchesStatus = status === 'ALL' || harvest.status === status;
-
-      return matchesSearch && matchesStatus;
-    });
-  });
+  protected readonly harvests = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly hasActiveFilters = computed(
     () => this.selectedStatus() !== 'ALL' || this.searchTerm().length > 0,
@@ -222,9 +208,9 @@ export class HarvestsPage {
     const activeSeasons = harvests.filter(
       (harvest) => harvest.status === 'PLANNED' || harvest.status === 'IN_PROGRESS',
     ).length;
-    const totalCost = harvests.reduce((total, harvest) => total + (harvest.expectedCost ?? 0), 0);
-    const expectedRevenue = harvests.reduce((total, harvest) => total + (harvest.expectedRevenue ?? 0), 0);
-    const estimatedProfit = expectedRevenue - totalCost;
+    const realizedCost = harvests.reduce((total, harvest) => total + (harvest.realizedCost ?? 0), 0);
+    const realizedRevenue = harvests.reduce((total, harvest) => total + (harvest.realizedRevenue ?? 0), 0);
+    const realizedProfit = harvests.reduce((total, harvest) => total + (harvest.realizedProfit ?? 0), 0);
 
     return [
       {
@@ -236,25 +222,25 @@ export class HarvestsPage {
         currency: false,
       },
       {
-        label: 'Custo previsto',
-        value: totalCost,
-        subtext: 'Custo previsto consolidado',
+        label: 'Custo realizado',
+        value: realizedCost,
+        subtext: 'Despesas pagas nas safras',
         icon: 'briefcase-business',
         tone: 'warning',
         currency: true,
       },
       {
-        label: 'Receita prevista',
-        value: expectedRevenue,
-        subtext: 'Receita esperada nas safras',
+        label: 'Receita realizada',
+        value: realizedRevenue,
+        subtext: 'Receitas pagas nas safras',
         icon: 'trending-up',
         tone: 'success',
         currency: true,
       },
       {
-        label: 'Lucro previsto',
-        value: estimatedProfit,
-        subtext: 'Receita prevista menos custo',
+        label: 'Lucro realizado',
+        value: realizedProfit,
+        subtext: 'Receita realizada menos custo',
         icon: 'chart-no-axes-combined',
         tone: 'info',
         currency: true,
@@ -273,6 +259,7 @@ export class HarvestsPage {
   constructor() {
     this.searchControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
       this.searchTerm.set(String(value ?? '').trim());
+      this.response.set(null);
     });
     this.bindMoneySanitizer(this.form.controls.expectedCost);
     this.bindMoneySanitizer(this.form.controls.expectedRevenue);
@@ -308,7 +295,7 @@ export class HarvestsPage {
       this.loading.set(true);
 
       const subscription = forkJoin({
-        response: this.harvestService.list(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE)),
+        response: this.harvestService.listSummary(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE)),
         activities: this.productionActivityService.listActive(),
       })
         .pipe(finalize(() => this.loading.set(false)))
@@ -329,8 +316,8 @@ export class HarvestsPage {
   }
 
   protected selectStatus(status: HarvestStatusFilter): void {
-    // TODO: migrar busca e status para parametros do backend quando a listagem de safras expuser filtros.
     this.selectedStatus.set(status);
+    this.response.set(null);
   }
 
   protected isSelectedStatus(status: HarvestStatusFilter): boolean {
@@ -374,7 +361,7 @@ export class HarvestsPage {
     this.drawerOpen.set(true);
   }
 
-  protected openEditDrawer(harvest: HarvestSeason): void {
+  protected openEditDrawer(harvest: HarvestSeasonSummaryListItem): void {
     if (!this.canManageHarvests()) {
       this.showPermissionError();
       return;
@@ -382,10 +369,10 @@ export class HarvestsPage {
 
     this.drawerState.set({ mode: 'edit', harvest });
     this.form.reset({
-      productionActivityId: harvest.productionActivityId,
+      productionActivityId: harvest.productionActivityId ?? '',
       name: harvest.name,
       description: harvest.description ?? '',
-      startDate: harvest.startDate,
+      startDate: harvest.startDate ?? '',
       endDate: harvest.endDate ?? '',
       expectedCost: numberToBrazilianMoney(harvest.expectedCost),
       expectedRevenue: numberToBrazilianMoney(harvest.expectedRevenue),
@@ -461,7 +448,7 @@ export class HarvestsPage {
       });
   }
 
-  protected requestInactivate(harvest: HarvestSeason): void {
+  protected requestInactivate(harvest: HarvestSeasonSummaryListItem): void {
     if (!this.canManageHarvests()) {
       this.showPermissionError();
       return;
@@ -471,7 +458,7 @@ export class HarvestsPage {
   }
 
 
-  protected activateHarvest(harvest: HarvestSeason): void {
+  protected activateHarvest(harvest: HarvestSeasonSummaryListItem): void {
     if (!this.canManageHarvests()) {
       this.showPermissionError();
       return;
@@ -562,14 +549,26 @@ export class HarvestsPage {
     return tones[tone];
   }
 
-  protected periodLabel(harvest: HarvestSeason): string {
+  protected periodLabel(harvest: HarvestSeasonSummaryListItem): string {
+    if (!harvest.startDate) {
+      return 'Sem periodo definido';
+    }
+
     const endDate = harvest.endDate ? this.formatDate(harvest.endDate) : 'Sem data final';
 
     return `${this.formatDate(harvest.startDate)} a ${endDate}`;
   }
 
-  protected estimatedProfit(harvest: HarvestSeason): number {
-    return (harvest.expectedRevenue ?? 0) - (harvest.expectedCost ?? 0);
+  protected estimatedProfit(harvest: HarvestSeasonSummaryListItem): number {
+    return harvest.expectedProfit ?? (harvest.expectedRevenue ?? 0) - (harvest.expectedCost ?? 0);
+  }
+
+  protected realizedProfitClass(harvest: HarvestSeasonSummaryListItem): string {
+    return (harvest.realizedProfit ?? 0) < 0 ? 'text-danger' : 'text-success';
+  }
+
+  protected areaLabel(harvest: HarvestSeasonSummaryListItem): string {
+    return harvest.areaHectares === null || harvest.areaHectares === undefined ? '—' : `${harvest.areaHectares} ha`;
   }
 
   protected formatDate(date: string): string {
@@ -605,7 +604,7 @@ export class HarvestsPage {
     this.loading.set(true);
 
     this.harvestService
-      .list(this.listParams(farmId, page, this.response()?.size ?? DEFAULT_PAGE_SIZE))
+      .listSummary(this.listParams(farmId, page, this.response()?.size ?? DEFAULT_PAGE_SIZE))
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -616,10 +615,13 @@ export class HarvestsPage {
       });
   }
 
-  private listParams(farmId: number, page: number, size: number): HarvestSeasonListParams {
+  private listParams(farmId: number, page: number, size: number): HarvestSeasonSummaryListParams {
+    const status = this.selectedStatus();
+
     return {
       farmId,
-      includeInactive: true,
+      search: this.searchTerm(),
+      status: status === 'ALL' ? null : status,
       page,
       size,
       sort: 'startDate',
@@ -643,7 +645,6 @@ export class HarvestsPage {
       areaHectares: this.numberValue(this.form.controls.areaHectares.value),
     };
   }
-
 
   private updateSavedStatus(
     id: number,
@@ -705,7 +706,6 @@ export class HarvestsPage {
     this.accessDenied.set(false);
     this.loading.set(false);
   }
-
 
   private resetFiltersForFarmChange(): void {
     this.searchControl.setValue('', { emitEvent: false });
@@ -798,10 +798,4 @@ export class HarvestsPage {
     return `${value ?? ''}`.trim();
   }
 
-  private normalizeText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-  }
 }

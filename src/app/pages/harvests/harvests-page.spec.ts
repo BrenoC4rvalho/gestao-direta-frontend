@@ -5,7 +5,11 @@ import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { Farm } from '../../core/models/farm.models';
-import { HarvestSeason, HarvestSeasonListParams } from '../../core/models/harvest-season.models';
+import {
+  HarvestSeason,
+  HarvestSeasonSummaryListItem,
+  HarvestSeasonSummaryListParams,
+} from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
@@ -51,7 +55,7 @@ const activities: ProductionActivity[] = [
   },
 ];
 
-const seasons: HarvestSeason[] = [
+const seasons: HarvestSeasonSummaryListItem[] = [
   {
     id: 1,
     farmId: 10,
@@ -66,6 +70,16 @@ const seasons: HarvestSeason[] = [
     expectedCost: 90000,
     areaHectares: 120.5,
     status: 'PLANNED',
+    expectedProfit: 60000,
+    realizedCost: 72500,
+    realizedRevenue: 150000,
+    realizedProfit: 77500,
+    pendingExpenses: 18000,
+    overdueExpenses: 6000,
+    pendingRevenue: 25000,
+    transactionCount: 6,
+    incomeCount: 3,
+    expenseCount: 3,
   },
   {
     id: 2,
@@ -81,6 +95,16 @@ const seasons: HarvestSeason[] = [
     expectedCost: 40000,
     areaHectares: 80,
     status: 'IN_PROGRESS',
+    expectedProfit: 40000,
+    realizedCost: 30000,
+    realizedRevenue: 65000,
+    realizedProfit: 35000,
+    pendingExpenses: 5000,
+    overdueExpenses: 1000,
+    pendingRevenue: 7000,
+    transactionCount: 4,
+    incomeCount: 2,
+    expenseCount: 2,
   },
 
   {
@@ -97,10 +121,20 @@ const seasons: HarvestSeason[] = [
     expectedCost: 10000,
     areaHectares: null,
     status: 'INACTIVE',
+    expectedProfit: 30000,
+    realizedCost: 12000,
+    realizedRevenue: 8000,
+    realizedProfit: -4000,
+    pendingExpenses: 2000,
+    overdueExpenses: 500,
+    pendingRevenue: 0,
+    transactionCount: 2,
+    incomeCount: 1,
+    expenseCount: 1,
   },
 ];
 
-const response: PageResponse<HarvestSeason> = {
+const response: PageResponse<HarvestSeasonSummaryListItem> = {
   content: seasons,
   page: 0,
   size: 10,
@@ -110,7 +144,7 @@ const response: PageResponse<HarvestSeason> = {
   last: true,
 };
 
-const emptyResponse: PageResponse<HarvestSeason> = {
+const emptyResponse: PageResponse<HarvestSeasonSummaryListItem> = {
   content: [],
   page: 0,
   size: 10,
@@ -124,6 +158,7 @@ describe('HarvestsPage', () => {
   let fixture: ComponentFixture<HarvestsPage>;
   let harvestService: {
     list: Mock;
+    listSummary: Mock;
     create: Mock;
     update: Mock;
     updateStatus: Mock;
@@ -138,10 +173,11 @@ describe('HarvestsPage', () => {
   beforeEach(async () => {
     harvestService = {
       list: vi.fn(() => of(response)),
-      create: vi.fn(() => of(seasons[0])),
-      update: vi.fn(() => of(seasons[0])),
-      updateStatus: vi.fn(() => of({ ...seasons[0], status: 'IN_PROGRESS' })),
-      activate: vi.fn(() => of({ ...seasons[2], status: 'PLANNED' })),
+      listSummary: vi.fn(() => of(response)),
+      create: vi.fn(() => of(seasons[0] as HarvestSeason)),
+      update: vi.fn(() => of(seasons[0] as HarvestSeason)),
+      updateStatus: vi.fn(() => of({ ...(seasons[0] as HarvestSeason), status: 'IN_PROGRESS' })),
+      activate: vi.fn(() => of({ ...(seasons[2] as HarvestSeason), status: 'PLANNED' })),
       inactivate: vi.fn(() => of(undefined)),
     };
     productionActivityService = {
@@ -174,6 +210,7 @@ describe('HarvestsPage', () => {
     fixture = TestBed.createComponent(HarvestsPage);
     fixture.detectChanges();
 
+    expect(harvestService.listSummary).not.toHaveBeenCalled();
     expect(harvestService.list).not.toHaveBeenCalled();
     expect(productionActivityService.listActive).not.toHaveBeenCalled();
     expect(componentState().loading()).toBe(false);
@@ -183,20 +220,22 @@ describe('HarvestsPage', () => {
   it('should load harvest seasons and production activities for the selected farm', () => {
     setupSelectedFarm('PRODUCER');
 
-    expect(harvestService.list).toHaveBeenCalledWith({
+    expect(harvestService.listSummary).toHaveBeenCalledWith({
       farmId: 10,
-      includeInactive: true,
+      search: '',
+      status: null,
       page: 0,
       size: 10,
       sort: 'startDate',
       direction: 'DESC',
     });
+    expect(harvestService.list).not.toHaveBeenCalled();
     expect(productionActivityService.listActive).toHaveBeenCalled();
     expect(text()).toContain('Safras');
     expect(text()).toContain('Safra Soja 2026');
     expect(text()).toContain('Safras ativas');
-    expect(text()).toContain('270.000,00');
-    expect(text()).toContain('130.000,00');
+    expect(text()).toContain('114.500,00');
+    expect(text()).toContain('108.500,00');
   });
 
   it('should finish loading after a successful PageResponse and avoid reloading in a loop', () => {
@@ -207,11 +246,11 @@ describe('HarvestsPage', () => {
 
     fixture.detectChanges();
 
-    expect(harvestService.list).toHaveBeenCalledTimes(1);
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(1);
   });
 
   it('should show an empty state when the selected farm has no harvest seasons', () => {
-    harvestService.list.mockReturnValueOnce(of(emptyResponse));
+    harvestService.listSummary.mockReturnValueOnce(of(emptyResponse));
 
     setupSelectedFarm('PRODUCER');
 
@@ -219,8 +258,26 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Nenhuma safra cadastrada.');
   });
 
+  it('should render financial summary data from the summary list response', () => {
+    setupSelectedFarm('PRODUCER');
+
+    const content = text();
+
+    expect(content).toContain('Custo realizado');
+    expect(content).toContain('Receita realizada');
+    expect(content).toContain('Lucro realizado');
+    expect(content).toContain('Resultado financeiro');
+    expect(content).toContain('Pendencias e movimentacoes');
+    expect(content).toContain('72.500,00');
+    expect(content).toContain('150.000,00');
+    expect(content).toContain('77.500,00');
+    expect(content).toContain('18.000,00');
+    expect(content).toContain('6.000,00');
+    expect(content).toContain('6');
+  });
+
   it('should show an error state and finish loading when the API fails', () => {
-    harvestService.list.mockReturnValueOnce(throwError(() => new Error('list failed')));
+    harvestService.listSummary.mockReturnValueOnce(throwError(() => new Error('list failed')));
 
     setupSelectedFarm('PRODUCER');
 
@@ -230,7 +287,7 @@ describe('HarvestsPage', () => {
   });
 
   it('should clear stale harvests and reload when the selected farm changes', () => {
-    const secondFarmSeason: HarvestSeason = {
+    const secondFarmSeason: HarvestSeasonSummaryListItem = {
       ...seasons[0],
       id: 20,
       farmId: 20,
@@ -238,7 +295,7 @@ describe('HarvestsPage', () => {
       name: 'Safra Milho Santa Clara',
     };
 
-    harvestService.list.mockImplementation((params: HarvestSeasonListParams) =>
+    harvestService.listSummary.mockImplementation((params: HarvestSeasonSummaryListParams) =>
       of(params.farmId === 20 ? { ...response, content: [secondFarmSeason], totalElements: 1 } : response),
     );
 
@@ -250,9 +307,10 @@ describe('HarvestsPage', () => {
     selectedFarmStore.selectFarmById(20);
     fixture.detectChanges();
 
-    expect(harvestService.list).toHaveBeenLastCalledWith({
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
       farmId: 20,
-      includeInactive: true,
+      search: '',
+      status: null,
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -263,16 +321,38 @@ describe('HarvestsPage', () => {
     expect(text()).not.toContain('Safra Soja 2026');
   });
 
-  it('should filter the loaded page locally by status', () => {
+  it('should reload harvest summaries when filtering by status', () => {
     setupSelectedFarm('PRODUCER');
-
-    const initialCalls = harvestService.list.mock.calls.length;
 
     clickButton('Em andamento');
 
-    expect(text()).toContain('Safra Soja Inverno');
-    expect(text()).not.toContain('Safra Soja 2026');
-    expect(harvestService.list).toHaveBeenCalledTimes(initialCalls);
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
+      status: 'IN_PROGRESS',
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+  });
+
+  it('should reload harvest summaries when searching', () => {
+    setupSelectedFarm('PRODUCER');
+    const component = fixture.componentInstance as unknown as HarvestsPage & { searchControl: any };
+
+    component.searchControl.setValue('soja');
+    fixture.detectChanges();
+
+    expect(harvestService.listSummary).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: 'soja',
+      status: null,
+      page: 0,
+      size: 10,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
   });
 
   it('should render detail links for each harvest', () => {
@@ -299,7 +379,11 @@ describe('HarvestsPage', () => {
 
   it('should create a harvest season from the drawer form', () => {
     setupSelectedFarm('PRODUCER');
-    const component = fixture.componentInstance as unknown as HarvestsPage & { openCreateDrawer(): void; form: any; saveHarvest(): void };
+    const component = fixture.componentInstance as unknown as HarvestsPage & {
+      openCreateDrawer(): void;
+      form: any;
+      saveHarvest(): void;
+    };
 
     component.openCreateDrawer();
     component.form.setValue({
@@ -313,7 +397,9 @@ describe('HarvestsPage', () => {
       areaHectares: 30,
       status: 'PLANNED',
     });
+    const initialCalls = harvestService.listSummary.mock.calls.length;
     component.saveHarvest();
+    fixture.detectChanges();
 
     expect(harvestService.create).toHaveBeenCalledWith({
       farmId: 10,
@@ -326,65 +412,77 @@ describe('HarvestsPage', () => {
       expectedRevenue: 20000.75,
       areaHectares: 30,
     });
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
 
   it('should update a harvest and status when editing', () => {
     setupSelectedFarm('PRODUCER');
     const component = fixture.componentInstance as unknown as HarvestsPage & {
-      openEditDrawer(harvest: HarvestSeason): void;
+      openEditDrawer(harvest: HarvestSeasonSummaryListItem): void;
       form: any;
       saveHarvest(): void;
     };
 
     component.openEditDrawer(seasons[0]);
     component.form.patchValue({ name: 'Safra Editada', status: 'IN_PROGRESS' });
+    const initialCalls = harvestService.listSummary.mock.calls.length;
     component.saveHarvest();
+    fixture.detectChanges();
 
     expect(harvestService.update).toHaveBeenCalledWith(
       1,
       expect.objectContaining({ name: 'Safra Editada', productionActivityId: 2 }),
     );
     expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
-
 
   it('should activate an inactive harvest from the list', () => {
     setupSelectedFarm('PRODUCER');
     const component = fixture.componentInstance as unknown as HarvestsPage & {
-      activateHarvest(harvest: HarvestSeason): void;
+      activateHarvest(harvest: HarvestSeasonSummaryListItem): void;
     };
 
+    const initialCalls = harvestService.listSummary.mock.calls.length;
     component.activateHarvest(seasons[2]);
+    fixture.detectChanges();
 
     expect(harvestService.activate).toHaveBeenCalledWith(3);
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
 
   it('should activate an inactive harvest when editing to an active status', () => {
     setupSelectedFarm('PRODUCER');
     const component = fixture.componentInstance as unknown as HarvestsPage & {
-      openEditDrawer(harvest: HarvestSeason): void;
+      openEditDrawer(harvest: HarvestSeasonSummaryListItem): void;
       form: any;
       saveHarvest(): void;
     };
 
     component.openEditDrawer(seasons[2]);
     component.form.patchValue({ status: 'PLANNED' });
+    const initialCalls = harvestService.listSummary.mock.calls.length;
     component.saveHarvest();
+    fixture.detectChanges();
 
     expect(harvestService.activate).toHaveBeenCalledWith(3);
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
 
   it('should inactivate a harvest after confirmation', () => {
     setupSelectedFarm('PRODUCER');
     const component = fixture.componentInstance as unknown as HarvestsPage & {
-      requestInactivate(harvest: HarvestSeason): void;
+      requestInactivate(harvest: HarvestSeasonSummaryListItem): void;
       confirmInactivate(): void;
     };
 
+    const initialCalls = harvestService.listSummary.mock.calls.length;
     component.requestInactivate(seasons[0]);
     component.confirmInactivate();
+    fixture.detectChanges();
 
     expect(harvestService.inactivate).toHaveBeenCalledWith(1);
+    expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
   });
 
   function setupSelectedFarm(role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
@@ -431,12 +529,12 @@ describe('HarvestsPage', () => {
   function componentState(): {
     loading: () => boolean;
     error: () => boolean;
-    response: () => PageResponse<HarvestSeason> | null;
+    response: () => PageResponse<HarvestSeasonSummaryListItem> | null;
   } {
     return fixture.componentInstance as unknown as {
       loading: () => boolean;
       error: () => boolean;
-      response: () => PageResponse<HarvestSeason> | null;
+      response: () => PageResponse<HarvestSeasonSummaryListItem> | null;
     };
   }
 

@@ -45,6 +45,34 @@ export interface HarvestSeasonSummary {
   profitPerHectare: number | null;
 }
 
+export interface HarvestSeasonSummaryListItem {
+  id: number;
+  farmId: number;
+  farmName?: string | null;
+  productionActivityId?: number | null;
+  productionActivityName?: string | null;
+  name: string;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  expectedCost?: number | null;
+  expectedRevenue?: number | null;
+  expectedProfit?: number | null;
+  areaHectares?: number | null;
+  status: HarvestSeasonStatus;
+  realizedCost?: number | null;
+  realizedRevenue?: number | null;
+  realizedProfit?: number | null;
+  pendingExpenses?: number | null;
+  overdueExpenses?: number | null;
+  pendingRevenue?: number | null;
+  transactionCount?: number | null;
+  incomeCount?: number | null;
+  expenseCount?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CreateHarvestSeasonRequest {
   farmId: number;
   productionActivityId: number;
@@ -75,4 +103,10 @@ export interface UpdateHarvestSeasonStatusRequest {
 export interface HarvestSeasonListParams extends PageRequest {
   farmId?: number | null;
   includeInactive?: boolean | null;
+}
+
+export interface HarvestSeasonSummaryListParams extends PageRequest {
+  farmId: number;
+  search?: string | null;
+  status?: HarvestSeasonStatus | null;
 }
