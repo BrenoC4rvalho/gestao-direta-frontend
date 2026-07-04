@@ -35,6 +35,24 @@ describe('StatusActionSection', () => {
     );
   });
 
+  it('should render the optional badge when configured', () => {
+    createComponent();
+    fixture.componentRef.setInput('badgeLabel', 'Ativa');
+    fixture.componentRef.setInput('badgeVariant', 'success');
+    fixture.detectChanges();
+
+    const badge = (fixture.nativeElement as HTMLElement).querySelector('gd-badge');
+
+    expect(badge?.textContent).toContain('Ativa');
+    expect(badge?.querySelector('span')?.className).toContain('bg-success');
+  });
+
+  it('should not render the optional badge by default', () => {
+    createComponent();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('gd-badge')).toBeNull();
+  });
+
   it('should render the action button when showAction is true', () => {
     createComponent();
     fixture.componentRef.setInput('actionLabel', 'Inativar fazenda');

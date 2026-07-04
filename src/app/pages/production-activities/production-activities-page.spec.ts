@@ -313,8 +313,10 @@ describe('ProductionActivitiesPage', () => {
     const drawerText = getDrawerText();
     expect(drawerText).not.toContain('Status atual');
     expect(drawerText).toContain('Status da atividade');
-    expect(drawerText).toContain('Inative esta atividade caso ela não deva mais ser usada em novas safras.');
-    expect(drawerText).toContain('Inativar atividade produtiva');
+    expect(drawerText).toContain('Ativa');
+    expect(drawerText).toContain('Esta atividade está disponível para ser usada em novas safras.');
+    expect(findButton('Inativar')).toBeTruthy();
+    expect(findButton('Inativar atividade produtiva')).toBeUndefined();
   });
 
   it('should open confirmation and call inactivate from the edit drawer for active activities', async () => {
@@ -323,7 +325,7 @@ describe('ProductionActivitiesPage', () => {
     clickButton('Editar');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
-    clickButton('Inativar atividade produtiva');
+    clickButton('Inativar');
     expect(getDialogText()).toContain('Inativar atividade produtiva?');
     expect(getDialogText()).toContain(
       'Esta atividade não ficará disponível para novas safras, mas registros existentes serão preservados.',
@@ -346,8 +348,10 @@ describe('ProductionActivitiesPage', () => {
     const drawerText = getDrawerText();
     expect(drawerText).not.toContain('Status atual');
     expect(drawerText).toContain('Status da atividade');
-    expect(drawerText).toContain('Ative esta atividade para que ela volte a ficar disponível para novas safras.');
-    expect(drawerText).toContain('Ativar atividade produtiva');
+    expect(drawerText).toContain('Inativa');
+    expect(drawerText).toContain('Esta atividade não está disponível para novas safras.');
+    expect(findButton('Ativar')).toBeTruthy();
+    expect(findButton('Ativar atividade produtiva')).toBeUndefined();
   });
 
   it('should open confirmation and call activate from the edit drawer for inactive activities', async () => {
@@ -356,7 +360,7 @@ describe('ProductionActivitiesPage', () => {
     clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
-    clickButton('Ativar atividade produtiva');
+    clickButton('Ativar');
     expect(getDialogText()).toContain('Ativar atividade produtiva?');
     expect(getDialogText()).toContain(
       'Esta atividade voltará a ficar disponível para novas safras.',

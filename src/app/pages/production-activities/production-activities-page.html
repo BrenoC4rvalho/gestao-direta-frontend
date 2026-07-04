@@ -238,8 +238,10 @@
           @if (activity.status === 'ACTIVE') {
             <gd-status-action-section
               title="Status da atividade"
-              description="Inative esta atividade caso ela não deva mais ser usada em novas safras."
-              actionLabel="Inativar atividade produtiva"
+              description="Esta atividade está disponível para ser usada em novas safras."
+              badgeLabel="Ativa"
+              badgeVariant="success"
+              actionLabel="Inativar"
               actionVariant="danger"
               [actionDisabled]="submitting() || statusSubmitting()"
               [actionLoading]="statusSubmitting() && statusTarget()?.id === activity.id"
@@ -248,8 +250,10 @@
           } @else {
             <gd-status-action-section
               title="Status da atividade"
-              description="Ative esta atividade para que ela volte a ficar disponível para novas safras."
-              actionLabel="Ativar atividade produtiva"
+              description="Esta atividade não está disponível para novas safras."
+              badgeLabel="Inativa"
+              badgeVariant="neutral"
+              actionLabel="Ativar"
               actionVariant="primary"
               [actionDisabled]="submitting() || statusSubmitting()"
               [actionLoading]="statusSubmitting() && statusTarget()?.id === activity.id"
