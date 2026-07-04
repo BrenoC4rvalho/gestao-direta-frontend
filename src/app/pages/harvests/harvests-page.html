@@ -26,7 +26,12 @@
   } @else {
     @if (canManageHarvests()) {
       <div class="flex justify-end">
-        <gd-button type="button" class="w-full sm:w-auto" [fullWidth]="true" (click)="openCreateDrawer()">
+        <gd-button
+          type="button"
+          class="w-full sm:w-auto"
+          [fullWidth]="true"
+          (click)="openCreateDrawer()"
+        >
           <svg lucideIcon="plus" class="size-4" aria-hidden="true"></svg>
           Nova safra
         </gd-button>
@@ -38,7 +43,10 @@
         <gd-card padding="lg">
           <div class="flex items-start gap-4">
             <div
-              [class]="'flex size-12 shrink-0 items-center justify-center rounded-full ' + summaryToneClasses(card.tone)"
+              [class]="
+                'flex size-12 shrink-0 items-center justify-center rounded-full ' +
+                summaryToneClasses(card.tone)
+              "
             >
               <svg [lucideIcon]="card.icon" class="size-6" aria-hidden="true"></svg>
             </div>
@@ -100,7 +108,9 @@
     } @else {
       <div class="gd-fade-in-up grid gap-4">
         @for (harvest of harvests(); track harvest.id) {
-          <article class="rounded-app border border-border bg-background/55 p-4 transition-colors hover:border-primary/30 sm:p-5">
+          <article
+            class="rounded-app border border-border bg-surface p-5 shadow-sm transition-all duration-200 ease-out sm:p-6 sm:hover:border-primary/25 sm:hover:shadow-md"
+          >
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div class="flex min-w-0 gap-4">
                 <div
@@ -118,7 +128,8 @@
                     </gd-badge>
                   </div>
                   <p class="mt-2 text-sm text-text-muted">
-                    {{ harvest.productionActivityName || 'Atividade nao informada' }} · {{ periodLabel(harvest) }}
+                    {{ harvest.productionActivityName || 'Atividade nao informada' }} ·
+                    {{ periodLabel(harvest) }}
                   </p>
                   @if (harvest.description) {
                     <p class="mt-2 text-sm leading-6 text-text-muted">{{ harvest.description }}</p>
@@ -134,7 +145,12 @@
                   >
                     Ver detalhes
                   </a>
-                  <gd-button type="button" variant="outline" size="sm" (click)="openEditDrawer(harvest)">
+                  <gd-button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    (click)="openEditDrawer(harvest)"
+                  >
                     Editar
                   </gd-button>
                   @if (harvest.status === 'INACTIVE') {
@@ -148,7 +164,12 @@
                       Ativar
                     </gd-button>
                   } @else {
-                    <gd-button type="button" variant="ghost" size="sm" (click)="requestInactivate(harvest)">
+                    <gd-button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      (click)="requestInactivate(harvest)"
+                    >
                       Inativar
                     </gd-button>
                   }
@@ -166,25 +187,25 @@
             </div>
 
             <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div class="rounded-control border border-border bg-surface p-3">
+              <div class="rounded-control border border-border bg-background/55 p-3">
                 <dt class="text-xs font-medium text-text-muted">Area</dt>
                 <dd class="mt-1 text-sm font-semibold text-text-primary">
                   {{ areaLabel(harvest) }}
                 </dd>
               </div>
-              <div class="rounded-control border border-border bg-surface p-3">
+              <div class="rounded-control border border-border bg-background/55 p-3">
                 <dt class="text-xs font-medium text-text-muted">Custo previsto</dt>
                 <dd class="mt-1 text-sm font-semibold text-text-primary">
                   {{ harvest.expectedCost ?? 0 | brCurrency }}
                 </dd>
               </div>
-              <div class="rounded-control border border-border bg-surface p-3">
+              <div class="rounded-control border border-border bg-background/55 p-3">
                 <dt class="text-xs font-medium text-text-muted">Receita prevista</dt>
                 <dd class="mt-1 text-sm font-semibold text-success">
                   {{ harvest.expectedRevenue ?? 0 | brCurrency }}
                 </dd>
               </div>
-              <div class="rounded-control border border-border bg-surface p-3">
+              <div class="rounded-control border border-border bg-background/55 p-3">
                 <dt class="text-xs font-medium text-text-muted">Lucro previsto</dt>
                 <dd class="mt-1 text-sm font-semibold text-primary">
                   {{ estimatedProfit(harvest) | brCurrency }}
@@ -193,8 +214,14 @@
             </dl>
 
             <div class="mt-4 grid gap-3 lg:grid-cols-2">
-              <section class="rounded-control border border-border bg-surface p-3" aria-labelledby="harvest-financial-{{ harvest.id }}">
-                <h4 id="harvest-financial-{{ harvest.id }}" class="text-xs font-semibold uppercase text-text-muted">
+              <section
+                class="rounded-control border border-border bg-background/55 p-3"
+                aria-labelledby="harvest-financial-{{ harvest.id }}"
+              >
+                <h4
+                  id="harvest-financial-{{ harvest.id }}"
+                  class="text-xs font-semibold uppercase text-text-muted"
+                >
                   Resultado financeiro
                 </h4>
                 <dl class="mt-3 grid gap-3 sm:grid-cols-3">
@@ -219,8 +246,14 @@
                 </dl>
               </section>
 
-              <section class="rounded-control border border-border bg-surface p-3" aria-labelledby="harvest-alerts-{{ harvest.id }}">
-                <h4 id="harvest-alerts-{{ harvest.id }}" class="text-xs font-semibold uppercase text-text-muted">
+              <section
+                class="rounded-control border border-border bg-background/55 p-3"
+                aria-labelledby="harvest-alerts-{{ harvest.id }}"
+              >
+                <h4
+                  id="harvest-alerts-{{ harvest.id }}"
+                  class="text-xs font-semibold uppercase text-text-muted"
+                >
                   Pendencias e movimentacoes
                 </h4>
                 <dl class="mt-3 grid gap-3 sm:grid-cols-3">
@@ -250,22 +283,36 @@
       </div>
 
       @if (response(); as page) {
-        <div class="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          class="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p class="text-sm text-text-muted">
-            Pagina {{ page.page + 1 }} de {{ page.totalPages || 1 }} · {{ page.totalElements }} safras
+            Pagina {{ page.page + 1 }} de {{ page.totalPages || 1 }} ·
+            {{ page.totalElements }} safras
           </p>
           <div class="grid grid-cols-2 gap-2 sm:flex">
-            <gd-button type="button" variant="outline" size="sm" [disabled]="page.first" (click)="previousPage()">
+            <gd-button
+              type="button"
+              variant="outline"
+              size="sm"
+              [disabled]="page.first"
+              (click)="previousPage()"
+            >
               Anterior
             </gd-button>
-            <gd-button type="button" variant="outline" size="sm" [disabled]="page.last" (click)="nextPage()">
+            <gd-button
+              type="button"
+              variant="outline"
+              size="sm"
+              [disabled]="page.last"
+              (click)="nextPage()"
+            >
               Proxima
             </gd-button>
           </div>
         </div>
       }
     }
-
   }
 </section>
 
@@ -377,7 +424,13 @@
     </div>
 
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-      <gd-button type="button" variant="outline" [fullWidth]="true" [disabled]="submitting()" (click)="closeDrawer()">
+      <gd-button
+        type="button"
+        variant="outline"
+        [fullWidth]="true"
+        [disabled]="submitting()"
+        (click)="closeDrawer()"
+      >
         Cancelar
       </gd-button>
       <gd-button type="submit" [fullWidth]="true" [loading]="submitting()">
