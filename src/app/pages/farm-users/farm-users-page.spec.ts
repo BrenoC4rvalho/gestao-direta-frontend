@@ -448,6 +448,8 @@ describe('FarmUsersPage', () => {
       sort: 'name',
       direction: 'ASC',
     });
+    const drawer = getDialog('gd-drawer');
+    expect(drawer?.classList.contains('sm:max-w-2xl')).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Ana Disponível — ana@example.com');
     expect(fixture.nativeElement.textContent).not.toContain('Usuário Bloqueado — bloqueado@example.com');
     expect(fixture.nativeElement.textContent).not.toContain('Outro Admin — outro-admin@example.com');
@@ -545,6 +547,7 @@ describe('FarmUsersPage', () => {
     clickButton('Editar');
 
     const drawer = getDialog('gd-drawer');
+    expect(drawer?.classList.contains('sm:max-w-2xl')).toBe(true);
     expect(drawer?.textContent).toContain('Editar vínculo');
     expect(drawer?.textContent).toContain(
       'Altere o papel do usuário ou inative o vínculo com esta fazenda.',
