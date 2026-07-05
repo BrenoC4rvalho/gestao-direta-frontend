@@ -4,6 +4,7 @@ import { CategoriesPage } from '../pages/categories/categories-page';
 import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
 import { HarvestSeasonDetailsPage } from '../pages/harvest-season-details/harvest-season-details-page';
 import { HarvestsPage } from '../pages/harvests/harvests-page';
+import { LandingPage } from '../pages/landing/landing-page';
 import { ProductionActivitiesPage } from '../pages/production-activities/production-activities-page';
 import { ProfilePage } from '../pages/profile/profile-page';
 import { TransactionsPage } from '../pages/transactions/transactions-page';
@@ -12,11 +13,19 @@ import { UpcomingBillsPage } from '../pages/upcoming-bills/upcoming-bills-page';
 import { routes } from './app.routes';
 
 describe('routes', () => {
-  it('should register auth, app and ui-test routes with expected guards', async () => {
+  it('should register public landing, auth, app and ui-test routes with expected guards', async () => {
+    const landingRoute = routes.find(
+      (route) => route.path === '' && route.pathMatch === 'full',
+    );
     const loginRoute = routes.find((route) => route.path === 'login');
     const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
     const uiTestRoute = routes.find((route) => route.path === 'ui-test');
 
+    expect(landingRoute?.canActivate).toBeUndefined();
+    expect(landingRoute?.redirectTo).toBeUndefined();
+    expect(landingRoute?.loadComponent).toBeTypeOf('function');
+    const landingComponent = await (landingRoute?.loadComponent as () => Promise<unknown>)();
+    expect(landingComponent).toBe(LandingPage);
     expect(loginRoute?.canActivate).toContain(guestGuard);
     expect(loginRoute?.children?.[0].path).toBe('');
     expect(appLayoutRoute?.canActivate).toContain(authGuard);

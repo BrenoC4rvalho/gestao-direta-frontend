@@ -7,7 +7,9 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'login',
+    title: 'Gestão Direta — Finanças simplificadas para a Agricultura',
+    loadComponent: () =>
+      import('../pages/landing/landing-page').then((component) => component.LandingPage),
   },
   {
     path: 'login',
