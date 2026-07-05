@@ -44,7 +44,7 @@ export class SummaryCard {
       : 'invisible translate-y-1 opacity-0 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100';
 
     return [
-      'absolute right-0 top-10 z-20 w-64 max-w-[calc(100vw-3rem)] rounded-app border border-border bg-surface p-3 text-left text-xs leading-5 text-text-primary shadow-soft transition-all duration-150',
+      'absolute right-0 top-10 z-50 w-64 max-w-[calc(100vw-3rem)] rounded-app border border-border bg-surface p-3 text-left text-xs leading-5 text-text-primary shadow-soft transition-all duration-150',
       visibility,
     ].join(' ');
   }

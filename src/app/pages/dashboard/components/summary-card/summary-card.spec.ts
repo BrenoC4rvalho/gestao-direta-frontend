@@ -52,6 +52,30 @@ describe('SummaryCard', () => {
     expect(tooltip?.textContent).toContain(detail);
   });
 
+  it('should scope tooltip hover and focus to the info button wrapper', async () => {
+    const fixture = await createComponent();
+
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const tooltip = fixture.nativeElement.querySelector('[role="tooltip"]') as HTMLElement;
+    const tooltipWrapper = button.parentElement as HTMLElement;
+
+    expect(article.classList.contains('group')).toBe(false);
+    expect(article.className).toContain('sm:hover:border-primary/25');
+    expect(article.className).toContain('sm:hover:shadow-md');
+    expect(article.classList.contains('z-0')).toBe(true);
+    expect(article.classList.contains('overflow-visible')).toBe(true);
+    expect(article.classList.contains('focus-within:z-30')).toBe(true);
+    expect(article.classList.contains('sm:hover:z-30')).toBe(true);
+    expect(tooltipWrapper.classList.contains('group')).toBe(true);
+    expect(tooltipWrapper.classList.contains('relative')).toBe(true);
+    expect(tooltipWrapper.classList.contains('z-50')).toBe(true);
+    expect(tooltipWrapper.contains(tooltip)).toBe(true);
+    expect(tooltip.classList.contains('z-50')).toBe(true);
+    expect(tooltip.className).toContain('group-hover:visible');
+    expect(tooltip.className).toContain('group-focus-within:visible');
+  });
+
   it('should toggle tooltip state by click', async () => {
     const fixture = await createComponent();
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
