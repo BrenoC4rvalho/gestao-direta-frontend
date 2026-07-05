@@ -30,7 +30,8 @@ import { UpcomingBillsCard } from './components/upcoming-bills-card/upcoming-bil
 interface SummaryCardViewModel {
   title: string;
   value: string;
-  helper: string;
+  description: string;
+  detail?: string;
   icon: string;
   tone: SummaryCardTone;
 }
@@ -76,7 +77,7 @@ export class DashboardPage {
   protected readonly harvestsLoading = signal(false);
   protected readonly harvestsError = signal<string | null>(null);
 
-  protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
+  protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6, 7, 8];
   protected readonly harvestSkeletons = [1, 2, 3];
 
   private readonly currencyPipe = new BrCurrencyPipe();
@@ -91,45 +92,67 @@ export class DashboardPage {
     return [
       {
         title: 'Saldo atual',
-        value: this.formatCurrency(summary.paidTotal),
-        helper: 'Valores pagos até agora',
+        value: this.formatCurrency(summary.currentBalance),
+        description: 'Resultado financeiro já realizado: entradas pagas menos saídas pagas.',
+        detail: 'Considera apenas movimentações pagas.',
         icon: 'wallet',
-        tone: 'info',
+        tone: summary.currentBalance >= 0 ? 'success' : 'danger',
       },
       {
         title: 'Entradas previstas',
-        value: this.formatCurrency(summary.incomeTotal),
-        helper: 'Receitas do período',
-        icon: 'plus',
+        value: this.formatCurrency(summary.expectedIncome),
+        description: 'Total de receitas que ainda não foram recebidas.',
+        detail: 'Inclui entradas pendentes e atrasadas, exceto canceladas.',
+        icon: 'trending-up',
         tone: 'success',
       },
       {
         title: 'Saídas previstas',
-        value: this.formatCurrency(summary.expenseTotal),
-        helper: 'Despesas do período',
-        icon: 'receipt-text',
-        tone: 'danger',
+        value: this.formatCurrency(summary.expectedExpense),
+        description: 'Total de despesas que ainda não foram pagas.',
+        detail: 'Inclui saídas pendentes e atrasadas, exceto canceladas.',
+        icon: 'trending-down',
+        tone: 'warning',
       },
       {
         title: 'Saldo projetado',
-        value: this.formatCurrency(summary.balance),
-        helper: 'Resultado financeiro',
+        value: this.formatCurrency(summary.projectedBalance),
+        description: 'Saldo esperado após considerar entradas e saídas previstas.',
+        detail: 'Calculado por: saldo atual + entradas previstas - saídas previstas.',
         icon: 'wallet',
-        tone: summary.balance >= 0 ? 'success' : 'danger',
+        tone: summary.projectedBalance >= 0 ? 'success' : 'danger',
       },
       {
-        title: 'Pendências',
-        value: this.formatCurrency(summary.pendingTotal),
-        helper: 'Valores pendentes',
+        title: 'A pagar em 30 dias',
+        value: this.formatCurrency(summary.payableNext30Days),
+        description: 'Despesas pendentes com vencimento nos próximos 30 dias.',
+        detail: 'Não inclui contas já atrasadas.',
         icon: 'calendar-clock',
         tone: 'warning',
       },
       {
         title: 'Atrasado',
-        value: this.formatCurrency(summary.overdueTotal),
-        helper: 'Valores vencidos',
+        value: this.formatCurrency(summary.overdueExpenses),
+        description: 'Despesas vencidas que ainda não foram pagas.',
+        detail: 'Indica compromissos financeiros em atraso.',
         icon: 'alert-circle',
         tone: 'danger',
+      },
+      {
+        title: 'A receber em 30 dias',
+        value: this.formatCurrency(summary.receivableNext30Days),
+        description: 'Receitas atrasadas ou previstas para os próximos 30 dias.',
+        detail: 'Ajuda a visualizar o dinheiro que deve entrar no curto prazo.',
+        icon: 'landmark',
+        tone: 'info',
+      },
+      {
+        title: 'Fluxo 30 dias',
+        value: this.formatCurrency(summary.cashFlowNext30Days),
+        description: 'Diferença entre valores a receber e contas a pagar no curto prazo.',
+        detail: 'Calculado por: a receber - a pagar em 30 dias - atrasado.',
+        icon: 'chart-no-axes-combined',
+        tone: summary.cashFlowNext30Days >= 0 ? 'success' : 'danger',
       },
     ];
   });

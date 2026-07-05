@@ -21,9 +21,9 @@
     />
   } @else {
     @if (summaryLoading()) {
-      <div class="gd-fade-in-up grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         @for (item of summarySkeletons; track item) {
-          <div class="rounded-app border border-border bg-surface p-5">
+          <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
             <gd-skeleton width="45%" height="0.875rem" />
             <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
             <gd-skeleton class="mt-4 block" width="60%" height="0.75rem" />
@@ -33,12 +33,14 @@
     } @else if (summaryError(); as errorMessage) {
       <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage" />
     } @else {
-      <div class="gd-fade-in-up grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         @for (card of summaryCards(); track card.title) {
           <gd-summary-card
+            class="h-full"
             [title]="card.title"
             [value]="card.value"
-            [helper]="card.helper"
+            [description]="card.description"
+            [detail]="card.detail ?? null"
             [icon]="card.icon"
             [tone]="card.tone"
           />

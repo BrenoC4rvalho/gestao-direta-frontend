@@ -1,11 +1,13 @@
 export interface FinancialSummary {
   farmId: number;
-  incomeTotal: number;
-  expenseTotal: number;
-  balance: number;
-  pendingTotal: number;
-  paidTotal: number;
-  overdueTotal: number;
+  currentBalance: number;
+  expectedIncome: number;
+  expectedExpense: number;
+  projectedBalance: number;
+  payableNext30Days: number;
+  overdueExpenses: number;
+  receivableNext30Days: number;
+  cashFlowNext30Days: number;
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | string;

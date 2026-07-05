@@ -76,12 +76,14 @@ function farmAccess(farmId: number, canViewFinancial = true): FarmAccessResponse
 
 const summary: FinancialSummary = {
   farmId: 1,
-  incomeTotal: 10000,
-  expenseTotal: 3500,
-  balance: 6500,
-  pendingTotal: 1200,
-  paidTotal: 7000,
-  overdueTotal: 300,
+  currentBalance: 1000,
+  expectedIncome: 500,
+  expectedExpense: 300,
+  projectedBalance: 1200,
+  payableNext30Days: 200,
+  overdueExpenses: 100,
+  receivableNext30Days: 400,
+  cashFlowNext30Days: 100,
 };
 
 const transaction: FinancialTransaction = {
@@ -263,14 +265,28 @@ describe('DashboardPage', () => {
     });
 
     const text = textContent(fixture);
+    const summaryCards = Array.from(
+      fixture.nativeElement.querySelectorAll('gd-summary-card') as NodeListOf<HTMLElement>,
+    ).map((card) => card.textContent?.replace(/\u00a0/g, ' ') ?? '');
 
-    expect(text).toContain('Saldo atual');
-    expect(text).toContain('Entradas previstas');
-    expect(text).toContain('Saídas previstas');
-    expect(text).toContain('Saldo projetado');
-    expect(text).toContain('Pendências');
-    expect(text).toContain('Atrasado');
-    expect(text).toContain('R$ 7.000,00');
+    expect(summaryCards).toHaveLength(8);
+    expect(summaryCards[0]).toContain('Saldo atual');
+    expect(summaryCards[0]).toContain('R$ 1.000,00');
+    expect(summaryCards[1]).toContain('Entradas previstas');
+    expect(summaryCards[1]).toContain('R$ 500,00');
+    expect(summaryCards[2]).toContain('Saídas previstas');
+    expect(summaryCards[2]).toContain('R$ 300,00');
+    expect(summaryCards[3]).toContain('Saldo projetado');
+    expect(summaryCards[3]).toContain('R$ 1.200,00');
+    expect(summaryCards[4]).toContain('A pagar em 30 dias');
+    expect(summaryCards[4]).toContain('R$ 200,00');
+    expect(summaryCards[5]).toContain('Atrasado');
+    expect(summaryCards[5]).toContain('R$ 100,00');
+    expect(summaryCards[6]).toContain('A receber');
+    expect(summaryCards[6]).toContain('R$ 400,00');
+    expect(summaryCards[7]).toContain('Fluxo 30 dias');
+    expect(summaryCards[7]).toContain('R$ 100,00');
+    expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
     expect(text).toContain('Venda de soja');
     expect(text).toContain('Conta de energia');
     expect(text).toContain('1 conta(s) somando R$ 320,00');
