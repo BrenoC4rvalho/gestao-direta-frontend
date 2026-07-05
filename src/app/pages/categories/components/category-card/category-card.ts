@@ -19,23 +19,11 @@ import { Badge, BadgeVariant, Button } from '../../../../shared/ui';
 export class CategoryCard {
   readonly category = input.required<FinancialCategory>();
   readonly canEdit = input(false);
-  readonly canDelete = input(false);
-  readonly canActivate = input(false);
 
   readonly editRequested = output<FinancialCategory>();
-  readonly deleteRequested = output<FinancialCategory>();
-  readonly activateRequested = output<FinancialCategory>();
 
   protected editCategory(): void {
     this.editRequested.emit(this.category());
-  }
-
-  protected deleteCategory(): void {
-    this.deleteRequested.emit(this.category());
-  }
-
-  protected activateCategory(): void {
-    this.activateRequested.emit(this.category());
   }
 
   protected typeLabel(type: FinancialCategoryType = this.category().type): string {

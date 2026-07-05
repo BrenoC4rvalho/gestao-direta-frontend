@@ -18,6 +18,7 @@ import { ToastStore } from '../../core/stores/toast.store';
 
 import { CategoriesPage } from './categories-page';
 
+const drawerAnimationDurationMs = 250;
 const confirmAnimationDurationMs = 200;
 
 interface CategoriesPageHarness {
@@ -213,17 +214,20 @@ describe('CategoriesPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Venda de safra');
   });
 
-  it('should render active and inactive farm categories with expected actions', () => {
+  it('should render active and inactive farm categories without direct status actions', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([farmCategory, inactiveFarmCategory]));
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Adubo');
-    expect(fixture.nativeElement.textContent).toContain('Defensivos');
-    expect(fixture.nativeElement.textContent).toContain('Ativa');
-    expect(fixture.nativeElement.textContent).toContain('Inativa');
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeTruthy();
-    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
+    const activeItem = findCategoryItem(fixture.nativeElement, 'Adubo');
+    const inactiveItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
+
+    expect(activeItem.textContent).toContain('Ativa');
+    expect(inactiveItem.textContent).toContain('Inativa');
+    expect(findButton(activeItem, 'Editar')).toBeTruthy();
+    expect(findButton(inactiveItem, 'Editar')).toBeTruthy();
+    expect(findButton(activeItem, 'Inativar')).toBeUndefined();
+    expect(findButton(inactiveItem, 'Ativar')).toBeUndefined();
   });
 
   it('should not load farm categories when no farm is selected', () => {
@@ -277,6 +281,17 @@ describe('CategoriesPage', () => {
     clickButton('Nova categoria');
 
     expect(fixture.nativeElement.textContent).toContain('Escopo da categoria');
+  });
+
+  it('should not show category status section when creating', () => {
+    createPage();
+    clickButton('Nova categoria');
+
+    const drawer = getDialog('gd-drawer') as HTMLElement;
+
+    expect(drawer.textContent).not.toContain('Status da categoria');
+    expect(findButton(drawer, 'Inativar')).toBeUndefined();
+    expect(findButton(drawer, 'Ativar')).toBeUndefined();
   });
 
   it('should create a global category without selected farm and reload globals', () => {
@@ -408,13 +423,13 @@ describe('CategoriesPage', () => {
     expect(categoryService.update).not.toHaveBeenCalled();
   });
 
-  it('should show global category actions only for admin', () => {
+  it('should show global category edit only for admin and keep status action out of the list', () => {
     createPage();
     const adminGlobalItem = findCategoryItem(fixture.nativeElement, 'Venda de safra');
 
     expect(adminGlobalItem).toBeTruthy();
     expect(findButton(adminGlobalItem, 'Editar')).toBeTruthy();
-    expect(findButton(adminGlobalItem, 'Inativar')).toBeTruthy();
+    expect(findButton(adminGlobalItem, 'Inativar')).toBeUndefined();
 
     sessionStore.setUser(user);
     selectedFarmStore.setFarms([farm]);
@@ -446,14 +461,14 @@ describe('CategoriesPage', () => {
     );
   });
 
-  it('should show farm category actions for admin and canManageCategories', () => {
+  it('should show farm category edit for admin and canManageCategories without direct status actions', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     const adminFarmItem = findCategoryItem(fixture.nativeElement, 'Adubo');
 
     expect(adminFarmItem).toBeTruthy();
     expect(findButton(adminFarmItem, 'Editar')).toBeTruthy();
-    expect(findButton(adminFarmItem, 'Inativar')).toBeTruthy();
+    expect(findButton(adminFarmItem, 'Inativar')).toBeUndefined();
 
     sessionStore.setUser(user);
     farmAccessStore.setAccess(access);
@@ -462,7 +477,7 @@ describe('CategoriesPage', () => {
 
     expect(userFarmItem).toBeTruthy();
     expect(findButton(userFarmItem, 'Editar')).toBeTruthy();
-    expect(findButton(userFarmItem, 'Inativar')).toBeTruthy();
+    expect(findButton(userFarmItem, 'Inativar')).toBeUndefined();
   });
 
   it('should block global category inactivation for non admin handlers', () => {
@@ -482,14 +497,66 @@ describe('CategoriesPage', () => {
     );
   });
 
-  it('should inactivate a category and reload lists', () => {
+  it('should show active category status section in the edit drawer', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
-    clickButton('Inativar');
+    clickButton('Editar');
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const drawer = getDialog('gd-drawer') as HTMLElement;
+    expect(drawer.textContent).toContain('Status da categoria');
+    expect(drawer.textContent).toContain('Ativa');
+    expect(drawer.textContent).toContain(
+      'Categorias ativas podem ser usadas em novas movimentações.',
+    );
+    const inactivateButton = findButton(drawer, 'Inativar');
+    expect(inactivateButton).toBeTruthy();
+    expect(inactivateButton?.className).toContain('bg-danger');
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
+  });
+
+  it('should show inactive category status section in the edit drawer', () => {
+    selectedFarmStore.setFarms([farm]);
+    categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
+    createPage();
+    clickButton('Editar');
+
+    const drawer = getDialog('gd-drawer') as HTMLElement;
+    expect(drawer.textContent).toContain('Status da categoria');
+    expect(drawer.textContent).toContain('Inativa');
+    expect(drawer.textContent).toContain(
+      'Categorias inativas não devem ser usadas em novas movimentações.',
+    );
+    const activateButton = findButton(drawer, 'Ativar');
+    expect(activateButton).toBeTruthy();
+    expect(activateButton?.className).not.toContain('bg-danger');
+    expect(findButton(drawer, 'Inativar')).toBeUndefined();
+  });
+
+  it('should open inactivation confirmation from the edit drawer', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Inativar')?.click();
+    fixture.detectChanges();
+
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
+    expect(dialog.textContent).toContain('Inativar categoria?');
+    expect(dialog.textContent).toContain(
+      'Essa categoria deixará de estar disponível para novas movimentações. Movimentações antigas continuarão preservadas.',
+    );
+    const confirmButton = findButton(dialog, 'Inativar');
+    expect(confirmButton).toBeTruthy();
+    expect(confirmButton?.className).toContain('bg-danger');
+  });
+
+  it('should inactivate a category and reload lists', async () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Inativar')?.click();
+    fixture.detectChanges();
+
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
     findButton(dialog, 'Inativar')?.click();
     fixture.detectChanges();
 
@@ -497,13 +564,19 @@ describe('CategoriesPage', () => {
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
     expect(categoryService.listByFarm).toHaveBeenLastCalledWith(1, { includeInactive: true });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria inativada com sucesso.');
+    await finishDrawerClose();
+    expect(getDialog('gd-drawer')).toBeNull();
   });
 
-  it('should show activate only for inactive categories', () => {
+  it('should keep activate out of the list and show it for inactive categories in the drawer', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     createPage();
-    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
+    const inactiveItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
+    expect(findButton(inactiveItem, 'Ativar')).toBeUndefined();
+
+    clickButton('Editar');
+    expect(findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')).toBeTruthy();
 
     categoryService.listByFarm.mockReturnValue(of([farmCategory]));
     createPage();
@@ -514,51 +587,51 @@ describe('CategoriesPage', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     createPage();
-    clickButton('Ativar');
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
 
-    expect(dialog.textContent).toContain('Ativar categoria');
+    expect(dialog.textContent).toContain('Ativar categoria?');
     expect(dialog.textContent).toContain(
-      'Esta categoria voltará a ficar disponível para uso em movimentações financeiras.',
+      'Essa categoria voltará a ficar disponível para novas movimentações.',
     );
-    expect(findButton(dialog, 'Ativar')).toBeTruthy();
+    const confirmButton = findButton(dialog, 'Ativar');
+    expect(confirmButton).toBeTruthy();
+    expect(confirmButton?.className).not.toContain('bg-danger');
   });
 
   it('should not activate a category when confirmation is cancelled', async () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     createPage();
-    clickButton('Ativar');
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
     findButton(dialog, 'Cancelar')?.click();
     fixture.detectChanges();
     await finishConfirmClose();
 
     expect(categoryService.activate).not.toHaveBeenCalled();
     expect(categoryService.update).not.toHaveBeenCalled();
-    expect(
-      fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]'),
-    ).toBeNull();
+    expect(getDialog('gd-confirm-dialog')).toBeNull();
   });
 
-  it('should activate a category and reload lists', () => {
+  it('should activate a category and reload lists', async () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     categoryService.activate.mockReturnValueOnce(
       of({ ...inactiveFarmCategory, status: 'ACTIVE' }),
     );
     createPage();
-    clickButton('Ativar');
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
     findButton(dialog, 'Ativar')?.click();
     fixture.detectChanges();
 
@@ -567,27 +640,29 @@ describe('CategoriesPage', () => {
     expect(categoryService.listByFarm).toHaveBeenCalledTimes(2);
     expect(categoryService.listByFarm).toHaveBeenLastCalledWith(1, { includeInactive: true });
     expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
+    await finishDrawerClose();
+    expect(getDialog('gd-drawer')).toBeNull();
   });
 
-  it('should show specific toast when activation fails', () => {
+  it('should show specific toast when status change fails', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveFarmCategory]));
     categoryService.activate.mockReturnValueOnce(
       throwError(() => new HttpErrorResponse({ status: 400 })),
     );
     createPage();
-    clickButton('Ativar');
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
     findButton(dialog, 'Ativar')?.click();
     fixture.detectChanges();
 
     expect(categoryService.activate).toHaveBeenCalledOnce();
     expect(categoryService.update).not.toHaveBeenCalled();
     expect(toastStore.toasts()[0]?.title).toBe(
-      'Não foi possível ativar a categoria.',
+      'Não foi possível alterar o status da categoria.',
     );
   });
 
@@ -595,11 +670,11 @@ describe('CategoriesPage', () => {
     selectedFarmStore.setFarms([farm]);
     categoryService.listByFarm.mockReturnValue(of([inactiveGlobalTypeCategory]));
     createPage();
-    clickButton('Ativar');
+    clickButton('Editar');
+    findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')?.click();
+    fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector(
-      'gd-confirm-dialog [role="dialog"]',
-    ) as HTMLElement;
+    const dialog = getDialog('gd-confirm-dialog') as HTMLElement;
     findButton(dialog, 'Ativar')?.click();
     fixture.detectChanges();
 
@@ -608,12 +683,15 @@ describe('CategoriesPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Categoria ativada com sucesso.');
   });
 
-  it('should show inactive global category activation only for admin', () => {
+  it('should show inactive global category status action only for admin in the drawer', () => {
     categoryService.listGlobal.mockReturnValue(of([inactiveGlobalCategory]));
     createPage();
     const adminGlobalItem = findCategoryItem(fixture.nativeElement, 'Serviços globais');
 
-    expect(findButton(adminGlobalItem, 'Ativar')).toBeTruthy();
+    expect(findButton(adminGlobalItem, 'Ativar')).toBeUndefined();
+    findButton(adminGlobalItem, 'Editar')?.click();
+    fixture.detectChanges();
+    expect(findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')).toBeTruthy();
 
     sessionStore.setUser(user);
     selectedFarmStore.setFarms([farm]);
@@ -622,10 +700,11 @@ describe('CategoriesPage', () => {
     createPage();
     const userGlobalItem = findCategoryItem(fixture.nativeElement, 'Serviços globais');
 
+    expect(findButton(userGlobalItem, 'Editar')).toBeUndefined();
     expect(findButton(userGlobalItem, 'Ativar')).toBeUndefined();
   });
 
-  it('should show inactive farm category activation only with manage permission', () => {
+  it('should show inactive farm category status action only with manage permission in the drawer', () => {
     sessionStore.setUser(user);
     selectedFarmStore.setFarms([farm]);
     farmAccessStore.setAccess(access);
@@ -633,7 +712,10 @@ describe('CategoriesPage', () => {
     createPage();
     let farmItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
 
-    expect(findButton(farmItem, 'Ativar')).toBeTruthy();
+    expect(findButton(farmItem, 'Ativar')).toBeUndefined();
+    findButton(farmItem, 'Editar')?.click();
+    fixture.detectChanges();
+    expect(findButton(getDialog('gd-drawer') as HTMLElement, 'Ativar')).toBeTruthy();
 
     farmAccessStore.setAccess({
       ...access,
@@ -642,6 +724,7 @@ describe('CategoriesPage', () => {
     createPage();
     farmItem = findCategoryItem(fixture.nativeElement, 'Defensivos');
 
+    expect(findButton(farmItem, 'Editar')).toBeUndefined();
     expect(findButton(farmItem, 'Ativar')).toBeUndefined();
   });
 
@@ -722,8 +805,17 @@ describe('CategoriesPage', () => {
     fixture.detectChanges();
   }
 
+  function getDialog(selector: string): HTMLElement | null {
+    return fixture.nativeElement.querySelector(`${selector} [role="dialog"]`);
+  }
+
   async function finishConfirmClose(): Promise<void> {
     await wait(confirmAnimationDurationMs + 10);
+    fixture.detectChanges();
+  }
+
+  async function finishDrawerClose(): Promise<void> {
+    await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
   }
 });

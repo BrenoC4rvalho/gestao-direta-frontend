@@ -77,60 +77,19 @@ describe('CategoryCard', () => {
     expect(badge?.className).toContain('border-danger');
   });
 
-  it('should emit actions when permitted', () => {
+  it('should emit edit action when permitted', () => {
     const fixture = TestBed.createComponent(CategoryCard);
     const edited = vi.fn();
-    const deleted = vi.fn();
     fixture.componentRef.setInput('category', category);
     fixture.componentRef.setInput('canEdit', true);
-    fixture.componentRef.setInput('canDelete', true);
     fixture.componentInstance.editRequested.subscribe(edited);
-    fixture.componentInstance.deleteRequested.subscribe(deleted);
     fixture.detectChanges();
 
     findButton(fixture.nativeElement, 'Editar')?.click();
-    findButton(fixture.nativeElement, 'Inativar')?.click();
 
     expect(edited).toHaveBeenCalledWith(category);
-    expect(deleted).toHaveBeenCalledWith(category);
-  });
-
-  it('should show inactivate but not activate for active categories with permission', () => {
-    const fixture = TestBed.createComponent(CategoryCard);
-    fixture.componentRef.setInput('category', category);
-    fixture.componentRef.setInput('canEdit', true);
-    fixture.componentRef.setInput('canDelete', true);
-    fixture.componentRef.setInput('canActivate', true);
-    fixture.detectChanges();
-
-    expect(findButton(fixture.nativeElement, 'Inativar')).toBeTruthy();
-    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
-  });
-
-  it('should show activate but not inactivate for inactive categories with permission', () => {
-    const fixture = TestBed.createComponent(CategoryCard);
-    fixture.componentRef.setInput('category', { ...category, status: 'INACTIVE' });
-    fixture.componentRef.setInput('canEdit', true);
-    fixture.componentRef.setInput('canDelete', true);
-    fixture.componentRef.setInput('canActivate', true);
-    fixture.detectChanges();
-
-    expect(findButton(fixture.nativeElement, 'Ativar')).toBeTruthy();
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
-  });
-
-  it('should emit activate when permitted', () => {
-    const inactiveCategory = { ...category, status: 'INACTIVE' as const };
-    const fixture = TestBed.createComponent(CategoryCard);
-    const activated = vi.fn();
-    fixture.componentRef.setInput('category', inactiveCategory);
-    fixture.componentRef.setInput('canActivate', true);
-    fixture.componentInstance.activateRequested.subscribe(activated);
-    fixture.detectChanges();
-
-    findButton(fixture.nativeElement, 'Ativar')?.click();
-
-    expect(activated).toHaveBeenCalledWith(inactiveCategory);
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
   });
 
   it('should hide actions without permission', () => {
@@ -140,6 +99,7 @@ describe('CategoryCard', () => {
 
     expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
   });
 });
 

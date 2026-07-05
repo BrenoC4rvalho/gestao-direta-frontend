@@ -25,7 +25,7 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Button, Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
 import { CategoryForm, CategoryFormPayload, CategoryScope } from './components/category-form/category-form';
 
@@ -46,6 +46,7 @@ interface CategoryLists {
     EmptyState,
     ErrorState,
     Skeleton,
+    StatusActionSection,
   ],
   templateUrl: './categories-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,10 +245,12 @@ export class CategoriesPage {
       .subscribe({
         next: () => {
           this.deleteTarget.set(null);
+          this.drawerOpen.set(false);
+          this.editingCategory.set(null);
           this.toastStore.success('Categoria inativada com sucesso.');
           this.retry();
         },
-        error: (error: unknown) => this.showOperationError(error),
+        error: () => this.showStatusChangeError(),
       });
   }
 
@@ -274,10 +277,12 @@ export class CategoriesPage {
       .subscribe({
         next: () => {
           this.activateTarget.set(null);
+          this.drawerOpen.set(false);
+          this.editingCategory.set(null);
           this.toastStore.success('Categoria ativada com sucesso.');
           this.retry();
         },
-        error: () => this.showActivateError(),
+        error: () => this.showStatusChangeError(),
       });
   }
 
@@ -520,8 +525,8 @@ export class CategoriesPage {
     this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
   }
 
-  private showActivateError(): void {
-    this.toastStore.error('Não foi possível ativar a categoria.');
+  private showStatusChangeError(): void {
+    this.toastStore.error('Não foi possível alterar o status da categoria.');
   }
 
   private showPermissionError(): void {

@@ -89,11 +89,7 @@
               <gd-category-card
                 [category]="category"
                 [canEdit]="canEditCategory(category)"
-                [canDelete]="canDeleteCategory(category)"
-                [canActivate]="canActivateCategory(category)"
                 (editRequested)="openEditDrawer($event)"
-                (deleteRequested)="requestDelete($event)"
-                (activateRequested)="requestActivate($event)"
                 role="listitem"
               />
             }
@@ -127,11 +123,7 @@
             <gd-category-card
               [category]="category"
               [canEdit]="canEditCategory(category)"
-              [canDelete]="canDeleteCategory(category)"
-              [canActivate]="canActivateCategory(category)"
               (editRequested)="openEditDrawer($event)"
-              (deleteRequested)="requestDelete($event)"
-              (activateRequested)="requestActivate($event)"
               role="listitem"
             />
           }
@@ -160,15 +152,47 @@
     (submitted)="saveCategory($event)"
     (cancelled)="closeDrawer()"
   />
+
+  @if (editingCategory(); as category) {
+    @if (canDeleteCategory(category) || canActivateCategory(category)) {
+      <section class="mt-6 border-t border-border pt-6">
+        @if (category.status === 'ACTIVE') {
+          <gd-status-action-section
+            title="Status da categoria"
+            description="Categorias ativas podem ser usadas em novas movimentações."
+            badgeLabel="Ativa"
+            badgeVariant="success"
+            actionLabel="Inativar"
+            actionVariant="danger"
+            [actionDisabled]="submitting() || deleteSubmitting() || activateSubmitting()"
+            [actionLoading]="deleteSubmitting() && deleteTarget()?.id === category.id"
+            (action)="requestDelete(category)"
+          />
+        } @else {
+          <gd-status-action-section
+            title="Status da categoria"
+            description="Categorias inativas não devem ser usadas em novas movimentações."
+            badgeLabel="Inativa"
+            badgeVariant="danger"
+            actionLabel="Ativar"
+            actionVariant="primary"
+            [actionDisabled]="submitting() || deleteSubmitting() || activateSubmitting()"
+            [actionLoading]="activateSubmitting() && activateTarget()?.id === category.id"
+            (action)="requestActivate(category)"
+          />
+        }
+      </section>
+    }
+  }
 </gd-drawer>
 
 <gd-confirm-dialog
   [open]="deleteTarget() !== null"
-  title="Inativar categoria"
-  description="Esta categoria não ficará disponível para novas movimentações."
+  title="Inativar categoria?"
+  description="Essa categoria deixará de estar disponível para novas movimentações. Movimentações antigas continuarão preservadas."
   confirmLabel="Inativar"
   cancelLabel="Cancelar"
-  variant="warning"
+  variant="danger"
   [loading]="deleteSubmitting()"
   (confirmed)="confirmDelete()"
   (cancelled)="closeDeleteConfirmation()"
@@ -177,8 +201,8 @@
 
 <gd-confirm-dialog
   [open]="activateTarget() !== null"
-  title="Ativar categoria"
-  description="Esta categoria voltará a ficar disponível para uso em movimentações financeiras."
+  title="Ativar categoria?"
+  description="Essa categoria voltará a ficar disponível para novas movimentações."
   confirmLabel="Ativar"
   cancelLabel="Cancelar"
   variant="success"

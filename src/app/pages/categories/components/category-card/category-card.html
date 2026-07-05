@@ -22,49 +22,17 @@
     </div>
   </div>
 
-  @if (
-    canEdit() ||
-    (canDelete() && category().status === 'ACTIVE') ||
-    (canActivate() && category().status === 'INACTIVE')
-  ) {
-    <div
-      class="grid gap-2 border-t border-border pt-4 sm:grid-cols-2 md:min-w-48 md:border-t-0 md:pt-0"
-    >
-      @if (canEdit()) {
-        <gd-button
-          type="button"
-          variant="outline"
-          size="sm"
-          [fullWidth]="true"
-          (click)="editCategory()"
-        >
-          Editar
-        </gd-button>
-      }
-
-      @if (canDelete() && category().status === 'ACTIVE') {
-        <gd-button
-          type="button"
-          variant="outline"
-          size="sm"
-          [fullWidth]="true"
-          (click)="deleteCategory()"
-        >
-          Inativar
-        </gd-button>
-      }
-
-      @if (canActivate() && category().status === 'INACTIVE') {
-        <gd-button
-          type="button"
-          variant="outline"
-          size="sm"
-          [fullWidth]="true"
-          (click)="activateCategory()"
-        >
-          Ativar
-        </gd-button>
-      }
+  @if (canEdit()) {
+    <div class="grid gap-2 border-t border-border pt-4 md:min-w-48 md:border-t-0 md:pt-0">
+      <gd-button
+        type="button"
+        variant="outline"
+        size="sm"
+        [fullWidth]="true"
+        (click)="editCategory()"
+      >
+        Editar
+      </gd-button>
     </div>
   }
 </article>
