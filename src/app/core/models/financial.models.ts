@@ -10,6 +10,27 @@ export interface FinancialSummary {
   cashFlowNext30Days: number;
 }
 
+export interface OverdueBillAlert {
+  transactionId: number;
+  description: string;
+  categoryName: string | null;
+  amount: number;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export interface DueBillsSummary {
+  count: number;
+  totalAmount: number;
+}
+
+export interface FinancialAlerts {
+  farmId: number;
+  overdueBills: readonly OverdueBillAlert[];
+  dueToday: DueBillsSummary;
+  dueNext7Days: DueBillsSummary;
+}
+
 export type TransactionType = 'INCOME' | 'EXPENSE' | string;
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELED' | string;

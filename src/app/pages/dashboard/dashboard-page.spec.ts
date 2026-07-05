@@ -7,9 +7,9 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
 import {
+  FinancialAlerts,
   FinancialSummary,
   FinancialTransaction,
-  UpcomingBill,
 } from '../../core/models/financial.models';
 import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
@@ -110,15 +110,20 @@ const transaction: FinancialTransaction = {
   updatedAt: '2026-01-10T00:00:00Z',
 };
 
-const bill: UpcomingBill = {
-  id: 1,
-  description: 'Conta de energia',
-  amount: 320,
-  status: 'PENDING',
-  dueDate: '2026-01-20',
+const alerts: FinancialAlerts = {
   farmId: 1,
-  categoryId: 2,
-  categoryName: 'Energia',
+  overdueBills: [
+    {
+      transactionId: 101,
+      description: 'Boleto fornecedor AgroSul',
+      categoryName: 'Insumos',
+      amount: 3200,
+      dueDate: '2026-07-02',
+      daysOverdue: 3,
+    },
+  ],
+  dueToday: { count: 1, totalAmount: 1850 },
+  dueNext7Days: { count: 5, totalAmount: 7400 },
 };
 
 const harvest: HarvestSeasonSummaryListItem = {
@@ -168,6 +173,7 @@ function textContent(fixture: ComponentFixture<DashboardPage>): string {
 describe('DashboardPage', () => {
   let financialService: {
     getSummary: ReturnType<typeof vi.fn>;
+    getAlerts: ReturnType<typeof vi.fn>;
     getLatestTransactions: ReturnType<typeof vi.fn>;
     getUpcomingBills: ReturnType<typeof vi.fn>;
   };
@@ -181,8 +187,9 @@ describe('DashboardPage', () => {
   beforeEach(async () => {
     financialService = {
       getSummary: vi.fn().mockReturnValue(of(summary)),
+      getAlerts: vi.fn().mockReturnValue(of(alerts)),
       getLatestTransactions: vi.fn().mockReturnValue(of(pageResponse([transaction]))),
-      getUpcomingBills: vi.fn().mockReturnValue(of(pageResponse([bill]))),
+      getUpcomingBills: vi.fn(),
     };
     harvestSeasonService = {
       listSummary: vi.fn().mockReturnValue(of(pageResponse([harvest]))),
@@ -232,6 +239,7 @@ describe('DashboardPage', () => {
 
     expect(textContent(fixture)).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
+    expect(financialService.getAlerts).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
@@ -253,8 +261,9 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
+    expect(financialService.getAlerts).toHaveBeenCalledWith(1);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
-    expect(financialService.getUpcomingBills).toHaveBeenCalledWith(1);
+    expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
       farmId: 1,
       status: 'IN_PROGRESS',
@@ -288,8 +297,13 @@ describe('DashboardPage', () => {
     expect(summaryCards[7]).toContain('R$ 100,00');
     expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
     expect(text).toContain('Venda de soja');
-    expect(text).toContain('Conta de energia');
-    expect(text).toContain('1 conta(s) somando R$ 320,00');
+    expect(text).toContain('Alertas importantes');
+    expect(text).toContain('Boleto fornecedor AgroSul');
+    expect(text).toContain('1 conta a pagar no valor total de R$ 1.850,00');
+    expect(text).not.toContain('Contas a vencer');
+    expect(text).not.toContain('1 conta(s) somando');
+    expect(fixture.nativeElement.querySelector('gd-important-alerts')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
   it('should render in-progress harvest cards and links', () => {
@@ -349,8 +363,9 @@ describe('DashboardPage', () => {
     expect(text).toContain('Erro ao carregar safras');
     expect(text).toContain('Não foi possível carregar as safras em andamento.');
     expect(text).toContain('Saldo atual');
+    expect(text).toContain('Alertas importantes');
+    expect(text).toContain('Boleto fornecedor AgroSul');
     expect(text).toContain('Venda de soja');
-    expect(text).toContain('Conta de energia');
   });
 
   it('should reload dashboard and harvest data when the global farm selection changes', () => {
@@ -367,8 +382,10 @@ describe('DashboardPage', () => {
 
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getSummary).toHaveBeenCalledWith(2);
+    expect(financialService.getAlerts).toHaveBeenCalledWith(1);
+    expect(financialService.getAlerts).toHaveBeenCalledWith(2);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
-    expect(financialService.getUpcomingBills).toHaveBeenCalledWith(2);
+    expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
       farmId: 1,
       status: 'IN_PROGRESS',
@@ -395,6 +412,7 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     expect(financialService.getSummary).not.toHaveBeenCalled();
+    expect(financialService.getAlerts).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
@@ -407,18 +425,18 @@ describe('DashboardPage', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
     financialService.getSummary.mockReturnValueOnce(throwError(() => new Error('summary')));
+    financialService.getAlerts.mockReturnValueOnce(throwError(() => new Error('alerts')));
     financialService.getLatestTransactions.mockReturnValueOnce(
       throwError(() => new Error('transactions')),
     );
-    financialService.getUpcomingBills.mockReturnValueOnce(throwError(() => new Error('bills')));
 
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
     const text = textContent(fixture);
     expect(text).toContain('Erro ao carregar resumo');
+    expect(text).toContain('Erro ao carregar alertas');
     expect(text).toContain('Erro ao carregar movimentações');
-    expect(text).toContain('Erro ao carregar contas');
     expect(text).toContain('Safras em andamento');
     expect(text).toContain('Safra Soja 2026');
   });

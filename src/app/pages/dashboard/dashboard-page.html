@@ -47,6 +47,12 @@
         }
       </div>
     }
+    <gd-important-alerts
+      [alerts]="alerts()"
+      [loading]="alertsLoading()"
+      [error]="alertsError()"
+    />
+
 
     <section class="gd-fade-in-up space-y-4" aria-labelledby="in-progress-harvests-title">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -168,37 +174,11 @@
       }
     </section>
 
-    <a
-      routerLink="/upcoming-bills"
-      class="gd-fade-in-up flex cursor-pointer flex-col gap-4 rounded-app border border-warning/25 bg-warning/10 p-5 text-text-primary transition-all duration-200 ease-out hover:border-warning/40 hover:bg-warning/15 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:items-center sm:justify-between sm:hover:-translate-y-0.5"
-    >
-      <div class="flex items-center gap-4">
-        <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-warning">
-          <svg lucideIcon="calendar-clock" class="size-6" aria-hidden="true"></svg>
-        </div>
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Contas a vencer</p>
-          <p class="mt-1 text-sm text-text-muted">
-            {{ upcomingBills().length }} conta(s) somando {{ upcomingBillsTotal() | brCurrency }}.
-          </p>
-        </div>
-      </div>
-
-      <span class="text-sm font-semibold text-primary">Ver todas</span>
-    </a>
-
-    <div class="gd-fade-in-up grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
-      <gd-latest-transactions-card
-        [transactions]="transactions()"
-        [loading]="transactionsLoading()"
-        [error]="transactionsError()"
-      />
-
-      <gd-upcoming-bills-card
-        [bills]="upcomingBills()"
-        [loading]="upcomingBillsLoading()"
-        [error]="upcomingBillsError()"
-      />
-    </div>
+    <gd-latest-transactions-card
+      class="gd-fade-in-up block"
+      [transactions]="transactions()"
+      [loading]="transactionsLoading()"
+      [error]="transactionsError()"
+    />
   }
 </section>

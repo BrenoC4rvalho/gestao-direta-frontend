@@ -7,13 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideDynamicIcon } from '@lucide/angular';
 import { Subscription, finalize } from 'rxjs';
 
 import {
+  FinancialAlerts,
   FinancialSummary,
   FinancialTransaction,
-  UpcomingBill,
 } from '../../core/models/financial.models';
 import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { FinancialService } from '../../core/services/financial.service';
@@ -23,9 +22,9 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { Badge, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
 import { SummaryCard, SummaryCardTone } from './components/summary-card/summary-card';
-import { UpcomingBillsCard } from './components/upcoming-bills-card/upcoming-bills-card';
 
 interface SummaryCardViewModel {
   title: string;
@@ -40,15 +39,13 @@ interface SummaryCardViewModel {
   selector: 'gd-dashboard-page',
   imports: [
     Badge,
-    BrCurrencyPipe,
     EmptyState,
     ErrorState,
+    ImportantAlerts,
     LatestTransactionsCard,
-    LucideDynamicIcon,
     RouterLink,
     Skeleton,
     SummaryCard,
-    UpcomingBillsCard,
   ],
   templateUrl: './dashboard-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,9 +66,9 @@ export class DashboardPage {
   protected readonly transactionsLoading = signal(false);
   protected readonly transactionsError = signal<string | null>(null);
 
-  protected readonly upcomingBills = signal<readonly UpcomingBill[]>([]);
-  protected readonly upcomingBillsLoading = signal(false);
-  protected readonly upcomingBillsError = signal<string | null>(null);
+  protected readonly alerts = signal<FinancialAlerts | null>(null);
+  protected readonly alertsLoading = signal(false);
+  protected readonly alertsError = signal<string | null>(null);
 
   protected readonly inProgressHarvests = signal<readonly HarvestSeasonSummaryListItem[]>([]);
   protected readonly harvestsLoading = signal(false);
@@ -157,10 +154,6 @@ export class DashboardPage {
     ];
   });
 
-  protected readonly upcomingBillsTotal = computed(() =>
-    this.upcomingBills().reduce((total, bill) => total + bill.amount, 0),
-  );
-
   protected readonly emptyFarmDescription = computed(() => {
     if (this.selectedFarmStore.loaded() && !this.selectedFarmStore.hasFarms()) {
       return 'Nenhuma fazenda está disponível para o seu usuário.';
@@ -188,7 +181,7 @@ export class DashboardPage {
       const subscriptions = new Subscription();
       this.loadSummary(farmId, subscriptions);
       this.loadTransactions(farmId, subscriptions);
-      this.loadUpcomingBills(farmId, subscriptions);
+      this.loadAlerts(farmId, subscriptions);
       this.loadInProgressHarvests(farmId, subscriptions);
 
       onCleanup(() => subscriptions.unsubscribe());
@@ -228,18 +221,18 @@ export class DashboardPage {
     );
   }
 
-  private loadUpcomingBills(farmId: number, subscriptions: Subscription): void {
-    this.upcomingBills.set([]);
-    this.upcomingBillsError.set(null);
-    this.upcomingBillsLoading.set(true);
+  private loadAlerts(farmId: number, subscriptions: Subscription): void {
+    this.alerts.set(null);
+    this.alertsError.set(null);
+    this.alertsLoading.set(true);
 
     subscriptions.add(
       this.financialService
-        .getUpcomingBills(farmId)
-        .pipe(finalize(() => this.upcomingBillsLoading.set(false)))
+        .getAlerts(farmId)
+        .pipe(finalize(() => this.alertsLoading.set(false)))
         .subscribe({
-          next: (response) => this.upcomingBills.set(response.content),
-          error: () => this.upcomingBillsError.set('Não foi possível carregar as contas a vencer.'),
+          next: (alerts) => this.alerts.set(alerts),
+          error: () => this.alertsError.set('Não foi possível carregar os alertas financeiros.'),
         }),
     );
   }
@@ -275,9 +268,9 @@ export class DashboardPage {
     this.transactions.set([]);
     this.transactionsLoading.set(false);
     this.transactionsError.set(null);
-    this.upcomingBills.set([]);
-    this.upcomingBillsLoading.set(false);
-    this.upcomingBillsError.set(null);
+    this.alerts.set(null);
+    this.alertsLoading.set(false);
+    this.alertsError.set(null);
     this.inProgressHarvests.set([]);
     this.harvestsLoading.set(false);
     this.harvestsError.set(null);
