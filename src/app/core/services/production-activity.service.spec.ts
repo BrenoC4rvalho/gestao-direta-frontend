@@ -12,10 +12,12 @@ import { PageResponse } from '../models/page-response.model';
 
 import { ProductionActivityService } from './production-activity.service';
 
-const apiUrl = 'http://localhost:8080/api/harvest/production-activities';
+const apiUrl = 'http://localhost:8080/api/production-activities';
 
 const activity: ProductionActivity = {
   id: 1,
+  farmId: 10,
+  farmName: 'Fazenda Boa Safra',
   name: 'Soja',
   description: 'Cultivo de soja',
   status: 'ACTIVE',
@@ -56,11 +58,12 @@ describe('ProductionActivityService', () => {
 
   it('should list production activities with supported params', () => {
     service
-      .list({ status: 'ACTIVE', page: 2, size: 20, sort: 'name', direction: 'ASC' })
+      .list({ farmId: 10, status: 'ACTIVE', page: 2, size: 20, sort: 'name', direction: 'ASC' })
       .subscribe((result) => expect(result).toEqual(response));
 
     const request = http.expectOne((req) => req.url === apiUrl);
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
     expect(request.request.params.get('status')).toBe('ACTIVE');
     expect(request.request.params.get('page')).toBe('2');
     expect(request.request.params.get('size')).toBe('20');
@@ -72,11 +75,12 @@ describe('ProductionActivityService', () => {
 
   it('should omit empty params when listing production activities', () => {
     service
-      .list({ status: null, page: 0, size: undefined, sort: ' ', direction: undefined })
+      .list({ farmId: 10, status: null, page: 0, size: undefined, sort: ' ', direction: undefined })
       .subscribe((result) => expect(result).toEqual(response));
 
     const request = http.expectOne((req) => req.url === apiUrl);
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
     expect(request.request.params.get('page')).toBe('0');
     expect(request.request.params.has('status')).toBe(false);
     expect(request.request.params.has('size')).toBe(false);
@@ -85,16 +89,36 @@ describe('ProductionActivityService', () => {
     request.flush(response);
   });
 
-  it('should list active production activities', () => {
-    service.listActive().subscribe((result) => expect(result).toEqual([activity]));
+  it('should list active production activities by farm', () => {
+    service.listActive(10).subscribe((result) => expect(result).toEqual([activity]));
 
-    const request = http.expectOne(`${apiUrl}/active`);
+    const request = http.expectOne((req) => req.url === apiUrl);
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
+    expect(request.request.params.get('status')).toBe('ACTIVE');
+    expect(request.request.params.get('sort')).toBe('name');
     expect(request.request.withCredentials).toBe(true);
-    request.flush([activity]);
+    request.flush(response);
   });
 
-  it('should call GET /api/harvest/production-activities/{id}', () => {
+  it('should get production activity summary by farm', () => {
+    const summary = {
+      farmId: 10,
+      totalCount: 3,
+      activeCount: 2,
+      inactiveCount: 1,
+      inProgressCount: 0,
+    };
+
+    service.getSummary(10).subscribe((result) => expect(result).toEqual(summary));
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/summary`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('10');
+    request.flush(summary);
+  });
+
+  it('should call GET /api/production-activities/{id}', () => {
     service.getById(1).subscribe((result) => expect(result).toEqual(activity));
 
     const request = http.expectOne(`${apiUrl}/1`);
@@ -104,6 +128,7 @@ describe('ProductionActivityService', () => {
 
   it('should create a production activity', () => {
     const payload: CreateProductionActivityRequest = {
+      farmId: 10,
       name: 'Soja',
       description: 'Cultivo de soja',
     };

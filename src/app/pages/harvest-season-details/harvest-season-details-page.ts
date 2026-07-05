@@ -20,7 +20,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { finalize, forkJoin, Observable } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 
 import {
   HarvestSeason,
@@ -145,9 +145,13 @@ export class HarvestSeasonDetailsPage implements OnInit {
     { validators: [this.dateRangeValidator()] },
   );
 
-  protected readonly activityOptions = computed<readonly GdSelectOption[]>(() =>
-    this.productionActivities().map((activity) => ({ label: activity.name, value: activity.id })),
-  );
+  protected readonly activityOptions = computed<readonly GdSelectOption[]>(() => {
+    const currentActivityId = this.harvest()?.productionActivityId ?? null;
+
+    return this.productionActivities()
+      .filter((activity) => activity.status === 'ACTIVE' || activity.id === currentActivityId)
+      .map((activity) => ({ label: activity.name, value: activity.id }));
+  });
   protected readonly canManageHarvests = computed(() => {
     if (this.sessionStore.isAdmin()) {
       return true;
@@ -281,7 +285,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
     this.harvestId.set(id);
     this.loadDetails(id);
-    this.loadFormOptions();
   }
 
   protected goBack(): void {
@@ -402,7 +405,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
           this.drawerOpen.set(false);
           this.toastStore.success('Safra atualizada com sucesso.');
           this.loadDetails(harvest.id);
-          this.loadFormOptions();
         },
         error: (error: unknown) => this.showOperationError(error),
       });
@@ -604,6 +606,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
       .subscribe({
         next: (harvest) => {
           this.harvest.set(harvest);
+          this.loadFormOptions(harvest.farmId);
           this.loadTransactions(0);
         },
         error: (error: unknown) => this.handleHarvestError(error),
@@ -661,11 +664,19 @@ export class HarvestSeasonDetailsPage implements OnInit {
       });
   }
 
-  private loadFormOptions(): void {
-    forkJoin({ activities: this.productionActivityService.listActive() })
+  private loadFormOptions(farmId: number): void {
+    this.productionActivityService
+      .list({
+        farmId,
+        includeInactive: true,
+        page: 0,
+        size: 100,
+        sort: 'name',
+        direction: 'ASC',
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ activities }) => this.productionActivities.set(activities),
+        next: (response) => this.productionActivities.set(response.content),
         error: () => this.productionActivities.set([]),
       });
   }

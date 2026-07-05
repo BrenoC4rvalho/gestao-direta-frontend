@@ -4,14 +4,17 @@ export type ProductionActivityStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface ProductionActivity {
   id: number;
+  farmId: number;
+  farmName?: string | null;
   name: string;
   description?: string | null;
-  status: ProductionActivityStatus;
-  createdAt?: string;
-  updatedAt?: string;
+  status: ProductionActivityStatus | string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CreateProductionActivityRequest {
+  farmId: number;
   name: string;
   description?: string | null;
 }
@@ -22,5 +25,16 @@ export interface UpdateProductionActivityRequest {
 }
 
 export interface ProductionActivityListParams extends PageRequest {
+  farmId: number;
+  search?: string | null;
   status?: ProductionActivityStatus | null;
+  includeInactive?: boolean | null;
+}
+
+export interface ProductionActivitySummary {
+  farmId: number;
+  totalCount: number;
+  activeCount: number;
+  inactiveCount: number;
+  inProgressCount: number;
 }

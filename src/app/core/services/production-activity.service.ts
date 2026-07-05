@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { appendQueryParam } from '../../shared/utils/query-params.utils';
@@ -8,6 +8,7 @@ import {
   CreateProductionActivityRequest,
   ProductionActivity,
   ProductionActivityListParams,
+  ProductionActivitySummary,
   UpdateProductionActivityRequest,
 } from '../models/production-activity.models';
 import { PageResponse } from '../models/page-response.model';
@@ -17,16 +18,29 @@ import { PageResponse } from '../models/page-response.model';
 })
 export class ProductionActivityService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/harvest/production-activities`;
+  private readonly apiUrl = `${environment.apiUrl}/production-activities`;
 
-  list(params?: ProductionActivityListParams): Observable<PageResponse<ProductionActivity>> {
+  list(params: ProductionActivityListParams): Observable<PageResponse<ProductionActivity>> {
     return this.http.get<PageResponse<ProductionActivity>>(this.apiUrl, {
       params: this.buildParams(params),
     });
   }
 
-  listActive(): Observable<ProductionActivity[]> {
-    return this.http.get<ProductionActivity[]>(`${this.apiUrl}/active`);
+  listActive(farmId: number): Observable<ProductionActivity[]> {
+    return this.list({
+      farmId,
+      status: 'ACTIVE',
+      page: 0,
+      size: 100,
+      sort: 'name',
+      direction: 'ASC',
+    }).pipe(map((response) => response.content));
+  }
+
+  getSummary(farmId: number): Observable<ProductionActivitySummary> {
+    return this.http.get<ProductionActivitySummary>(`${this.apiUrl}/summary`, {
+      params: new HttpParams().set('farmId', String(farmId)),
+    });
   }
 
   getById(id: number): Observable<ProductionActivity> {
@@ -49,14 +63,13 @@ export class ProductionActivityService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  private buildParams(params?: ProductionActivityListParams): HttpParams {
+  private buildParams(params: ProductionActivityListParams): HttpParams {
     let httpParams = new HttpParams();
 
-    if (!params) {
-      return httpParams;
-    }
-
+    httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
+    httpParams = appendQueryParam(httpParams, 'search', params.search);
     httpParams = appendQueryParam(httpParams, 'status', params.status);
+    httpParams = appendQueryParam(httpParams, 'includeInactive', params.includeInactive);
     httpParams = appendQueryParam(httpParams, 'page', params.page);
     httpParams = appendQueryParam(httpParams, 'size', params.size);
     httpParams = appendQueryParam(httpParams, 'sort', params.sort);

@@ -49,12 +49,16 @@ const secondFarm: Farm = {
 const activities: ProductionActivity[] = [
   {
     id: 2,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
     name: 'Soja',
     description: 'Cultivo de soja',
     status: 'ACTIVE',
   },
   {
     id: 3,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
     name: 'Milho',
     description: 'Cultivo de milho',
     status: 'ACTIVE',
@@ -160,6 +164,16 @@ const emptyResponse: PageResponse<HarvestSeasonSummaryListItem> = {
   last: true,
 };
 
+const activitiesResponse: PageResponse<ProductionActivity> = {
+  content: activities,
+  page: 0,
+  size: 100,
+  totalElements: activities.length,
+  totalPages: 1,
+  first: true,
+  last: true,
+};
+
 describe('HarvestsPage', () => {
   let fixture: ComponentFixture<HarvestsPage>;
   let harvestService: {
@@ -171,7 +185,7 @@ describe('HarvestsPage', () => {
     activate: Mock;
     inactivate: Mock;
   };
-  let productionActivityService: { listActive: Mock };
+  let productionActivityService: { list: Mock };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
@@ -187,7 +201,7 @@ describe('HarvestsPage', () => {
       inactivate: vi.fn(() => of(undefined)),
     };
     productionActivityService = {
-      listActive: vi.fn(() => of(activities)),
+      list: vi.fn(() => of(activitiesResponse)),
     };
 
     await TestBed.configureTestingModule({
@@ -218,7 +232,7 @@ describe('HarvestsPage', () => {
 
     expect(harvestService.listSummary).not.toHaveBeenCalled();
     expect(harvestService.list).not.toHaveBeenCalled();
-    expect(productionActivityService.listActive).toHaveBeenCalled();
+    expect(productionActivityService.list).not.toHaveBeenCalled();
     expect(componentState().loading()).toBe(false);
     expect(text()).toContain('Selecione uma fazenda para visualizar as safras.');
   });
@@ -239,7 +253,14 @@ describe('HarvestsPage', () => {
       direction: 'DESC',
     });
     expect(harvestService.list).not.toHaveBeenCalled();
-    expect(productionActivityService.listActive).toHaveBeenCalled();
+    expect(productionActivityService.list).toHaveBeenCalledWith({
+      farmId: 10,
+      includeInactive: true,
+      page: 0,
+      size: 100,
+      sort: 'name',
+      direction: 'ASC',
+    });
     expect(text()).toContain('Safras');
     expect(getListFilters().textContent).not.toContain('Nova safra');
     expect(text()).toContain('Safra Soja 2026');
@@ -509,7 +530,7 @@ describe('HarvestsPage', () => {
   it('should keep harvest list working when production activities fail to load', () => {
     const toastStore = TestBed.inject(ToastStore);
     const errorSpy = vi.spyOn(toastStore, 'error');
-    productionActivityService.listActive.mockReturnValueOnce(throwError(() => new Error('activities failed')));
+    productionActivityService.list.mockReturnValueOnce(throwError(() => new Error('activities failed')));
 
     setupSelectedFarm('PRODUCER');
 

@@ -3,8 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -15,13 +15,14 @@ import { finalize, Observable } from 'rxjs';
 
 import { PageResponse } from '../../core/models/page-response.model';
 import {
-  CreateProductionActivityRequest,
   ProductionActivity,
   ProductionActivityListParams,
   ProductionActivityStatus,
   UpdateProductionActivityRequest,
 } from '../../core/models/production-activity.models';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, Input, Textarea } from '../../shared/forms';
@@ -89,24 +90,59 @@ interface StatusConfirmation {
   templateUrl: './production-activities-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductionActivitiesPage implements OnInit {
+export class ProductionActivitiesPage {
   private readonly activityService = inject(ProductionActivityService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastStore = inject(ToastStore);
+  protected readonly selectedFarmStore = inject(SelectedFarmStore);
+  protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
 
   private readonly searchTerm = signal('');
   private readonly selectedStatus = signal<ProductionActivityStatusFilter>(null);
+  private readonly reloadTrigger = signal(0);
+  private currentFarmId: number | null = null;
 
   protected readonly response = signal<PageResponse<ProductionActivity> | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
+  protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
   protected readonly drawerState = signal<DrawerState>({ mode: 'create', activity: null });
   protected readonly submitting = signal(false);
   protected readonly statusTarget = signal<ProductionActivity | null>(null);
   protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4, 5];
+  protected readonly selectedFarmName = computed(
+    () => this.selectedFarmStore.selectedFarm()?.name ?? null,
+  );
+  protected readonly canManageActivities = computed(() => {
+    if (this.sessionStore.isAdmin()) {
+      return this.selectedFarmStore.selectedFarmId() !== null;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    return (
+      !!farmId &&
+      this.farmAccessStore.access()?.farmId === farmId &&
+      this.farmAccessStore.role() === 'PRODUCER'
+    );
+  });
+  protected readonly canViewActivities = computed(() => {
+    if (this.sessionStore.isAdmin()) {
+      return this.selectedFarmStore.selectedFarmId() !== null;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    const role = this.farmAccessStore.role();
+
+    return (
+      !!farmId &&
+      this.farmAccessStore.access()?.farmId === farmId &&
+      (role === 'PRODUCER' || role === 'EMPLOYEE' || role === 'ACCOUNTANT')
+    );
+  });
   protected readonly filtersConfig: ListFiltersConfig = {
     subtitle: 'Busque e filtre atividades produtivas',
     search: { placeholder: 'Buscar por nome ou descrição' },
@@ -132,7 +168,6 @@ export class ProductionActivitiesPage implements OnInit {
     const search = this.normalizeText(this.searchTerm());
     const activities = this.response()?.content ?? [];
 
-    // TODO: enviar search para o backend quando o endpoint documentar esse filtro.
     return activities.filter((activity) => {
       if (!search) {
         return true;
@@ -225,10 +260,47 @@ export class ProductionActivitiesPage implements OnInit {
         };
   });
 
-  ngOnInit(): void {
-    if (this.sessionStore.isAdmin()) {
-      this.loadPage(0);
-    }
+  constructor() {
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      const isAdmin = this.sessionStore.isAdmin();
+      this.reloadTrigger();
+
+      if (this.currentFarmId !== farmId) {
+        this.currentFarmId = farmId;
+        this.resetForFarmChange();
+      }
+
+      if (!farmId) {
+        this.clearListState();
+        return;
+      }
+
+      if (!isAdmin && this.isAccessPending()) {
+        this.clearListState();
+        return;
+      }
+
+      if (!this.canViewActivities()) {
+        this.clearListState();
+        this.accessDenied.set(true);
+        return;
+      }
+
+      this.accessDenied.set(false);
+      this.error.set(false);
+      this.loading.set(true);
+
+      const subscription = this.activityService
+        .list(this.listParams(farmId, 0, 10))
+        .pipe(finalize(() => this.loading.set(false)))
+        .subscribe({
+          next: (response) => this.response.set(response),
+          error: (error: unknown) => this.handleListError(error),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
   }
 
   protected retry(): void {
@@ -240,7 +312,6 @@ export class ProductionActivitiesPage implements OnInit {
 
     this.searchTerm.set(this.firstFilterValue(filters['search']) ?? '');
     this.selectedStatus.set(status);
-    this.loadPage(0);
   }
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
@@ -264,12 +335,22 @@ export class ProductionActivitiesPage implements OnInit {
   }
 
   protected openCreateDrawer(): void {
+    if (!this.canManageActivities()) {
+      this.showPermissionError();
+      return;
+    }
+
     this.drawerState.set({ mode: 'create', activity: null });
     this.form.reset({ name: '', description: '' });
     this.drawerOpen.set(true);
   }
 
   protected openEditDrawer(activity: ProductionActivity): void {
+    if (!this.canManageActivities()) {
+      this.showPermissionError();
+      return;
+    }
+
     this.drawerState.set({ mode: 'edit', activity });
     this.form.reset({
       name: activity.name,
@@ -302,18 +383,25 @@ export class ProductionActivitiesPage implements OnInit {
       return;
     }
 
-    const payload: CreateProductionActivityRequest | UpdateProductionActivityRequest = {
+    const state = this.drawerState();
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    if (state.mode === 'create' && !farmId) {
+      this.toastStore.error('Selecione uma fazenda para criar atividades produtivas.');
+      return;
+    }
+
+    const editablePayload: UpdateProductionActivityRequest = {
       name,
       description: description || null,
     };
-    const state = this.drawerState();
 
     this.submitting.set(true);
 
     const request$ =
       state.mode === 'edit' && state.activity
-        ? this.activityService.update(state.activity.id, payload)
-        : this.activityService.create(payload);
+        ? this.activityService.update(state.activity.id, editablePayload)
+        : this.activityService.create({ farmId: farmId as number, ...editablePayload });
 
     request$
       .pipe(
@@ -335,6 +423,11 @@ export class ProductionActivitiesPage implements OnInit {
   }
 
   protected requestStatusToggle(activity: ProductionActivity): void {
+    if (!this.canManageActivities()) {
+      this.showPermissionError();
+      return;
+    }
+
     this.statusTarget.set(activity);
   }
 
@@ -389,16 +482,16 @@ export class ProductionActivitiesPage implements OnInit {
       });
   }
 
-  protected statusLabel(status: ProductionActivityStatus): string {
+  protected statusLabel(status: string): string {
     const labels: Record<ProductionActivityStatus, string> = {
       ACTIVE: 'Ativa',
       INACTIVE: 'Inativa',
     };
 
-    return labels[status];
+    return labels[status as ProductionActivityStatus] ?? status;
   }
 
-  protected statusVariant(status: ProductionActivityStatus): BadgeVariant {
+  protected statusVariant(status: string): BadgeVariant {
     return status === 'ACTIVE' ? 'success' : 'danger';
   }
 
@@ -420,17 +513,13 @@ export class ProductionActivitiesPage implements OnInit {
   }
 
   private loadPage(page: number): void {
-    if (!this.sessionStore.isAdmin() || this.loading()) {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    if (!farmId || !this.canViewActivities()) {
       return;
     }
 
-    const params: ProductionActivityListParams = {
-      page,
-      size: this.response()?.size ?? 10,
-      sort: 'name',
-      direction: 'ASC',
-      status: this.selectedStatus(),
-    };
+    const params = this.listParams(farmId, page, this.response()?.size ?? 10);
 
     this.error.set(false);
     this.loading.set(true);
@@ -471,6 +560,46 @@ export class ProductionActivitiesPage implements OnInit {
     };
 
     this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
+  }
+
+  private listParams(farmId: number, page: number, size: number): ProductionActivityListParams {
+    return {
+      farmId,
+      search: this.searchTerm(),
+      page,
+      size,
+      sort: 'name',
+      direction: 'ASC',
+      status: this.selectedStatus(),
+    };
+  }
+
+  private resetForFarmChange(): void {
+    this.searchTerm.set('');
+    this.selectedStatus.set(null);
+    this.response.set(null);
+    this.error.set(false);
+    this.accessDenied.set(false);
+    this.drawerOpen.set(false);
+    this.drawerState.set({ mode: 'create', activity: null });
+    this.statusTarget.set(null);
+    this.statusSubmitting.set(false);
+    this.form.reset({ name: '', description: '' });
+  }
+
+  private clearListState(): void {
+    this.response.set(null);
+    this.error.set(false);
+    this.accessDenied.set(false);
+    this.loading.set(false);
+  }
+
+  private isAccessPending(): boolean {
+    return this.farmAccessStore.loading() || (!this.farmAccessStore.access() && !this.farmAccessStore.error());
+  }
+
+  private showPermissionError(): void {
+    this.toastStore.error('Você não tem permissão para gerenciar atividades produtivas.');
   }
 
   private normalizeText(value: string): string {

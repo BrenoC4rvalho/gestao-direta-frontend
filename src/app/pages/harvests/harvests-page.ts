@@ -198,7 +198,9 @@ export class HarvestsPage {
   );
 
   protected readonly activityOptions = computed<readonly GdSelectOption[]>(() =>
-    this.productionActivities().map((activity) => ({ label: activity.name, value: activity.id })),
+    this.productionActivities()
+      .filter((activity) => activity.status === 'ACTIVE')
+      .map((activity) => ({ label: activity.name, value: activity.id })),
   );
   protected readonly harvests = computed(() => this.response()?.content ?? []);
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
@@ -289,7 +291,6 @@ export class HarvestsPage {
   protected readonly drawerDescription = 'Cadastre uma safra vinculada à fazenda selecionada.';
 
   constructor() {
-    this.loadProductionActivities();
     this.bindMoneySanitizer(this.form.controls.expectedCost);
     this.bindMoneySanitizer(this.form.controls.expectedRevenue);
 
@@ -301,6 +302,11 @@ export class HarvestsPage {
       if (this.currentFarmId !== farmId) {
         this.currentFarmId = farmId;
         this.resetFiltersForFarmChange();
+        if (farmId) {
+          this.loadProductionActivities(farmId);
+        } else {
+          this.productionActivities.set([]);
+        }
       }
 
       if (!farmId) {
@@ -659,12 +665,19 @@ export class HarvestsPage {
     this.response.set(null);
   }
 
-  private loadProductionActivities(): void {
+  private loadProductionActivities(farmId: number): void {
     this.productionActivityService
-      .listActive()
+      .list({
+        farmId,
+        includeInactive: true,
+        page: 0,
+        size: 100,
+        sort: 'name',
+        direction: 'ASC',
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (activities) => this.productionActivities.set(activities),
+        next: (response) => this.productionActivities.set(response.content),
         error: () => {
           this.productionActivities.set([]);
           this.toastStore.error('Não foi possível carregar as atividades produtivas.');

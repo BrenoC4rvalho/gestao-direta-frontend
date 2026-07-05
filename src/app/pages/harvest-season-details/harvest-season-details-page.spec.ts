@@ -89,11 +89,23 @@ const transaction: FinancialTransaction = {
 const activities: ProductionActivity[] = [
   {
     id: 2,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
     name: 'Soja',
     description: 'Cultivo de soja',
     status: 'ACTIVE',
   },
 ];
+
+const activitiesResponse: PageResponse<ProductionActivity> = {
+  content: activities,
+  page: 0,
+  size: 100,
+  totalElements: activities.length,
+  totalPages: 1,
+  first: true,
+  last: true,
+};
 
 describe('HarvestSeasonDetailsPage', () => {
   let fixture: ComponentFixture<HarvestSeasonDetailsPage>;
@@ -106,7 +118,7 @@ describe('HarvestSeasonDetailsPage', () => {
     inactivate: Mock;
   };
   let transactionService: { listByFarm: Mock };
-  let productionActivityService: { listActive: Mock };
+  let productionActivityService: { list: Mock };
   let router: { navigate: Mock };
   let sessionStore: SessionStore;
   let farmAccessStore: FarmAccessStore;
@@ -124,7 +136,7 @@ describe('HarvestSeasonDetailsPage', () => {
       listByFarm: vi.fn(() => of(pageResponse([transaction]))),
     };
     productionActivityService = {
-      listActive: vi.fn(() => of(activities)),
+      list: vi.fn(() => of(activitiesResponse)),
     };
     router = { navigate: vi.fn(() => Promise.resolve(true)) };
 

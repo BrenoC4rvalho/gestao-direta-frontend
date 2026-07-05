@@ -3,9 +3,12 @@ import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
+import { Farm } from '../../core/models/farm.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 
@@ -29,6 +32,25 @@ const producer: AuthUser = {
   status: 'ACTIVE',
 };
 
+const farm: Farm = {
+  id: 10,
+  name: 'Fazenda Boa Safra',
+  document: null,
+  city: 'Londrina',
+  state: 'PR',
+  totalArea: 120,
+  productionType: 'AGRICULTURE',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00',
+  updatedAt: '2026-01-01T00:00:00',
+};
+
+const secondFarm: Farm = {
+  ...farm,
+  id: 20,
+  name: 'Fazenda Santa Clara',
+};
+
 interface ProductionActivitiesPageHarness {
   drawerOpen(): boolean;
   form: {
@@ -45,6 +67,8 @@ const drawerAnimationDurationMs = 250;
 const activities: ProductionActivity[] = [
   {
     id: 1,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
     name: 'Soja',
     description: 'Cultura anual de grãos',
     status: 'ACTIVE',
@@ -53,6 +77,8 @@ const activities: ProductionActivity[] = [
   },
   {
     id: 2,
+    farmId: 10,
+    farmName: 'Fazenda Boa Safra',
     name: 'Gado de leite',
     description: 'Atividade leiteira especializada',
     status: 'INACTIVE',
@@ -87,6 +113,8 @@ describe('ProductionActivitiesPage', () => {
     activate: ReturnType<typeof vi.fn>;
     inactivate: ReturnType<typeof vi.fn>;
   };
+  let selectedFarmStore: SelectedFarmStore;
+  let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
 
@@ -108,14 +136,21 @@ describe('ProductionActivitiesPage', () => {
       ],
     }).compileComponents();
 
+    selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    farmAccessStore = TestBed.inject(FarmAccessStore);
     sessionStore = TestBed.inject(SessionStore);
     toastStore = TestBed.inject(ToastStore);
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
     sessionStore.clear();
     toastStore.clear();
     sessionStore.setUser(admin);
+    selectedFarmStore.setFarms([farm]);
   });
 
   afterEach(() => {
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
     sessionStore.clear();
     toastStore.clear();
     TestBed.resetTestingModule();
@@ -127,6 +162,8 @@ describe('ProductionActivitiesPage', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(service.list).toHaveBeenCalledWith({
+      farmId: 10,
+      search: '',
       page: 0,
       size: 10,
       sort: 'name',
@@ -150,14 +187,46 @@ describe('ProductionActivitiesPage', () => {
     expect(findButton('Ativar')).toBeUndefined();
   });
 
-  it('should show access restriction and avoid API calls for non-admin users', () => {
-    sessionStore.setUser(producer);
+  it('should show empty state and avoid API calls without a selected farm', () => {
+    selectedFarmStore.clear();
+
     createPage();
 
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Acesso restrito');
-    expect(text).not.toContain('Nova atividade produtiva');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Selecione uma fazenda para visualizar as atividades produtivas.',
+    );
     expect(service.list).not.toHaveBeenCalled();
+  });
+
+  it('should allow producers to manage production activities for the selected farm', () => {
+    sessionStore.setUser(producer);
+    setFarmAccess(farm, 'PRODUCER');
+
+    createPage();
+
+    expect(service.list).toHaveBeenCalledWith({
+      farmId: 10,
+      search: '',
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: null,
+    });
+    expect(findButton('Nova atividade produtiva')).toBeTruthy();
+    expect(findButton('Editar')).toBeTruthy();
+  });
+
+  it('should allow employees to view without management actions', () => {
+    sessionStore.setUser(producer);
+    setFarmAccess(farm, 'EMPLOYEE');
+
+    createPage();
+
+    expect(service.list).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Soja');
+    expect(findButton('Nova atividade produtiva')).toBeUndefined();
+    expect(findButton('Editar')).toBeUndefined();
   });
 
   it('should show loading state', () => {
@@ -177,7 +246,7 @@ describe('ProductionActivitiesPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain(
-      'Não foi possível carregar as atividades produtivas.',
+      'Não foi possível carregar as atividades produtivas da fazenda.',
     );
   });
 
@@ -208,11 +277,47 @@ describe('ProductionActivitiesPage', () => {
     );
   });
 
+
+  it('should clear stale data and reload when the selected farm changes', () => {
+    const secondFarmActivity: ProductionActivity = {
+      ...activities[0],
+      id: 20,
+      farmId: 20,
+      farmName: 'Fazenda Santa Clara',
+      name: 'Milho Santa Clara',
+    };
+
+    service.list.mockImplementation((params: { farmId: number }) =>
+      of(params.farmId === 20 ? pageResponse([secondFarmActivity]) : pageResponse(activities)),
+    );
+
+    createPage();
+    expect(fixture.nativeElement.textContent).toContain('Soja');
+
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    selectedFarmStore.selectFarmById(20);
+    fixture.detectChanges();
+
+    expect(service.list).toHaveBeenLastCalledWith({
+      farmId: 20,
+      search: '',
+      page: 0,
+      size: 10,
+      sort: 'name',
+      direction: 'ASC',
+      status: null,
+    });
+    expect(fixture.nativeElement.textContent).toContain('Milho Santa Clara');
+    expect(fixture.nativeElement.textContent).not.toContain('Gado de leite');
+  });
+
   it('should send status ACTIVE and INACTIVE filters from chips', () => {
     createPage();
 
     clickButton('Ativas');
     expect(service.list).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
       page: 0,
       size: 10,
       sort: 'name',
@@ -223,6 +328,8 @@ describe('ProductionActivitiesPage', () => {
 
     clickButton('Inativas');
     expect(service.list).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
       page: 0,
       size: 10,
       sort: 'name',
@@ -241,6 +348,8 @@ describe('ProductionActivitiesPage', () => {
     clickButton('Próxima');
 
     expect(service.list).toHaveBeenLastCalledWith({
+      farmId: 10,
+      search: '',
       page: 1,
       size: 10,
       sort: 'name',
@@ -262,6 +371,7 @@ describe('ProductionActivitiesPage', () => {
     fixture.detectChanges();
 
     expect(service.create).toHaveBeenCalledWith({
+      farmId: 10,
       name: 'Milho',
       description: 'Cultura anual',
     });
@@ -376,6 +486,27 @@ describe('ProductionActivitiesPage', () => {
   function createPage(): void {
     fixture = TestBed.createComponent(ProductionActivitiesPage);
     fixture.detectChanges();
+  }
+
+  function setFarmAccess(item: Farm, role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
+    farmAccessStore.setAccess({
+      farmId: item.id,
+      farmName: item.name,
+      userId: 1,
+      userType: 'USER',
+      role,
+      permissions: {
+        canViewFarm: true,
+        canEditFarm: role === 'PRODUCER',
+        canChangeFarmStatus: false,
+        canManageFarmUsers: role === 'PRODUCER',
+        canViewFinancial: true,
+        canManageTransactions: role === 'PRODUCER',
+        canManageCategories: role === 'PRODUCER',
+        canManageGlobalCategories: false,
+        canCreateFarm: false,
+      },
+    });
   }
 
   function setSearch(value: string): void {
