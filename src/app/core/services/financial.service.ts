@@ -37,7 +37,7 @@ export class FinancialService {
         params: new HttpParams()
           .set('farmId', farmId)
           .set('page', 0)
-          .set('size', 5)
+          .set('size', 10)
           .set('sort', 'transactionDate')
           .set('direction', 'DESC'),
       },

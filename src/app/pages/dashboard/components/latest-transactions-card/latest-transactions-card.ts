@@ -1,17 +1,16 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import {
   FinancialTransaction,
   PaymentStatus,
-  TransactionType,
 } from '../../../../core/models/financial.models';
 import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
-import { Badge, BadgeVariant, Card, EmptyState, ErrorState, Skeleton } from '../../../../shared/ui';
+import { Badge, BadgeVariant, Card, ErrorState, Skeleton } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-latest-transactions-card',
-  imports: [Badge, BrCurrencyPipe, Card, EmptyState, ErrorState, RouterLink, Skeleton],
+  imports: [Badge, BrCurrencyPipe, Card, ErrorState, RouterLink, Skeleton],
   templateUrl: './latest-transactions-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -20,10 +19,21 @@ export class LatestTransactionsCard {
   readonly loading = input(false);
   readonly error = input<string | null>(null);
 
+  protected readonly incomeTransactions = computed(() =>
+    this.transactions()
+      .filter((transaction) => transaction.type === 'INCOME')
+      .slice(0, 5),
+  );
+
+  protected readonly expenseTransactions = computed(() =>
+    this.transactions()
+      .filter((transaction) => transaction.type === 'EXPENSE')
+      .slice(0, 5),
+  );
+
   protected readonly skeletonRows = [1, 2, 3];
 
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
-
 
   protected formatDate(value: string): string {
     return this.dateFormatter.format(new Date(value));
@@ -51,16 +61,7 @@ export class LatestTransactionsCard {
     return variants[status] ?? 'neutral';
   }
 
-  protected typeLabel(type: TransactionType): string {
-    const labels: Record<string, string> = {
-      INCOME: 'Entrada',
-      EXPENSE: 'Saída',
-    };
-
-    return labels[type] ?? type;
-  }
-
-  protected typeClasses(type: TransactionType): string {
+  protected valueClasses(type: FinancialTransaction['type']): string {
     return type === 'INCOME' ? 'text-success' : 'text-danger';
   }
 }

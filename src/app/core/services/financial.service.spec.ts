@@ -62,7 +62,7 @@ describe('FinancialService', () => {
 
     const request = http.expectOne(
       apiUrl +
-        '/financial/transactions?farmId=1&page=0&size=5&sort=transactionDate&direction=DESC',
+        '/financial/transactions?farmId=1&page=0&size=10&sort=transactionDate&direction=DESC',
     );
     expect(request.request.method).toBe('GET');
     request.flush({});
