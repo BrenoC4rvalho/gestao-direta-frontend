@@ -1,0 +1,40 @@
+<main class="flex min-h-dvh items-center justify-center bg-background px-4 py-10 sm:px-6">
+  <section
+    class="w-full max-w-xl rounded-app border border-border bg-surface p-6 text-center shadow-soft sm:p-8"
+    aria-labelledby="server-error-title"
+  >
+    <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-danger/10 text-danger">
+      <svg lucideIcon="server-crash" class="size-7" aria-hidden="true"></svg>
+    </div>
+
+    <p class="mt-5 text-sm font-semibold uppercase text-primary">Gestão Direta</p>
+    <h1 id="server-error-title" class="mt-3 text-2xl font-semibold leading-tight text-text-primary sm:text-3xl">
+      Não foi possível conectar ao servidor
+    </h1>
+    <p class="mx-auto mt-4 max-w-md text-sm leading-6 text-text-muted sm:text-base">
+      A API ou o banco de dados podem estar instáveis no momento. Tente novamente em instantes ou volte para o início.
+    </p>
+
+    @if (message()) {
+      <p
+        class="mt-5 rounded-control border border-warning/40 bg-warning/10 px-4 py-3 text-sm leading-5 text-text-primary"
+        role="status"
+        data-testid="server-error-message"
+      >
+        {{ message() }}
+      </p>
+    }
+
+    <div class="mt-7 grid gap-3 sm:grid-cols-2">
+      <gd-button type="button" size="lg" [loading]="retrying()" [fullWidth]="true" (click)="retry()">
+        <svg lucideIcon="refresh-cw" class="size-5" aria-hidden="true"></svg>
+        <span>Tentar novamente</span>
+      </gd-button>
+
+      <gd-button type="button" size="lg" variant="outline" [fullWidth]="true" (click)="goHome()">
+        <svg lucideIcon="home" class="size-5" aria-hidden="true"></svg>
+        <span>Voltar para início</span>
+      </gd-button>
+    </div>
+  </section>
+</main>

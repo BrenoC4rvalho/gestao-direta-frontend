@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { apiAvailableGuard } from '../core/guards/api-available.guard';
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
 
@@ -26,8 +27,16 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'server-error',
+    title: 'Servidor indisponível',
+    loadComponent: () =>
+      import('../pages/server-error/server-error-page').then(
+        (component) => component.ServerErrorPage,
+      ),
+  },
+  {
     path: '',
-    canActivate: [authGuard],
+    canActivate: [apiAvailableGuard, authGuard],
     loadComponent: () =>
       import('../layouts/app-layout/app-layout').then((component) => component.AppLayout),
     children: [

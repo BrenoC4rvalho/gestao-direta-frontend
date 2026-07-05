@@ -4,9 +4,10 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { SystemStatusService } from '../../../core/services/system-status.service';
 import { SessionStore } from '../../../core/stores/session.store';
 import { ToastStore } from '../../../core/stores/toast.store';
 import { GdFormControl, GdFormValue } from '../../../shared/forms';
@@ -27,6 +28,7 @@ export class LoginPage {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly sessionStore = inject(SessionStore);
+  private readonly systemStatusService = inject(SystemStatusService);
   private readonly toastStore = inject(ToastStore);
 
   protected readonly submitting = signal(false);
@@ -52,11 +54,33 @@ export class LoginPage {
 
     this.submitting.set(true);
 
-    this.authService
-      .login({ email, password })
-      .pipe(finalize(() => this.submitting.set(false)))
+    this.systemStatusService
+      .getStatus()
+      .pipe(
+        catchError(() => {
+          void this.router.navigate(['/server-error']);
+          return of(null);
+        }),
+        switchMap((status) => {
+          if (!status) {
+            return of(null);
+          }
+
+          if (!this.systemStatusService.isHealthy(status)) {
+            void this.router.navigate(['/server-error']);
+            return of(null);
+          }
+
+          return this.authService.login({ email, password });
+        }),
+        finalize(() => this.submitting.set(false)),
+      )
       .subscribe({
         next: (response) => {
+          if (!response) {
+            return;
+          }
+
           this.sessionStore.setUser(response.user);
           this.sessionStore.setInitialized(true);
           void this.router.navigate(['/dashboard']);

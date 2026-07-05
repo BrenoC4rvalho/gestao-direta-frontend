@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
 import { AuthResponse, AuthUser } from '../../../core/models/auth.models';
 import { AuthService } from '../../../core/services/auth.service';
+import { SystemStatusService } from '../../../core/services/system-status.service';
 import { ToastStore } from '../../../core/stores/toast.store';
 
 import { LoginPage } from './login-page';
@@ -28,19 +29,31 @@ const user: AuthUser = {
 describe('LoginPage', () => {
   let fixture: ComponentFixture<LoginPage>;
   let authService: { login: ReturnType<typeof vi.fn> };
+  let systemStatusService: {
+    getStatus: ReturnType<typeof vi.fn>;
+    isHealthy: ReturnType<typeof vi.fn>;
+  };
   let toastStore: ToastStore;
 
   beforeEach(async () => {
     authService = {
       login: vi.fn().mockReturnValue(of({ user })),
     };
+    systemStatusService = {
+      getStatus: vi.fn().mockReturnValue(of({ status: 'UP', database: 'UP' })),
+      isHealthy: vi.fn().mockReturnValue(true),
+    };
 
     await TestBed.configureTestingModule({
       imports: [LoginPage],
       providers: [
         provideGestaoDiretaIcons(),
-        provideRouter([{ path: 'dashboard', component: DashboardStub }]),
+        provideRouter([
+          { path: 'dashboard', component: DashboardStub },
+          { path: 'server-error', component: DashboardStub },
+        ]),
         { provide: AuthService, useValue: authService },
+        { provide: SystemStatusService, useValue: systemStatusService },
       ],
     }).compileComponents();
 
@@ -195,6 +208,33 @@ describe('LoginPage', () => {
 
     loginResponse$.next({ user });
     loginResponse$.complete();
+  });
+
+  it('should redirect to server error and skip login when status is unhealthy', () => {
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    systemStatusService.getStatus.mockReturnValueOnce(of({ status: 'DEGRADED', database: 'UP' }));
+    systemStatusService.isHealthy.mockReturnValueOnce(false);
+    fillValidForm();
+
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
+    fixture.detectChanges();
+
+    expect(authService.login).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/server-error']);
+  });
+
+  it('should redirect to server error and skip login when status request fails', () => {
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    systemStatusService.getStatus.mockReturnValueOnce(throwError(() => new Error('network')));
+    fillValidForm();
+
+    query<HTMLButtonElement>('button[type="submit"]')?.click();
+    fixture.detectChanges();
+
+    expect(authService.login).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/server-error']);
   });
 
   it('should show invalid credentials toast and clear password on 401 error', () => {

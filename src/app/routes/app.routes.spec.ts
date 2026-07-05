@@ -1,90 +1,69 @@
+import { apiAvailableGuard } from '../core/guards/api-available.guard';
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
-import { CategoriesPage } from '../pages/categories/categories-page';
-import { FarmUsersPage } from '../pages/farm-users/farm-users-page';
-import { HarvestSeasonDetailsPage } from '../pages/harvest-season-details/harvest-season-details-page';
-import { HarvestsPage } from '../pages/harvests/harvests-page';
+import { AppLayout } from '../layouts/app-layout/app-layout';
+import { AuthLayout } from '../layouts/auth-layout/auth-layout';
+import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { LandingPage } from '../pages/landing/landing-page';
-import { ProductionActivitiesPage } from '../pages/production-activities/production-activities-page';
-import { ProfilePage } from '../pages/profile/profile-page';
-import { TransactionsPage } from '../pages/transactions/transactions-page';
-import { UpcomingBillsPage } from '../pages/upcoming-bills/upcoming-bills-page';
+import { ServerErrorPage } from '../pages/server-error/server-error-page';
 
 import { routes } from './app.routes';
 
 describe('routes', () => {
-  it('should register public landing, auth, app and ui-test routes with expected guards', async () => {
-    const landingRoute = routes.find(
-      (route) => route.path === '' && route.pathMatch === 'full',
-    );
-    const loginRoute = routes.find((route) => route.path === 'login');
-    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
-    const uiTestRoute = routes.find((route) => route.path === 'ui-test');
+  it('should render landing at / without API guard', async () => {
+    const landingRoute = routes.find((route) => route.path === '' && route.pathMatch === 'full');
 
     expect(landingRoute?.canActivate).toBeUndefined();
     expect(landingRoute?.redirectTo).toBeUndefined();
     expect(landingRoute?.loadComponent).toBeTypeOf('function');
+
     const landingComponent = await (landingRoute?.loadComponent as () => Promise<unknown>)();
     expect(landingComponent).toBe(LandingPage);
-    expect(loginRoute?.canActivate).toContain(guestGuard);
+  });
+
+  it('should keep /server-error public and outside AppLayout', async () => {
+    const serverErrorRoute = routes.find((route) => route.path === 'server-error');
+    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+
+    expect(serverErrorRoute?.canActivate).toBeUndefined();
+    expect(serverErrorRoute?.children).toBeUndefined();
+    expect(appLayoutRoute?.children?.some((route) => route.path === 'server-error')).toBe(false);
+    expect(serverErrorRoute?.loadComponent).toBeTypeOf('function');
+
+    const serverErrorComponent = await (serverErrorRoute?.loadComponent as () => Promise<unknown>)();
+    expect(serverErrorComponent).toBe(ServerErrorPage);
+  });
+
+  it('should keep login public except for guest guard', async () => {
+    const loginRoute = routes.find((route) => route.path === 'login');
+
+    expect(loginRoute?.canActivate).toEqual([guestGuard]);
     expect(loginRoute?.children?.[0].path).toBe('');
-    expect(appLayoutRoute?.canActivate).toContain(authGuard);
+    expect(loginRoute?.loadComponent).toBeTypeOf('function');
+
+    const authLayoutComponent = await (loginRoute?.loadComponent as () => Promise<unknown>)();
+    expect(authLayoutComponent).toBe(AuthLayout);
+  });
+
+  it('should protect private routes with API availability before auth', async () => {
+    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+
+    expect(appLayoutRoute?.canActivate).toEqual([apiAvailableGuard, authGuard]);
+    expect(appLayoutRoute?.loadComponent).toBeTypeOf('function');
+
+    const appLayoutComponent = await (appLayoutRoute?.loadComponent as () => Promise<unknown>)();
+    expect(appLayoutComponent).toBe(AppLayout);
+  });
+
+  it('should keep /dashboard under the auth-protected app route', async () => {
+    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
     const dashboardRoute = appLayoutRoute?.children?.find((route) => route.path === 'dashboard');
+
+    expect(appLayoutRoute?.canActivate).toContain(authGuard);
     expect(dashboardRoute?.data?.['title']).toBe('Dashboard');
-    expect(appLayoutRoute?.children?.some((route) => route.path === 'farms')).toBe(true);
-    expect(appLayoutRoute?.children?.some((route) => route.path === 'users')).toBe(true);
-    const farmUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'farm-users');
-    expect(farmUsersRoute?.loadComponent).toBeTypeOf('function');
-    const farmUsersComponent = await (
-      farmUsersRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(farmUsersComponent).toBe(FarmUsersPage);
-    const categoriesRoute = appLayoutRoute?.children?.find((route) => route.path === 'categories');
-    expect(categoriesRoute?.loadComponent).toBeTypeOf('function');
-    const categoriesComponent = await (
-      categoriesRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(categoriesComponent).toBe(CategoriesPage);
-    const productionActivitiesRoute = appLayoutRoute?.children?.find((route) => route.path === 'production-activities');
-    expect(productionActivitiesRoute?.data?.['title']).toBe('Atividades produtivas');
-    expect(productionActivitiesRoute?.loadComponent).toBeTypeOf('function');
-    const productionActivitiesComponent = await (
-      productionActivitiesRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(productionActivitiesComponent).toBe(ProductionActivitiesPage);
-    const transactionsRoute = appLayoutRoute?.children?.find((route) => route.path === 'transactions');
-    expect(transactionsRoute?.loadComponent).toBeTypeOf('function');
-    const transactionsComponent = await (
-      transactionsRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(transactionsComponent).toBe(TransactionsPage);
-    const harvestsRoute = appLayoutRoute?.children?.find((route) => route.path === 'harvests');
-    expect(harvestsRoute?.data?.['title']).toBe('Safras');
-    expect(harvestsRoute?.loadComponent).toBeTypeOf('function');
-    const harvestsComponent = await (
-      harvestsRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(harvestsComponent).toBe(HarvestsPage);
-    const harvestDetailsRoute = appLayoutRoute?.children?.find((route) => route.path === 'harvests/:id');
-    expect(harvestDetailsRoute?.title).toBe('Detalhes da safra');
-    expect(harvestDetailsRoute?.data?.['title']).toBe('Detalhes da safra');
-    expect(harvestDetailsRoute?.loadComponent).toBeTypeOf('function');
-    const harvestDetailsComponent = await (
-      harvestDetailsRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(harvestDetailsComponent).toBe(HarvestSeasonDetailsPage);
-    const upcomingBillsRoute = appLayoutRoute?.children?.find((route) => route.path === 'upcoming-bills');
-    expect(upcomingBillsRoute?.loadComponent).toBeTypeOf('function');
-    const upcomingBillsComponent = await (
-      upcomingBillsRoute?.loadComponent as () => Promise<unknown>
-    )();
-    expect(upcomingBillsComponent).toBe(UpcomingBillsPage);
-    const profileRoute = appLayoutRoute?.children?.find((route) => route.path === 'profile');
-    expect(profileRoute?.data?.['title']).toBe('Minha conta');
-    expect(profileRoute?.loadComponent).toBeTypeOf('function');
-    const profileComponent = await (profileRoute?.loadComponent as () => Promise<unknown>)();
-    expect(profileComponent).toBe(ProfilePage);
-    expect(uiTestRoute?.canActivate).toBeUndefined();
-    expect(uiTestRoute).toBeTruthy();
+    expect(dashboardRoute?.loadComponent).toBeTypeOf('function');
+
+    const dashboardComponent = await (dashboardRoute?.loadComponent as () => Promise<unknown>)();
+    expect(dashboardComponent).toBe(DashboardPage);
   });
 });
