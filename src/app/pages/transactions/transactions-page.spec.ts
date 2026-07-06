@@ -92,7 +92,6 @@ const category: FinancialCategory = {
   type: 'EXPENSE',
   farmId: 1,
   farmName: 'Fazenda Boa Safra',
-  isDefault: false,
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -345,8 +344,8 @@ describe('TransactionsPage', () => {
     });
     expect(categoryService.listUsedInTransactions).toHaveBeenCalledWith(1);
     expect(categoryService.listUsedInTransactions.mock.calls[0]).toEqual([1]);
-    expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
-    expect(categoryService.listByFarm.mock.calls[0]).toEqual([1]);
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
+    expect(categoryService.listByFarm.mock.calls[0]).toEqual([1, { status: 'ACTIVE' }]);
     expect(harvestSeasonService.list).toHaveBeenCalledWith({
       farmId: 1,
       includeInactive: true,
@@ -754,14 +753,14 @@ describe('TransactionsPage', () => {
     );
   });
 
-  it('should keep the create and edit form using only active categories from the old endpoint', () => {
+  it('should keep the create and edit form using only active categories from the farm endpoint', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     clickButton('Nova movimentação');
 
     const categoryOptions = getSelectOptionTexts('#transaction-category');
 
-    expect(categoryService.listByFarm).toHaveBeenCalledWith(1);
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
     expect(categoryOptions).toContain('Insumos');
     expect(categoryOptions).toContain('Frete futuro');
     expect(categoryOptions).not.toContain('Combustível');

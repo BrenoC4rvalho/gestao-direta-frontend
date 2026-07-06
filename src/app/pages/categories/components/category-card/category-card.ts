@@ -30,7 +30,6 @@ export class CategoryCard {
     const labels: Record<string, string> = {
       INCOME: 'Receita',
       EXPENSE: 'Despesa',
-      GLOBAL: 'Global',
     };
 
     return labels[type] ?? type;
@@ -40,7 +39,6 @@ export class CategoryCard {
     const variants: Record<string, BadgeVariant> = {
       INCOME: 'success',
       EXPENSE: 'danger',
-      GLOBAL: 'info',
     };
 
     return variants[this.category().type] ?? 'neutral';

@@ -12,6 +12,9 @@ import { PageRequest, PageResponse } from '../models/page-response.model';
 
 export interface FinancialCategoryListByFarmParams extends PageRequest {
   includeInactive?: boolean;
+  search?: string | null;
+  type?: string | null;
+  status?: string | null;
 }
 
 @Injectable({
@@ -39,12 +42,6 @@ export class FinancialCategoryService {
         params: new HttpParams().set('farmId', farmId),
       },
     );
-  }
-
-  listGlobal(): Observable<FinancialCategory[]> {
-    return this.http
-      .get<PageResponse<FinancialCategory>>(`${this.apiUrl}/financial/categories/global`)
-      .pipe(map((response) => response.content));
   }
 
   getById(id: number): Observable<FinancialCategory> {
@@ -87,6 +84,18 @@ export class FinancialCategoryService {
 
     if (params.includeInactive !== undefined) {
       httpParams = httpParams.set('includeInactive', params.includeInactive);
+    }
+
+    if (params.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+
+    if (params.type) {
+      httpParams = httpParams.set('type', params.type);
+    }
+
+    if (params.status) {
+      httpParams = httpParams.set('status', params.status);
     }
 
     if (params.page !== undefined) {

@@ -11,7 +11,6 @@ const category: FinancialCategory = {
   type: 'INCOME',
   farmId: 1,
   farmName: 'Fazenda Boa Safra',
-  isDefault: false,
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -41,18 +40,15 @@ describe('CategoryCard', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Fazenda Boa Safra');
   });
 
-  it('should render global badge', () => {
+  it('should render unknown type as neutral fallback text', () => {
     const fixture = TestBed.createComponent(CategoryCard);
-    fixture.componentRef.setInput('category', {
-      ...category,
-      type: 'GLOBAL',
-      farmId: null,
-      farmName: null,
-      isDefault: true,
-    });
+    fixture.componentRef.setInput('category', { ...category, type: 'OTHER' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Global');
+    const badge = findBadge(fixture.nativeElement, 'OTHER');
+
+    expect(badge).toBeTruthy();
+    expect(badge?.className).toContain('border-border');
   });
 
   it('should render expense type as danger badge', () => {

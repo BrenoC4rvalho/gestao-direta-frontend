@@ -5,17 +5,14 @@
     </div>
   }
 
-  @if (!selectedFarmName()) {
-    <gd-card padding="sm">
-      <p class="text-sm text-text-muted">
-        Selecione uma fazenda para visualizar categorias específicas da fazenda.
-      </p>
-    </gd-card>
-  }
-
-  @if (
+  @if (!selectedFarmStore.selectedFarmId()) {
+    <gd-empty-state
+      title="Selecione uma fazenda"
+      description="Selecione uma fazenda para visualizar as categorias."
+      icon="tags"
+    />
+  } @else if (
     !sessionStore.isAdmin() &&
-    selectedFarmStore.selectedFarmId() &&
     (farmAccessStore.loading() ||
       (!farmAccessStore.access() && !farmAccessStore.error()))
   ) {
@@ -63,55 +60,20 @@
       (action)="retry()"
     />
   } @else {
-    @if (selectedFarmStore.selectedFarmId()) {
-      <section class="gd-fade-in-up space-y-4" aria-labelledby="farm-categories-title">
-        <div>
-          <h2 id="farm-categories-title" class="text-lg font-semibold text-text-primary">
-            Categorias da fazenda
-          </h2>
-          <p class="mt-1 text-sm text-text-muted">
-            Categorias específicas da fazenda selecionada.
-          </p>
-        </div>
-
-        @if (farmCategories().length === 0) {
-          <gd-empty-state
-            title="Nenhuma categoria da fazenda encontrada"
-            description="Crie categorias para organizar receitas e despesas desta fazenda."
-            icon="tags"
-          />
-        } @else {
-          <div
-            class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
-            role="list"
-          >
-            @for (category of farmCategories(); track category.id) {
-              <gd-category-card
-                [category]="category"
-                [canEdit]="canEditCategory(category)"
-                (editRequested)="openEditDrawer($event)"
-                role="listitem"
-              />
-            }
-          </div>
-        }
-      </section>
-    }
-
-    <section class="gd-fade-in-up space-y-4" aria-labelledby="global-categories-title">
+    <section class="gd-fade-in-up space-y-4" aria-labelledby="categories-title">
       <div>
-        <h2 id="global-categories-title" class="text-lg font-semibold text-text-primary">
-          Categorias globais
+        <h2 id="categories-title" class="text-lg font-semibold text-text-primary">
+          Categorias da fazenda
         </h2>
         <p class="mt-1 text-sm text-text-muted">
-          Categorias padrão disponíveis para o sistema.
+          Categorias disponíveis para {{ selectedFarmName() }}.
         </p>
       </div>
 
-      @if (globalCategories().length === 0) {
+      @if (categories().length === 0) {
         <gd-empty-state
-          title="Nenhuma categoria global encontrada"
-          description="As categorias padrão do sistema aparecerão aqui."
+          title="Nenhuma categoria encontrada"
+          description="Crie categorias para organizar receitas e despesas desta fazenda."
           icon="tags"
         />
       } @else {
@@ -119,7 +81,7 @@
           class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
           role="list"
         >
-          @for (category of globalCategories(); track category.id) {
+          @for (category of categories(); track category.id) {
             <gd-category-card
               [category]="category"
               [canEdit]="canEditCategory(category)"
@@ -146,8 +108,6 @@
     [category]="editingCategory()"
     [open]="drawerOpen()"
     [submitting]="submitting()"
-    [showScopeField]="showScopeField()"
-    [defaultScope]="defaultScope()"
     [typeOptions]="typeOptions"
     (submitted)="saveCategory($event)"
     (cancelled)="closeDrawer()"

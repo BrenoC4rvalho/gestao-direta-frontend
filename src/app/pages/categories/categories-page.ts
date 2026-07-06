@@ -7,15 +7,15 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, forkJoin, map, Observable, of } from 'rxjs';
+import { finalize } from 'rxjs';
 
 import {
   CreateFinancialCategoryRequest,
   FinancialCategory,
   FinancialCategoryFormType,
-  isGlobalCategory,
   UpdateFinancialCategoryRequest,
 } from '../../core/models/financial-category.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
@@ -27,12 +27,7 @@ import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import { Button, Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
-import { CategoryForm, CategoryFormPayload, CategoryScope } from './components/category-form/category-form';
-
-interface CategoryLists {
-  farm: FinancialCategory[];
-  global: FinancialCategory[];
-}
+import { CategoryForm, CategoryFormPayload } from './components/category-form/category-form';
 
 @Component({
   selector: 'gd-categories-page',
@@ -60,8 +55,7 @@ export class CategoriesPage {
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
 
-  protected readonly farmCategories = signal<FinancialCategory[]>([]);
-  protected readonly globalCategories = signal<FinancialCategory[]>([]);
+  protected readonly categories = signal<FinancialCategory[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
@@ -76,6 +70,7 @@ export class CategoriesPage {
 
   private readonly reloadTrigger = signal(0);
   private readonly allowedFormTypes = new Set<FinancialCategoryFormType>(['INCOME', 'EXPENSE']);
+  private lastFarmId: number | null = null;
 
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
@@ -88,12 +83,6 @@ export class CategoriesPage {
       ? 'Atualize os dados da categoria financeira.'
       : 'Crie uma categoria para organizar as movimentações da fazenda.',
   );
-  protected readonly showScopeField = computed(
-    () => !this.editingCategory() && this.sessionStore.isAdmin(),
-  );
-  protected readonly defaultScope = computed<CategoryScope>(() =>
-    this.selectedFarmStore.selectedFarmId() ? 'FARM' : 'GLOBAL',
-  );
   protected readonly typeOptions: readonly GdSelectOption[] = [
     { label: 'Receita', value: 'INCOME' },
     { label: 'Despesa', value: 'EXPENSE' },
@@ -104,12 +93,12 @@ export class CategoriesPage {
     }
 
     const farmId = this.selectedFarmStore.selectedFarmId();
+    const access = this.farmAccessStore.access();
 
     return (
       !!farmId &&
-      this.farmAccessStore.access()?.farmId === farmId &&
-      (this.farmAccessStore.canViewFinancial() ||
-        this.farmAccessStore.canManageCategories())
+      access?.farmId === farmId &&
+      (this.farmAccessStore.canViewFinancial() || this.farmAccessStore.canManageCategories())
     );
   });
 
@@ -119,14 +108,24 @@ export class CategoriesPage {
       const isAdmin = this.sessionStore.isAdmin();
       this.reloadTrigger();
 
-      if (!isAdmin && farmId && this.isAccessPending()) {
+      if (farmId !== this.lastFarmId) {
+        this.lastFarmId = farmId;
+        untracked(() => this.resetFarmScopedState());
+      }
+
+      if (!farmId) {
+        this.clearListState();
+        return;
+      }
+
+      if (!isAdmin && this.isAccessPending()) {
         this.clearListState();
         return;
       }
 
       if (!isAdmin && !this.canViewCategories()) {
         this.clearListState();
-        this.accessDenied.set(!!farmId);
+        this.accessDenied.set(true);
         return;
       }
 
@@ -134,13 +133,11 @@ export class CategoriesPage {
       this.error.set(false);
       this.loading.set(true);
 
-      const subscription = this.buildListRequest(farmId, isAdmin)
+      const subscription = this.categoryService
+        .listByFarm(farmId, { includeInactive: true })
         .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
-          next: (lists) => {
-            this.farmCategories.set(lists.farm);
-            this.globalCategories.set(lists.global);
-          },
+          next: (categories) => this.categories.set(categories),
           error: (error: unknown) => this.handleListError(error),
         });
 
@@ -153,6 +150,11 @@ export class CategoriesPage {
   }
 
   protected openCreateDrawer(): void {
+    if (!this.selectedFarmStore.selectedFarmId()) {
+      this.toastStore.error('Selecione uma fazenda para criar categorias.');
+      return;
+    }
+
     if (!this.canCreateCategory()) {
       this.showPermissionError();
       return;
@@ -286,94 +288,45 @@ export class CategoriesPage {
       });
   }
 
-  protected canEditCategory(category: FinancialCategory): boolean {
-    if (isGlobalCategory(category)) {
-      return this.sessionStore.isAdmin();
-    }
-
-    return this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory();
-  }
-
-  protected canDeleteCategory(category: FinancialCategory): boolean {
-    if (category.status === 'INACTIVE') {
-      return false;
-    }
-
-    if (isGlobalCategory(category)) {
-      return this.sessionStore.isAdmin();
-    }
-
-    return this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory();
-  }
-
-  protected canActivateCategory(category: FinancialCategory): boolean {
-    if (category.status !== 'INACTIVE') {
-      return false;
-    }
-
-    if (isGlobalCategory(category)) {
-      return this.sessionStore.isAdmin();
-    }
-
-    return this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory();
-  }
-
-  protected canCreateCategory(): boolean {
-    if (this.sessionStore.isAdmin()) {
-      return true;
-    }
-
+  protected canEditCategory(_category: FinancialCategory): boolean {
     return this.canManageSelectedFarmCategory();
   }
 
-  private createCategory(payload: CategoryFormPayload): void {
-    if (this.submitting() || !this.isAllowedFormType(payload.type)) {
-      this.showPermissionError();
-      return;
-    }
-
-    const scope = this.categoryScope(payload);
-
-    if (scope === 'GLOBAL') {
-      if (!this.sessionStore.isAdmin()) {
-        this.showPermissionError();
-        return;
-      }
-
-      this.submitCreateCategory(
-        {
-          name: payload.name,
-          type: payload.type,
-          farmId: null,
-          isDefault: true,
-        },
-        'Categoria global criada com sucesso.',
-      );
-      return;
-    }
-
-    const farmId = this.selectedFarmStore.selectedFarmId();
-
-    if (!farmId || !this.canCreateFarmCategory()) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.submitCreateCategory(
-      {
-        name: payload.name,
-        type: payload.type,
-        farmId,
-        isDefault: false,
-      },
-      'Categoria criada com sucesso.',
-    );
+  protected canDeleteCategory(category: FinancialCategory): boolean {
+    return category.status === 'ACTIVE' && this.canManageSelectedFarmCategory();
   }
 
-  private submitCreateCategory(
-    request: CreateFinancialCategoryRequest,
-    successMessage: string,
-  ): void {
+  protected canActivateCategory(category: FinancialCategory): boolean {
+    return category.status === 'INACTIVE' && this.canManageSelectedFarmCategory();
+  }
+
+  protected canCreateCategory(): boolean {
+    return this.selectedFarmStore.selectedFarmId() !== null && this.canManageSelectedFarmCategory();
+  }
+
+  private createCategory(payload: CategoryFormPayload): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    if (!farmId) {
+      this.toastStore.error('Selecione uma fazenda para criar categorias.');
+      return;
+    }
+
+    if (this.submitting() || !this.canCreateCategory() || !this.isAllowedFormType(payload.type)) {
+      this.showPermissionError();
+      return;
+    }
+
+    const request: CreateFinancialCategoryRequest = {
+      name: payload.name,
+      type: payload.type,
+      farmId,
+    };
+
+    this.submitCreateCategory(request);
+  }
+
+  private submitCreateCategory(request: CreateFinancialCategoryRequest): void {
     this.submitting.set(true);
 
     this.categoryService
@@ -385,17 +338,14 @@ export class CategoriesPage {
       .subscribe({
         next: () => {
           this.drawerOpen.set(false);
-          this.toastStore.success(successMessage);
+          this.toastStore.success('Categoria criada com sucesso.');
           this.retry();
         },
         error: (error: unknown) => this.showOperationError(error),
       });
   }
 
-  private updateCategory(
-    category: FinancialCategory,
-    payload: UpdateFinancialCategoryRequest,
-  ): void {
+  private updateCategory(category: FinancialCategory, payload: UpdateFinancialCategoryRequest): void {
     if (
       this.submitting() ||
       !this.canEditCategory(category) ||
@@ -408,8 +358,6 @@ export class CategoriesPage {
     const request: UpdateFinancialCategoryRequest = {
       name: payload.name,
       type: payload.type,
-      farmId: isGlobalCategory(category) ? null : category.farmId,
-      isDefault: isGlobalCategory(category),
     };
 
     this.submitting.set(true);
@@ -431,59 +379,15 @@ export class CategoriesPage {
       });
   }
 
-  private buildListRequest(
-    farmId: number | null,
-    isAdmin: boolean,
-  ): Observable<CategoryLists> {
-    if (isAdmin) {
-      const global$ = this.categoryService.listGlobal();
-      const farm$ = farmId
-        ? this.categoryService.listByFarm(farmId, { includeInactive: true })
-        : of([]);
-
-      return forkJoin({ global: global$, farm: farm$ }).pipe(
-        map(({ global, farm }) => ({
-          global,
-          farm: farm.filter((category) => !isGlobalCategory(category)),
-        })),
-      );
-    }
-
-    if (!farmId) {
-      return of({ farm: [], global: [] });
-    }
-
-    return this.categoryService.listByFarm(farmId, { includeInactive: true }).pipe(
-      map((categories) => ({
-        farm: categories.filter((category) => !isGlobalCategory(category)),
-        global: categories.filter((category) => isGlobalCategory(category)),
-      })),
-    );
-  }
-
-  private categoryScope(payload: CategoryFormPayload): CategoryScope {
-    if (!this.sessionStore.isAdmin()) {
-      return 'FARM';
-    }
-
-    return payload.scope ?? this.defaultScope();
-  }
-
-  private canCreateFarmCategory(): boolean {
-    return (
-      this.selectedFarmStore.selectedFarmId() !== null &&
-      (this.sessionStore.isAdmin() || this.canManageSelectedFarmCategory())
-    );
-  }
-
   private canManageSelectedFarmCategory(): boolean {
-    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (this.sessionStore.isAdmin()) {
+      return this.selectedFarmStore.selectedFarmId() !== null;
+    }
 
-    return (
-      !!farmId &&
-      this.farmAccessStore.access()?.farmId === farmId &&
-      this.farmAccessStore.canManageCategories()
-    );
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    const access = this.farmAccessStore.access();
+
+    return !!farmId && access?.farmId === farmId && this.farmAccessStore.role() === 'PRODUCER';
   }
 
   private isAccessPending(): boolean {
@@ -494,8 +398,7 @@ export class CategoriesPage {
   }
 
   private handleListError(error: unknown): void {
-    this.farmCategories.set([]);
-    this.globalCategories.set([]);
+    this.categories.set([]);
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
@@ -533,9 +436,17 @@ export class CategoriesPage {
     this.toastStore.error('Você não tem permissão para realizar esta ação.');
   }
 
+  private resetFarmScopedState(): void {
+    this.categories.set([]);
+    this.error.set(false);
+    this.deleteTarget.set(null);
+    this.activateTarget.set(null);
+    this.editingCategory.set(null);
+    this.drawerOpen.set(false);
+  }
+
   private clearListState(): void {
-    this.farmCategories.set([]);
-    this.globalCategories.set([]);
+    this.categories.set([]);
     this.loading.set(false);
     this.error.set(false);
     this.accessDenied.set(false);

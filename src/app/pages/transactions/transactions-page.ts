@@ -840,7 +840,9 @@ export class TransactionsPage {
           return of([]);
         }),
       ),
-      formCategories: this.categoryService.listByFarm(farmId).pipe(catchError(() => of([]))),
+      formCategories: this.categoryService
+        .listByFarm(farmId, { status: 'ACTIVE' })
+        .pipe(catchError(() => of([]))),
     });
   }
 

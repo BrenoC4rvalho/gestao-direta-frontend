@@ -17,20 +17,9 @@ const category: FinancialCategory = {
   type: 'EXPENSE',
   farmId: 1,
   farmName: 'Fazenda Boa Safra',
-  isDefault: false,
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
-};
-
-const globalCategory: FinancialCategory = {
-  ...category,
-  id: 2,
-  name: 'Categoria global',
-  type: 'GLOBAL',
-  farmId: null,
-  farmName: null,
-  isDefault: true,
 };
 
 describe('CategoryForm', () => {
@@ -41,7 +30,7 @@ describe('CategoryForm', () => {
     }).compileComponents();
   });
 
-  it('should render fields', () => {
+  it('should render name and type fields without scope controls', () => {
     const fixture = TestBed.createComponent(CategoryForm);
     fixture.componentRef.setInput('open', true);
     fixture.componentRef.setInput('typeOptions', typeOptions);
@@ -49,9 +38,11 @@ describe('CategoryForm', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Nome');
     expect(fixture.nativeElement.textContent).toContain('Tipo');
+    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
+    expect(fixture.nativeElement.textContent).not.toContain('Global');
   });
 
-  it('should render only income and expense type options for create', () => {
+  it('should render only income and expense type options', () => {
     const fixture = TestBed.createComponent(CategoryForm);
     fixture.componentRef.setInput('open', true);
     fixture.componentRef.setInput('typeOptions', typeOptions);
@@ -62,42 +53,9 @@ describe('CategoryForm', () => {
       'Receita',
       'Despesa',
     ]);
-    expect(fixture.nativeElement.textContent).not.toContain('Global');
   });
 
-  it('should render only income and expense type options for edit', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    fixture.componentRef.setInput('category', category);
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.detectChanges();
-
-    expect(optionLabels(fixture.nativeElement)).toEqual([
-      'Selecione o tipo',
-      'Receita',
-      'Despesa',
-    ]);
-    expect(fixture.nativeElement.textContent).not.toContain('Global');
-  });
-
-  it('should clear unsupported global type while editing', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    const submitted: unknown[] = [];
-    fixture.componentRef.setInput('category', globalCategory);
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
-    fixture.detectChanges();
-
-    submitForm(fixture.nativeElement);
-    fixture.detectChanges();
-
-    expect(selectedOptionLabel(fixture.nativeElement)).toBe('Selecione o tipo');
-    expect(fixture.nativeElement.textContent).not.toContain('Global');
-    expect(submitted).toEqual([]);
-  });
-
-  it('should not emit a global type payload', () => {
+  it('should reject unsupported type values', () => {
     const fixture = TestBed.createComponent(CategoryForm);
     const submitted: unknown[] = [];
     fixture.componentRef.setInput('open', true);
@@ -106,80 +64,10 @@ describe('CategoryForm', () => {
     fixture.detectChanges();
 
     setInput(fixture.nativeElement, 'Adubo');
-    setSelect(fixture.nativeElement, 'GLOBAL');
+    setSelect(fixture.nativeElement, 'TRANSFER');
     submitForm(fixture.nativeElement);
     fixture.detectChanges();
 
-    expect(submitted).toEqual([]);
-  });
-
-  it('should not render scope by default or while editing', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
-
-    fixture.componentRef.setInput('category', category);
-    fixture.componentRef.setInput('showScopeField', true);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).not.toContain('Escopo da categoria');
-  });
-
-  it('should render scope field when enabled for create', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('showScopeField', true);
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Escopo da categoria');
-    expect(scopeOptionLabels(fixture.nativeElement)).toEqual([
-      'Selecione o escopo',
-      'Fazenda selecionada',
-      'Global',
-    ]);
-    expect(fixture.nativeElement.textContent).toContain(
-      'Categorias da fazenda ficam disponíveis apenas para a fazenda selecionada.',
-    );
-  });
-
-  it('should emit global scope when selected', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    const submitted: unknown[] = [];
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('showScopeField', true);
-    fixture.componentRef.setInput('defaultScope', 'GLOBAL');
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
-    fixture.detectChanges();
-
-    setInput(fixture.nativeElement, 'Serviços');
-    setSelect(fixture.nativeElement, 'INCOME');
-    setScope(fixture.nativeElement, 'GLOBAL');
-    submitForm(fixture.nativeElement);
-
-    expect(submitted).toEqual([{ name: 'Serviços', type: 'INCOME', scope: 'GLOBAL' }]);
-  });
-
-  it('should validate required scope when scope field is enabled', () => {
-    const fixture = TestBed.createComponent(CategoryForm);
-    const submitted: unknown[] = [];
-    fixture.componentRef.setInput('open', true);
-    fixture.componentRef.setInput('showScopeField', true);
-    fixture.componentRef.setInput('typeOptions', typeOptions);
-    fixture.componentInstance.submitted.subscribe((payload) => submitted.push(payload));
-    fixture.detectChanges();
-
-    setInput(fixture.nativeElement, 'Serviços');
-    setSelect(fixture.nativeElement, 'INCOME');
-    setScope(fixture.nativeElement, '');
-    submitForm(fixture.nativeElement);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Selecione o escopo da categoria.');
     expect(submitted).toEqual([]);
   });
 
@@ -255,10 +143,6 @@ function getSelect(root: HTMLElement): HTMLSelectElement {
   return root.querySelector('gd-select select') as HTMLSelectElement;
 }
 
-function getScopeSelect(root: HTMLElement): HTMLSelectElement {
-  return root.querySelectorAll('gd-select select').item(1) as HTMLSelectElement;
-}
-
 function setInput(root: HTMLElement, value: string): void {
   const input = getInput(root);
   input.value = value;
@@ -266,29 +150,14 @@ function setInput(root: HTMLElement, value: string): void {
 }
 
 function setSelect(root: HTMLElement, value: string): void {
-  setSelectValue(getSelect(root), value);
-}
-
-function setScope(root: HTMLElement, value: string): void {
-  setSelectValue(getScopeSelect(root), value);
-}
-
-function setSelectValue(select: HTMLSelectElement, value: string): void {
+  const select = getSelect(root);
   const option = Array.from(select.options).find((item) => item.value.includes(value));
   select.selectedIndex = option?.index ?? 0;
   select.dispatchEvent(new Event('change'));
 }
 
 function optionLabels(root: HTMLElement): string[] {
-  return selectOptionLabels(getSelect(root));
-}
-
-function scopeOptionLabels(root: HTMLElement): string[] {
-  return selectOptionLabels(getScopeSelect(root));
-}
-
-function selectOptionLabels(select: HTMLSelectElement): string[] {
-  return Array.from(select.options).map((option) => option.textContent?.trim() ?? '');
+  return Array.from(getSelect(root).options).map((option) => option.textContent?.trim() ?? '');
 }
 
 function selectedOptionLabel(root: HTMLElement): string {

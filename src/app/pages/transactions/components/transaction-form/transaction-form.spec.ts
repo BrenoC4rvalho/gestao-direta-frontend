@@ -17,7 +17,6 @@ const expenseCategory: FinancialCategory = {
   type: 'EXPENSE',
   farmId: 1,
   farmName: 'Fazenda Boa Safra',
-  isDefault: false,
   status: 'ACTIVE',
   createdAt: '2026-01-01T00:00:00',
   updatedAt: '2026-01-01T00:00:00',
@@ -35,15 +34,6 @@ const inactiveCategory: FinancialCategory = {
   id: 3,
   name: 'Inativa',
   status: 'INACTIVE',
-};
-
-const globalCategory: FinancialCategory = {
-  ...expenseCategory,
-  id: 4,
-  name: 'Global',
-  type: 'GLOBAL',
-  farmId: null,
-  isDefault: true,
 };
 
 const plannedSeason: HarvestSeason = {
@@ -115,12 +105,7 @@ const transaction: FinancialTransaction = {
 class TransactionFormHost {
   transaction: FinancialTransaction | null = null;
   harvestSeasons: HarvestSeason[] = [plannedSeason, inProgressSeason, finishedSeason];
-  categories: FinancialCategory[] = [
-    expenseCategory,
-    incomeCategory,
-    inactiveCategory,
-    globalCategory,
-  ];
+  categories: FinancialCategory[] = [expenseCategory, incomeCategory, inactiveCategory];
   open = true;
   submitting = false;
   submitted: UpdateFinancialTransactionRequest | null = null;
