@@ -12,7 +12,7 @@ import { PageResponse } from '../models/page-response.model';
 
 import { ProductionActivityService } from './production-activity.service';
 
-const apiUrl = 'http://localhost:8080/api/production-activities';
+const apiUrl = 'http://localhost:8080/api/harvest/production-activities';
 
 const activity: ProductionActivity = {
   id: 1,
@@ -118,7 +118,7 @@ describe('ProductionActivityService', () => {
     request.flush(summary);
   });
 
-  it('should call GET /api/production-activities/{id}', () => {
+  it('should call GET /api/harvest/production-activities/{id}', () => {
     service.getById(1).subscribe((result) => expect(result).toEqual(activity));
 
     const request = http.expectOne(`${apiUrl}/1`);

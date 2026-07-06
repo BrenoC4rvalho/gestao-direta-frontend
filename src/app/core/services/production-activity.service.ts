@@ -18,10 +18,10 @@ import { PageResponse } from '../models/page-response.model';
 })
 export class ProductionActivityService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/production-activities`;
+  private readonly baseUrl = `${environment.apiUrl}/harvest/production-activities`;
 
   list(params: ProductionActivityListParams): Observable<PageResponse<ProductionActivity>> {
-    return this.http.get<PageResponse<ProductionActivity>>(this.apiUrl, {
+    return this.http.get<PageResponse<ProductionActivity>>(this.baseUrl, {
       params: this.buildParams(params),
     });
   }
@@ -38,29 +38,29 @@ export class ProductionActivityService {
   }
 
   getSummary(farmId: number): Observable<ProductionActivitySummary> {
-    return this.http.get<ProductionActivitySummary>(`${this.apiUrl}/summary`, {
+    return this.http.get<ProductionActivitySummary>(`${this.baseUrl}/summary`, {
       params: new HttpParams().set('farmId', String(farmId)),
     });
   }
 
   getById(id: number): Observable<ProductionActivity> {
-    return this.http.get<ProductionActivity>(`${this.apiUrl}/${id}`);
+    return this.http.get<ProductionActivity>(`${this.baseUrl}/${id}`);
   }
 
   create(payload: CreateProductionActivityRequest): Observable<ProductionActivity> {
-    return this.http.post<ProductionActivity>(this.apiUrl, payload);
+    return this.http.post<ProductionActivity>(this.baseUrl, payload);
   }
 
   update(id: number, payload: UpdateProductionActivityRequest): Observable<ProductionActivity> {
-    return this.http.put<ProductionActivity>(`${this.apiUrl}/${id}`, payload);
+    return this.http.put<ProductionActivity>(`${this.baseUrl}/${id}`, payload);
   }
 
   activate(id: number): Observable<ProductionActivity> {
-    return this.http.patch<ProductionActivity>(`${this.apiUrl}/${id}/activate`, {});
+    return this.http.patch<ProductionActivity>(`${this.baseUrl}/${id}/activate`, {});
   }
 
   inactivate(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
   private buildParams(params: ProductionActivityListParams): HttpParams {
