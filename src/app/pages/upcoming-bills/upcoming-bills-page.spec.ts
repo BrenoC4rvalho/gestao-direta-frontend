@@ -6,14 +6,19 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
+import { FinancialCategory } from '../../core/models/financial-category.models';
 import { FinancialAgendaItem, FinancialAgendaSummary } from '../../core/models/financial-agenda.models';
+import { FinancialTransaction } from '../../core/models/financial-transaction.models';
 import { HarvestSeason } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { FinancialAgendaService } from '../../core/services/financial-agenda.service';
+import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { ToastStore } from '../../core/stores/toast.store';
 
 import { UpcomingBillsPage } from './upcoming-bills-page';
 
@@ -121,6 +126,45 @@ const harvestSeasons: HarvestSeason[] = [
   harvestSeason(20, 'Feijão'),
 ];
 
+const category: FinancialCategory = {
+  id: 1,
+  name: 'Venda de safra',
+  type: 'INCOME',
+  color: null,
+  icon: null,
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
+const transaction: FinancialTransaction = {
+  id: 1,
+  description: 'Venda de milho',
+  amount: 3000,
+  type: 'INCOME',
+  status: 'PENDING',
+  paymentMethod: 'PIX',
+  transactionDate: '2026-07-01',
+  dueDate: '2026-07-10',
+  paidAt: null,
+  notes: null,
+  farmId: 1,
+  farmName: 'Fazenda Boa Safra',
+  categoryId: 1,
+  categoryName: 'Venda de safra',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Milho',
+  createdByUserId: 1,
+  createdByUserName: 'Admin',
+  updatedByUserId: null,
+  updatedByUserName: null,
+  recordStatus: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
 describe('UpcomingBillsPage as Financial Agenda', () => {
   let fixture: ComponentFixture<UpcomingBillsPage>;
   let agendaService: {
@@ -128,6 +172,13 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     getItems: ReturnType<typeof vi.fn>;
   };
   let harvestSeasonService: { list: ReturnType<typeof vi.fn> };
+  let transactionService: {
+    getById: ReturnType<typeof vi.fn>;
+    markAsPaid: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  let categoryService: { listByFarm: ReturnType<typeof vi.fn> };
+  let toastStore: { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
   let selectedFarmStore: SelectedFarmStore;
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
@@ -140,6 +191,18 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     harvestSeasonService = {
       list: vi.fn().mockReturnValue(of(pageResponse(harvestSeasons))),
     };
+    transactionService = {
+      getById: vi.fn().mockReturnValue(of(transaction)),
+      markAsPaid: vi.fn().mockReturnValue(of({ ...transaction, status: 'PAID' })),
+      update: vi.fn().mockReturnValue(of(transaction)),
+    };
+    categoryService = {
+      listByFarm: vi.fn().mockReturnValue(of([category])),
+    };
+    toastStore = {
+      success: vi.fn(),
+      error: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [UpcomingBillsPage],
@@ -147,6 +210,9 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
         provideGestaoDiretaIcons(),
         { provide: FinancialAgendaService, useValue: agendaService },
         { provide: HarvestSeasonService, useValue: harvestSeasonService },
+        { provide: FinancialTransactionService, useValue: transactionService },
+        { provide: FinancialCategoryService, useValue: categoryService },
+        { provide: ToastStore, useValue: toastStore },
       ],
     }).compileComponents();
 
@@ -265,23 +331,160 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     ]);
   });
 
-  it('should render agenda list fields', () => {
+  it('should render the simplified agenda list without type and category columns', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
     expect(text()).toContain('Contas da agenda');
     expect(text()).toContain('Venda de milho');
     expect(text()).toContain('Compra de sementes');
-    expect(text()).toContain('A receber');
-    expect(text()).toContain('A pagar');
+    expect(tableHeaders()).toEqual(['Descrição', 'Safra', 'Vencimento', 'Situação', 'Valor', 'Ação']);
+    expect(agendaListText()).not.toContain('Venda de safra');
+    expect(agendaListText()).not.toContain('Insumos');
+    expect(agendaListText()).not.toContain('A receber');
+    expect(agendaListText()).not.toContain('A pagar');
     expect(text()).toContain('Pendente');
     expect(text()).toContain('Vencido');
-    expect(text()).toContain('Venda de safra');
-    expect(text()).toContain('Insumos');
     expect(text()).toContain('Milho');
     expect(text()).toContain('Sem safra');
     expect(text()).toContain('Vence em 3 dias');
     expect(text()).toContain('Vencido há 6 dias');
+  });
+
+  it('should show pay and receive actions only for users that can manage transactions', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(text()).toContain('Marcar como recebida');
+    expect(text()).toContain('Marcar como paga');
+
+    sessionStore.setUser(user);
+    farmAccessStore.setAccess(access);
+    createPage();
+
+    expect(text()).not.toContain('Marcar como recebida');
+    expect(text()).not.toContain('Marcar como paga');
+  });
+
+  it('should render signed amounts with income and expense color classes', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const successAmount = Array.from(root.querySelectorAll<HTMLElement>('.text-success')).find(
+      (item) => item.textContent?.includes('+R$'),
+    );
+    const dangerAmount = Array.from(root.querySelectorAll<HTMLElement>('.text-danger')).find(
+      (item) => item.textContent?.includes('-R$'),
+    );
+
+    expect(successAmount).toBeTruthy();
+    expect(dangerAmount).toBeTruthy();
+  });
+
+  it('should open the transaction drawer when an item is clicked', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    editableItem('Venda de milho').click();
+    fixture.detectChanges();
+
+    expect(transactionService.getById).toHaveBeenCalledWith(1);
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
+    expect(fixture.nativeElement.querySelector('gd-transaction-form')).not.toBeNull();
+  });
+
+  it('should not open the drawer when the item action is clicked', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Marcar como recebida')?.click();
+    fixture.detectChanges();
+
+    expect(transactionService.getById).not.toHaveBeenCalled();
+    expect(text()).toContain('Confirmar recebimento?');
+  });
+
+  it('should confirm before marking an agenda item as paid or received', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Marcar como paga')?.click();
+    fixture.detectChanges();
+
+    expect(text()).toContain('Confirmar pagamento?');
+    expect(text()).toContain('Essa conta será marcada como paga e sairá da Agenda Financeira.');
+    expect(transactionService.markAsPaid).not.toHaveBeenCalled();
+
+    confirmDialogButton('Marcar como paga').click();
+    fixture.detectChanges();
+
+    expect(transactionService.markAsPaid).toHaveBeenCalledWith(2, {});
+    expect(toastStore.success).toHaveBeenCalledWith('Conta marcada como paga.');
+    expect(agendaService.getSummary).toHaveBeenCalledTimes(2);
+    expect(agendaService.getItems).toHaveBeenCalledTimes(2);
+  });
+
+  it('should show receive success copy for receivable agenda items', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Marcar como recebida')?.click();
+    fixture.detectChanges();
+    confirmDialogButton('Marcar como recebida').click();
+    fixture.detectChanges();
+
+    expect(transactionService.markAsPaid).toHaveBeenCalledWith(1, {});
+    expect(toastStore.success).toHaveBeenCalledWith('Recebimento confirmado.');
+  });
+
+  it('should show an error toast when marking an item fails', () => {
+    transactionService.markAsPaid.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    findButton(fixture.nativeElement, 'Marcar como paga')?.click();
+    fixture.detectChanges();
+    confirmDialogButton('Marcar como paga').click();
+    fixture.detectChanges();
+
+    expect(toastStore.error).toHaveBeenCalledWith('Não foi possível atualizar a conta.');
+  });
+
+  it('should move to the previous page after mutation when the current page has one item', () => {
+    agendaService.getItems.mockReturnValue(of(pageResponse([payableItem], 0, 2)));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Próxima');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ page: 1 }));
+
+    findButton(fixture.nativeElement, 'Marcar como paga')?.click();
+    fixture.detectChanges();
+    confirmDialogButton('Marcar como paga').click();
+    fixture.detectChanges();
+
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ page: 0 }));
+  });
+
+  it('should save edits through the transaction form and reload the agenda', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    editableItem('Venda de milho').click();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('gd-transaction-form form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(transactionService.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ description: 'Venda de milho', type: 'INCOME', amount: 3000 }),
+    );
+    expect(toastStore.success).toHaveBeenCalledWith('Movimentação atualizada com sucesso.');
+    expect(agendaService.getSummary).toHaveBeenCalledTimes(2);
+    expect(agendaService.getItems).toHaveBeenCalledTimes(2);
   });
 
   it('should change status, type and period filters and reset page while reloading data', () => {
@@ -420,6 +623,40 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     clone.querySelectorAll('[role="tooltip"]').forEach((tooltip) => tooltip.remove());
 
     return clone.textContent ?? '';
+  }
+
+  function agendaListText(): string {
+    return (fixture.nativeElement.querySelector('[aria-labelledby="agenda-list-title"]') as HTMLElement)
+      .textContent ?? '';
+  }
+
+  function tableHeaders(): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((header) =>
+      (header as HTMLElement).textContent?.trim() ?? '',
+    );
+  }
+
+  function editableItem(description: string): HTMLElement {
+    const item = fixture.nativeElement.querySelector(
+      `[aria-label="Editar movimentação ${description}"]`,
+    ) as HTMLElement | null;
+
+    if (!item) {
+      throw new Error(`Editable item ${description} not found`);
+    }
+
+    return item;
+  }
+
+  function confirmDialogButton(label: string): HTMLButtonElement {
+    const dialog = fixture.nativeElement.querySelector('section[role="dialog"]') as HTMLElement | null;
+    const button = dialog ? findButton(dialog, label) : undefined;
+
+    if (!button) {
+      throw new Error(`Confirm dialog button ${label} not found`);
+    }
+
+    return button;
   }
 });
 

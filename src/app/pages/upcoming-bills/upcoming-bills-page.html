@@ -192,37 +192,61 @@
       } @else {
         <div class="gd-fade-in-up grid gap-4 md:hidden">
           @for (item of items(); track item.id) {
-            <article class="rounded-app border border-border bg-surface p-5 shadow-soft">
+            <article
+              [class]="'rounded-app border border-border bg-surface p-5 shadow-soft ' + itemInteractiveClasses()"
+              [attr.tabindex]="canManageTransactions() ? 0 : null"
+              [attr.role]="canManageTransactions() ? 'button' : null"
+              [attr.aria-label]="canManageTransactions() ? 'Editar movimentação ' + item.description : null"
+              (click)="canManageTransactions() ? openEditDrawer(item) : null"
+              (keydown)="canManageTransactions() ? handleItemKeydown($event, item) : null"
+            >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <h3 class="text-base font-semibold text-text-primary">{{ item.description }}</h3>
-                  <p class="mt-1 text-sm text-text-muted">{{ item.categoryName ?? 'Sem categoria' }}</p>
                 </div>
                 <p [class]="'shrink-0 text-sm font-semibold ' + amountClasses(item)">
                   {{ amountPrefix(item) }}{{ item.amount | brCurrency }}
                 </p>
               </div>
 
-              <div class="mt-4 flex flex-wrap gap-2">
-                <gd-badge [variant]="agendaTypeVariant(item.agendaType)" size="sm">
-                  {{ agendaTypeLabel(item.agendaType) }}
-                </gd-badge>
-                <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
-                  {{ agendaStatusLabel(item.agendaStatus) }}
-                </gd-badge>
-                <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
-              </div>
-
               <dl class="mt-5 grid gap-3 text-sm">
-                <div class="flex items-center justify-between gap-3">
-                  <dt class="text-text-muted">Vencimento</dt>
-                  <dd class="font-medium text-text-primary">{{ formatDate(item.dueDate) }}</dd>
-                </div>
                 <div class="flex items-center justify-between gap-3">
                   <dt class="text-text-muted">Safra</dt>
                   <dd class="font-medium text-text-primary">{{ item.harvestSeasonName ?? 'Sem safra' }}</dd>
                 </div>
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-text-muted">Situação</dt>
+                  <dd>
+                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
+                      {{ agendaStatusLabel(item.agendaStatus) }}
+                    </gd-badge>
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-text-muted">Vencimento</dt>
+                  <dd class="text-right">
+                    <p class="font-medium text-text-primary">{{ formatDate(item.dueDate) }}</p>
+                    <div class="mt-2">
+                      <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
+                    </div>
+                  </dd>
+                </div>
               </dl>
+
+              @if (canManageTransactions()) {
+                <div class="mt-5 border-t border-border pt-4">
+                  <gd-button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    [fullWidth]="true"
+                    [loading]="isMarkingItem(item)"
+                    (click)="requestMarkAsPaid(item, $event)"
+                  >
+                    {{ actionLabel(item) }}
+                  </gd-button>
+                </div>
+              }
             </article>
           }
         </div>
@@ -233,31 +257,26 @@
             <thead class="border-b border-border bg-primary text-white">
               <tr class="text-xs font-semibold uppercase tracking-wide text-white">
                 <th class="px-5 py-4" scope="col">Descrição</th>
-                <th class="px-5 py-4" scope="col">Tipo</th>
-                <th class="px-5 py-4" scope="col">Status</th>
-                <th class="px-5 py-4" scope="col">Categoria</th>
                 <th class="px-5 py-4" scope="col">Safra</th>
                 <th class="px-5 py-4" scope="col">Vencimento</th>
+                <th class="px-5 py-4" scope="col">Situação</th>
                 <th class="px-5 py-4 text-right" scope="col">Valor</th>
+                <th class="px-5 py-4 text-right" scope="col">Ação</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
               @for (item of items(); track item.id) {
-                <tr class="transition-colors duration-200 hover:bg-background/60">
+                <tr
+                  [class]="itemInteractiveClasses()"
+                  [attr.tabindex]="canManageTransactions() ? 0 : null"
+                  [attr.role]="canManageTransactions() ? 'button' : null"
+                  [attr.aria-label]="canManageTransactions() ? 'Editar movimentação ' + item.description : null"
+                  (click)="canManageTransactions() ? openEditDrawer(item) : null"
+                  (keydown)="canManageTransactions() ? handleItemKeydown($event, item) : null"
+                >
                   <td class="px-5 py-4">
                     <p class="font-semibold text-text-primary">{{ item.description }}</p>
                   </td>
-                  <td class="px-5 py-4">
-                    <gd-badge [variant]="agendaTypeVariant(item.agendaType)" size="sm">
-                      {{ agendaTypeLabel(item.agendaType) }}
-                    </gd-badge>
-                  </td>
-                  <td class="px-5 py-4">
-                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
-                      {{ agendaStatusLabel(item.agendaStatus) }}
-                    </gd-badge>
-                  </td>
-                  <td class="px-5 py-4 text-text-muted">{{ item.categoryName ?? 'Sem categoria' }}</td>
                   <td class="px-5 py-4">
                     @if (item.harvestSeasonName) {
                       <gd-badge variant="neutral" size="sm">{{ item.harvestSeasonName }}</gd-badge>
@@ -271,8 +290,28 @@
                       <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
                     </div>
                   </td>
+                  <td class="px-5 py-4">
+                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
+                      {{ agendaStatusLabel(item.agendaStatus) }}
+                    </gd-badge>
+                  </td>
                   <td [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(item)">
                     {{ amountPrefix(item) }}{{ item.amount | brCurrency }}
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    @if (canManageTransactions()) {
+                      <gd-button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        [loading]="isMarkingItem(item)"
+                        (click)="requestMarkAsPaid(item, $event)"
+                      >
+                        {{ actionLabel(item) }}
+                      </gd-button>
+                    } @else {
+                      <span class="text-sm text-text-muted">Somente leitura</span>
+                    }
                   </td>
                 </tr>
               }
@@ -297,3 +336,36 @@
     </section>
   }
 </section>
+
+<gd-drawer
+  [open]="drawerOpen()"
+  [title]="drawerTitle()"
+  [description]="drawerDescription()"
+  size="lg"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closeDrawer()"
+>
+  <gd-transaction-form
+    [transaction]="editingTransaction()"
+    [categories]="formCategories()"
+    [harvestSeasons]="harvestSeasons()"
+    [open]="drawerOpen()"
+    [submitting]="submitting()"
+    (submitted)="saveTransaction($event)"
+    (cancelled)="closeDrawer()"
+  />
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="paidTarget() !== null"
+  [title]="paidDialogTitle()"
+  [description]="paidDialogDescription()"
+  [confirmLabel]="paidDialogConfirmLabel()"
+  cancelLabel="Cancelar"
+  variant="success"
+  [loading]="paidSubmittingId() !== null"
+  (confirmed)="confirmMarkAsPaid()"
+  (cancelled)="closePaidConfirmation()"
+  (closed)="closePaidConfirmation()"
+/>

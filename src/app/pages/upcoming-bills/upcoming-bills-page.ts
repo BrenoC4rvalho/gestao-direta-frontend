@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -11,8 +12,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
-import { Subscription, finalize } from 'rxjs';
+import { Subscription, finalize, forkJoin } from 'rxjs';
 
+import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
   FinancialAgendaFilterStatus,
   FinancialAgendaFilterType,
@@ -20,15 +22,24 @@ import {
   FinancialAgendaSummary,
   FinancialAgendaSummaryGroup,
 } from '../../core/models/financial-agenda.models';
+import {
+  FinancialTransaction,
+  UpdateFinancialTransactionRequest,
+} from '../../core/models/financial-transaction.models';
 import { HarvestSeason } from '../../core/models/harvest-season.models';
 import { FinancialAgendaService } from '../../core/services/financial-agenda.service';
+import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
+import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton, SummaryCard, SummaryCardTone } from '../../shared/ui';
+import { TransactionForm } from '../transactions/components/transaction-form/transaction-form';
 
 interface AgendaChip<T extends string | number> {
   label: string;
@@ -74,13 +85,20 @@ const EMPTY_SUMMARY: FinancialAgendaSummary = {
     Skeleton,
     SummaryCard,
     BrCurrencyPipe,
+    ConfirmDialog,
+    Drawer,
+    TransactionForm,
   ],
   templateUrl: './upcoming-bills-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UpcomingBillsPage {
   private readonly agendaService = inject(FinancialAgendaService);
+  private readonly transactionService = inject(FinancialTransactionService);
+  private readonly categoryService = inject(FinancialCategoryService);
   private readonly harvestSeasonService = inject(HarvestSeasonService);
+  private readonly toastStore = inject(ToastStore);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly farmAccessStore = inject(FarmAccessStore);
@@ -88,6 +106,7 @@ export class UpcomingBillsPage {
 
   protected readonly summary = signal<FinancialAgendaSummary | null>(null);
   protected readonly items = signal<FinancialAgendaItem[]>([]);
+  protected readonly formCategories = signal<FinancialCategory[]>([]);
   protected readonly harvestSeasons = signal<HarvestSeason[]>([]);
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
@@ -101,6 +120,12 @@ export class UpcomingBillsPage {
   protected readonly selectedPeriodDays = signal<number | null>(DEFAULT_PERIOD_DAYS);
   protected readonly selectedHarvestSeasonIds = signal<readonly number[]>([]);
   protected readonly reloadTrigger = signal(0);
+  protected readonly drawerOpen = signal(false);
+  protected readonly editingTransaction = signal<FinancialTransaction | null>(null);
+  protected readonly loadingTransactionId = signal<number | null>(null);
+  protected readonly submitting = signal(false);
+  protected readonly paidTarget = signal<FinancialAgendaItem | null>(null);
+  protected readonly paidSubmittingId = signal<number | null>(null);
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
   protected readonly itemSkeletons = [1, 2, 3, 4, 5, 6];
 
@@ -116,6 +141,25 @@ export class UpcomingBillsPage {
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
   );
+  protected readonly drawerTitle = computed(() =>
+    this.editingTransaction() ? 'Editar movimentação' : 'Movimentação',
+  );
+  protected readonly drawerDescription = computed(() =>
+    this.editingTransaction()
+      ? 'Atualize os dados financeiros desta movimentação.'
+      : 'Confira os dados financeiros desta movimentação.',
+  );
+  protected readonly paidDialogTitle = computed(() =>
+    this.isReceivable(this.paidTarget()) ? 'Confirmar recebimento?' : 'Confirmar pagamento?',
+  );
+  protected readonly paidDialogDescription = computed(() =>
+    this.isReceivable(this.paidTarget())
+      ? 'Essa conta será marcada como recebida e sairá da Agenda Financeira.'
+      : 'Essa conta será marcada como paga e sairá da Agenda Financeira.',
+  );
+  protected readonly paidDialogConfirmLabel = computed(() =>
+    this.isReceivable(this.paidTarget()) ? 'Marcar como recebida' : 'Marcar como paga',
+  );
   protected readonly canViewAgenda = computed(() => {
     if (this.sessionStore.isAdmin()) {
       return true;
@@ -127,6 +171,19 @@ export class UpcomingBillsPage {
       !!farmId &&
       this.farmAccessStore.access()?.farmId === farmId &&
       this.farmAccessStore.canViewFinancial()
+    );
+  });
+  protected readonly canManageTransactions = computed(() => {
+    if (this.sessionStore.isAdmin()) {
+      return true;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    return (
+      !!farmId &&
+      this.farmAccessStore.access()?.farmId === farmId &&
+      this.farmAccessStore.canManageTransactions()
     );
   });
   protected readonly summaryCards = computed<readonly SummaryCardViewModel[]>(() => {
@@ -354,6 +411,152 @@ export class UpcomingBillsPage {
     }
   }
 
+  protected openEditDrawer(item: FinancialAgendaItem): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+
+    if (!farmId || !this.canManageTransactions()) {
+      this.showPermissionError();
+      return;
+    }
+
+    if (this.loadingTransactionId() === item.id) {
+      return;
+    }
+
+    this.loadingTransactionId.set(item.id);
+
+    forkJoin({
+      transaction: this.transactionService.getById(item.id),
+      categories: this.categoryService.listByFarm(farmId, { status: 'ACTIVE' }),
+    })
+      .pipe(
+        finalize(() => this.loadingTransactionId.set(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: ({ transaction, categories }) => {
+          this.editingTransaction.set(transaction);
+          this.formCategories.set(categories);
+          this.drawerOpen.set(true);
+        },
+        error: (error: unknown) => this.showTransactionLoadError(error),
+      });
+  }
+
+  protected handleItemKeydown(event: KeyboardEvent, item: FinancialAgendaItem): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.openEditDrawer(item);
+  }
+
+  protected closeDrawer(): void {
+    if (this.submitting()) {
+      return;
+    }
+
+    this.resetDrawerState();
+  }
+
+  protected saveTransaction(payload: UpdateFinancialTransactionRequest): void {
+    const transaction = this.editingTransaction();
+
+    if (!transaction || this.submitting()) {
+      return;
+    }
+
+    if (!this.canManageTransactions()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.submitting.set(true);
+
+    this.transactionService
+      .update(transaction.id, payload)
+      .pipe(
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.resetDrawerState();
+          this.toastStore.success('Movimentação atualizada com sucesso.');
+          this.reloadAfterMutation();
+        },
+        error: (error: unknown) => this.showTransactionOperationError(error),
+      });
+  }
+
+  protected requestMarkAsPaid(item: FinancialAgendaItem, event?: Event): void {
+    event?.stopPropagation();
+
+    if (!this.canManageTransactions()) {
+      this.showPermissionError();
+      return;
+    }
+
+    if (this.paidSubmittingId() === item.id) {
+      return;
+    }
+
+    this.paidTarget.set(item);
+  }
+
+  protected closePaidConfirmation(): void {
+    if (this.paidSubmittingId() === null) {
+      this.paidTarget.set(null);
+    }
+  }
+
+  protected confirmMarkAsPaid(): void {
+    const item = this.paidTarget();
+
+    if (!item || this.paidSubmittingId() !== null) {
+      return;
+    }
+
+    if (!this.canManageTransactions()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.paidSubmittingId.set(item.id);
+
+    this.transactionService
+      .markAsPaid(item.id, {})
+      .pipe(
+        finalize(() => this.paidSubmittingId.set(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.paidTarget.set(null);
+          this.toastStore.success(
+            this.isReceivable(item) ? 'Recebimento confirmado.' : 'Conta marcada como paga.',
+          );
+          this.reloadAfterMutation();
+        },
+        error: () => this.toastStore.error('Não foi possível atualizar a conta.'),
+      });
+  }
+
+  protected actionLabel(item: FinancialAgendaItem): string {
+    return this.isReceivable(item) ? 'Marcar como recebida' : 'Marcar como paga';
+  }
+
+  protected isMarkingItem(item: FinancialAgendaItem): boolean {
+    return this.paidSubmittingId() === item.id;
+  }
+
+  protected itemInteractiveClasses(): string {
+    return this.canManageTransactions()
+      ? 'cursor-pointer transition-colors duration-200 hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary'
+      : '';
+  }
+
   protected chipClasses(active: boolean): string {
     return [
       'min-h-9 cursor-pointer rounded-full border px-3 text-sm font-medium shadow-sm transition-all duration-200 ease-out',
@@ -402,13 +605,11 @@ export class UpcomingBillsPage {
   }
 
   protected amountClasses(item: FinancialAgendaItem): string {
-    return item.agendaType === 'RECEIVABLE' || item.transactionType === 'INCOME'
-      ? 'text-success'
-      : 'text-danger';
+    return this.isReceivable(item) ? 'text-success' : 'text-danger';
   }
 
   protected amountPrefix(item: FinancialAgendaItem): string {
-    return item.agendaType === 'RECEIVABLE' || item.transactionType === 'INCOME' ? '+' : '-';
+    return this.isReceivable(item) ? '+' : '-';
   }
 
   protected formatDate(value: string | null | undefined): string {
@@ -508,6 +709,53 @@ export class UpcomingBillsPage {
     }
 
     this.error.set(true);
+  }
+
+  private reloadAfterMutation(): void {
+    if (this.items().length === 1 && this.page() > 0) {
+      this.page.update((value) => Math.max(value - 1, 0));
+      return;
+    }
+
+    this.retry();
+  }
+
+  private isReceivable(item: FinancialAgendaItem | null): boolean {
+    return item?.agendaType === 'RECEIVABLE' || item?.transactionType === 'INCOME';
+  }
+
+  private showTransactionLoadError(error: unknown): void {
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.toastStore.error('Não foi possível carregar a movimentação.');
+  }
+
+  private showTransactionOperationError(error: unknown): void {
+    if (!(error instanceof HttpErrorResponse)) {
+      this.toastStore.error('Não foi possível concluir a operação.');
+      return;
+    }
+
+    const messages: Record<number, string> = {
+      400: 'Verifique os dados da movimentação.',
+      401: 'Sua sessão expirou. Faça login novamente.',
+      403: 'Você não tem permissão para realizar esta ação.',
+      404: 'Movimentação não encontrada.',
+    };
+
+    this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
+  }
+
+  private showPermissionError(): void {
+    this.toastStore.error('Você não tem permissão para realizar esta ação.');
+  }
+
+  private resetDrawerState(): void {
+    this.drawerOpen.set(false);
+    this.editingTransaction.set(null);
   }
 
   private clearDataState(): void {
