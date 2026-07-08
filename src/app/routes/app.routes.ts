@@ -144,10 +144,10 @@ export const routes: Routes = [
       },
       {
         path: 'upcoming-bills',
-        title: 'Contas a vencer',
+        title: 'Agenda Financeira',
         data: {
-          title: 'Contas a vencer',
-          subtitle: 'Acompanhe despesas pendentes e vencimentos da fazenda selecionada.',
+          title: 'Agenda Financeira',
+          subtitle: 'Acompanhe contas em aberto, vencidas e pendentes da fazenda selecionada.',
         },
         loadComponent: () =>
           import('../pages/upcoming-bills/upcoming-bills-page').then(

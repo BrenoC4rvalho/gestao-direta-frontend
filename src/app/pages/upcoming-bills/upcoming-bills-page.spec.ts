@@ -6,21 +6,16 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { AuthUser } from '../../core/models/auth.models';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
-import { UpcomingBill } from '../../core/models/financial.models';
+import { FinancialAgendaItem, FinancialAgendaSummary } from '../../core/models/financial-agenda.models';
+import { HarvestSeason } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
-import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
-import { UpcomingBillService } from '../../core/services/upcoming-bill.service';
+import { FinancialAgendaService } from '../../core/services/financial-agenda.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
-import { ToastStore } from '../../core/stores/toast.store';
 
 import { UpcomingBillsPage } from './upcoming-bills-page';
-
-interface UpcomingBillsPageHarness {
-  requestMarkAsPaid(bill: UpcomingBill): void;
-  requestCancel(bill: UpcomingBill): void;
-}
 
 const admin: AuthUser = {
   id: 1,
@@ -70,53 +65,295 @@ const access: FarmAccessResponse = {
     canChangeFarmStatus: false,
     canManageFarmUsers: false,
     canViewFinancial: true,
-    canManageTransactions: true,
+    canManageTransactions: false,
     canManageCategories: false,
     canManageGlobalCategories: false,
     canCreateFarm: false,
   },
 };
 
-const pendingBill: UpcomingBill = {
-  id: 1,
-  description: 'Compra de sementes',
-  amount: 2500,
-  status: 'PENDING',
-  dueDate: dateWithOffset(3),
+const summary: FinancialAgendaSummary = {
   farmId: 1,
+  overdueReceivable: { count: 2, totalAmount: 1200 },
+  overduePayable: { count: 3, totalAmount: 4200 },
+  pendingReceivable: { count: 4, totalAmount: 5000 },
+  pendingPayable: { count: 5, totalAmount: 2300 },
+  openReceivable: { count: 6, totalAmount: 6200 },
+  openPayable: { count: 8, totalAmount: 6500 },
+};
+
+const receivableItem: FinancialAgendaItem = {
+  id: 1,
+  farmId: 1,
+  description: 'Venda de milho',
+  agendaType: 'RECEIVABLE',
+  transactionType: 'INCOME',
+  agendaStatus: 'PENDING',
+  paymentStatus: 'PENDING',
+  amount: 3000,
+  dueDate: '2026-07-10',
+  daysOverdue: null,
+  daysUntilDue: 3,
   categoryId: 1,
-  categoryName: 'Insumos',
-  paymentMethod: 'PIX',
+  categoryName: 'Venda de safra',
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Milho',
 };
 
-const overdueBill: UpcomingBill = {
-  ...pendingBill,
+const payableItem: FinancialAgendaItem = {
+  ...receivableItem,
   id: 2,
-  description: 'Manutenção atrasada',
-  amount: 750,
-  status: 'OVERDUE',
-  dueDate: dateWithOffset(-1),
-  categoryName: 'Manutenção',
-  paymentMethod: 'BOLETO',
+  description: 'Compra de sementes',
+  agendaType: 'PAYABLE',
+  transactionType: 'EXPENSE',
+  agendaStatus: 'OVERDUE',
+  amount: 900,
+  dueDate: '2026-07-01',
+  daysOverdue: 6,
+  daysUntilDue: null,
+  categoryName: 'Insumos',
+  harvestSeasonId: null,
+  harvestSeasonName: null,
 };
 
-const paidBill: UpcomingBill = {
-  ...pendingBill,
-  id: 3,
-  description: 'Conta paga',
-  amount: 500,
-  status: 'PAID',
-  dueDate: dateWithOffset(10),
-  categoryName: 'Serviços',
-  paymentMethod: 'CASH',
-  paidAt: dateWithOffset(0),
-};
+const harvestSeasons: HarvestSeason[] = [
+  harvestSeason(10, 'Milho'),
+  harvestSeason(20, 'Feijão'),
+];
 
-function pageResponse(
-  content: UpcomingBill[],
-  page = 0,
-  totalPages = content.length > 0 ? 1 : 0,
-): PageResponse<UpcomingBill> {
+describe('UpcomingBillsPage as Financial Agenda', () => {
+  let fixture: ComponentFixture<UpcomingBillsPage>;
+  let agendaService: {
+    getSummary: ReturnType<typeof vi.fn>;
+    getItems: ReturnType<typeof vi.fn>;
+  };
+  let harvestSeasonService: { list: ReturnType<typeof vi.fn> };
+  let selectedFarmStore: SelectedFarmStore;
+  let farmAccessStore: FarmAccessStore;
+  let sessionStore: SessionStore;
+
+  beforeEach(async () => {
+    agendaService = {
+      getSummary: vi.fn().mockReturnValue(of(summary)),
+      getItems: vi.fn().mockReturnValue(of(pageResponse([receivableItem, payableItem]))),
+    };
+    harvestSeasonService = {
+      list: vi.fn().mockReturnValue(of(pageResponse(harvestSeasons))),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [UpcomingBillsPage],
+      providers: [
+        provideGestaoDiretaIcons(),
+        { provide: FinancialAgendaService, useValue: agendaService },
+        { provide: HarvestSeasonService, useValue: harvestSeasonService },
+      ],
+    }).compileComponents();
+
+    selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    farmAccessStore = TestBed.inject(FarmAccessStore);
+    sessionStore = TestBed.inject(SessionStore);
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
+    sessionStore.clear();
+    sessionStore.setUser(admin);
+  });
+
+  afterEach(() => {
+    selectedFarmStore.clear();
+    farmAccessStore.clear();
+    sessionStore.clear();
+  });
+
+  it('should render title, empty state and avoid endpoints without selected farm', () => {
+    createPage();
+
+    expect(text()).toContain('Agenda Financeira');
+    expect(text()).toContain('Selecione uma fazenda para visualizar a agenda financeira.');
+    expect(agendaService.getSummary).not.toHaveBeenCalled();
+    expect(agendaService.getItems).not.toHaveBeenCalled();
+    expect(harvestSeasonService.list).not.toHaveBeenCalled();
+  });
+
+  it('should show access denied and avoid agenda endpoints without permission', () => {
+    sessionStore.setUser(user);
+    selectedFarmStore.setFarms([farm]);
+    farmAccessStore.setAccess({
+      ...access,
+      permissions: { ...access.permissions, canViewFinancial: false },
+    });
+    createPage();
+
+    expect(text()).toContain('Acesso restrito');
+    expect(text()).toContain('Você não tem permissão para visualizar a agenda financeira.');
+    expect(agendaService.getSummary).not.toHaveBeenCalled();
+    expect(agendaService.getItems).not.toHaveBeenCalled();
+  });
+
+  it('should load summary, items and harvest seasons with selected farm', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(harvestSeasonService.list).toHaveBeenCalledWith({
+      farmId: 1,
+      includeInactive: true,
+      page: 0,
+      size: 100,
+      sort: 'startDate',
+      direction: 'DESC',
+    });
+    expect(agendaService.getSummary).toHaveBeenCalledWith({
+      farmId: 1,
+      status: 'ALL',
+      type: 'ALL',
+      periodDays: 30,
+      harvestSeasonIds: [],
+    });
+    expect(agendaService.getItems).toHaveBeenCalledWith({
+      farmId: 1,
+      status: 'ALL',
+      type: 'ALL',
+      periodDays: 30,
+      harvestSeasonIds: [],
+      page: 0,
+      size: 10,
+    });
+  });
+
+  it('should render the six agenda summary cards from summary response', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card').length).toBe(6);
+    expect(text()).toContain('Vencidas a receber');
+    expect(text()).toContain('2 contas');
+    expect(text()).toContain('Vencidas a pagar');
+    expect(text()).toContain('3 contas');
+    expect(text()).toContain('Pendentes a receber');
+    expect(text()).toContain('4 contas');
+    expect(text()).toContain('Pendentes a pagar');
+    expect(text()).toContain('5 contas');
+    expect(text()).toContain('Total a receber');
+    expect(text()).toContain('6 contas');
+    expect(text()).toContain('Total a pagar');
+    expect(text()).toContain('8 contas');
+  });
+
+  it('should render agenda list fields', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(text()).toContain('Contas da agenda');
+    expect(text()).toContain('Venda de milho');
+    expect(text()).toContain('Compra de sementes');
+    expect(text()).toContain('A receber');
+    expect(text()).toContain('A pagar');
+    expect(text()).toContain('Pendente');
+    expect(text()).toContain('Vencido');
+    expect(text()).toContain('Venda de safra');
+    expect(text()).toContain('Insumos');
+    expect(text()).toContain('Milho');
+    expect(text()).toContain('Sem safra');
+    expect(text()).toContain('Vence em 3 dias');
+    expect(text()).toContain('Vencido há 6 dias');
+  });
+
+  it('should change status, type and period filters and reset page', () => {
+    agendaService.getItems.mockReturnValue(of(pageResponse([receivableItem], 0, 2)));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Próxima');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ page: 1 }));
+
+    clickFilter('Filtro de status', 'Pendentes');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ status: 'PENDING', page: 0 }));
+
+    clickButton('Próxima');
+    clickFilter('Filtro de tipo', 'A receber');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ type: 'RECEIVABLE', page: 0 }));
+
+    clickButton('Próxima');
+    clickFilter('Filtro de período', '7 dias');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ periodDays: 7, page: 0 }));
+  });
+
+  it('should allow multiple harvest seasons and clear with Todas', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickFilter('Filtro de safra', 'Milho · Soja');
+    clickFilter('Filtro de safra', 'Feijão · Soja');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [10, 20] }));
+
+    clickFilter('Filtro de safra', 'Todas');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [] }));
+  });
+
+  it('should reset harvest filters and reload data when selected farm changes', () => {
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    createPage();
+
+    clickFilter('Filtro de safra', 'Milho · Soja');
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ farmId: 1, harvestSeasonIds: [10] }));
+
+    selectedFarmStore.selectFarmById(2);
+    fixture.detectChanges();
+
+    expect(harvestSeasonService.list).toHaveBeenCalledWith(expect.objectContaining({ farmId: 2 }));
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ farmId: 2, harvestSeasonIds: [], page: 0 }));
+  });
+
+  it('should paginate with the next page', () => {
+    agendaService.getItems.mockReturnValue(of(pageResponse([receivableItem], 0, 2)));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Próxima');
+
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ page: 1 }));
+  });
+
+  it('should render empty and error states', () => {
+    agendaService.getItems.mockReturnValueOnce(of(pageResponse([])));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    expect(text()).toContain('Nenhuma conta encontrada');
+    expect(text()).toContain('Não há contas em aberto para os filtros selecionados.');
+
+    agendaService.getSummary.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+    createPage();
+    expect(text()).toContain('Não foi possível carregar a agenda financeira.');
+  });
+
+  function createPage(): void {
+    fixture = TestBed.createComponent(UpcomingBillsPage);
+    fixture.detectChanges();
+  }
+
+  function text(): string {
+    return fixture.nativeElement.textContent as string;
+  }
+
+  function lastItemsCall(): unknown {
+    return agendaService.getItems.mock.calls.at(-1)?.[0];
+  }
+
+  function clickButton(label: string): void {
+    findButton(fixture.nativeElement, label)?.click();
+    fixture.detectChanges();
+  }
+
+  function clickFilter(groupLabel: string, label: string): void {
+    const group = fixture.nativeElement.querySelector(`[aria-label="${groupLabel}"]`) as HTMLElement;
+    findButton(group, label)?.click();
+    fixture.detectChanges();
+  }
+});
+
+function pageResponse<T>(content: T[], page = 0, totalPages = content.length > 0 ? 1 : 0): PageResponse<T> {
   return {
     content,
     page,
@@ -128,235 +365,25 @@ function pageResponse(
   };
 }
 
-describe('UpcomingBillsPage', () => {
-  let fixture: ComponentFixture<UpcomingBillsPage>;
-  let upcomingBillService: { listByFarm: ReturnType<typeof vi.fn> };
-  let transactionService: {
-    markAsPaid: ReturnType<typeof vi.fn>;
-    cancel: ReturnType<typeof vi.fn>;
+function harvestSeason(id: number, name: string): HarvestSeason {
+  return {
+    id,
+    farmId: 1,
+    productionActivityId: 1,
+    productionActivityName: 'Soja',
+    name,
+    description: null,
+    startDate: '2026-01-01',
+    endDate: null,
+    expectedRevenue: null,
+    expectedCost: null,
+    areaHectares: null,
+    status: 'IN_PROGRESS',
   };
-  let selectedFarmStore: SelectedFarmStore;
-  let farmAccessStore: FarmAccessStore;
-  let sessionStore: SessionStore;
-  let toastStore: ToastStore;
-
-  beforeEach(async () => {
-    upcomingBillService = {
-      listByFarm: vi.fn().mockReturnValue(of(pageResponse([pendingBill, overdueBill, paidBill]))),
-    };
-    transactionService = {
-      markAsPaid: vi.fn().mockReturnValue(of({ ...pendingBill, status: 'PAID' })),
-      cancel: vi.fn().mockReturnValue(of({ ...pendingBill, status: 'CANCELED' })),
-    };
-
-    await TestBed.configureTestingModule({
-      imports: [UpcomingBillsPage],
-      providers: [
-        provideGestaoDiretaIcons(),
-        { provide: UpcomingBillService, useValue: upcomingBillService },
-        { provide: FinancialTransactionService, useValue: transactionService },
-      ],
-    }).compileComponents();
-
-    selectedFarmStore = TestBed.inject(SelectedFarmStore);
-    farmAccessStore = TestBed.inject(FarmAccessStore);
-    sessionStore = TestBed.inject(SessionStore);
-    toastStore = TestBed.inject(ToastStore);
-    selectedFarmStore.clear();
-    farmAccessStore.clear();
-    sessionStore.clear();
-    sessionStore.setUser(admin);
-    toastStore.clear();
-  });
-
-  afterEach(() => {
-    selectedFarmStore.clear();
-    farmAccessStore.clear();
-    sessionStore.clear();
-    toastStore.clear();
-  });
-
-  function createPage(): void {
-    fixture = TestBed.createComponent(UpcomingBillsPage);
-    fixture.detectChanges();
-  }
-
-  it('should avoid API without selected farm', () => {
-    createPage();
-
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda selecionada');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Selecione uma fazenda para visualizar contas a vencer.',
-    );
-    expect(upcomingBillService.listByFarm).not.toHaveBeenCalled();
-  });
-
-  it('should show access denied and avoid API without view permission', () => {
-    sessionStore.setUser(user);
-    selectedFarmStore.setFarms([farm]);
-    farmAccessStore.setAccess({
-      ...access,
-      permissions: { ...access.permissions, canViewFinancial: false },
-    });
-    createPage();
-
-    expect(fixture.nativeElement.textContent).toContain('Acesso restrito');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Você não tem permissão para visualizar contas a vencer.',
-    );
-    expect(upcomingBillService.listByFarm).not.toHaveBeenCalled();
-  });
-
-  it('should load and render upcoming bills with selected farm and permission', () => {
-    selectedFarmStore.setFarms([farm]);
-    createPage();
-
-    expect(upcomingBillService.listByFarm).toHaveBeenCalledWith(1, {
-      page: 0,
-      size: 10,
-      sort: 'dueDate',
-      direction: 'ASC',
-    });
-    expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
-    expect(fixture.nativeElement.textContent).toContain('Manutenção atrasada');
-    expect(fixture.nativeElement.textContent).toContain('R$');
-    expect(fixture.nativeElement.textContent).toContain('Vencida há 1 dia');
-    expect(fixture.nativeElement.textContent).toContain('Vence em 3 dias');
-  });
-
-  it('should show empty and error states', () => {
-    upcomingBillService.listByFarm.mockReturnValueOnce(of(pageResponse([])));
-    selectedFarmStore.setFarms([farm]);
-    createPage();
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma conta a vencer encontrada');
-
-    upcomingBillService.listByFarm.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 500 })),
-    );
-    createPage();
-    expect(fixture.nativeElement.textContent).toContain(
-      'Não foi possível carregar as contas a vencer',
-    );
-  });
-
-  it('should calculate summary from current filtered page and apply local filters', () => {
-    selectedFarmStore.setFarms([farm]);
-    createPage();
-
-    expect(fixture.nativeElement.textContent).toContain('Total pendente');
-    expect(fixture.nativeElement.textContent).toContain('R$');
-    expect(fixture.nativeElement.textContent).toContain('1 ·');
-
-    setStatusFilter('PAID');
-
-    expect(fixture.nativeElement.textContent).toContain('Conta paga');
-    expect(fixture.nativeElement.textContent).not.toContain('Compra de sementes');
-    expect(upcomingBillService.listByFarm).toHaveBeenCalledTimes(1);
-  });
-
-  it('should paginate and reload when selected farm changes', () => {
-    upcomingBillService.listByFarm.mockReturnValue(of(pageResponse([pendingBill], 0, 2)));
-    selectedFarmStore.setFarms([farm, secondFarm]);
-    createPage();
-
-    clickButton('Próxima');
-    expect(upcomingBillService.listByFarm).toHaveBeenCalledWith(1, expect.objectContaining({ page: 1 }));
-
-    selectedFarmStore.selectFarmById(2);
-    fixture.detectChanges();
-    expect(upcomingBillService.listByFarm).toHaveBeenCalledWith(2, expect.objectContaining({ page: 1 }));
-  });
-
-  it('should render read-only actions without management permission', () => {
-    sessionStore.setUser(user);
-    selectedFarmStore.setFarms([farm]);
-    farmAccessStore.setAccess({
-      ...access,
-      permissions: { ...access.permissions, canManageTransactions: false },
-    });
-    createPage();
-
-    expect(fixture.nativeElement.textContent).toContain('Somente leitura');
-    expect(findButton(fixture.nativeElement, 'Marcar como paga')).toBeUndefined();
-
-    const harness = fixture.componentInstance as unknown as UpcomingBillsPageHarness;
-    harness.requestMarkAsPaid(pendingBill);
-    harness.requestCancel(pendingBill);
-    fixture.detectChanges();
-
-    expect(transactionService.markAsPaid).not.toHaveBeenCalled();
-    expect(transactionService.cancel).not.toHaveBeenCalled();
-    expect(toastStore.toasts()[0]?.title).toBe(
-      'Você não tem permissão para realizar esta ação.',
-    );
-  });
-
-  it('should mark as paid and cancel with confirmation', () => {
-    selectedFarmStore.setFarms([farm]);
-    createPage();
-
-    clickButton('Marcar como paga');
-    clickDialogButton('Marcar como paga');
-    expect(transactionService.markAsPaid).toHaveBeenCalledWith(1, { paymentMethod: 'PIX' });
-    expect(toastStore.toasts()[0]?.title).toBe('Conta marcada como paga.');
-    expect(upcomingBillService.listByFarm).toHaveBeenCalledTimes(2);
-
-    clickButton('Cancelar');
-    clickDialogButton('Cancelar conta');
-    expect(transactionService.cancel).toHaveBeenCalledWith(1);
-    expect(toastStore.toasts()[1]?.title).toBe('Conta cancelada com sucesso.');
-  });
-
-  it('should show permission feedback on action 403', () => {
-    transactionService.markAsPaid.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 403 })),
-    );
-    selectedFarmStore.setFarms([farm]);
-    createPage();
-
-    clickButton('Marcar como paga');
-    clickDialogButton('Marcar como paga');
-
-    expect(toastStore.toasts()[0]?.title).toBe('Você não tem permissão para realizar esta ação.');
-  });
-
-  function setStatusFilter(value: string): void {
-    const component = fixture.componentInstance as unknown as {
-      filterForm: { controls: { status: { setValue(value: string): void } } };
-    };
-    component.filterForm.controls.status.setValue(value);
-    fixture.detectChanges();
-  }
-
-  function clickButton(label: string): void {
-    findButton(fixture.nativeElement, label)?.click();
-    fixture.detectChanges();
-  }
-
-  function clickDialogButton(label: string): void {
-    const dialogs = fixture.nativeElement.querySelectorAll('gd-confirm-dialog [role="dialog"]');
-    const button = Array.from(dialogs)
-      .flatMap((dialog) => Array.from((dialog as HTMLElement).querySelectorAll('button')))
-      .find((item) => (item as HTMLButtonElement).textContent?.trim() === label) as
-      | HTMLButtonElement
-      | undefined;
-    button?.click();
-    fixture.detectChanges();
-  }
-});
+}
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
     (button) => button.textContent?.trim() === label,
   ) as HTMLButtonElement | undefined;
-}
-
-function dateWithOffset(offset: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + offset);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
 }

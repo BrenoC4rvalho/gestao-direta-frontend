@@ -35,7 +35,7 @@ const adminLabels = [
   'Atividades produtivas',
   'Movimentações',
   'Safras',
-  'Contas a vencer',
+  'Agenda financeira',
 ];
 
 const allLabels = [
@@ -46,7 +46,7 @@ const allLabels = [
   'Categorias',
   'Movimentações',
   'Safras',
-  'Contas a vencer',
+  'Agenda financeira',
 ];
 
 const financialLabels = [
@@ -54,7 +54,7 @@ const financialLabels = [
   'Fazendas',
   'Movimentações',
   'Safras',
-  'Contas a vencer',
+  'Agenda financeira',
 ];
 
 describe('layout navigation visibility', () => {

@@ -21,10 +21,9 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { Badge, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Badge, EmptyState, ErrorState, Skeleton, SummaryCard, SummaryCardTone } from '../../shared/ui';
 import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
-import { SummaryCard, SummaryCardTone } from './components/summary-card/summary-card';
 
 interface SummaryCardViewModel {
   title: string;

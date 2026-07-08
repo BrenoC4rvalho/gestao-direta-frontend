@@ -58,7 +58,7 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'viewFinancial',
   },
   {
-    label: 'Contas a vencer',
+    label: 'Agenda financeira',
     route: '/upcoming-bills',
     icon: 'calendar-clock',
     visibility: 'viewFinancial',

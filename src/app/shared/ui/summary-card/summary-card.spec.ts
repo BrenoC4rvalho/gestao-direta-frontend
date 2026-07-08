@@ -1,14 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
-
+import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
 import { SummaryCard } from './summary-card';
 
 const description = 'Resultado financeiro já realizado: entradas pagas menos saídas pagas.';
 const detail = 'Considera apenas movimentações pagas.';
 
 describe('SummaryCard', () => {
-  async function createComponent(detailText: string | null = detail) {
+  async function createComponent(detailText: string | null = detail, metaText: string | null = null) {
     await TestBed.configureTestingModule({
       imports: [SummaryCard],
       providers: [provideGestaoDiretaIcons()],
@@ -18,6 +17,7 @@ describe('SummaryCard', () => {
     fixture.componentRef.setInput('title', 'Saldo atual');
     fixture.componentRef.setInput('value', 'R$ 1.000,00');
     fixture.componentRef.setInput('description', description);
+    fixture.componentRef.setInput('meta', metaText);
     fixture.componentRef.setInput('detail', detailText);
     fixture.componentRef.setInput('icon', 'wallet');
     fixture.detectChanges();
@@ -50,6 +50,12 @@ describe('SummaryCard', () => {
     expect(button?.getAttribute('aria-describedby')).toBe(tooltip?.id);
     expect(tooltip?.textContent).toContain(description);
     expect(tooltip?.textContent).toContain(detail);
+  });
+
+  it('should render optional meta text outside the tooltip', async () => {
+    const fixture = await createComponent(detail, '2 contas');
+
+    expect(visibleCardText(fixture)).toContain('2 contas');
   });
 
   it('should scope tooltip hover and focus to the info button wrapper', async () => {

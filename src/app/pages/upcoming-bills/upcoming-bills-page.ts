@@ -2,105 +2,107 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   computed,
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { LucideDynamicIcon } from '@lucide/angular';
+import { Subscription, finalize } from 'rxjs';
 
 import {
-  PaymentMethod,
-  PaymentStatus,
-  UpcomingBill,
-} from '../../core/models/financial.models';
-import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
-import { UpcomingBillService } from '../../core/services/upcoming-bill.service';
+  FinancialAgendaFilterStatus,
+  FinancialAgendaFilterType,
+  FinancialAgendaItem,
+  FinancialAgendaSummary,
+  FinancialAgendaSummaryGroup,
+} from '../../core/models/financial-agenda.models';
+import { HarvestSeason } from '../../core/models/harvest-season.models';
+import { FinancialAgendaService } from '../../core/services/financial-agenda.service';
+import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
-import { ToastStore } from '../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { ConfirmDialog } from '../../shared/overlays';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
-import { UpcomingBillCard } from './components/upcoming-bill-card/upcoming-bill-card';
+import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton, SummaryCard, SummaryCardTone } from '../../shared/ui';
 
-type PeriodFilter = 'OVERDUE' | 'NEXT_7_DAYS' | 'NEXT_30_DAYS';
-
-interface UpcomingBillFiltersControls {
-  status: GdFormControl;
-  period: GdFormControl;
+interface AgendaChip<T extends string | number> {
+  label: string;
+  value: T | null;
 }
 
-interface UpcomingBillSummaryItem {
-  count: number;
-  total: number;
+interface SummaryCardViewModel {
+  title: string;
+  value: string;
+  meta: string;
+  description: string;
+  icon: string;
+  tone: SummaryCardTone;
 }
 
-interface UpcomingBillSummary {
-  pendingTotal: number;
-  overdue: UpcomingBillSummaryItem;
-  soon: UpcomingBillSummaryItem;
-}
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PERIOD_DAYS = 30;
+
+const EMPTY_SUMMARY: FinancialAgendaSummary = {
+  farmId: 0,
+  overdueReceivable: { count: 0, totalAmount: 0 },
+  overduePayable: { count: 0, totalAmount: 0 },
+  pendingReceivable: { count: 0, totalAmount: 0 },
+  pendingPayable: { count: 0, totalAmount: 0 },
+  openReceivable: { count: 0, totalAmount: 0 },
+  openPayable: { count: 0, totalAmount: 0 },
+};
 
 @Component({
   selector: 'gd-upcoming-bills-page',
   imports: [
     Badge,
-    BrCurrencyPipe,
     Button,
-    Card,
-    ConfirmDialog,
     EmptyState,
     ErrorState,
-    ReactiveFormsModule,
-    Select,
+    LucideDynamicIcon,
     Skeleton,
-    UpcomingBillCard,
+    SummaryCard,
+    BrCurrencyPipe,
   ],
   templateUrl: './upcoming-bills-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UpcomingBillsPage {
-  private readonly upcomingBillService = inject(UpcomingBillService);
-  private readonly transactionService = inject(FinancialTransactionService);
-  private readonly toastStore = inject(ToastStore);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly agendaService = inject(FinancialAgendaService);
+  private readonly harvestSeasonService = inject(HarvestSeasonService);
 
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
 
-  protected readonly bills = signal<UpcomingBill[]>([]);
+  protected readonly summary = signal<FinancialAgendaSummary | null>(null);
+  protected readonly items = signal<FinancialAgendaItem[]>([]);
+  protected readonly harvestSeasons = signal<HarvestSeason[]>([]);
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
-  protected readonly loading = signal(false);
+  protected readonly loadingSummary = signal(false);
+  protected readonly loadingItems = signal(false);
+  protected readonly loadingHarvestSeasons = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
-  protected readonly paidTarget = signal<UpcomingBill | null>(null);
-  protected readonly paidSubmitting = signal(false);
-  protected readonly cancelTarget = signal<UpcomingBill | null>(null);
-  protected readonly cancelSubmitting = signal(false);
-  protected readonly skeletons = [1, 2, 3, 4, 5, 6];
+  protected readonly selectedStatus = signal<FinancialAgendaFilterStatus>('ALL');
+  protected readonly selectedType = signal<FinancialAgendaFilterType>('ALL');
+  protected readonly selectedPeriodDays = signal<number | null>(DEFAULT_PERIOD_DAYS);
+  protected readonly selectedHarvestSeasonIds = signal<readonly number[]>([]);
+  protected readonly reloadTrigger = signal(0);
+  protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
+  protected readonly itemSkeletons = [1, 2, 3, 4, 5, 6];
 
-  private readonly reloadTrigger = signal(0);
-  private readonly statusFilter = signal<PaymentStatus | null>(null);
-  private readonly periodFilter = signal<PeriodFilter | null>(null);
-  private readonly today = this.startOfLocalDay(new Date());
-
-  protected readonly filterForm = new FormGroup<UpcomingBillFiltersControls>({
-    status: new FormControl<GdFormValue>(''),
-    period: new FormControl<GdFormValue>(''),
-  });
+  private readonly currencyPipe = new BrCurrencyPipe();
+  private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
+  private lastFarmId: number | null = null;
 
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
   );
-  protected readonly canViewUpcomingBills = computed(() => {
+  protected readonly canViewAgenda = computed(() => {
     if (this.sessionStore.isAdmin()) {
       return true;
     }
@@ -113,132 +115,157 @@ export class UpcomingBillsPage {
       this.farmAccessStore.canViewFinancial()
     );
   });
-  protected readonly canManageUpcomingBills = computed(() => {
-    if (this.sessionStore.isAdmin()) {
-      return true;
-    }
+  protected readonly summaryCards = computed<readonly SummaryCardViewModel[]>(() => {
+    const summary = this.summary() ?? EMPTY_SUMMARY;
 
-    const farmId = this.selectedFarmStore.selectedFarmId();
-
-    return (
-      !!farmId &&
-      this.farmAccessStore.access()?.farmId === farmId &&
-      this.farmAccessStore.canManageTransactions()
-    );
+    return [
+      this.summaryCard(
+        'Vencidas a receber',
+        summary.overdueReceivable,
+        'Entradas que já venceram e ainda não foram recebidas.',
+        'landmark',
+        'info',
+      ),
+      this.summaryCard(
+        'Vencidas a pagar',
+        summary.overduePayable,
+        'Despesas que já venceram e ainda não foram pagas.',
+        'alert-circle',
+        'danger',
+      ),
+      this.summaryCard(
+        'Pendentes a receber',
+        summary.pendingReceivable,
+        'Entradas ainda não vencidas que estão previstas para recebimento.',
+        'trending-up',
+        'success',
+      ),
+      this.summaryCard(
+        'Pendentes a pagar',
+        summary.pendingPayable,
+        'Despesas ainda não vencidas que precisam ser pagas.',
+        'calendar-clock',
+        'warning',
+      ),
+      this.summaryCard(
+        'Total a receber',
+        summary.openReceivable,
+        'Total em aberto a receber, somando vencidas e pendentes.',
+        'wallet',
+        'success',
+      ),
+      this.summaryCard(
+        'Total a pagar',
+        summary.openPayable,
+        'Total em aberto a pagar, somando vencidas e pendentes.',
+        'trending-down',
+        'danger',
+      ),
+    ];
   });
-  protected readonly filteredBills = computed(() => {
-    const status = this.statusFilter();
-    const period = this.periodFilter();
-
-    return this.bills().filter((bill) => {
-      const matchesStatus = !status || bill.status === status;
-      const matchesPeriod = !period || this.matchesPeriod(bill, period);
-
-      return matchesStatus && matchesPeriod;
-    });
-  });
-  protected readonly summary = computed<UpcomingBillSummary>(() =>
-    this.filteredBills().reduce(
-      (current, bill) => {
-        const isPending = bill.status === 'PENDING' || this.isOverdue(bill);
-        const isOverdue = this.isOverdue(bill);
-        const daysUntilDue = this.daysUntilDue(bill);
-        const isSoon = bill.status === 'PENDING' && daysUntilDue >= 0 && daysUntilDue <= 7;
-
-        return {
-          pendingTotal: isPending ? current.pendingTotal + bill.amount : current.pendingTotal,
-          overdue: isOverdue
-            ? { count: current.overdue.count + 1, total: current.overdue.total + bill.amount }
-            : current.overdue,
-          soon: isSoon
-            ? { count: current.soon.count + 1, total: current.soon.total + bill.amount }
-            : current.soon,
-        };
-      },
-      {
-        pendingTotal: 0,
-        overdue: { count: 0, total: 0 },
-        soon: { count: 0, total: 0 },
-      },
-    ),
+  protected readonly hasActiveFilters = computed(
+    () =>
+      this.selectedStatus() !== 'ALL' ||
+      this.selectedType() !== 'ALL' ||
+      this.selectedPeriodDays() !== DEFAULT_PERIOD_DAYS ||
+      this.selectedHarvestSeasonIds().length > 0,
   );
+  protected readonly harvestSeasonChips = computed<readonly AgendaChip<number>[]>(() => [
+    { label: 'Todas', value: null },
+    ...this.harvestSeasons().map((season) => ({
+      label: this.harvestSeasonOptionLabel(season),
+      value: season.id,
+    })),
+  ]);
 
-  protected readonly statusFilterOptions: readonly GdSelectOption[] = [
-    { label: 'Pendente', value: 'PENDING' },
-    { label: 'Vencido', value: 'OVERDUE' },
-    { label: 'Pago', value: 'PAID' },
-    { label: 'Cancelado', value: 'CANCELED' },
+  protected readonly statusChips: readonly AgendaChip<FinancialAgendaFilterStatus>[] = [
+    { label: 'Todos', value: 'ALL' },
+    { label: 'Pendentes', value: 'PENDING' },
+    { label: 'Vencidos', value: 'OVERDUE' },
   ];
-  protected readonly periodFilterOptions: readonly GdSelectOption[] = [
-    { label: 'Vencidas', value: 'OVERDUE' },
-    { label: 'Próximos 7 dias', value: 'NEXT_7_DAYS' },
-    { label: 'Próximos 30 dias', value: 'NEXT_30_DAYS' },
+  protected readonly typeChips: readonly AgendaChip<FinancialAgendaFilterType>[] = [
+    { label: 'Todos', value: 'ALL' },
+    { label: 'A receber', value: 'RECEIVABLE' },
+    { label: 'A pagar', value: 'PAYABLE' },
   ];
-
-  private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
+  protected readonly periodChips: readonly AgendaChip<number>[] = [
+    { label: 'Todos', value: null },
+    { label: '7 dias', value: 7 },
+    { label: '15 dias', value: 15 },
+    { label: '30 dias', value: 30 },
+    { label: '60 dias', value: 60 },
+    { label: '90 dias', value: 90 },
+  ];
 
   constructor() {
-    this.filterForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.statusFilter.set(
-        this.nullableString(this.filterForm.controls.status.value) as PaymentStatus | null,
-      );
-      this.periodFilter.set(
-        this.nullableString(this.filterForm.controls.period.value) as PeriodFilter | null,
-      );
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
 
-      if (this.page() !== 0) {
-        this.page.set(0);
+      this.harvestSeasons.set([]);
+
+      if (!farmId) {
+        this.loadingHarvestSeasons.set(false);
+        return;
       }
+
+      this.loadingHarvestSeasons.set(true);
+
+      const subscription = this.harvestSeasonService
+        .list({
+          farmId,
+          includeInactive: true,
+          page: 0,
+          size: 100,
+          sort: 'startDate',
+          direction: 'DESC',
+        })
+        .pipe(finalize(() => this.loadingHarvestSeasons.set(false)))
+        .subscribe({
+          next: (response) => this.harvestSeasons.set(response.content),
+          error: () => this.harvestSeasons.set([]),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
     });
 
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
       const isAdmin = this.sessionStore.isAdmin();
+
+      if (farmId !== this.lastFarmId) {
+        untracked(() => {
+          this.lastFarmId = farmId;
+          this.selectedHarvestSeasonIds.set([]);
+          this.page.set(0);
+        });
+      }
+
       const page = this.page();
+      const status = this.selectedStatus();
+      const type = this.selectedType();
+      const periodDays = this.selectedPeriodDays();
+      const harvestSeasonIds = [...this.selectedHarvestSeasonIds()];
       this.reloadTrigger();
 
       if (!farmId) {
-        this.clearListState();
+        this.clearDataState();
         return;
       }
 
       if (!isAdmin && this.isAccessPending()) {
-        this.clearListState();
+        this.clearDataState();
         return;
       }
 
-      if (!isAdmin && !this.canViewUpcomingBills()) {
-        this.clearListState();
+      if (!isAdmin && !this.canViewAgenda()) {
+        this.clearDataState();
         this.accessDenied.set(true);
         return;
       }
 
       this.accessDenied.set(false);
       this.error.set(false);
-      this.loading.set(true);
-
-      const subscription = this.upcomingBillService
-        .listByFarm(farmId, {
-          page,
-          size: 10,
-          sort: 'dueDate',
-          direction: 'ASC',
-        })
-        .pipe(finalize(() => this.loading.set(false)))
-        .subscribe({
-          next: (response) => {
-            this.bills.set(response.content);
-            this.pageInfo.set({
-              totalPages: response.totalPages,
-              totalElements: response.totalElements,
-              first: response.first,
-              last: response.last,
-            });
-          },
-          error: (error: unknown) => this.handleListError(error),
-        });
-
-      onCleanup(() => subscription.unsubscribe());
+      this.loadAgenda({ farmId, status, type, periodDays, harvestSeasonIds, page }, onCleanup);
     });
   }
 
@@ -247,7 +274,41 @@ export class UpcomingBillsPage {
   }
 
   protected resetFilters(): void {
-    this.filterForm.reset({ status: '', period: '' });
+    this.selectedStatus.set('ALL');
+    this.selectedType.set('ALL');
+    this.selectedPeriodDays.set(DEFAULT_PERIOD_DAYS);
+    this.selectedHarvestSeasonIds.set([]);
+    this.resetPage();
+  }
+
+  protected selectStatus(status: FinancialAgendaFilterStatus | null): void {
+    this.selectedStatus.set(status ?? 'ALL');
+    this.resetPage();
+  }
+
+  protected selectType(type: FinancialAgendaFilterType | null): void {
+    this.selectedType.set(type ?? 'ALL');
+    this.resetPage();
+  }
+
+  protected selectPeriod(periodDays: number | null): void {
+    this.selectedPeriodDays.set(periodDays);
+    this.resetPage();
+  }
+
+  protected selectHarvestSeason(harvestSeasonId: number | null): void {
+    if (harvestSeasonId === null) {
+      this.selectedHarvestSeasonIds.set([]);
+      this.resetPage();
+      return;
+    }
+
+    this.selectedHarvestSeasonIds.update((selected) =>
+      selected.includes(harvestSeasonId)
+        ? selected.filter((id) => id !== harvestSeasonId)
+        : [...selected, harvestSeasonId],
+    );
+    this.resetPage();
   }
 
   protected previousPage(): void {
@@ -262,158 +323,85 @@ export class UpcomingBillsPage {
     }
   }
 
-  protected requestMarkAsPaid(bill: UpcomingBill): void {
-    if (!this.canMarkAsPaid(bill)) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.paidTarget.set(bill);
+  protected chipClasses(active: boolean): string {
+    return [
+      'min-h-9 cursor-pointer rounded-full border px-3 text-sm font-medium shadow-sm transition-all duration-200 ease-out',
+      'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary',
+      active
+        ? 'border-primary bg-primary text-white hover:bg-primary-hover'
+        : 'border-border bg-surface text-text-primary hover:border-primary/50 hover:text-primary',
+    ].join(' ');
   }
 
-  protected closePaidConfirmation(): void {
-    if (!this.paidSubmitting()) {
-      this.paidTarget.set(null);
-    }
+  protected isStatusSelected(status: FinancialAgendaFilterStatus | null): boolean {
+    return (status ?? 'ALL') === this.selectedStatus();
   }
 
-  protected confirmMarkAsPaid(): void {
-    const bill = this.paidTarget();
-
-    if (!bill || this.paidSubmitting()) {
-      return;
-    }
-
-    if (!this.canMarkAsPaid(bill)) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.paidSubmitting.set(true);
-
-    this.transactionService
-      .markAsPaid(bill.id, { paymentMethod: bill.paymentMethod ?? null })
-      .pipe(
-        finalize(() => this.paidSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.paidTarget.set(null);
-          this.toastStore.success('Conta marcada como paga.');
-          this.retry();
-        },
-        error: (error: unknown) => this.showOperationError(error),
-      });
+  protected isTypeSelected(type: FinancialAgendaFilterType | null): boolean {
+    return (type ?? 'ALL') === this.selectedType();
   }
 
-  protected requestCancel(bill: UpcomingBill): void {
-    if (!this.canCancelBill(bill)) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.cancelTarget.set(bill);
+  protected isPeriodSelected(periodDays: number | null): boolean {
+    return periodDays === this.selectedPeriodDays();
   }
 
-  protected closeCancelConfirmation(): void {
-    if (!this.cancelSubmitting()) {
-      this.cancelTarget.set(null);
-    }
+  protected isHarvestSeasonSelected(harvestSeasonId: number | null): boolean {
+    return harvestSeasonId === null
+      ? this.selectedHarvestSeasonIds().length === 0
+      : this.selectedHarvestSeasonIds().includes(harvestSeasonId);
   }
 
-  protected confirmCancel(): void {
-    const bill = this.cancelTarget();
+  protected agendaTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      RECEIVABLE: 'A receber',
+      PAYABLE: 'A pagar',
+    };
 
-    if (!bill || this.cancelSubmitting()) {
-      return;
-    }
-
-    if (!this.canCancelBill(bill)) {
-      this.showPermissionError();
-      return;
-    }
-
-    this.cancelSubmitting.set(true);
-
-    this.transactionService
-      .cancel(bill.id)
-      .pipe(
-        finalize(() => this.cancelSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.cancelTarget.set(null);
-          this.toastStore.success('Conta cancelada com sucesso.');
-          this.retry();
-        },
-        error: (error: unknown) => this.showOperationError(error),
-      });
+    return labels[type] ?? type;
   }
 
-  protected canMarkAsPaid(bill: UpcomingBill): boolean {
-    return this.canManageUpcomingBills() && bill.status !== 'PAID' && bill.status !== 'CANCELED';
+  protected agendaTypeVariant(type: string): BadgeVariant {
+    return type === 'RECEIVABLE' ? 'success' : type === 'PAYABLE' ? 'danger' : 'neutral';
   }
 
-  protected canCancelBill(bill: UpcomingBill): boolean {
-    return this.canManageUpcomingBills() && bill.status !== 'CANCELED';
-  }
-
-
-  protected formatDate(value: string | null | undefined): string {
-    return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';
-  }
-
-  protected statusLabel(status: PaymentStatus): string {
+  protected agendaStatusLabel(status: string): string {
     const labels: Record<string, string> = {
       PENDING: 'Pendente',
-      PAID: 'Pago',
       OVERDUE: 'Vencido',
-      CANCELED: 'Cancelado',
     };
 
     return labels[status] ?? status;
   }
 
-  protected statusVariant(status: PaymentStatus): BadgeVariant {
-    const variants: Record<string, BadgeVariant> = {
-      PENDING: 'warning',
-      PAID: 'success',
-      OVERDUE: 'danger',
-      CANCELED: 'neutral',
-    };
-
-    return variants[status] ?? 'neutral';
+  protected agendaStatusVariant(status: string): BadgeVariant {
+    return status === 'OVERDUE' ? 'danger' : status === 'PENDING' ? 'warning' : 'neutral';
   }
 
-  protected paymentMethodLabel(method: PaymentMethod | null | undefined): string {
-    if (!method) {
-      return 'Não informado';
-    }
-
-    const labels: Record<string, string> = {
-      PIX: 'Pix',
-      CASH: 'Dinheiro',
-      CREDIT_CARD: 'Cartão de crédito',
-      DEBIT_CARD: 'Cartão de débito',
-      BANK_TRANSFER: 'Transferência bancária',
-      BOLETO: 'Boleto',
-      CHECK: 'Cheque',
-      OTHER: 'Outro',
-    };
-
-    return labels[method] ?? method;
+  protected amountClasses(item: FinancialAgendaItem): string {
+    return item.agendaType === 'RECEIVABLE' || item.transactionType === 'INCOME'
+      ? 'text-success'
+      : 'text-danger';
   }
 
-  protected dueText(bill: UpcomingBill): string {
-    const days = this.daysUntilDue(bill);
+  protected amountPrefix(item: FinancialAgendaItem): string {
+    return item.agendaType === 'RECEIVABLE' || item.transactionType === 'INCOME' ? '+' : '-';
+  }
 
-    if (this.isOverdue(bill)) {
-      const overdueDays = Math.abs(days);
-      return overdueDays === 1 ? 'Vencida há 1 dia' : `Vencida há ${overdueDays} dias`;
+  protected formatDate(value: string | null | undefined): string {
+    return value ? this.dateFormatter.format(new Date(value)) : 'Não informado';
+  }
+
+  protected dueText(item: FinancialAgendaItem): string {
+    if (item.agendaStatus === 'OVERDUE') {
+      const days = item.daysOverdue ?? Math.abs(item.daysUntilDue ?? 0);
+      if (days === 0) {
+        return 'Vencido hoje';
+      }
+
+      return days === 1 ? 'Vencido há 1 dia' : `Vencido há ${days} dias`;
     }
 
+    const days = item.daysUntilDue ?? 0;
     if (days === 0) {
       return 'Vence hoje';
     }
@@ -421,54 +409,74 @@ export class UpcomingBillsPage {
     return days === 1 ? 'Vence em 1 dia' : `Vence em ${days} dias`;
   }
 
-  protected dueVariant(bill: UpcomingBill): BadgeVariant {
-    if (this.isOverdue(bill)) {
+  protected dueVariant(item: FinancialAgendaItem): BadgeVariant {
+    if (item.agendaStatus === 'OVERDUE') {
       return 'danger';
     }
 
-    const days = this.daysUntilDue(bill);
-
-    if (days <= 7) {
-      return 'warning';
-    }
-
-    return 'neutral';
+    const days = item.daysUntilDue ?? 0;
+    return days <= 7 ? 'warning' : 'neutral';
   }
 
-  protected isOverdue(bill: UpcomingBill): boolean {
-    return bill.status === 'OVERDUE' || (bill.status === 'PENDING' && this.daysUntilDue(bill) < 0);
-  }
+  private loadAgenda(
+    params: {
+      farmId: number;
+      status: FinancialAgendaFilterStatus;
+      type: FinancialAgendaFilterType;
+      periodDays: number | null;
+      harvestSeasonIds: number[];
+      page: number;
+    },
+    onCleanup: (cleanupFn: () => void) => void,
+  ): void {
+    const subscriptions = new Subscription();
+    const filters = {
+      farmId: params.farmId,
+      status: params.status,
+      type: params.type,
+      periodDays: params.periodDays,
+      harvestSeasonIds: params.harvestSeasonIds,
+    };
 
-  protected daysUntilDue(bill: UpcomingBill): number {
-    const dueDate = this.parseLocalDate(bill.dueDate);
-    const diff = dueDate.getTime() - this.today.getTime();
-
-    return Math.round(diff / 86_400_000);
-  }
-
-  private matchesPeriod(bill: UpcomingBill, period: PeriodFilter): boolean {
-    const daysUntilDue = this.daysUntilDue(bill);
-
-    if (period === 'OVERDUE') {
-      return this.isOverdue(bill);
-    }
-
-    if (period === 'NEXT_7_DAYS') {
-      return bill.status === 'PENDING' && daysUntilDue >= 0 && daysUntilDue <= 7;
-    }
-
-    return bill.status === 'PENDING' && daysUntilDue >= 0 && daysUntilDue <= 30;
-  }
-
-  private isAccessPending(): boolean {
-    return (
-      this.farmAccessStore.loading() ||
-      (!this.farmAccessStore.access() && !this.farmAccessStore.error())
+    this.summary.set(null);
+    this.loadingSummary.set(true);
+    subscriptions.add(
+      this.agendaService
+        .getSummary(filters)
+        .pipe(finalize(() => this.loadingSummary.set(false)))
+        .subscribe({
+          next: (summary) => this.summary.set(summary),
+          error: (error: unknown) => this.handleLoadError(error),
+        }),
     );
+
+    this.items.set([]);
+    this.loadingItems.set(true);
+    subscriptions.add(
+      this.agendaService
+        .getItems({ ...filters, page: params.page, size: DEFAULT_PAGE_SIZE })
+        .pipe(finalize(() => this.loadingItems.set(false)))
+        .subscribe({
+          next: (response) => {
+            this.items.set(response.content);
+            this.pageInfo.set({
+              totalPages: response.totalPages,
+              totalElements: response.totalElements,
+              first: response.first,
+              last: response.last,
+            });
+          },
+          error: (error: unknown) => this.handleLoadError(error),
+        }),
+    );
+
+    onCleanup(() => subscriptions.unsubscribe());
   }
 
-  private handleListError(error: unknown): void {
-    this.bills.set([]);
+  private handleLoadError(error: unknown): void {
+    this.summary.set(null);
+    this.items.set([]);
+    this.pageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
@@ -478,47 +486,55 @@ export class UpcomingBillsPage {
     this.error.set(true);
   }
 
-  private showOperationError(error: unknown): void {
-    if (!(error instanceof HttpErrorResponse)) {
-      this.toastStore.error('Não foi possível concluir a operação.');
-      return;
-    }
-
-    const messages: Record<number, string> = {
-      400: 'Verifique os dados da conta.',
-      401: 'Sua sessão expirou. Faça login novamente.',
-      403: 'Você não tem permissão para realizar esta ação.',
-      404: 'Conta não encontrada.',
-    };
-
-    this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
-  }
-
-  private showPermissionError(): void {
-    this.toastStore.error('Você não tem permissão para realizar esta ação.');
-  }
-
-  private clearListState(): void {
-    this.bills.set([]);
+  private clearDataState(): void {
+    this.summary.set(null);
+    this.items.set([]);
     this.pageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
-    this.loading.set(false);
+    this.loadingSummary.set(false);
+    this.loadingItems.set(false);
     this.error.set(false);
     this.accessDenied.set(false);
   }
 
-  private nullableString(value: GdFormValue): string | null {
-    const text = `${value ?? ''}`.trim();
-    return text || null;
+  private isAccessPending(): boolean {
+    return (
+      this.farmAccessStore.loading() ||
+      (!this.farmAccessStore.access() && !this.farmAccessStore.error())
+    );
   }
 
-  private parseLocalDate(value: string): Date {
-    const [datePart] = value.split('T');
-    const [year, month, day] = datePart.split('-').map(Number);
-
-    return new Date(year, month - 1, day);
+  private resetPage(): void {
+    if (this.page() !== 0) {
+      this.page.set(0);
+    }
   }
 
-  private startOfLocalDay(value: Date): Date {
-    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  private summaryCard(
+    title: string,
+    group: FinancialAgendaSummaryGroup,
+    description: string,
+    icon: string,
+    tone: SummaryCardTone,
+  ): SummaryCardViewModel {
+    return {
+      title,
+      value: this.formatCurrency(group.totalAmount),
+      meta: this.countLabel(group.count),
+      description,
+      icon,
+      tone,
+    };
+  }
+
+  private formatCurrency(value: number): string {
+    return this.currencyPipe.transform(value) ?? 'R$ 0,00';
+  }
+
+  private countLabel(count: number): string {
+    return count === 1 ? '1 conta' : `${count} contas`;
+  }
+
+  private harvestSeasonOptionLabel(season: HarvestSeason): string {
+    return season.productionActivityName ? `${season.name} · ${season.productionActivityName}` : season.name;
   }
 }

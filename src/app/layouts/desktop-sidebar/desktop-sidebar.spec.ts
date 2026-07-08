@@ -136,7 +136,7 @@ describe('DesktopSidebar', () => {
     expect(text).toContain('Fazendas');
     expect(text).toContain('Usuários');
     expect(text).toContain('Movimentações');
-    expect(text).toContain('Contas a vencer');
+    expect(text).toContain('Agenda financeira');
     expect(fixture.nativeElement.querySelector('nav')?.textContent).not.toContain('Perfil');
     expect(fixture.nativeElement.querySelector('#global-farm-select')).toBeNull();
   });

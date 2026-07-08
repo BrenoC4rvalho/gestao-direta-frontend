@@ -1,8 +1,9 @@
 <section class="gd-fade-in-up space-y-6">
+  <h1 class="sr-only">Agenda Financeira</h1>
   @if (!selectedFarmName()) {
     <gd-empty-state
       title="Nenhuma fazenda selecionada"
-      description="Selecione uma fazenda para visualizar contas a vencer."
+      description="Selecione uma fazenda para visualizar a agenda financeira."
       icon="tractor"
     />
   }
@@ -14,207 +15,297 @@
   ) {
     <div class="gd-fade-in-up grid gap-4 md:grid-cols-3" aria-label="Carregando permissões">
       @for (item of [1, 2, 3]; track item) {
-        <gd-card>
+        <div class="rounded-app border border-border bg-surface p-5">
           <gd-skeleton width="45%" height="0.875rem" />
           <gd-skeleton class="mt-3 block" width="70%" height="1.75rem" />
-        </gd-card>
+        </div>
       }
     </div>
   } @else if (accessDenied()) {
     <gd-error-state
       title="Acesso restrito"
-      description="Você não tem permissão para visualizar contas a vencer."
+      description="Você não tem permissão para visualizar a agenda financeira."
     />
   } @else if (selectedFarmStore.selectedFarmId()) {
-    <div class="gd-fade-in-up grid gap-4 md:grid-cols-3">
-      <gd-card>
-        <p class="text-sm font-medium text-text-muted">Total pendente</p>
-        <p class="mt-2 text-2xl font-semibold text-warning">
-          {{ summary().pendingTotal | brCurrency }}
-        </p>
-      </gd-card>
-      <gd-card>
-        <p class="text-sm font-medium text-text-muted">Vencidas</p>
-        <p class="mt-2 text-2xl font-semibold text-danger">
-          {{ summary().overdue.count }} · {{ summary().overdue.total | brCurrency }}
-        </p>
-      </gd-card>
-      <gd-card>
-        <p class="text-sm font-medium text-text-muted">Vencem em breve</p>
-        <p class="mt-2 text-2xl font-semibold text-info">
-          {{ summary().soon.count }} · {{ summary().soon.total | brCurrency }}
-        </p>
-      </gd-card>
-    </div>
-
-    <gd-card>
-      <form class="grid gap-4 md:grid-cols-3" [formGroup]="filterForm">
-        <gd-select
-          id="upcoming-bill-filter-status"
-          label="Status"
-          placeholder="Todos"
-          [control]="filterForm.controls.status"
-          [options]="statusFilterOptions"
-        />
-        <gd-select
-          id="upcoming-bill-filter-period"
-          label="Período"
-          placeholder="Todos"
-          [control]="filterForm.controls.period"
-          [options]="periodFilterOptions"
-        />
-        <div class="flex items-end">
-          <gd-button type="button" variant="outline" [fullWidth]="true" (click)="resetFilters()">
-            Limpar filtros
-          </gd-button>
-        </div>
-      </form>
-    </gd-card>
-
-    @if (loading()) {
-      <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando contas a vencer">
-        @for (item of skeletons; track item) {
-          <gd-card variant="elevated">
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1">
-                <gd-skeleton width="70%" height="1.25rem" />
-                <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
-              </div>
-              <gd-skeleton width="6rem" height="1.25rem" />
-            </div>
-            <div class="mt-5 flex gap-2">
-              <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
-              <gd-skeleton width="7rem" height="1.5rem" rounded="full" />
-            </div>
-            <gd-skeleton class="mt-5 block" height="4rem" />
-          </gd-card>
+    @if (loadingSummary()) {
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando resumo da agenda financeira">
+        @for (item of summarySkeletons; track item) {
+          <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
+            <gd-skeleton width="45%" height="0.875rem" />
+            <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
+            <gd-skeleton class="mt-4 block" width="45%" height="0.875rem" />
+          </div>
         }
       </div>
-    } @else if (error()) {
-      <gd-error-state
-        title="Não foi possível carregar as contas a vencer"
-        description="Verifique sua conexão e tente novamente."
-        actionLabel="Tentar novamente"
-        (action)="retry()"
-      />
-    } @else if (filteredBills().length === 0) {
-      <gd-empty-state
-        title="Nenhuma conta a vencer encontrada"
-        description="As contas futuras da fazenda aparecerão aqui."
-        icon="calendar-clock"
-      />
     } @else {
-      <div class="gd-fade-in-up grid gap-4 md:hidden">
-        @for (bill of filteredBills(); track bill.id) {
-          <gd-upcoming-bill-card
-            [bill]="bill"
-            [canMarkAsPaid]="canMarkAsPaid(bill)"
-            [canCancel]="canCancelBill(bill)"
-            [dueText]="dueText(bill)"
-            [dueVariant]="dueVariant(bill)"
-            (markAsPaidRequested)="requestMarkAsPaid($event)"
-            (cancelRequested)="requestCancel($event)"
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @for (card of summaryCards(); track card.title) {
+          <gd-summary-card
+            class="h-full"
+            [title]="card.title"
+            [value]="card.value"
+            [meta]="card.meta"
+            [description]="card.description"
+            [icon]="card.icon"
+            [tone]="card.tone"
           />
         }
       </div>
+    }
 
-      <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
-        <table class="w-full border-collapse text-left text-sm">
-          <caption class="sr-only">Contas a vencer da fazenda selecionada</caption>
-          <thead class="border-b border-border bg-primary text-white">
-            <tr class="text-xs font-semibold uppercase tracking-wide text-white">
-              <th class="px-5 py-4" scope="col">Descrição</th>
-              <th class="px-5 py-4" scope="col">Status</th>
-              <th class="px-5 py-4" scope="col">Vencimento</th>
-              <th class="px-5 py-4 text-right" scope="col">Valor</th>
-              <th class="px-5 py-4" scope="col">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            @for (bill of filteredBills(); track bill.id) {
-              <tr class="transition-colors duration-200 hover:bg-background/60">
-                <td class="px-5 py-4">
-                  <p class="font-semibold text-text-primary">{{ bill.description }}</p>
-                  <p class="mt-1 text-sm text-text-muted">{{ bill.categoryName ?? 'Sem categoria' }}</p>
-                  <p class="mt-1 text-xs text-text-muted">{{ paymentMethodLabel(bill.paymentMethod) }}</p>
-                </td>
-                <td class="px-5 py-4">
-                  <gd-badge [variant]="statusVariant(bill.status)" size="sm">
-                    {{ statusLabel(bill.status) }}
-                  </gd-badge>
-                </td>
-                <td class="px-5 py-4 text-text-muted">
-                  <p>{{ formatDate(bill.dueDate) }}</p>
-                  <div class="mt-2">
-                    <gd-badge [variant]="dueVariant(bill)" size="sm">{{ dueText(bill) }}</gd-badge>
-                  </div>
-                </td>
-                <td class="px-5 py-4 text-right font-semibold text-text-primary">
-                  {{ bill.amount | brCurrency }}
-                </td>
-                <td class="px-5 py-4">
-                  @if (canMarkAsPaid(bill) || canCancelBill(bill)) {
-                    <div class="flex flex-wrap gap-2">
-                      @if (canMarkAsPaid(bill)) {
-                        <gd-button type="button" size="sm" variant="secondary" (click)="requestMarkAsPaid(bill)">
-                          Marcar como paga
-                        </gd-button>
-                      }
-                      @if (canCancelBill(bill)) {
-                        <gd-button type="button" size="sm" variant="outline" (click)="requestCancel(bill)">
-                          Cancelar
-                        </gd-button>
-                      }
-                    </div>
-                  } @else {
-                    <p class="text-sm font-medium text-text-muted">Somente leitura</p>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+    <form class="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5" aria-label="Filtros da agenda financeira">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex min-w-0 items-start gap-3">
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary"
+            aria-hidden="true"
+          >
+            <svg lucideIcon="filter" class="size-5"></svg>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
+            <p class="mt-1 text-sm leading-5 text-text-muted">
+              Filtre por status, tipo, período e safras da fazenda selecionada.
+            </p>
+          </div>
+        </div>
+
+        <gd-button
+          type="button"
+          variant="outline"
+          size="sm"
+          [disabled]="!hasActiveFilters()"
+          (click)="resetFilters()"
+        >
+          <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
+          Limpar filtros
+        </gd-button>
       </div>
 
-      <nav class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de contas a vencer">
-        <p class="text-sm text-text-muted">
-          Página {{ page() + 1 }} de {{ pageInfo().totalPages || 1 }} · {{ pageInfo().totalElements }} registros
-        </p>
-        <div class="grid gap-2 sm:grid-cols-2">
-          <gd-button type="button" variant="outline" [disabled]="pageInfo().first" (click)="previousPage()">
-            Anterior
-          </gd-button>
-          <gd-button type="button" variant="outline" [disabled]="pageInfo().last" (click)="nextPage()">
-            Próxima
-          </gd-button>
+      <div class="mt-5 border-t border-border pt-5">
+        <h3 class="text-sm font-semibold text-text-primary">Filtros rápidos</h3>
+        <div class="mt-3 grid gap-4">
+          <fieldset class="min-w-0">
+            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Status</legend>
+            <div class="flex flex-wrap gap-2" aria-label="Filtro de status">
+              @for (status of statusChips; track status.value ?? 'all') {
+                <button
+                  type="button"
+                  [class]="chipClasses(isStatusSelected(status.value))"
+                  [attr.aria-pressed]="isStatusSelected(status.value)"
+                  (click)="selectStatus(status.value)"
+                >
+                  {{ status.label }}
+                </button>
+              }
+            </div>
+          </fieldset>
+
+          <fieldset class="min-w-0">
+            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Tipo</legend>
+            <div class="flex flex-wrap gap-2" aria-label="Filtro de tipo">
+              @for (type of typeChips; track type.value ?? 'all') {
+                <button
+                  type="button"
+                  [class]="chipClasses(isTypeSelected(type.value))"
+                  [attr.aria-pressed]="isTypeSelected(type.value)"
+                  (click)="selectType(type.value)"
+                >
+                  {{ type.label }}
+                </button>
+              }
+            </div>
+          </fieldset>
+
+          <fieldset class="min-w-0">
+            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Período</legend>
+            <div class="flex flex-wrap gap-2" aria-label="Filtro de período">
+              @for (period of periodChips; track period.value ?? 'all') {
+                <button
+                  type="button"
+                  [class]="chipClasses(isPeriodSelected(period.value))"
+                  [attr.aria-pressed]="isPeriodSelected(period.value)"
+                  (click)="selectPeriod(period.value)"
+                >
+                  {{ period.label }}
+                </button>
+              }
+            </div>
+            @if (selectedPeriodDays() === null) {
+              <p class="mt-2 text-sm leading-5 text-text-muted">Todas as contas abertas serão consideradas.</p>
+            }
+          </fieldset>
+
+          <fieldset class="min-w-0">
+            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Safra</legend>
+            @if (loadingHarvestSeasons()) {
+              <div class="flex flex-wrap gap-2" aria-label="Carregando safras">
+                @for (item of [1, 2, 3]; track item) {
+                  <gd-skeleton width="6rem" height="2.25rem" rounded="full" />
+                }
+              </div>
+            } @else {
+              <div class="flex flex-wrap gap-2" aria-label="Filtro de safra">
+                @for (season of harvestSeasonChips(); track season.value ?? 'all') {
+                  <button
+                    type="button"
+                    [class]="chipClasses(isHarvestSeasonSelected(season.value))"
+                    [attr.aria-pressed]="isHarvestSeasonSelected(season.value)"
+                    (click)="selectHarvestSeason(season.value)"
+                  >
+                    {{ season.label }}
+                  </button>
+                }
+              </div>
+            }
+          </fieldset>
         </div>
-      </nav>
-    }
+      </div>
+    </form>
+
+    <section class="gd-fade-in-up space-y-4" aria-labelledby="agenda-list-title">
+      <div class="flex flex-col gap-1">
+        <h2 id="agenda-list-title" class="text-lg font-semibold text-text-primary">Contas da agenda</h2>
+        <p class="text-sm leading-6 text-text-muted">Vencimentos em aberto ordenados por urgência.</p>
+      </div>
+
+      @if (loadingItems()) {
+        <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando contas da agenda">
+          @for (item of itemSkeletons; track item) {
+            <div class="rounded-app border border-border bg-surface p-5 shadow-soft">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0 flex-1">
+                  <gd-skeleton width="70%" height="1.25rem" />
+                  <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+                </div>
+                <gd-skeleton width="6rem" height="1.25rem" />
+              </div>
+              <div class="mt-5 flex gap-2">
+                <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+                <gd-skeleton width="6rem" height="1.5rem" rounded="full" />
+              </div>
+              <gd-skeleton class="mt-5 block" height="4rem" />
+            </div>
+          }
+        </div>
+      } @else if (error()) {
+        <gd-error-state
+          title="Não foi possível carregar a agenda financeira."
+          description="Verifique sua conexão e tente novamente."
+          actionLabel="Tentar novamente"
+          (action)="retry()"
+        />
+      } @else if (items().length === 0) {
+        <gd-empty-state
+          title="Nenhuma conta encontrada"
+          description="Não há contas em aberto para os filtros selecionados."
+          icon="calendar-clock"
+        />
+      } @else {
+        <div class="gd-fade-in-up grid gap-4 md:hidden">
+          @for (item of items(); track item.id) {
+            <article class="rounded-app border border-border bg-surface p-5 shadow-soft">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h3 class="text-base font-semibold text-text-primary">{{ item.description }}</h3>
+                  <p class="mt-1 text-sm text-text-muted">{{ item.categoryName ?? 'Sem categoria' }}</p>
+                </div>
+                <p [class]="'shrink-0 text-sm font-semibold ' + amountClasses(item)">
+                  {{ amountPrefix(item) }}{{ item.amount | brCurrency }}
+                </p>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-2">
+                <gd-badge [variant]="agendaTypeVariant(item.agendaType)" size="sm">
+                  {{ agendaTypeLabel(item.agendaType) }}
+                </gd-badge>
+                <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
+                  {{ agendaStatusLabel(item.agendaStatus) }}
+                </gd-badge>
+                <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
+              </div>
+
+              <dl class="mt-5 grid gap-3 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-text-muted">Vencimento</dt>
+                  <dd class="font-medium text-text-primary">{{ formatDate(item.dueDate) }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <dt class="text-text-muted">Safra</dt>
+                  <dd class="font-medium text-text-primary">{{ item.harvestSeasonName ?? 'Sem safra' }}</dd>
+                </div>
+              </dl>
+            </article>
+          }
+        </div>
+
+        <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+          <table class="w-full border-collapse text-left text-sm">
+            <caption class="sr-only">Contas da agenda financeira da fazenda selecionada</caption>
+            <thead class="border-b border-border bg-primary text-white">
+              <tr class="text-xs font-semibold uppercase tracking-wide text-white">
+                <th class="px-5 py-4" scope="col">Descrição</th>
+                <th class="px-5 py-4" scope="col">Tipo</th>
+                <th class="px-5 py-4" scope="col">Status</th>
+                <th class="px-5 py-4" scope="col">Categoria</th>
+                <th class="px-5 py-4" scope="col">Safra</th>
+                <th class="px-5 py-4" scope="col">Vencimento</th>
+                <th class="px-5 py-4 text-right" scope="col">Valor</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (item of items(); track item.id) {
+                <tr class="transition-colors duration-200 hover:bg-background/60">
+                  <td class="px-5 py-4">
+                    <p class="font-semibold text-text-primary">{{ item.description }}</p>
+                  </td>
+                  <td class="px-5 py-4">
+                    <gd-badge [variant]="agendaTypeVariant(item.agendaType)" size="sm">
+                      {{ agendaTypeLabel(item.agendaType) }}
+                    </gd-badge>
+                  </td>
+                  <td class="px-5 py-4">
+                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
+                      {{ agendaStatusLabel(item.agendaStatus) }}
+                    </gd-badge>
+                  </td>
+                  <td class="px-5 py-4 text-text-muted">{{ item.categoryName ?? 'Sem categoria' }}</td>
+                  <td class="px-5 py-4">
+                    @if (item.harvestSeasonName) {
+                      <gd-badge variant="neutral" size="sm">{{ item.harvestSeasonName }}</gd-badge>
+                    } @else {
+                      <span class="text-sm text-text-muted">Sem safra</span>
+                    }
+                  </td>
+                  <td class="px-5 py-4 text-text-muted">
+                    <p>{{ formatDate(item.dueDate) }}</p>
+                    <div class="mt-2">
+                      <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
+                    </div>
+                  </td>
+                  <td [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(item)">
+                    {{ amountPrefix(item) }}{{ item.amount | brCurrency }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação da agenda financeira">
+          <p class="text-sm text-text-muted">
+            Página {{ page() + 1 }} de {{ pageInfo().totalPages || 1 }} · {{ pageInfo().totalElements }} registros
+          </p>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <gd-button type="button" variant="outline" [disabled]="pageInfo().first" (click)="previousPage()">
+              Anterior
+            </gd-button>
+            <gd-button type="button" variant="outline" [disabled]="pageInfo().last" (click)="nextPage()">
+              Próxima
+            </gd-button>
+          </div>
+        </nav>
+      }
+    </section>
   }
 </section>
-
-<gd-confirm-dialog
-  [open]="paidTarget() !== null"
-  title="Marcar como paga"
-  description="Esta conta será registrada com status de pagamento pago."
-  confirmLabel="Marcar como paga"
-  cancelLabel="Cancelar"
-  variant="success"
-  [loading]="paidSubmitting()"
-  (confirmed)="confirmMarkAsPaid()"
-  (cancelled)="closePaidConfirmation()"
-  (closed)="closePaidConfirmation()"
-/>
-
-<gd-confirm-dialog
-  [open]="cancelTarget() !== null"
-  title="Cancelar conta"
-  description="Esta conta será cancelada e não entrará no saldo operacional."
-  confirmLabel="Cancelar conta"
-  cancelLabel="Voltar"
-  variant="danger"
-  [loading]="cancelSubmitting()"
-  (confirmed)="confirmCancel()"
-  (cancelled)="closeCancelConfirmation()"
-  (closed)="closeCancelConfirmation()"
-/>
