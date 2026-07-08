@@ -121,6 +121,16 @@ const payableItem: FinancialAgendaItem = {
   harvestSeasonName: null,
 };
 
+const dueTodayItem: FinancialAgendaItem = {
+  ...receivableItem,
+  id: 3,
+  description: 'Arrendamento',
+  dueDate: '2026-07-07',
+  daysUntilDue: 0,
+  harvestSeasonId: 10,
+  harvestSeasonName: 'Soja',
+};
+
 const harvestSeasons: HarvestSeason[] = [
   harvestSeason(10, 'Milho'),
   harvestSeason(20, 'Feijão'),
@@ -186,7 +196,7 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
   beforeEach(async () => {
     agendaService = {
       getSummary: vi.fn().mockReturnValue(of(summary)),
-      getItems: vi.fn().mockReturnValue(of(pageResponse([receivableItem, payableItem]))),
+      getItems: vi.fn().mockReturnValue(of(pageResponse([receivableItem, payableItem, dueTodayItem]))),
     };
     harvestSeasonService = {
       list: vi.fn().mockReturnValue(of(pageResponse(harvestSeasons))),
@@ -331,24 +341,46 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     ]);
   });
 
-  it('should render the simplified agenda list without type and category columns', () => {
+  it('should render due status text with due date only in visual tooltips', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
     expect(text()).toContain('Contas da agenda');
     expect(text()).toContain('Venda de milho');
     expect(text()).toContain('Compra de sementes');
-    expect(tableHeaders()).toEqual(['Descrição', 'Safra', 'Vencimento', 'Situação', 'Valor', 'Ação']);
-    expect(agendaListText()).not.toContain('Venda de safra');
-    expect(agendaListText()).not.toContain('Insumos');
-    expect(agendaListText()).not.toContain('A receber');
-    expect(agendaListText()).not.toContain('A pagar');
-    expect(text()).toContain('Pendente');
-    expect(text()).toContain('Vencido');
+    expect(accessibleTableHeaders()).toEqual(['Descrição', 'Safra', 'Situação', 'Valor', 'Ações']);
+    expect(visualTableHeaders()).toEqual(['Descrição', 'Safra', 'Situação', 'Valor', '']);
+    expect(visibleAgendaListText()).not.toContain('Venda de safra');
+    expect(visibleAgendaListText()).not.toContain('Insumos');
+    expect(visibleAgendaListText()).not.toContain('A receber');
+    expect(visibleAgendaListText()).not.toContain('A pagar');
+    expect(visibleAgendaListText()).not.toContain('10/07/2026');
+    expect(visibleAgendaListText()).not.toContain('01/07/2026');
+    expect(visibleAgendaListText()).not.toContain('07/07/2026');
     expect(text()).toContain('Milho');
     expect(text()).toContain('Sem safra');
     expect(text()).toContain('Vence em 3 dias');
+    expect(text()).toContain('Vence hoje');
     expect(text()).toContain('Vencido há 6 dias');
+
+    const pendingWrapper = dueTooltipWrapper('Vence em 3 dias');
+    const todayWrapper = dueTooltipWrapper('Vence hoje');
+    const overdueWrapper = dueTooltipWrapper('Vencido há 6 dias');
+
+    expect(pendingWrapper?.getAttribute('aria-label')).toBe('Vencimento: 10/07/2026');
+    expect(todayWrapper?.getAttribute('aria-label')).toBe('Vencimento: 07/07/2026');
+    expect(overdueWrapper?.getAttribute('aria-label')).toBe('Vencimento: 01/07/2026');
+    expect(pendingWrapper?.getAttribute('tabindex')).toBe('0');
+    expect(pendingWrapper?.classList.contains('group')).toBe(true);
+    expect(pendingWrapper?.classList.contains('relative')).toBe(true);
+    expect(pendingWrapper?.classList.contains('cursor-help')).toBe(true);
+    expect(pendingWrapper?.hasAttribute('title')).toBe(false);
+    expect(dueTooltip('Vence em 3 dias')?.textContent?.trim()).toBe('Vencimento: 10/07/2026');
+    expect(dueTooltip('Vence hoje')?.textContent?.trim()).toBe('Vencimento: 07/07/2026');
+    expect(dueTooltip('Vencido há 6 dias')?.textContent?.trim()).toBe('Vencimento: 01/07/2026');
+    expect(desktopTableContainer().classList.contains('overflow-visible')).toBe(true);
+    expect(desktopTableContainer().classList.contains('overflow-hidden')).toBe(false);
+    expect(fixture.nativeElement.querySelector('thead th .sr-only')?.textContent?.trim()).toBe('Ações');
   });
 
   it('should show pay and receive actions only for users that can manage transactions', () => {
@@ -625,15 +657,44 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     return clone.textContent ?? '';
   }
 
-  function agendaListText(): string {
-    return (fixture.nativeElement.querySelector('[aria-labelledby="agenda-list-title"]') as HTMLElement)
-      .textContent ?? '';
+  function visibleAgendaListText(): string {
+    const clone = (
+      fixture.nativeElement.querySelector('[aria-labelledby="agenda-list-title"]') as HTMLElement
+    ).cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[role="tooltip"]').forEach((tooltip) => tooltip.remove());
+
+    return clone.textContent ?? '';
   }
 
-  function tableHeaders(): string[] {
+  function accessibleTableHeaders(): string[] {
     return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((header) =>
       (header as HTMLElement).textContent?.trim() ?? '',
     );
+  }
+
+  function visualTableHeaders(): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((header) => {
+      const clone = (header as HTMLElement).cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('.sr-only').forEach((item) => item.remove());
+
+      return clone.textContent?.trim() ?? '';
+    });
+  }
+
+  function dueTooltip(label: string): HTMLElement | undefined {
+    return dueTooltipWrapper(label)?.querySelector('[role="tooltip"]') as HTMLElement | undefined;
+  }
+
+  function dueTooltipWrapper(label: string): HTMLElement | undefined {
+    const root = fixture.nativeElement as HTMLElement;
+
+    return Array.from(root.querySelectorAll<HTMLElement>('[aria-label^="Vencimento:"]')).find(
+      (item) => item.textContent?.includes(label),
+    );
+  }
+
+  function desktopTableContainer(): HTMLElement {
+    return fixture.nativeElement.querySelector('table')?.parentElement as HTMLElement;
   }
 
   function editableItem(description: string): HTMLElement {

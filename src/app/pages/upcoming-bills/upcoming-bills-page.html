@@ -211,24 +211,24 @@
 
               <dl class="mt-5 grid gap-3 text-sm">
                 <div class="flex items-center justify-between gap-3">
-                  <dt class="text-text-muted">Safra</dt>
-                  <dd class="font-medium text-text-primary">{{ item.harvestSeasonName ?? 'Sem safra' }}</dd>
-                </div>
-                <div class="flex items-center justify-between gap-3">
                   <dt class="text-text-muted">Situação</dt>
-                  <dd>
-                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
-                      {{ agendaStatusLabel(item.agendaStatus) }}
-                    </gd-badge>
-                  </dd>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <dt class="text-text-muted">Vencimento</dt>
-                  <dd class="text-right">
-                    <p class="font-medium text-text-primary">{{ formatDate(item.dueDate) }}</p>
-                    <div class="mt-2">
+                  <dd class="flex flex-wrap items-center justify-end gap-1.5 text-right">
+                    <span class="font-medium text-text-primary">{{ item.harvestSeasonName ?? 'Sem safra' }}</span>
+                    <span class="text-text-muted">·</span>
+                    <span
+                      class="group relative inline-flex cursor-help items-center overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      tabindex="0"
+                      [attr.aria-label]="dueTooltip(item)"
+                      (click)="$event.stopPropagation()"
+                    >
                       <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
-                    </div>
+                      <span
+                        role="tooltip"
+                        class="pointer-events-none invisible absolute left-1/2 top-full z-[999] mt-2 -translate-x-1/2 whitespace-nowrap rounded-app border border-border bg-surface px-3 py-2 text-xs font-medium text-text-primary opacity-0 shadow-soft transition duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                      >
+                        {{ dueTooltip(item) }}
+                      </span>
+                    </span>
                   </dd>
                 </div>
               </dl>
@@ -251,17 +251,18 @@
           }
         </div>
 
-        <div class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block">
+        <div class="gd-fade-in-up hidden overflow-visible rounded-app border border-border bg-surface shadow-soft md:block">
           <table class="w-full border-collapse text-left text-sm">
             <caption class="sr-only">Contas da agenda financeira da fazenda selecionada</caption>
             <thead class="border-b border-border bg-primary text-white">
               <tr class="text-xs font-semibold uppercase tracking-wide text-white">
                 <th class="px-5 py-4" scope="col">Descrição</th>
                 <th class="px-5 py-4" scope="col">Safra</th>
-                <th class="px-5 py-4" scope="col">Vencimento</th>
                 <th class="px-5 py-4" scope="col">Situação</th>
                 <th class="px-5 py-4 text-right" scope="col">Valor</th>
-                <th class="px-5 py-4 text-right" scope="col">Ação</th>
+                <th class="px-5 py-4 text-right" scope="col">
+                  <span class="sr-only">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
@@ -284,16 +285,21 @@
                       <span class="text-sm text-text-muted">Sem safra</span>
                     }
                   </td>
-                  <td class="px-5 py-4 text-text-muted">
-                    <p>{{ formatDate(item.dueDate) }}</p>
-                    <div class="mt-2">
-                      <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
-                    </div>
-                  </td>
                   <td class="px-5 py-4">
-                    <gd-badge [variant]="agendaStatusVariant(item.agendaStatus)" size="sm">
-                      {{ agendaStatusLabel(item.agendaStatus) }}
-                    </gd-badge>
+                    <span
+                      class="group relative inline-flex cursor-help items-center overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      tabindex="0"
+                      [attr.aria-label]="dueTooltip(item)"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <gd-badge [variant]="dueVariant(item)" size="sm">{{ dueText(item) }}</gd-badge>
+                      <span
+                        role="tooltip"
+                        class="pointer-events-none invisible absolute left-1/2 top-full z-[999] mt-2 -translate-x-1/2 whitespace-nowrap rounded-app border border-border bg-surface px-3 py-2 text-xs font-medium text-text-primary opacity-0 shadow-soft transition duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                      >
+                        {{ dueTooltip(item) }}
+                      </span>
+                    </span>
                   </td>
                   <td [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(item)">
                     {{ amountPrefix(item) }}{{ item.amount | brCurrency }}

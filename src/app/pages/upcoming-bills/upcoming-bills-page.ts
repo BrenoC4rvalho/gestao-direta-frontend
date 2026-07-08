@@ -618,20 +618,32 @@ export class UpcomingBillsPage {
 
   protected dueText(item: FinancialAgendaItem): string {
     if (item.agendaStatus === 'OVERDUE') {
-      const days = item.daysOverdue ?? Math.abs(item.daysUntilDue ?? 0);
-      if (days === 0) {
-        return 'Vencido hoje';
+      if (item.daysOverdue === null || item.daysOverdue === undefined) {
+        return 'Vencido';
       }
 
-      return days === 1 ? 'Vencido há 1 dia' : `Vencido há ${days} dias`;
+      return item.daysOverdue === 1
+        ? 'Vencido há 1 dia'
+        : `Vencido há ${item.daysOverdue} dias`;
     }
 
-    const days = item.daysUntilDue ?? 0;
-    if (days === 0) {
-      return 'Vence hoje';
+    if (item.agendaStatus === 'PENDING') {
+      if (item.daysUntilDue === null || item.daysUntilDue === undefined) {
+        return 'Pendente';
+      }
+
+      if (item.daysUntilDue === 0) {
+        return 'Vence hoje';
+      }
+
+      return item.daysUntilDue === 1 ? 'Vence amanhã' : `Vence em ${item.daysUntilDue} dias`;
     }
 
-    return days === 1 ? 'Vence em 1 dia' : `Vence em ${days} dias`;
+    return this.agendaStatusLabel(item.agendaStatus);
+  }
+
+  protected dueTooltip(item: FinancialAgendaItem): string {
+    return `Vencimento: ${this.formatDate(item.dueDate)}`;
   }
 
   protected dueVariant(item: FinancialAgendaItem): BadgeVariant {
