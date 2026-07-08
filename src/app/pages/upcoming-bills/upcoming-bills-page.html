@@ -212,11 +212,16 @@
               <dl class="mt-5 grid gap-3 text-sm">
                 <div class="flex items-center justify-between gap-3">
                   <dt class="text-text-muted">Situação</dt>
-                  <dd class="flex flex-wrap items-center justify-end gap-1.5 text-right">
-                    <span class="font-medium text-text-primary">{{ item.harvestSeasonName ?? 'Sem safra' }}</span>
-                    <span class="text-text-muted">·</span>
+                  <dd class="flex min-w-0 items-center justify-end gap-1.5 text-right">
                     <span
-                      class="group relative inline-flex cursor-help items-center overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      [class]="'block min-w-0 max-w-[10rem] truncate whitespace-nowrap text-sm font-medium ' + (item.harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
+                      [title]="item.harvestSeasonName ?? 'Sem safra'"
+                    >
+                      {{ item.harvestSeasonName ?? 'Sem safra' }}
+                    </span>
+                    <span class="shrink-0 text-text-muted">·</span>
+                    <span
+                      class="group relative inline-flex shrink-0 cursor-help items-center overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                       tabindex="0"
                       [attr.aria-label]="dueTooltip(item)"
                       (click)="$event.stopPropagation()"
@@ -278,12 +283,13 @@
                   <td class="px-5 py-4">
                     <p class="font-semibold text-text-primary">{{ item.description }}</p>
                   </td>
-                  <td class="px-5 py-4">
-                    @if (item.harvestSeasonName) {
-                      <gd-badge variant="neutral" size="sm">{{ item.harvestSeasonName }}</gd-badge>
-                    } @else {
-                      <span class="text-sm text-text-muted">Sem safra</span>
-                    }
+                  <td class="max-w-[12rem] px-5 py-4">
+                    <span
+                      [class]="'block max-w-[12rem] truncate whitespace-nowrap text-sm font-medium ' + (item.harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
+                      [title]="item.harvestSeasonName ?? 'Sem safra'"
+                    >
+                      {{ item.harvestSeasonName ?? 'Sem safra' }}
+                    </span>
                   </td>
                   <td class="px-5 py-4">
                     <span

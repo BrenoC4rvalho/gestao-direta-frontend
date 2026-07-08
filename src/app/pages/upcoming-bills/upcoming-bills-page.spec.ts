@@ -102,7 +102,7 @@ const receivableItem: FinancialAgendaItem = {
   categoryId: 1,
   categoryName: 'Venda de safra',
   harvestSeasonId: 10,
-  harvestSeasonName: 'Milho',
+  harvestSeasonName: 'Safra Milho 2025/2026 com nome longo demais',
 };
 
 const payableItem: FinancialAgendaItem = {
@@ -357,8 +357,17 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     expect(visibleAgendaListText()).not.toContain('10/07/2026');
     expect(visibleAgendaListText()).not.toContain('01/07/2026');
     expect(visibleAgendaListText()).not.toContain('07/07/2026');
-    expect(text()).toContain('Milho');
+    expect(text()).toContain('Safra Milho 2025/2026 com nome longo demais');
     expect(text()).toContain('Sem safra');
+
+    const longHarvestElements = harvestSeasonElements('Safra Milho 2025/2026 com nome longo demais');
+    const emptyHarvestElements = harvestSeasonElements('Sem safra');
+    expect(longHarvestElements.length).toBeGreaterThanOrEqual(2);
+    expect(longHarvestElements.some((item) => item.classList.contains('max-w-[10rem]'))).toBe(true);
+    expect(longHarvestElements.some((item) => item.classList.contains('max-w-[12rem]'))).toBe(true);
+    expect(longHarvestElements.every((item) => item.classList.contains('truncate'))).toBe(true);
+    expect(longHarvestElements.every((item) => item.classList.contains('whitespace-nowrap'))).toBe(true);
+    expect(emptyHarvestElements.some((item) => item.textContent?.trim() === 'Sem safra')).toBe(true);
     expect(text()).toContain('Vence em 3 dias');
     expect(text()).toContain('Vence hoje');
     expect(text()).toContain('Vencido há 6 dias');
@@ -683,6 +692,14 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
 
   function dueTooltip(label: string): HTMLElement | undefined {
     return dueTooltipWrapper(label)?.querySelector('[role="tooltip"]') as HTMLElement | undefined;
+  }
+
+  function harvestSeasonElements(title: string): HTMLElement[] {
+    const root = fixture.nativeElement as HTMLElement;
+
+    return Array.from(root.querySelectorAll<HTMLElement>('[title]')).filter(
+      (item) => item.getAttribute('title') === title,
+    );
   }
 
   function dueTooltipWrapper(label: string): HTMLElement | undefined {
