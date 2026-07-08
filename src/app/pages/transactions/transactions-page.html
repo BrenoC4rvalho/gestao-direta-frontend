@@ -300,11 +300,7 @@
           <gd-transaction-card
             [transaction]="transaction"
             [canEdit]="canEditTransaction(transaction)"
-            [canMarkAsPaid]="canMarkAsPaid(transaction)"
-            [canCancel]="canCancelTransaction(transaction)"
             (editRequested)="openEditDrawer($event)"
-            (markAsPaidRequested)="requestMarkAsPaid($event)"
-            (cancelRequested)="requestCancel($event)"
           />
         }
       </div>
@@ -316,11 +312,12 @@
             <tr class="text-xs font-semibold uppercase tracking-wide text-white">
               <th class="px-5 py-4" scope="col">Descrição</th>
               <th class="px-5 py-4" scope="col">Safra</th>
-              <th class="px-5 py-4" scope="col">Tipo</th>
               <th class="px-5 py-4" scope="col">Status</th>
               <th class="px-5 py-4" scope="col">Datas</th>
               <th class="px-5 py-4 text-right" scope="col">Valor</th>
-              <th class="px-5 py-4" scope="col">Ações</th>
+              <th class="px-5 py-4" scope="col">
+                <span class="sr-only">Ações</span>
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
@@ -331,17 +328,13 @@
                   <p class="mt-1 text-sm text-text-muted">{{ transaction.categoryName ?? 'Sem categoria' }}</p>
                   <p class="mt-1 text-xs text-text-muted">{{ paymentMethodLabel(transaction.paymentMethod) }}</p>
                 </td>
-                <td class="px-5 py-4">
-                  @if (transaction.harvestSeasonName) {
-                    <gd-badge variant="neutral" size="sm">{{ transaction.harvestSeasonName }}</gd-badge>
-                  } @else {
-                    <span class="text-sm text-text-muted">Sem safra</span>
-                  }
-                </td>
-                <td class="px-5 py-4">
-                  <gd-badge [variant]="typeVariant(transaction.type)" size="sm">
-                    {{ typeLabel(transaction.type) }}
-                  </gd-badge>
+                <td class="max-w-[12rem] px-5 py-4">
+                  <span
+                    [class]="'block max-w-[12rem] truncate whitespace-nowrap text-sm font-medium ' + (transaction.harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
+                    [title]="transaction.harvestSeasonName ?? 'Sem safra'"
+                  >
+                    {{ transaction.harvestSeasonName ?? 'Sem safra' }}
+                  </span>
                 </td>
                 <td class="px-5 py-4">
                   <gd-badge [variant]="statusVariant(transaction.status)" size="sm">
@@ -357,23 +350,11 @@
                   {{ amountPrefix(transaction.type) }}{{ transaction.amount | brCurrency }}
                 </td>
                 <td class="px-5 py-4">
-                  @if (canEditTransaction(transaction) || canMarkAsPaid(transaction) || canCancelTransaction(transaction)) {
+                  @if (canEditTransaction(transaction)) {
                     <div class="flex flex-wrap gap-2">
-                      @if (canEditTransaction(transaction)) {
-                        <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(transaction)">
-                          Editar
-                        </gd-button>
-                      }
-                      @if (canMarkAsPaid(transaction)) {
-                        <gd-button type="button" size="sm" variant="secondary" (click)="requestMarkAsPaid(transaction)">
-                          Marcar paga
-                        </gd-button>
-                      }
-                      @if (canCancelTransaction(transaction)) {
-                        <gd-button type="button" size="sm" variant="outline" (click)="requestCancel(transaction)">
-                          Cancelar
-                        </gd-button>
-                      }
+                      <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(transaction)">
+                        Editar
+                      </gd-button>
                     </div>
                   } @else {
                     <p class="text-sm font-medium text-text-muted">Somente leitura</p>
@@ -420,6 +401,21 @@
     (submitted)="saveTransaction($event)"
     (cancelled)="closeDrawer()"
   />
+  @if (editingTransaction(); as transaction) {
+    @if (canCancelTransaction(transaction)) {
+      <div class="mt-4 border-t border-border pt-4">
+        <gd-button
+          type="button"
+          variant="danger"
+          [fullWidth]="true"
+          [disabled]="submitting()"
+          (click)="requestCancel(transaction)"
+        >
+          Cancelar movimentação
+        </gd-button>
+      </div>
+    }
+  }
 </gd-drawer>
 
 <gd-confirm-dialog
@@ -437,11 +433,11 @@
 
 <gd-confirm-dialog
   [open]="cancelTarget() !== null"
-  title="Cancelar movimentação"
-  description="Esta movimentação será cancelada e não entrará no saldo operacional."
+  title="Cancelar movimentação?"
+  description="Essa movimentação será cancelada e não será considerada nos totais financeiros."
   confirmLabel="Cancelar movimentação"
   cancelLabel="Voltar"
-  variant="warning"
+  variant="danger"
   [loading]="cancelSubmitting()"
   (confirmed)="confirmCancel()"
   (cancelled)="closeCancelConfirmation()"

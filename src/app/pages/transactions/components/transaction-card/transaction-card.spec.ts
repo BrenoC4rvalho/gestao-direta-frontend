@@ -75,10 +75,14 @@ describe('TransactionCard', () => {
     expect(text).toContain('Compra de sementes');
     expect(text).toContain('Insumos');
     expect(text).toContain('-R$');
-    expect(text).toContain('Despesa');
+    expect(text).not.toContain('Despesa');
     expect(text).toContain('Pendente');
     expect(text).toContain('Pix');
     expect(text).toContain('Safra Soja 2025/26');
+
+    const harvestSeason = fixture.nativeElement.querySelector('[title="Safra Soja 2025/26"]') as HTMLElement;
+    expect(harvestSeason.classList.contains('truncate')).toBe(true);
+    expect(harvestSeason.classList.contains('whitespace-nowrap')).toBe(true);
   });
 
   it('should render Sem safra when transaction has no harvest season', () => {
@@ -93,14 +97,14 @@ describe('TransactionCard', () => {
     expect(fixture.nativeElement.textContent).toContain('Sem safra');
   });
 
-  it('should emit actions when permitted', () => {
+  it('should emit edit action and hide direct payment or cancellation actions', () => {
     findButton('Editar')?.click();
-    findButton('Marcar paga')?.click();
-    findButton('Cancelar')?.click();
 
     expect(fixture.componentInstance.editCount).toBe(1);
-    expect(fixture.componentInstance.paidCount).toBe(1);
-    expect(fixture.componentInstance.cancelCount).toBe(1);
+    expect(fixture.componentInstance.paidCount).toBe(0);
+    expect(fixture.componentInstance.cancelCount).toBe(0);
+    expect(findButton('Marcar paga')).toBeUndefined();
+    expect(findButton('Cancelar')).toBeUndefined();
   });
 
   it('should hide actions without permissions', () => {

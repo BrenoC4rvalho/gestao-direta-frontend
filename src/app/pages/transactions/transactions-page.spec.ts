@@ -781,16 +781,30 @@ describe('TransactionsPage', () => {
     expect(findButton(fixture.nativeElement, 'Nova movimentação')).toBeUndefined();
   });
 
-  it('should show harvest season values in the list', () => {
+  it('should render the list without type or direct payment and cancellation actions', () => {
+    const longHarvestName = 'Safra Soja 2025/2026 com nome grande demais para a coluna';
     transactionService.listByFarm.mockReturnValueOnce(of(pageResponse([
-      transaction,
+      { ...transaction, harvestSeasonName: longHarvestName },
       { ...transaction, id: 2, harvestSeasonId: null, harvestSeasonName: null },
     ])));
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    expect(fixture.nativeElement.textContent).toContain('Safra Soja 2025/26');
-    expect(fixture.nativeElement.textContent).toContain('Sem safra');
+    expect(accessibleTableHeaders()).toEqual(['Descrição', 'Safra', 'Status', 'Datas', 'Valor', 'Ações']);
+    expect(visualTableHeaders()).toEqual(['Descrição', 'Safra', 'Status', 'Datas', 'Valor', '']);
+    expect(transactionTableText()).not.toContain('Tipo');
+    expect(transactionTableText()).not.toContain('Receita');
+    expect(transactionTableText()).not.toContain('Despesa');
+    expect(findButton(transactionListRoot(), 'Marcar paga')).toBeUndefined();
+    expect(findButton(transactionListRoot(), 'Marcar recebida')).toBeUndefined();
+    expect(findButton(transactionListRoot(), 'Cancelar')).toBeUndefined();
+
+    const harvestCell = harvestSeasonText(longHarvestName);
+    expect(harvestCell).toBeTruthy();
+    expect(harvestCell?.classList.contains('truncate')).toBe(true);
+    expect(harvestCell?.classList.contains('whitespace-nowrap')).toBe(true);
+    expect(harvestCell?.getAttribute('title')).toBe(longHarvestName);
+    expect(transactionTableText()).toContain('Sem safra');
   });
 
   it('should render harvest season options in the create form', () => {
@@ -948,19 +962,49 @@ describe('TransactionsPage', () => {
     expect(toastStore.toasts()[0]?.title).toBe('Movimentação atualizada com sucesso.');
   });
 
-  it('should mark as paid and cancel with confirmation', () => {
+  it('should cancel from the edit drawer with confirmation and reload', async () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    clickButton('Marcar paga');
-    clickDialogButton('Marcar paga');
-    expect(transactionService.markAsPaid).toHaveBeenCalledWith(1, { paymentMethod: 'PIX' });
-    expect(toastStore.toasts()[0]?.title).toBe('Movimentação marcada como paga.');
+    expect(findButton(fixture.nativeElement, 'Marcar paga')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Marcar recebida')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Cancelar')).toBeUndefined();
 
-    clickButton('Cancelar');
+    clickButton('Editar');
+    expect(findButton(fixture.nativeElement, 'Cancelar movimentação')).toBeTruthy();
+
+    clickButton('Cancelar movimentação');
+    expect(getConfirmDialog()?.textContent).toContain('Cancelar movimentação?');
+    expect(getConfirmDialog()?.textContent).toContain(
+      'Essa movimentação será cancelada e não será considerada nos totais financeiros.',
+    );
+
     clickDialogButton('Cancelar movimentação');
+
     expect(transactionService.cancel).toHaveBeenCalledWith(1);
-    expect(toastStore.toasts()[1]?.title).toBe('Movimentação cancelada com sucesso.');
+    expect(transactionService.listByFarm).toHaveBeenCalledTimes(2);
+    await finishDrawerClose();
+    expect(getDrawerDialog()).toBeNull();
+    expect(toastStore.toasts()[0]?.title).toBe('Movimentação cancelada.');
+  });
+
+  it('should show cancellation only in edit drawer and handle cancel errors', () => {
+    transactionService.cancel.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    clickButton('Nova movimentação');
+    expect(findButton(fixture.nativeElement, 'Cancelar movimentação')).toBeUndefined();
+    clickButton('Cancelar');
+
+    clickButton('Editar');
+    clickButton('Cancelar movimentação');
+    clickDialogButton('Cancelar movimentação');
+
+    expect(transactionService.cancel).toHaveBeenCalledWith(1);
+    expect(toastStore.toasts()[0]?.title).toBe('Não foi possível cancelar a movimentação.');
   });
 
   it('should close the drawer on Escape when it is open', async () => {
@@ -979,14 +1023,14 @@ describe('TransactionsPage', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     clickButton('Editar');
-    clickButton('Marcar paga');
+    clickButton('Cancelar movimentação');
 
     pressEscape();
     await finishConfirmClose();
 
     expect(getConfirmDialog()).toBeNull();
     expect(getDrawerDialog()).toBeTruthy();
-    expect(transactionService.markAsPaid).not.toHaveBeenCalled();
+    expect(transactionService.cancel).not.toHaveBeenCalled();
   });
 
   it('should block handlers without management permission', () => {
@@ -1140,6 +1184,38 @@ describe('TransactionsPage', () => {
 
   function getConfirmDialog(): HTMLElement | null {
     return fixture.nativeElement.querySelector('gd-confirm-dialog [role="dialog"]');
+  }
+
+  function transactionListRoot(): HTMLElement {
+    return fixture.nativeElement.querySelector('[aria-label="Paginação de movimentações"]')
+      ?.parentElement as HTMLElement;
+  }
+
+  function transactionTableText(): string {
+    return (fixture.nativeElement.querySelector('table') as HTMLElement).textContent ?? '';
+  }
+
+  function accessibleTableHeaders(): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((header) =>
+      (header as HTMLElement).textContent?.trim() ?? '',
+    );
+  }
+
+  function visualTableHeaders(): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((header) => {
+      const clone = (header as HTMLElement).cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('.sr-only').forEach((item) => item.remove());
+
+      return clone.textContent?.trim() ?? '';
+    });
+  }
+
+  function harvestSeasonText(label: string): HTMLElement | undefined {
+    const root = fixture.nativeElement as HTMLElement;
+
+    return Array.from(root.querySelectorAll<HTMLElement>('[title]')).find(
+      (item) => item.getAttribute('title') === label,
+    );
   }
 
   function fillForm(description: string): void {

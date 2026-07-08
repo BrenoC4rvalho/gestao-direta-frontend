@@ -17,7 +17,6 @@
       </div>
 
       <div class="mt-5 flex flex-wrap gap-2">
-        <gd-badge [variant]="typeVariant()" size="sm">{{ typeLabel() }}</gd-badge>
         <gd-badge [variant]="statusVariant()" size="sm">{{ statusLabel() }}</gd-badge>
       </div>
 
@@ -36,7 +35,10 @@
         </div>
         <div>
           <dt class="text-text-muted">Safra</dt>
-          <dd [class]="'mt-1 font-medium ' + (transaction().harvestSeasonName ? 'text-text-primary' : 'text-text-muted')">
+          <dd
+            [class]="'mt-1 block max-w-full truncate whitespace-nowrap font-medium ' + (transaction().harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
+            [title]="transaction().harvestSeasonName ?? 'Sem safra'"
+          >
             {{ transaction().harvestSeasonName ?? 'Sem safra' }}
           </dd>
         </div>
@@ -51,24 +53,11 @@
           {{ notes }}
         </p>
       }
-
-      @if (hasActions()) {
-        <div class="mt-5 grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
-          @if (canEdit()) {
-            <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="editTransaction()">
-              Editar
-            </gd-button>
-          }
-          @if (canMarkAsPaid()) {
-            <gd-button type="button" variant="secondary" size="sm" [fullWidth]="true" (click)="markAsPaid()">
-              Marcar paga
-            </gd-button>
-          }
-          @if (canCancel()) {
-            <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="cancelTransaction()">
-              Cancelar
-            </gd-button>
-          }
+      @if (canEdit()) {
+        <div class="mt-5 border-t border-border pt-4">
+          <gd-button type="button" variant="outline" size="sm" [fullWidth]="true" (click)="editTransaction()">
+            Editar
+          </gd-button>
         </div>
       }
     </div>

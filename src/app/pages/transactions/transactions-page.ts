@@ -655,10 +655,15 @@ export class TransactionsPage {
       .subscribe({
         next: () => {
           this.cancelTarget.set(null);
-          this.toastStore.success('Movimentação cancelada com sucesso.');
+
+          if (this.editingTransaction()?.id === transaction.id) {
+            this.resetDrawerState();
+          }
+
+          this.toastStore.success('Movimentação cancelada.');
           this.retry();
         },
-        error: (error: unknown) => this.showOperationError(error),
+        error: (error: unknown) => this.showCancelError(error),
       });
   }
 
@@ -1002,6 +1007,10 @@ export class TransactionsPage {
     this.harvestSeasons.set([]);
     this.resetHarvestSeasonFilterState();
     this.toastStore.error('Não foi possível carregar as safras da fazenda.');
+  }
+
+  private showCancelError(_error: unknown): void {
+    this.toastStore.error('Não foi possível cancelar a movimentação.');
   }
 
   private showOperationError(error: unknown): void {
