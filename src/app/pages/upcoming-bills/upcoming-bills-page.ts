@@ -8,6 +8,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, FormGroup } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { Subscription, finalize } from 'rxjs';
 
@@ -24,12 +26,18 @@ import { HarvestSeasonService } from '../../core/services/harvest-season.service
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { GdFormControl, GdFormValue, GdSelectOption, Select } from '../../shared/forms';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton, SummaryCard, SummaryCardTone } from '../../shared/ui';
 
 interface AgendaChip<T extends string | number> {
   label: string;
   value: T | null;
+}
+
+interface AgendaFilterControls {
+  status: GdFormControl;
+  type: GdFormControl;
 }
 
 interface SummaryCardViewModel {
@@ -62,6 +70,7 @@ const EMPTY_SUMMARY: FinancialAgendaSummary = {
     EmptyState,
     ErrorState,
     LucideDynamicIcon,
+    Select,
     Skeleton,
     SummaryCard,
     BrCurrencyPipe,
@@ -94,6 +103,11 @@ export class UpcomingBillsPage {
   protected readonly reloadTrigger = signal(0);
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6];
   protected readonly itemSkeletons = [1, 2, 3, 4, 5, 6];
+
+  protected readonly filterForm = new FormGroup<AgendaFilterControls>({
+    status: new FormControl<GdFormValue>('ALL'),
+    type: new FormControl<GdFormValue>('ALL'),
+  });
 
   private readonly currencyPipe = new BrCurrencyPipe();
   private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
@@ -178,12 +192,12 @@ export class UpcomingBillsPage {
     })),
   ]);
 
-  protected readonly statusChips: readonly AgendaChip<FinancialAgendaFilterStatus>[] = [
+  protected readonly statusOptions: readonly GdSelectOption[] = [
     { label: 'Todos', value: 'ALL' },
     { label: 'Pendentes', value: 'PENDING' },
     { label: 'Vencidos', value: 'OVERDUE' },
   ];
-  protected readonly typeChips: readonly AgendaChip<FinancialAgendaFilterType>[] = [
+  protected readonly typeOptions: readonly GdSelectOption[] = [
     { label: 'Todos', value: 'ALL' },
     { label: 'A receber', value: 'RECEIVABLE' },
     { label: 'A pagar', value: 'PAYABLE' },
@@ -198,6 +212,14 @@ export class UpcomingBillsPage {
   ];
 
   constructor() {
+    this.filterForm.controls.status.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((value) => this.selectStatus(this.normalizeStatus(value)));
+
+    this.filterForm.controls.type.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((value) => this.selectType(this.normalizeType(value)));
+
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
 
@@ -278,16 +300,25 @@ export class UpcomingBillsPage {
     this.selectedType.set('ALL');
     this.selectedPeriodDays.set(DEFAULT_PERIOD_DAYS);
     this.selectedHarvestSeasonIds.set([]);
+    this.filterForm.setValue({ status: 'ALL', type: 'ALL' }, { emitEvent: false });
     this.resetPage();
   }
 
   protected selectStatus(status: FinancialAgendaFilterStatus | null): void {
-    this.selectedStatus.set(status ?? 'ALL');
+    const nextStatus = status ?? 'ALL';
+    this.selectedStatus.set(nextStatus);
+    if (this.filterForm.controls.status.value !== nextStatus) {
+      this.filterForm.controls.status.setValue(nextStatus, { emitEvent: false });
+    }
     this.resetPage();
   }
 
   protected selectType(type: FinancialAgendaFilterType | null): void {
-    this.selectedType.set(type ?? 'ALL');
+    const nextType = type ?? 'ALL';
+    this.selectedType.set(nextType);
+    if (this.filterForm.controls.type.value !== nextType) {
+      this.filterForm.controls.type.setValue(nextType, { emitEvent: false });
+    }
     this.resetPage();
   }
 
@@ -333,13 +364,6 @@ export class UpcomingBillsPage {
     ].join(' ');
   }
 
-  protected isStatusSelected(status: FinancialAgendaFilterStatus | null): boolean {
-    return (status ?? 'ALL') === this.selectedStatus();
-  }
-
-  protected isTypeSelected(type: FinancialAgendaFilterType | null): boolean {
-    return (type ?? 'ALL') === this.selectedType();
-  }
 
   protected isPeriodSelected(periodDays: number | null): boolean {
     return periodDays === this.selectedPeriodDays();
@@ -507,6 +531,14 @@ export class UpcomingBillsPage {
     if (this.page() !== 0) {
       this.page.set(0);
     }
+  }
+
+  private normalizeStatus(value: GdFormValue): FinancialAgendaFilterStatus {
+    return value === 'PENDING' || value === 'OVERDUE' ? value : 'ALL';
+  }
+
+  private normalizeType(value: GdFormValue): FinancialAgendaFilterType {
+    return value === 'RECEIVABLE' || value === 'PAYABLE' ? value : 'ALL';
   }
 
   private summaryCard(

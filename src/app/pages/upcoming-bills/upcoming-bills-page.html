@@ -28,9 +28,9 @@
     />
   } @else if (selectedFarmStore.selectedFarmId()) {
     @if (loadingSummary()) {
-      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando resumo da agenda financeira">
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Carregando resumo da agenda financeira">
         @for (item of summarySkeletons; track item) {
-          <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
+          <div class="h-full min-h-[104px] rounded-app border border-border bg-surface p-4">
             <gd-skeleton width="45%" height="0.875rem" />
             <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
             <gd-skeleton class="mt-4 block" width="45%" height="0.875rem" />
@@ -38,7 +38,7 @@
         }
       </div>
     } @else {
-      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         @for (card of summaryCards(); track card.title) {
           <gd-summary-card
             class="h-full"
@@ -48,6 +48,7 @@
             [description]="card.description"
             [icon]="card.icon"
             [tone]="card.tone"
+            density="compact"
           />
         }
       </div>
@@ -82,84 +83,71 @@
         </gd-button>
       </div>
 
-      <div class="mt-5 border-t border-border pt-5">
-        <h3 class="text-sm font-semibold text-text-primary">Filtros rápidos</h3>
-        <div class="mt-3 grid gap-4">
-          <fieldset class="min-w-0">
-            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Status</legend>
-            <div class="flex flex-wrap gap-2" aria-label="Filtro de status">
-              @for (status of statusChips; track status.value ?? 'all') {
-                <button
-                  type="button"
-                  [class]="chipClasses(isStatusSelected(status.value))"
-                  [attr.aria-pressed]="isStatusSelected(status.value)"
-                  (click)="selectStatus(status.value)"
-                >
-                  {{ status.label }}
-                </button>
-              }
-            </div>
-          </fieldset>
+      <div class="mt-5 grid gap-5 border-t border-border pt-5">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div aria-label="Filtro de status">
+            <gd-select
+              id="upcoming-bills-filter-status"
+              label="Status"
+              placeholder="Selecione um status"
+              [control]="filterForm.controls.status"
+              [options]="statusOptions"
+            />
+          </div>
 
-          <fieldset class="min-w-0">
-            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Tipo</legend>
-            <div class="flex flex-wrap gap-2" aria-label="Filtro de tipo">
-              @for (type of typeChips; track type.value ?? 'all') {
-                <button
-                  type="button"
-                  [class]="chipClasses(isTypeSelected(type.value))"
-                  [attr.aria-pressed]="isTypeSelected(type.value)"
-                  (click)="selectType(type.value)"
-                >
-                  {{ type.label }}
-                </button>
-              }
-            </div>
-          </fieldset>
-
-          <fieldset class="min-w-0">
-            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Período</legend>
-            <div class="flex flex-wrap gap-2" aria-label="Filtro de período">
-              @for (period of periodChips; track period.value ?? 'all') {
-                <button
-                  type="button"
-                  [class]="chipClasses(isPeriodSelected(period.value))"
-                  [attr.aria-pressed]="isPeriodSelected(period.value)"
-                  (click)="selectPeriod(period.value)"
-                >
-                  {{ period.label }}
-                </button>
-              }
-            </div>
-            @if (selectedPeriodDays() === null) {
-              <p class="mt-2 text-sm leading-5 text-text-muted">Todas as contas abertas serão consideradas.</p>
-            }
-          </fieldset>
-
-          <fieldset class="min-w-0">
-            <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Safra</legend>
-            @if (loadingHarvestSeasons()) {
-              <div class="flex flex-wrap gap-2" aria-label="Carregando safras">
-                @for (item of [1, 2, 3]; track item) {
-                  <gd-skeleton width="6rem" height="2.25rem" rounded="full" />
-                }
-              </div>
-            } @else {
-              <div class="flex flex-wrap gap-2" aria-label="Filtro de safra">
-                @for (season of harvestSeasonChips(); track season.value ?? 'all') {
-                  <button
-                    type="button"
-                    [class]="chipClasses(isHarvestSeasonSelected(season.value))"
-                    [attr.aria-pressed]="isHarvestSeasonSelected(season.value)"
-                    (click)="selectHarvestSeason(season.value)"
-                  >
-                    {{ season.label }}
-                  </button>
-                }
-              </div>
-            }
-          </fieldset>
+          <div aria-label="Filtro de tipo">
+            <gd-select
+              id="upcoming-bills-filter-type"
+              label="Tipo"
+              placeholder="Selecione um tipo"
+              [control]="filterForm.controls.type"
+              [options]="typeOptions"
+            />
+          </div>
         </div>
+
+        <fieldset class="min-w-0">
+          <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Período</legend>
+          <div class="flex flex-wrap gap-2" aria-label="Filtro de período">
+            @for (period of periodChips; track period.value ?? 'all') {
+              <button
+                type="button"
+                [class]="chipClasses(isPeriodSelected(period.value))"
+                [attr.aria-pressed]="isPeriodSelected(period.value)"
+                (click)="selectPeriod(period.value)"
+              >
+                {{ period.label }}
+              </button>
+            }
+          </div>
+          @if (selectedPeriodDays() === null) {
+            <p class="mt-2 text-sm leading-5 text-text-muted">Todas as contas abertas serão consideradas.</p>
+          }
+        </fieldset>
+
+        <fieldset class="min-w-0">
+          <legend class="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Safra</legend>
+          @if (loadingHarvestSeasons()) {
+            <div class="flex flex-wrap gap-2" aria-label="Carregando safras">
+              @for (item of [1, 2, 3]; track item) {
+                <gd-skeleton width="6rem" height="2.25rem" rounded="full" />
+              }
+            </div>
+          } @else {
+            <div class="flex flex-wrap gap-2" aria-label="Filtro de safra">
+              @for (season of harvestSeasonChips(); track season.value ?? 'all') {
+                <button
+                  type="button"
+                  [class]="chipClasses(isHarvestSeasonSelected(season.value))"
+                  [attr.aria-pressed]="isHarvestSeasonSelected(season.value)"
+                  (click)="selectHarvestSeason(season.value)"
+                >
+                  {{ season.label }}
+                </button>
+              }
+            </div>
+          }
+        </fieldset>
       </div>
     </form>
 

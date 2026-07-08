@@ -7,7 +7,11 @@ const description = 'Resultado financeiro já realizado: entradas pagas menos sa
 const detail = 'Considera apenas movimentações pagas.';
 
 describe('SummaryCard', () => {
-  async function createComponent(detailText: string | null = detail, metaText: string | null = null) {
+  async function createComponent(
+    detailText: string | null = detail,
+    metaText: string | null = null,
+    density: 'default' | 'compact' = 'default',
+  ) {
     await TestBed.configureTestingModule({
       imports: [SummaryCard],
       providers: [provideGestaoDiretaIcons()],
@@ -20,6 +24,7 @@ describe('SummaryCard', () => {
     fixture.componentRef.setInput('meta', metaText);
     fixture.componentRef.setInput('detail', detailText);
     fixture.componentRef.setInput('icon', 'wallet');
+    fixture.componentRef.setInput('density', density);
     fixture.detectChanges();
 
     return fixture;
@@ -104,7 +109,7 @@ describe('SummaryCard', () => {
     expect(tooltip?.textContent).not.toContain(detail);
   });
 
-  it('should keep long values readable and use full-height layout', async () => {
+  it('should keep long values readable and use full-height default layout', async () => {
     const fixture = await createComponent();
 
     const value = Array.from(
@@ -116,5 +121,34 @@ describe('SummaryCard', () => {
     expect(value?.className).not.toContain('truncate');
     expect(article?.className).toContain('h-full');
     expect(article?.className).toContain('min-h-[128px]');
+    expect(article?.className).toContain('p-6');
+    expect(article?.className).toContain('gap-5');
+  });
+
+  it('should render compact density with reduced spacing and typography', async () => {
+    const fixture = await createComponent(detail, '2 contas', 'compact');
+
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const icon = (article.querySelector('svg') as SVGElement).parentElement as HTMLElement;
+    const title = Array.from(article.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>).find(
+      (item) => item.textContent?.includes('Saldo atual'),
+    );
+    const value = Array.from(article.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>).find(
+      (item) => item.textContent?.includes('R$ 1.000,00'),
+    );
+    const meta = Array.from(article.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>).find(
+      (item) => item.textContent?.includes('2 contas'),
+    );
+    const button = article.querySelector('button') as HTMLButtonElement;
+
+    expect(article.className).toContain('min-h-[104px]');
+    expect(article.className).toContain('p-4');
+    expect(article.className).toContain('gap-3');
+    expect(icon.className).toContain('size-9');
+    expect(title?.className).toContain('text-xs');
+    expect(value?.className).toContain('text-lg');
+    expect(meta?.className).toContain('text-xs');
+    expect(button.className).toContain('size-7');
+    expect(visibleCardText(fixture)).not.toContain(description);
   });
 });

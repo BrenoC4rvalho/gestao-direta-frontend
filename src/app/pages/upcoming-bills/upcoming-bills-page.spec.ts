@@ -220,11 +220,13 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     });
   });
 
-  it('should render the six agenda summary cards from summary response', () => {
+  it('should render the six compact agenda summary cards from summary response', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    expect(fixture.nativeElement.querySelectorAll('gd-summary-card').length).toBe(6);
+    const cards = fixture.nativeElement.querySelectorAll('gd-summary-card') as NodeListOf<HTMLElement>;
+    expect(cards.length).toBe(6);
+    expect(Array.from(cards).every((card) => card.getAttribute('density') === 'compact')).toBe(true);
     expect(text()).toContain('Vencidas a receber');
     expect(text()).toContain('2 contas');
     expect(text()).toContain('Vencidas a pagar');
@@ -237,6 +239,30 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     expect(text()).toContain('6 contas');
     expect(text()).toContain('Total a pagar');
     expect(text()).toContain('8 contas');
+    expect(visiblePageText()).not.toContain('Entradas que já venceram e ainda não foram recebidas.');
+  });
+
+  it('should render status and type as selects while period and harvest season remain chips', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(filterSelect('Filtro de status')).not.toBeNull();
+    expect(filterButtons('Filtro de status').length).toBe(0);
+    expect(filterSelect('Filtro de tipo')).not.toBeNull();
+    expect(filterButtons('Filtro de tipo').length).toBe(0);
+    expect(filterButtons('Filtro de período').map((button) => button.textContent?.trim())).toEqual([
+      'Todos',
+      '7 dias',
+      '15 dias',
+      '30 dias',
+      '60 dias',
+      '90 dias',
+    ]);
+    expect(filterButtons('Filtro de safra').map((button) => button.textContent?.trim())).toEqual([
+      'Todas',
+      'Milho · Soja',
+      'Feijão · Soja',
+    ]);
   });
 
   it('should render agenda list fields', () => {
@@ -258,7 +284,7 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     expect(text()).toContain('Vencido há 6 dias');
   });
 
-  it('should change status, type and period filters and reset page', () => {
+  it('should change status, type and period filters and reset page while reloading data', () => {
     agendaService.getItems.mockReturnValue(of(pageResponse([receivableItem], 0, 2)));
     selectedFarmStore.setFarms([farm]);
     createPage();
@@ -266,28 +292,35 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     clickButton('Próxima');
     expect(lastItemsCall()).toEqual(expect.objectContaining({ page: 1 }));
 
-    clickFilter('Filtro de status', 'Pendentes');
+    changeSelect('Filtro de status', 'Pendentes');
+    expect(lastSummaryCall()).toEqual(expect.objectContaining({ status: 'PENDING' }));
     expect(lastItemsCall()).toEqual(expect.objectContaining({ status: 'PENDING', page: 0 }));
 
     clickButton('Próxima');
-    clickFilter('Filtro de tipo', 'A receber');
+    changeSelect('Filtro de tipo', 'A receber');
+    expect(lastSummaryCall()).toEqual(expect.objectContaining({ type: 'RECEIVABLE' }));
     expect(lastItemsCall()).toEqual(expect.objectContaining({ type: 'RECEIVABLE', page: 0 }));
 
     clickButton('Próxima');
     clickFilter('Filtro de período', '7 dias');
+    expect(lastSummaryCall()).toEqual(expect.objectContaining({ periodDays: 7 }));
     expect(lastItemsCall()).toEqual(expect.objectContaining({ periodDays: 7, page: 0 }));
   });
 
-  it('should allow multiple harvest seasons and clear with Todas', () => {
+  it('should allow multiple harvest seasons, reset page and clear with Todas', () => {
+    agendaService.getItems.mockReturnValue(of(pageResponse([receivableItem], 0, 2)));
     selectedFarmStore.setFarms([farm]);
     createPage();
 
+    clickButton('Próxima');
     clickFilter('Filtro de safra', 'Milho · Soja');
     clickFilter('Filtro de safra', 'Feijão · Soja');
-    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [10, 20] }));
+    expect(lastSummaryCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [10, 20] }));
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [10, 20], page: 0 }));
 
     clickFilter('Filtro de safra', 'Todas');
-    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [] }));
+    expect(lastSummaryCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [] }));
+    expect(lastItemsCall()).toEqual(expect.objectContaining({ harvestSeasonIds: [], page: 0 }));
   });
 
   it('should reset harvest filters and reload data when selected farm changes', () => {
@@ -337,6 +370,10 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     return fixture.nativeElement.textContent as string;
   }
 
+  function lastSummaryCall(): unknown {
+    return agendaService.getSummary.mock.calls.at(-1)?.[0];
+  }
+
   function lastItemsCall(): unknown {
     return agendaService.getItems.mock.calls.at(-1)?.[0];
   }
@@ -347,9 +384,42 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
   }
 
   function clickFilter(groupLabel: string, label: string): void {
-    const group = fixture.nativeElement.querySelector(`[aria-label="${groupLabel}"]`) as HTMLElement;
-    findButton(group, label)?.click();
+    findButton(filterGroup(groupLabel), label)?.click();
     fixture.detectChanges();
+  }
+
+  function changeSelect(groupLabel: string, optionLabel: string): void {
+    const select = filterSelect(groupLabel);
+    const option = Array.from(select.options).find(
+      (item) => item.textContent?.trim() === optionLabel,
+    );
+
+    if (!option) {
+      throw new Error(`Option ${optionLabel} not found`);
+    }
+
+    select.value = option.value;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function filterSelect(groupLabel: string): HTMLSelectElement {
+    return filterGroup(groupLabel).querySelector('select') as HTMLSelectElement;
+  }
+
+  function filterButtons(groupLabel: string): HTMLButtonElement[] {
+    return Array.from(filterGroup(groupLabel).querySelectorAll('button'));
+  }
+
+  function filterGroup(groupLabel: string): HTMLElement {
+    return fixture.nativeElement.querySelector(`[aria-label="${groupLabel}"]`) as HTMLElement;
+  }
+
+  function visiblePageText(): string {
+    const clone = fixture.nativeElement.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[role="tooltip"]').forEach((tooltip) => tooltip.remove());
+
+    return clone.textContent ?? '';
   }
 });
 
