@@ -38,34 +38,6 @@
       </div>
     }
 
-    <div
-      class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-      aria-label="Resumo de atividades produtivas"
-    >
-      @for (card of summaryCards(); track card.label) {
-        <gd-card padding="lg">
-          <div class="flex items-start gap-4">
-            <div
-              [class]="
-                'flex size-12 shrink-0 items-center justify-center rounded-full ' +
-                summaryToneClasses(card.tone)
-              "
-            >
-              <svg [lucideIcon]="card.icon" class="size-6" aria-hidden="true"></svg>
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-text-muted">{{ card.label }}</p>
-              <p class="mt-2 break-words text-2xl font-semibold leading-tight text-text-primary">
-                {{ card.value }}
-              </p>
-              <p class="mt-3 text-xs leading-5 text-text-muted">{{ card.subtext }}</p>
-            </div>
-          </div>
-        </gd-card>
-      }
-    </div>
-
     <gd-list-filters
       [config]="filtersConfig"
       [quickFiltersApplyOnChange]="true"

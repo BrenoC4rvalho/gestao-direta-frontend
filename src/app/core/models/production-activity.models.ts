@@ -30,11 +30,3 @@ export interface ProductionActivityListParams extends PageRequest {
   status?: ProductionActivityStatus | null;
   includeInactive?: boolean | null;
 }
-
-export interface ProductionActivitySummary {
-  farmId: number;
-  totalCount: number;
-  activeCount: number;
-  inactiveCount: number;
-  inProgressCount: number;
-}

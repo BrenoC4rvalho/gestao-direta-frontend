@@ -8,7 +8,6 @@ import {
   CreateProductionActivityRequest,
   ProductionActivity,
   ProductionActivityListParams,
-  ProductionActivitySummary,
   UpdateProductionActivityRequest,
 } from '../models/production-activity.models';
 import { PageResponse } from '../models/page-response.model';
@@ -35,12 +34,6 @@ export class ProductionActivityService {
       sort: 'name',
       direction: 'ASC',
     }).pipe(map((response) => response.content));
-  }
-
-  getSummary(farmId: number): Observable<ProductionActivitySummary> {
-    return this.http.get<ProductionActivitySummary>(`${this.baseUrl}/summary`, {
-      params: new HttpParams().set('farmId', String(farmId)),
-    });
   }
 
   getById(id: number): Observable<ProductionActivity> {

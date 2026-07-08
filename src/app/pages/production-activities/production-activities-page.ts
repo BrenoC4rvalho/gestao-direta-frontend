@@ -49,14 +49,6 @@ interface ProductionActivityFormControls {
   description: GdFormControl;
 }
 
-interface SummaryCard {
-  label: string;
-  value: string | number;
-  subtext: string;
-  icon: string;
-  tone: 'primary' | 'success' | 'danger' | 'info';
-}
-
 interface DrawerState {
   mode: DrawerMode;
   activity: ProductionActivity | null;
@@ -193,44 +185,6 @@ export class ProductionActivitiesPage {
       ? 'Ajuste a busca ou o filtro de status.'
       : 'Crie atividades produtivas para usá-las no planejamento das safras.',
   );
-
-  protected readonly summaryCards = computed<readonly SummaryCard[]>(() => {
-    const response = this.response();
-    const activities = response?.content ?? [];
-    const active = activities.filter((activity) => activity.status === 'ACTIVE').length;
-    const inactive = activities.filter((activity) => activity.status === 'INACTIVE').length;
-
-    return [
-      {
-        label: 'Total de atividades',
-        value: response?.totalElements ?? 0,
-        subtext: 'Cadastros disponíveis',
-        icon: 'sprout',
-        tone: 'primary',
-      },
-      {
-        label: 'Ativas',
-        value: active,
-        subtext: 'Disponíveis para novas safras',
-        icon: 'circle-check',
-        tone: 'success',
-      },
-      {
-        label: 'Inativas',
-        value: inactive,
-        subtext: 'Ocultas em novos cadastros',
-        icon: 'circle-off',
-        tone: 'danger',
-      },
-      {
-        label: 'Mais usadas',
-        value: 'Em breve',
-        subtext: 'Uso em safras será exibido futuramente',
-        icon: 'trending-up',
-        tone: 'info',
-      },
-    ];
-  });
 
   protected readonly drawerTitle = computed(() =>
     this.drawerState().mode === 'edit' ? 'Editar atividade produtiva' : 'Nova atividade produtiva',
@@ -493,17 +447,6 @@ export class ProductionActivitiesPage {
 
   protected statusVariant(status: string): BadgeVariant {
     return status === 'ACTIVE' ? 'success' : 'danger';
-  }
-
-  protected summaryToneClasses(tone: SummaryCard['tone']): string {
-    const tones: Record<SummaryCard['tone'], string> = {
-      primary: 'bg-highlight-soft text-primary',
-      success: 'bg-success/10 text-success',
-      danger: 'bg-danger/10 text-danger',
-      info: 'bg-info/10 text-info',
-    };
-
-    return tones[tone];
   }
 
   protected nameErrorMessage(): string | null {

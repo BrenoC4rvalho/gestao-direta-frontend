@@ -171,11 +171,12 @@ describe('ProductionActivitiesPage', () => {
       status: null,
     });
     expect(text).toContain('Atividades produtivas');
-    expect(text).toContain('Total de atividades');
-    expect(text).toContain('Ativas');
-    expect(text).toContain('Inativas');
-    expect(text).toContain('Mais usadas');
-    expect(text).toContain('Em breve');
+    expect(text).toContain('Filtros');
+    expect(text).not.toContain('Total de atividades');
+    expect(text).not.toContain('Mais usadas');
+    expect(
+      fixture.nativeElement.querySelector('[aria-label="Resumo de atividades produtivas"]'),
+    ).toBeNull();
     expect(text).toContain('Soja');
     expect(text).toContain('Cultura anual de grãos');
     expect(text).toContain('Gado de leite');

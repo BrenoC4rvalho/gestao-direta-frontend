@@ -101,23 +101,6 @@ describe('ProductionActivityService', () => {
     request.flush(response);
   });
 
-  it('should get production activity summary by farm', () => {
-    const summary = {
-      farmId: 10,
-      totalCount: 3,
-      activeCount: 2,
-      inactiveCount: 1,
-      inProgressCount: 0,
-    };
-
-    service.getSummary(10).subscribe((result) => expect(result).toEqual(summary));
-
-    const request = http.expectOne((req) => req.url === `${apiUrl}/summary`);
-    expect(request.request.method).toBe('GET');
-    expect(request.request.params.get('farmId')).toBe('10');
-    request.flush(summary);
-  });
-
   it('should call GET /api/harvest/production-activities/{id}', () => {
     service.getById(1).subscribe((result) => expect(result).toEqual(activity));
 
