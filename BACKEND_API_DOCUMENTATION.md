@@ -84,6 +84,10 @@ Defaults:
 - `PaymentMethod`: `PIX`, `CASH`, `CREDIT_CARD`, `DEBIT_CARD`, `BANK_TRANSFER`, `BOLETO`, `CHECK`, `OTHER`
 - `FinancialRecordStatus`: `ACTIVE`, `DELETED`
 - `FinancialCategoryStatus`: `ACTIVE`, `INACTIVE`
+- `FinancialAgendaStatusFilter`: `ALL`, `PENDING`, `OVERDUE`
+- `FinancialAgendaTypeFilter`: `ALL`, `RECEIVABLE`, `PAYABLE`
+- `FinancialAgendaStatus`: `PENDING`, `OVERDUE`
+- `FinancialAgendaType`: `RECEIVABLE`, `PAYABLE`
 
 ### Regras importantes
 
@@ -123,6 +127,80 @@ O backend executa diariamente um job para marcar contas vencidas.
 - Registros não atualizados: `INCOME`, `PAID`, `CANCELED`, `OVERDUE`, `DELETED`, `dueDate=null`, `dueDate=hoje` ou `dueDate>hoje`.
 
 ## Endpoints
+
+## IA
+
+### POST /api/ai/transactions/parse
+
+Interpreta um texto livre em pt-BR e retorna uma sugestao estruturada de movimentacao financeira. Este endpoint nao salva movimentacao no banco, nao cria `FinancialTransaction`, nao altera categoria, safra ou fazenda e nao deve ser usado como confirmacao de lancamento.
+
+**Permissao:** `ADMIN` pode usar em fazenda ativa. `PRODUCER` e `EMPLOYEE` podem usar na fazenda ativa onde possuem vinculo ativo. `ACCOUNTANT`, vinculo `INACTIVE`, usuario sem vinculo, usuario `INACTIVE` ou `BLOCKED` nao podem usar.
+
+Request:
+
+```json
+{
+  "farmId": 19,
+  "text": "paguei 250 reais de adubo para a safra de milho ontem no pix"
+}
+```
+
+Validacoes:
+
+- `farmId` e obrigatorio.
+- `text` e obrigatorio, nao pode ser vazio e aceita no maximo 2000 caracteres.
+
+Response `200 OK`:
+
+```json
+{
+  "farmId": 19,
+  "type": "EXPENSE",
+  "amount": 250.00,
+  "description": "Adubo",
+  "transactionDate": "2026-07-06",
+  "dueDate": null,
+  "paymentStatus": "PAID",
+  "paymentMethod": "PIX",
+  "categoryName": "Insumos",
+  "harvestSeasonName": "Milho",
+  "confidence": 0.87,
+  "missingFields": [],
+  "warnings": []
+}
+```
+
+Erros principais:
+
+- `400 Bad Request` para body invalido.
+- `401 Unauthorized` para usuario nao autenticado.
+- `403 Forbidden` para usuario sem permissao na fazenda ou `ACCOUNTANT`.
+- `422 Unprocessable Entity` quando a IA nao retorna JSON valido ou retorna campos/enums invalidos.
+
+Configuracao do provider:
+
+```properties
+APP_AI_PROVIDER=ollama
+APP_AI_OLLAMA_BASE_URL=http://localhost:11434
+APP_AI_OLLAMA_MODEL=llama3.1:8b
+```
+
+Quando o backend roda dentro do Docker Compose, use `APP_AI_OLLAMA_BASE_URL=http://ollama:11434`. Quando o backend roda local fora do Docker, use `http://localhost:11434`. Para trocar de provider futuramente, implemente `AiTextGenerationClient` e selecione por `app.ai.provider`.
+
+Comandos Ollama:
+
+```bash
+docker compose up -d ollama
+docker exec -it gestao-direta-ollama ollama pull llama3.1:8b
+docker exec -it gestao-direta-ollama ollama run llama3.1:8b
+```
+
+Execucao local com Spring:
+
+```bash
+docker compose up -d postgres ollama
+./mvnw spring-boot:run
+```
 
 ## Observabilidade
 
@@ -3922,6 +4000,175 @@ Retorna os indicadores financeiros do dashboard para uma fazenda.
 - `cashFlowNext30Days`: `receivableNext30Days - payableNext30Days - overdueExpenses`.
 - Despesas `PENDING` vencidas sao convertidas para `OVERDUE` pelo job diario de vencimentos; por isso `overdueExpenses` usa apenas status `OVERDUE`.
 - `ACCOUNTANT` pode consultar resumo financeiro.
+
+
+### GET /api/financial/agenda/summary
+
+**Descrição:**
+Retorna os totais da agenda financeira da fazenda, considerando contas em aberto a receber e a pagar.
+
+**Autenticação:** Sim
+**Permissão:** `ADMIN`, `PRODUCER`, `EMPLOYEE` ou `ACCOUNTANT` com acesso financeiro à fazenda.
+
+**Path params:**
+```json
+{}
+```
+
+**Query params:**
+```json
+{
+  "farmId": 1,
+  "status": "ALL",
+  "type": "ALL",
+  "periodDays": 30,
+  "harvestSeasonIds": [10, 11]
+}
+```
+
+**Campos obrigatórios:**
+- `farmId`
+
+**Campos opcionais:**
+- `status`: `ALL`, `PENDING` ou `OVERDUE`. Default: `ALL`.
+- `type`: `ALL`, `RECEIVABLE` ou `PAYABLE`. Default: `ALL`.
+- `periodDays`: deve ser maior que zero quando informado.
+- `harvestSeasonIds`: aceita query params repetidos, por exemplo `harvestSeasonIds=10&harvestSeasonIds=11`.
+
+**Resposta de sucesso:**
+```json
+{
+  "farmId": 1,
+  "overdueReceivable": {
+    "count": 2,
+    "totalAmount": 8500.00
+  },
+  "overduePayable": {
+    "count": 3,
+    "totalAmount": 4200.00
+  },
+  "pendingReceivable": {
+    "count": 5,
+    "totalAmount": 18000.00
+  },
+  "pendingPayable": {
+    "count": 4,
+    "totalAmount": 7600.00
+  },
+  "openReceivable": {
+    "count": 7,
+    "totalAmount": 26500.00
+  },
+  "openPayable": {
+    "count": 7,
+    "totalAmount": 11800.00
+  }
+}
+```
+
+**Possíveis erros/status HTTP:**
+- `400 Bad Request` para query params inválidos, `periodDays <= 0` ou safra de outra fazenda.
+- `401 Unauthorized` para cookie ausente, inválido ou expirado.
+- `403 Forbidden` para usuário sem acesso financeiro à fazenda.
+- `404 Not Found` se a fazenda ou alguma safra informada não existir.
+
+**Observações de regra de negócio:**
+- Considera apenas movimentações com `recordStatus=ACTIVE`, `status` em `PENDING` ou `OVERDUE`, `dueDate` preenchido e `farmId` igual ao informado.
+- Ignora sempre movimentações `PAID`, `CANCELED`, `DELETED`, sem `dueDate` ou de outra fazenda.
+- `RECEIVABLE` mapeia movimentações `INCOME`; `PAYABLE` mapeia movimentações `EXPENSE`.
+- Conta vencida: `status=OVERDUE` ou `status=PENDING` com `dueDate` anterior à data atual do backend.
+- Conta pendente futura: `status=PENDING` com `dueDate` maior ou igual à data atual do backend.
+- `openReceivable` soma `overdueReceivable` e `pendingReceivable`.
+- `openPayable` soma `overduePayable` e `pendingPayable`.
+- Se `status=PENDING`, campos vencidos retornam zero. Se `status=OVERDUE`, campos pendentes retornam zero.
+- Se `type=RECEIVABLE`, campos payable retornam zero. Se `type=PAYABLE`, campos receivable retornam zero.
+- `periodDays` filtra contas futuras entre hoje e hoje mais o período. Em `status=ALL`, contas vencidas continuam entrando mesmo antes de hoje. Em `status=OVERDUE`, `periodDays` não altera as vencidas.
+- Quando `harvestSeasonIds` é informado, todas as safras devem existir e pertencer à mesma fazenda consultada.
+- O summary agrega no service a partir da mesma consulta base da listagem para manter as regras calculadas da agenda iguais nos dois endpoints.
+
+### GET /api/financial/agenda
+
+**Descrição:**
+Lista de forma paginada as contas em aberto da agenda financeira da fazenda.
+
+**Autenticação:** Sim
+**Permissão:** `ADMIN`, `PRODUCER`, `EMPLOYEE` ou `ACCOUNTANT` com acesso financeiro à fazenda.
+
+**Path params:**
+```json
+{}
+```
+
+**Query params:**
+```json
+{
+  "farmId": 1,
+  "status": "ALL",
+  "type": "ALL",
+  "periodDays": 30,
+  "harvestSeasonIds": [10, 11],
+  "page": 0,
+  "size": 20
+}
+```
+
+**Campos obrigatórios:**
+- `farmId`
+
+**Campos opcionais:**
+- `status`: `ALL`, `PENDING` ou `OVERDUE`. Default: `ALL`.
+- `type`: `ALL`, `RECEIVABLE` ou `PAYABLE`. Default: `ALL`.
+- `periodDays`: deve ser maior que zero quando informado.
+- `harvestSeasonIds`: aceita query params repetidos, por exemplo `harvestSeasonIds=10&harvestSeasonIds=11`.
+- `page`
+- `size`
+
+**Resposta de sucesso:**
+```json
+{
+  "content": [
+    {
+      "id": 101,
+      "farmId": 1,
+      "description": "Parcela oficina trator",
+      "agendaType": "PAYABLE",
+      "transactionType": "EXPENSE",
+      "agendaStatus": "OVERDUE",
+      "paymentStatus": "PENDING",
+      "amount": 1250.00,
+      "dueDate": "2026-07-01",
+      "daysOverdue": 6,
+      "daysUntilDue": null,
+      "categoryId": 4,
+      "categoryName": "Manutenção",
+      "harvestSeasonId": 12,
+      "harvestSeasonName": "Safra Soja 2025/2026"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true
+}
+```
+
+**Possíveis erros/status HTTP:**
+- `400 Bad Request` para query params inválidos, `periodDays <= 0` ou safra de outra fazenda.
+- `401 Unauthorized` para cookie ausente, inválido ou expirado.
+- `403 Forbidden` para usuário sem acesso financeiro à fazenda.
+- `404 Not Found` se a fazenda ou alguma safra informada não existir.
+
+**Observações de regra de negócio:**
+- Usa a mesma base de filtros e regras do summary da agenda.
+- `agendaType` é `RECEIVABLE` para `INCOME` e `PAYABLE` para `EXPENSE`.
+- `agendaStatus` é calculado pela agenda e pode ser `OVERDUE` mesmo quando o `paymentStatus` original ainda é `PENDING`, caso `dueDate` seja anterior à data atual.
+- `daysOverdue` é preenchido apenas quando `agendaStatus=OVERDUE`.
+- `daysUntilDue` é preenchido apenas quando `agendaStatus=PENDING`.
+- A ordenação é fixa por urgência: `dueDate ASC`. Contas vencidas aparecem primeiro e, depois, pendentes futuras da mais próxima para a mais distante.
+- Sort customizado não é aceito nesta versão.
+- `harvestSeasonIds` filtra movimentações vinculadas a qualquer uma das safras informadas, desde que todas pertençam à fazenda consultada.
 
 ### GET /api/financial/alerts
 
