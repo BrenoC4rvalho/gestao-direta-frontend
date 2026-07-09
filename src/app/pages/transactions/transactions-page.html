@@ -383,24 +383,18 @@
   }
 </section>
 
-<gd-drawer
+<gd-transaction-form-drawer
   [open]="drawerOpen()"
   [title]="drawerTitle()"
   [description]="drawerDescription()"
-  size="lg"
-  [closeOnBackdrop]="!submitting()"
-  [showCloseButton]="!submitting()"
+  [transaction]="editingTransaction()"
+  [categories]="formCategories()"
+  [harvestSeasons]="harvestSeasons()"
+  [submitting]="submitting()"
+  (submitted)="saveTransaction($event)"
+  (cancelled)="closeDrawer()"
   (closed)="closeDrawer()"
 >
-  <gd-transaction-form
-    [transaction]="editingTransaction()"
-    [categories]="formCategories()"
-    [harvestSeasons]="harvestSeasons()"
-    [open]="drawerOpen()"
-    [submitting]="submitting()"
-    (submitted)="saveTransaction($event)"
-    (cancelled)="closeDrawer()"
-  />
   @if (editingTransaction(); as transaction) {
     @if (canCancelTransaction(transaction)) {
       <div class="mt-4 border-t border-border pt-4">
@@ -416,7 +410,7 @@
       </div>
     }
   }
-</gd-drawer>
+</gd-transaction-form-drawer>
 
 <gd-confirm-dialog
   [open]="paidTarget() !== null"

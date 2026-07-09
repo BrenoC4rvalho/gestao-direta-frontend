@@ -16,6 +16,7 @@ import { HarvestSeason } from '../../../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
+  FinancialTransactionDraft,
   PaymentMethod,
   PaymentStatus,
   TransactionType,
@@ -60,6 +61,7 @@ export class TransactionForm {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly transaction = input<FinancialTransaction | null>(null);
+  readonly draft = input<FinancialTransactionDraft | null>(null);
   readonly categories = input.required<readonly FinancialCategory[]>();
   readonly harvestSeasons = input<readonly HarvestSeason[]>([]);
   readonly open = input(false);
@@ -171,20 +173,21 @@ export class TransactionForm {
       }
 
       const transaction = this.transaction();
-      const type = transaction?.type ?? 'EXPENSE';
+      const draft = this.draft();
+      const type = transaction?.type ?? draft?.type ?? 'EXPENSE';
       this.selectedType.set(type);
       this.form.reset({
-        description: transaction?.description ?? '',
+        description: transaction?.description ?? draft?.description ?? '',
         type,
-        amount: numberToBrazilianMoney(transaction?.amount),
-        categoryId: transaction?.categoryId ?? '',
-        harvestSeasonId: transaction?.harvestSeasonId ?? '',
-        transactionDate: transaction?.transactionDate ?? this.currentDate(),
-        dueDate: transaction?.dueDate ?? '',
-        paidAt: transaction?.paidAt ?? '',
-        status: transaction?.status ?? 'PENDING',
-        paymentMethod: transaction?.paymentMethod ?? '',
-        notes: transaction?.notes ?? '',
+        amount: numberToBrazilianMoney(transaction?.amount ?? draft?.amount),
+        categoryId: transaction?.categoryId ?? draft?.categoryId ?? '',
+        harvestSeasonId: transaction?.harvestSeasonId ?? draft?.harvestSeasonId ?? '',
+        transactionDate: transaction?.transactionDate ?? draft?.transactionDate ?? this.currentDate(),
+        dueDate: transaction?.dueDate ?? draft?.dueDate ?? '',
+        paidAt: transaction?.paidAt ?? draft?.paidAt ?? '',
+        status: transaction?.status ?? draft?.status ?? 'PENDING',
+        paymentMethod: transaction?.paymentMethod ?? draft?.paymentMethod ?? '',
+        notes: transaction?.notes ?? draft?.notes ?? '',
       });
       this.clearCategoryIfIncompatible(type);
     });

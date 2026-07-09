@@ -6,6 +6,7 @@ import { HarvestSeason } from '../../../../core/models/harvest-season.models';
 import { FinancialCategory } from '../../../../core/models/financial-category.models';
 import {
   FinancialTransaction,
+  FinancialTransactionDraft,
   UpdateFinancialTransactionRequest,
 } from '../../../../core/models/financial-transaction.models';
 
@@ -93,6 +94,7 @@ const transaction: FinancialTransaction = {
   template: `
     <gd-transaction-form
       [transaction]="transaction"
+      [draft]="draft"
       [categories]="categories"
       [harvestSeasons]="harvestSeasons"
       [open]="open"
@@ -104,6 +106,7 @@ const transaction: FinancialTransaction = {
 })
 class TransactionFormHost {
   transaction: FinancialTransaction | null = null;
+  draft: FinancialTransactionDraft | null = null;
   harvestSeasons: HarvestSeason[] = [plannedSeason, inProgressSeason, finishedSeason];
   categories: FinancialCategory[] = [expenseCategory, incomeCategory, inactiveCategory];
   open = true;
@@ -163,6 +166,32 @@ describe('TransactionForm', () => {
       categoryId: 1,
       harvestSeasonId: null,
     });
+  });
+
+  it('should prefill create form from draft', () => {
+    const draftFixture = TestBed.createComponent(TransactionFormHost);
+    draftFixture.componentInstance.draft = {
+      description: 'Adubo',
+      amount: 250,
+      type: 'EXPENSE',
+      status: 'PAID',
+      paymentMethod: 'PIX',
+      transactionDate: '2026-07-06',
+      dueDate: null,
+      paidAt: null,
+      notes: null,
+      categoryId: 1,
+      harvestSeasonId: 10,
+    };
+    draftFixture.detectChanges();
+    fixture = draftFixture;
+
+    expect(getInput('#transaction-description').value).toBe('Adubo');
+    expect(getInput('#transaction-amount').value).toBe('250,00');
+    expect(getSelect('#transaction-status').value).toContain('PAID');
+    expect(getSelect('#transaction-payment-method').value).toContain('PIX');
+    expect(getSelect('#transaction-category').value).toContain('1');
+    expect(getSelect('#transaction-harvest-season').value).toContain('10');
   });
 
   it('should submit selected harvest season', () => {

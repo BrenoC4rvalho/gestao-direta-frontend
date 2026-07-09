@@ -37,12 +37,12 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../shared/forms';
-import { ConfirmDialog, Drawer } from '../../shared/overlays';
+import { ConfirmDialog } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { brazilianMoneyToNumber, sanitizeBrazilianMoneyInput } from '../../shared/utils/money.utils';
 import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { TransactionCard } from './components/transaction-card/transaction-card';
-import { TransactionForm } from './components/transaction-form/transaction-form';
+import { TransactionFormDrawer } from './components/transaction-form-drawer/transaction-form-drawer';
 
 interface TransactionLists {
   transactions: PageResponse<FinancialTransaction>;
@@ -115,7 +115,6 @@ const EMPTY_FILTER_FORM_VALUE = {
     Card,
     BrCurrencyPipe,
     ConfirmDialog,
-    Drawer,
     EmptyState,
     ErrorState,
     Input,
@@ -124,7 +123,7 @@ const EMPTY_FILTER_FORM_VALUE = {
     Select,
     Skeleton,
     TransactionCard,
-    TransactionForm,
+    TransactionFormDrawer,
   ],
   templateUrl: './transactions-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,0 +1,33 @@
+<gd-drawer
+  [open]="open()"
+  [title]="title()"
+  [description]="description()"
+  size="lg"
+  [closeOnBackdrop]="!submitting()"
+  [showCloseButton]="!submitting()"
+  (closed)="closed.emit()"
+>
+  @if (warnings().length > 0) {
+    <div class="mb-4 rounded-app border border-warning/40 bg-warning/10 p-4 text-sm leading-6 text-text-primary" role="status">
+      <p class="font-semibold">Dados sugeridos por IA. Revise antes de salvar.</p>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-text-muted">
+        @for (warning of warnings(); track warning) {
+          <li>{{ warning }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <gd-transaction-form
+    [transaction]="transaction()"
+    [draft]="draft()"
+    [categories]="categories()"
+    [harvestSeasons]="harvestSeasons()"
+    [open]="open()"
+    [submitting]="submitting()"
+    (submitted)="submitted.emit($event)"
+    (cancelled)="cancelled.emit()"
+  />
+
+  <ng-content />
+</gd-drawer>

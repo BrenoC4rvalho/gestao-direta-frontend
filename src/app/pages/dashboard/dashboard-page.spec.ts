@@ -13,6 +13,9 @@ import {
 } from '../../core/models/financial.models';
 import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
+import { AiTransactionService } from '../../core/services/ai-transaction.service';
+import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { FinancialService } from '../../core/services/financial.service';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
@@ -171,6 +174,15 @@ function textContent(fixture: ComponentFixture<DashboardPage>): string {
 }
 
 describe('DashboardPage', () => {
+  let aiTransactionService: {
+    parseTransactionText: ReturnType<typeof vi.fn>;
+  };
+  let categoryService: {
+    listByFarm: ReturnType<typeof vi.fn>;
+  };
+  let transactionService: {
+    create: ReturnType<typeof vi.fn>;
+  };
   let financialService: {
     getSummary: ReturnType<typeof vi.fn>;
     getAlerts: ReturnType<typeof vi.fn>;
@@ -179,12 +191,47 @@ describe('DashboardPage', () => {
   };
   let harvestSeasonService: {
     listSummary: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
   };
   let farmAccessStore: FarmAccessStore;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
 
   beforeEach(async () => {
+    aiTransactionService = {
+      parseTransactionText: vi.fn().mockReturnValue(of({
+        farmId: 1,
+        type: 'EXPENSE',
+        amount: 250,
+        description: 'Adubo',
+        transactionDate: '2026-07-06',
+        dueDate: null,
+        paymentStatus: 'PAID',
+        paymentMethod: 'PIX',
+        categoryName: 'Insumos',
+        harvestSeasonName: 'Milho',
+        confidence: 0.87,
+        missingFields: [],
+        warnings: [],
+      })),
+    };
+    categoryService = {
+      listByFarm: vi.fn().mockReturnValue(of([
+        {
+          id: 10,
+          name: 'Insumos',
+          type: 'EXPENSE',
+          farmId: 1,
+          farmName: 'Fazenda Boa Safra',
+          status: 'ACTIVE',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        },
+      ])),
+    };
+    transactionService = {
+      create: vi.fn().mockReturnValue(of(transaction)),
+    };
     financialService = {
       getSummary: vi.fn().mockReturnValue(of(summary)),
       getAlerts: vi.fn().mockReturnValue(of(alerts)),
@@ -193,6 +240,19 @@ describe('DashboardPage', () => {
     };
     harvestSeasonService = {
       listSummary: vi.fn().mockReturnValue(of(pageResponse([harvest]))),
+      list: vi.fn().mockReturnValue(of(pageResponse([
+        {
+          id: 20,
+          farmId: 1,
+          farmName: 'Fazenda Boa Safra',
+          productionActivityId: 2,
+          productionActivityName: 'Milho',
+          name: 'Safra Milho 2026',
+          startDate: '2026-01-01',
+          endDate: null,
+          status: 'IN_PROGRESS',
+        },
+      ]))),
     };
 
     await TestBed.configureTestingModule({
@@ -205,6 +265,9 @@ describe('DashboardPage', () => {
           { path: 'harvests', component: RouteStub },
           { path: 'harvests/:id', component: RouteStub },
         ]),
+        { provide: AiTransactionService, useValue: aiTransactionService },
+        { provide: FinancialCategoryService, useValue: categoryService },
+        { provide: FinancialTransactionService, useValue: transactionService },
         { provide: FinancialService, useValue: financialService },
         { provide: HarvestSeasonService, useValue: harvestSeasonService },
       ],
@@ -421,6 +484,184 @@ describe('DashboardPage', () => {
     );
   });
 
+  it('should render quick transaction card for users with management permission', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+    expect(text).toContain('Movimentação rápida');
+    expect(text).toContain('Digite uma movimentação em texto livre e revise antes de salvar.');
+  });
+
+  it('should hide quick transaction card without transaction management permission', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess({
+      ...farmAccess(1),
+      role: 'ACCOUNTANT',
+      permissions: { ...farmAccess(1).permissions, canManageTransactions: false },
+    });
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(textContent(fixture)).not.toContain('Movimentação rápida');
+    expect(aiTransactionService.parseTransactionText).not.toHaveBeenCalled();
+  });
+
+  it('should keep Interpretar disabled until text is filled', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(findButton(fixture, 'Interpretar')?.disabled).toBe(true);
+
+    setTextarea(fixture, 'paguei 250 reais de adubo');
+
+    expect(findButton(fixture, 'Interpretar')?.disabled).toBe(false);
+  });
+
+  it('should not call AI service without selected farm', () => {
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    dashboardHarness(fixture).parseQuickTransaction();
+
+    expect(aiTransactionService.parseTransactionText).not.toHaveBeenCalled();
+    expect(dashboardHarness(fixture).quickTransactionError()).toBe(
+      'Selecione uma fazenda para usar a movimentação rápida.',
+    );
+  });
+
+  it('should not call AI service with empty text', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    dashboardHarness(fixture).parseQuickTransaction();
+
+    expect(aiTransactionService.parseTransactionText).not.toHaveBeenCalled();
+    expect(dashboardHarness(fixture).quickTransactionError()).toBe('Informe o texto da movimentação.');
+  });
+
+  it('should parse quick transaction, map category and harvest season, and not save automatically', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    setTextarea(fixture, 'paguei 250 reais de adubo para milho ontem no pix');
+    const interpretButton = findButton(fixture, 'Interpretar');
+
+    expect(interpretButton?.disabled).toBe(false);
+    expect(interpretButton?.type).toBe('button');
+
+    interpretButton?.click();
+    fixture.detectChanges();
+
+    expect(aiTransactionService.parseTransactionText).toHaveBeenCalledWith({
+      farmId: 1,
+      text: 'paguei 250 reais de adubo para milho ontem no pix',
+    });
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { status: 'ACTIVE' });
+    expect(harvestSeasonService.list).toHaveBeenCalledWith(expect.objectContaining({ farmId: 1 }));
+    expect(transactionService.create).not.toHaveBeenCalled();
+
+    expect(dashboardHarness(fixture).quickTransactionDraft()).toEqual(expect.objectContaining({
+      description: 'Adubo',
+      amount: 250,
+      type: 'EXPENSE',
+      status: 'PAID',
+      paymentMethod: 'PIX',
+      transactionDate: '2026-07-06',
+      categoryId: 10,
+      harvestSeasonId: 20,
+    }));
+  });
+
+  it('should show warnings when category and harvest season are not found', () => {
+    aiTransactionService.parseTransactionText.mockReturnValueOnce(of({
+      farmId: 1,
+      type: 'EXPENSE',
+      amount: 250,
+      description: 'Adubo',
+      transactionDate: null,
+      dueDate: null,
+      paymentStatus: 'PAID',
+      paymentMethod: 'PIX',
+      categoryName: 'Categoria inexistente',
+      harvestSeasonName: 'Safra inexistente',
+      confidence: 0.4,
+      missingFields: [],
+      warnings: ['Revise o valor sugerido.'],
+    }));
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    setTextarea(fixture, 'paguei adubo');
+    dashboardHarness(fixture).parseQuickTransaction();
+    fixture.detectChanges();
+
+    const text = dashboardHarness(fixture).quickTransactionWarnings().join(' ');
+    expect(text).toContain('Categoria sugerida pela IA não encontrada: "Categoria inexistente".');
+    expect(text).toContain('Safra sugerida pela IA não encontrada: "Safra inexistente".');
+    expect(text).toContain('Data não identificada, usando data atual.');
+    expect(text).toContain('A interpretação tem baixa confiança. Revise os campos antes de salvar.');
+    expect(text).toContain('Revise o valor sugerido.');
+  });
+
+  it('should save quick transaction only after drawer form submit and reload dashboard', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    setTextarea(fixture, 'paguei 250 reais de adubo para milho ontem no pix');
+    const harness = dashboardHarness(fixture);
+    harness.parseQuickTransaction();
+    fixture.detectChanges();
+    harness.saveQuickTransaction(harness.quickTransactionDraft());
+    fixture.detectChanges();
+
+    expect(transactionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      farmId: 1,
+      description: 'Adubo',
+      amount: 250,
+      categoryId: 10,
+      harvestSeasonId: 20,
+    }));
+    expect(financialService.getSummary).toHaveBeenCalledTimes(2);
+    expect(dashboardHarness(fixture).quickTransactionControl.value).toBe('');
+  });
+
+  it('should show friendly parse error for 422', () => {
+    aiTransactionService.parseTransactionText.mockReturnValueOnce(throwError(() => ({ status: 422 })));
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    setTextarea(fixture, 'texto inválido');
+    dashboardHarness(fixture).parseQuickTransaction();
+    fixture.detectChanges();
+
+    expect(dashboardHarness(fixture).quickTransactionError()).toContain(
+      'Não foi possível interpretar o texto como movimentação. Tente informar valor, data e forma de pagamento.',
+    );
+  });
+
   it('should render section error states when financial API calls fail', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
@@ -441,3 +682,34 @@ describe('DashboardPage', () => {
     expect(text).toContain('Safra Soja 2026');
   });
 });
+
+
+function setTextarea(fixture: ComponentFixture<DashboardPage>, value: string): void {
+  dashboardHarness(fixture).quickTransactionControl.setValue(value);
+  fixture.detectChanges();
+}
+
+function findButton(fixture: ComponentFixture<DashboardPage>, label: string): HTMLButtonElement | null {
+  return (
+    Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((button) => button.textContent?.includes(label)) ?? null
+  );
+}
+
+function dashboardHarness(fixture: ComponentFixture<DashboardPage>): {
+  parseQuickTransaction: () => void;
+  saveQuickTransaction: (payload: unknown) => void;
+  quickTransactionControl: { value: unknown; setValue: (value: string) => void };
+  quickTransactionDraft: () => unknown;
+  quickTransactionError: () => string | null;
+  quickTransactionWarnings: () => readonly string[];
+} {
+  return fixture.componentInstance as unknown as {
+    parseQuickTransaction: () => void;
+    saveQuickTransaction: (payload: unknown) => void;
+    quickTransactionControl: { value: unknown; setValue: (value: string) => void };
+    quickTransactionDraft: () => unknown;
+    quickTransactionError: () => string | null;
+    quickTransactionWarnings: () => readonly string[];
+  };
+}

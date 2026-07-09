@@ -97,6 +97,8 @@ export interface UpdateFinancialTransactionRequest {
   harvestSeasonId?: number | null;
 }
 
+export type FinancialTransactionDraft = Partial<UpdateFinancialTransactionRequest>;
+
 export interface MarkFinancialTransactionAsPaidRequest {
   paidAt?: string | null;
   paymentMethod?: PaymentMethod | null;
