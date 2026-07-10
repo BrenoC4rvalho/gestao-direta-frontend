@@ -162,6 +162,82 @@ describe('AppLayout', () => {
     expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
   });
 
+  it('should render the IA transaction button on the dashboard before the farm selector', async () => {
+    sessionStore.setUser({
+      id: 1,
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      document: null,
+      userType: 'ADMIN',
+      status: 'ACTIVE',
+    });
+
+    const fixture = TestBed.createComponent(AppLayout);
+    fixture.detectChanges();
+
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const button = findButton(element, 'Nova movimentação com IA');
+    const selector = element.querySelector('gd-farm-context-selector');
+
+    expect(button).not.toBeNull();
+    expect(selector).not.toBeNull();
+    expect(
+      button !== null &&
+        selector !== null &&
+        (button.compareDocumentPosition(selector) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    ).toBe(true);
+  });
+
+  it('should disable the IA transaction button on dashboard when there is no selected farm', async () => {
+    farmService.list.mockReturnValueOnce(of(pageResponse([])));
+    sessionStore.setUser({
+      id: 1,
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      document: null,
+      userType: 'ADMIN',
+      status: 'ACTIVE',
+    });
+
+    const fixture = TestBed.createComponent(AppLayout);
+    fixture.detectChanges();
+
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+
+    const button = findButton(fixture.nativeElement as HTMLElement, 'Nova movimentação com IA');
+
+    expect(button?.disabled).toBe(true);
+    expect(button?.getAttribute('title')).toBe('Selecione uma fazenda para registrar uma movimentação.');
+  });
+
+  it('should not render the IA transaction button for accountant access', async () => {
+    farmAccessService.getAccess.mockReturnValueOnce(of({
+      ...access,
+      role: 'ACCOUNTANT',
+      permissions: { ...access.permissions, canManageTransactions: false },
+    }));
+    sessionStore.setUser({
+      id: 2,
+      name: 'Contador',
+      email: 'contador@example.com',
+      document: null,
+      userType: 'USER',
+      status: 'ACTIVE',
+    });
+
+    const fixture = TestBed.createComponent(AppLayout);
+    fixture.detectChanges();
+
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement as HTMLElement, 'Nova movimentação com IA')).toBeNull();
+  });
+
   it('should load farms on init and select the first farm', () => {
     const fixture = TestBed.createComponent(AppLayout);
     fixture.detectChanges();
@@ -248,3 +324,11 @@ describe('AppLayout', () => {
     expect(selectedFarmStore.selectedFarm()).toEqual(farm);
   });
 });
+
+function findButton(element: HTMLElement, label: string): HTMLButtonElement | null {
+  return (
+    Array.from(element.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
+      button.textContent?.includes(label),
+    ) ?? null
+  );
+}

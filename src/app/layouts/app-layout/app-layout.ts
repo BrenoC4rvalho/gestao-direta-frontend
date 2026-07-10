@@ -10,14 +10,17 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { filter, finalize } from 'rxjs';
 
+import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+import { Button } from '../../shared/ui';
 import { DesktopSidebar } from '../desktop-sidebar/desktop-sidebar';
 import { FarmContextSelector } from '../farm-context-selector/farm-context-selector';
 import { MobileHeader } from '../mobile-header/mobile-header';
@@ -29,11 +32,19 @@ interface PageHeaderData {
 
 @Component({
   selector: 'gd-app-layout',
-  imports: [DesktopSidebar, FarmContextSelector, MobileHeader, RouterOutlet],
+  imports: [
+    Button,
+    DesktopSidebar,
+    FarmContextSelector,
+    LucideDynamicIcon,
+    MobileHeader,
+    RouterOutlet,
+  ],
   templateUrl: './app-layout.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppLayout implements OnInit {
+  private readonly dashboardAiTransactionAction = inject(DashboardAiTransactionActionService);
   private readonly farmAccessService = inject(FarmAccessService);
   private readonly farmService = inject(FarmService);
   private readonly farmAccessStore = inject(FarmAccessStore);
@@ -56,6 +67,38 @@ export class AppLayout implements OnInit {
     return title;
   });
   protected readonly pageSubtitle = computed(() => this.pageHeaderData().subtitle);
+  protected readonly isDashboardRoute = computed(
+    () => this.pageHeaderData().title === 'Dashboard',
+  );
+  protected readonly canShowAiTransactionButton = computed(() => {
+    const user = this.sessionStore.user();
+
+    if (!this.isDashboardRoute() || user?.status !== 'ACTIVE') {
+      return false;
+    }
+
+    if (this.sessionStore.isAdmin()) {
+      return true;
+    }
+
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    const access = this.farmAccessStore.access();
+
+    return (
+      !!farmId &&
+      access?.farmId === farmId &&
+      (access.role === 'PRODUCER' || access.role === 'EMPLOYEE') &&
+      access.permissions.canManageTransactions
+    );
+  });
+  protected readonly aiTransactionButtonDisabled = computed(
+    () => !this.selectedFarmStore.selectedFarmId(),
+  );
+  protected readonly aiTransactionButtonTitle = computed(() =>
+    this.aiTransactionButtonDisabled()
+      ? 'Selecione uma fazenda para registrar uma movimentação.'
+      : 'Nova movimentação com IA',
+  );
 
   constructor() {
     this.updatePageHeaderData();
@@ -108,6 +151,14 @@ export class AppLayout implements OnInit {
           this.toastStore.info('Não foi possível carregar suas fazendas.');
         },
       });
+  }
+
+  protected requestAiTransaction(): void {
+    if (this.aiTransactionButtonDisabled()) {
+      return;
+    }
+
+    this.dashboardAiTransactionAction.requestOpen();
   }
 
   private handleAccessError(error: unknown): void {

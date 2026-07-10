@@ -14,6 +14,7 @@ import {
 import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { AiTransactionService } from '../../core/services/ai-transaction.service';
+import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { FinancialService } from '../../core/services/financial.service';
@@ -177,6 +178,7 @@ describe('DashboardPage', () => {
   let aiTransactionService: {
     parseTransactionText: ReturnType<typeof vi.fn>;
   };
+  let dashboardAiTransactionAction: DashboardAiTransactionActionService;
   let categoryService: {
     listByFarm: ReturnType<typeof vi.fn>;
   };
@@ -273,12 +275,21 @@ describe('DashboardPage', () => {
       ],
     }).compileComponents();
 
+    dashboardAiTransactionAction = TestBed.inject(DashboardAiTransactionActionService);
     farmAccessStore = TestBed.inject(FarmAccessStore);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
     farmAccessStore.clear();
     selectedFarmStore.clear();
     sessionStore.clear();
+    sessionStore.setUser({
+      id: 1,
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      document: null,
+      userType: 'ADMIN',
+      status: 'ACTIVE',
+    });
   });
 
   afterEach(() => {
@@ -484,19 +495,35 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('should render quick transaction card for users with management permission', () => {
+  it('should remove the permanent quick transaction card and open the IA drawer on request', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
 
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
+    expect(textContent(fixture)).not.toContain('Movimentação rápida');
+    expect(fixture.nativeElement.querySelector('#quick-transaction-text')).toBeNull();
+
+    dashboardAiTransactionAction.requestOpen();
+    fixture.detectChanges();
+
     const text = textContent(fixture);
-    expect(text).toContain('Movimentação rápida');
-    expect(text).toContain('Digite uma movimentação em texto livre e revise antes de salvar.');
+    expect(text).toContain('Nova movimentação com IA');
+    expect(text).toContain('Descrição da movimentação');
+    expect(text).toContain('Interpretar');
+    expect(fixture.nativeElement.querySelector('#quick-transaction-text')).not.toBeNull();
   });
 
-  it('should hide quick transaction card without transaction management permission', () => {
+  it('should not open the IA drawer without transaction management permission', () => {
+    sessionStore.setUser({
+      id: 2,
+      name: 'Contador',
+      email: 'contador@example.com',
+      document: null,
+      userType: 'USER',
+      status: 'ACTIVE',
+    });
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess({
       ...farmAccess(1),
@@ -507,7 +534,11 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    expect(textContent(fixture)).not.toContain('Movimentação rápida');
+    dashboardAiTransactionAction.requestOpen();
+    fixture.detectChanges();
+
+    expect(textContent(fixture)).not.toContain('Nova movimentação com IA');
+    expect(fixture.nativeElement.querySelector('#quick-transaction-text')).toBeNull();
     expect(aiTransactionService.parseTransactionText).not.toHaveBeenCalled();
   });
 
@@ -516,6 +547,8 @@ describe('DashboardPage', () => {
     farmAccessStore.setAccess(farmAccess(1));
 
     const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    dashboardAiTransactionAction.requestOpen();
     fixture.detectChanges();
 
     expect(findButton(fixture, 'Interpretar')?.disabled).toBe(true);
@@ -555,6 +588,8 @@ describe('DashboardPage', () => {
     farmAccessStore.setAccess(farmAccess(1));
 
     const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    dashboardAiTransactionAction.requestOpen();
     fixture.detectChanges();
 
     setTextarea(fixture, 'paguei 250 reais de adubo para milho ontem no pix');
@@ -616,7 +651,7 @@ describe('DashboardPage', () => {
     expect(text).toContain('Categoria sugerida pela IA não encontrada: "Categoria inexistente".');
     expect(text).toContain('Safra sugerida pela IA não encontrada: "Safra inexistente".');
     expect(text).toContain('Data não identificada, usando data atual.');
-    expect(text).toContain('A interpretação tem baixa confiança. Revise os campos antes de salvar.');
+    expect(text).toContain('A interpretação pode estar incompleta. Revise os campos.');
     expect(text).toContain('Revise o valor sugerido.');
   });
 

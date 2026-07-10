@@ -25,6 +25,7 @@ const category: FinancialCategory = {
       [draft]="draft"
       [categories]="categories"
       [warnings]="warnings"
+      [aiSuggested]="aiSuggested"
       (submitted)="submittedCount = submittedCount + 1"
       (cancelled)="cancelledCount = cancelledCount + 1"
       (closed)="closedCount = closedCount + 1"
@@ -34,7 +35,8 @@ const category: FinancialCategory = {
 class TransactionFormDrawerHost {
   open = true;
   categories: FinancialCategory[] = [category];
-  warnings = ['Dados sugeridos por IA. Revise antes de salvar.'];
+  warnings = ['Revise o valor sugerido.'];
+  aiSuggested = true;
   draft: FinancialTransactionDraft = {
     description: 'Adubo',
     amount: 250,
@@ -66,7 +68,8 @@ describe('TransactionFormDrawer', () => {
   it('should render AI warnings and prefilled transaction form', () => {
     const text = fixture.nativeElement.textContent as string;
 
-    expect(text).toContain('Dados sugeridos por IA. Revise antes de salvar.');
+    expect(text).toContain('Dados sugeridos por IA. Revise todos os campos antes de salvar.');
+    expect(text).toContain('Revise o valor sugerido.');
     expect(fixture.nativeElement.querySelector('gd-transaction-form')).not.toBeNull();
   });
 

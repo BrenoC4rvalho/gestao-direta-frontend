@@ -25,6 +25,7 @@ export class TransactionFormDrawer {
   readonly categories = input.required<readonly FinancialCategory[]>();
   readonly harvestSeasons = input<readonly HarvestSeason[]>([]);
   readonly warnings = input<readonly string[]>([]);
+  readonly aiSuggested = input(false);
   readonly submitting = input(false);
 
   readonly submitted = output<UpdateFinancialTransactionRequest>();

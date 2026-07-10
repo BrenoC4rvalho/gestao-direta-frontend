@@ -13,7 +13,27 @@
           }
         </div>
 
-        <gd-farm-context-selector class="block w-full lg:w-80" selectId="global-farm-select" />
+        <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
+          @if (canShowAiTransactionButton()) {
+            <gd-button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="block w-full sm:w-auto"
+              [fullWidth]="true"
+              [disabled]="aiTransactionButtonDisabled()"
+              [title]="aiTransactionButtonTitle()"
+              [ariaLabel]="aiTransactionButtonTitle()"
+              (click)="requestAiTransaction()"
+            >
+              <svg lucideIcon="sparkles" class="size-4" aria-hidden="true"></svg>
+              <span class="hidden sm:inline">Nova movimentação com IA</span>
+              <span class="sm:hidden">Movimentação com IA</span>
+            </gd-button>
+          }
+
+          <gd-farm-context-selector class="block w-full lg:w-80" selectId="global-farm-select" />
+        </div>
       </div>
     </header>
 

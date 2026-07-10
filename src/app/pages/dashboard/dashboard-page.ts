@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -30,6 +31,7 @@ import {
   UpdateFinancialTransactionRequest,
 } from '../../core/models/financial-transaction.models';
 import { AiTransactionService } from '../../core/services/ai-transaction.service';
+import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
 import { FinancialService } from '../../core/services/financial.service';
@@ -39,8 +41,17 @@ import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormValue, Textarea } from '../../shared/forms';
+import { Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { Badge, Button, Card, EmptyState, ErrorState, Skeleton, SummaryCard, SummaryCardTone } from '../../shared/ui';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  SummaryCard,
+  SummaryCardTone,
+} from '../../shared/ui';
 import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
 import { TransactionFormDrawer } from '../transactions/components/transaction-form-drawer/transaction-form-drawer';
@@ -59,7 +70,7 @@ interface SummaryCardViewModel {
   imports: [
     Badge,
     Button,
-    Card,
+    Drawer,
     EmptyState,
     ErrorState,
     ImportantAlerts,
@@ -75,7 +86,9 @@ interface SummaryCardViewModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardPage {
+  private readonly document = inject(DOCUMENT);
   private readonly aiTransactionService = inject(AiTransactionService);
+  private readonly dashboardAiTransactionAction = inject(DashboardAiTransactionActionService);
   private readonly categoryService = inject(FinancialCategoryService);
   private readonly financialService = inject(FinancialService);
   private readonly transactionService = inject(FinancialTransactionService);
@@ -108,6 +121,7 @@ export class DashboardPage {
   });
   private readonly quickTransactionText = signal('');
   protected readonly quickTransactionError = signal<string | null>(null);
+  protected readonly quickTransactionPromptDrawerOpen = signal(false);
   protected readonly quickTransactionDrawerOpen = signal(false);
   protected readonly quickTransactionDraft = signal<FinancialTransactionDraft | null>(null);
   protected readonly quickTransactionWarnings = signal<readonly string[]>([]);
@@ -122,6 +136,7 @@ export class DashboardPage {
   protected readonly harvestSkeletons = [1, 2, 3];
 
   private readonly currencyPipe = new BrCurrencyPipe();
+  private handledAiTransactionOpenRequest = this.dashboardAiTransactionAction.openRequest();
 
   protected readonly summaryCards = computed<readonly SummaryCardViewModel[]>(() => {
     const summary = this.summary();
@@ -207,16 +222,23 @@ export class DashboardPage {
   });
 
   protected readonly canUseQuickTransaction = computed(() => {
-    if (this.sessionStore.isAdmin()) {
-      return this.selectedFarmStore.selectedFarmId() !== null;
-    }
-
+    const user = this.sessionStore.user();
     const farmId = this.selectedFarmStore.selectedFarmId();
 
+    if (user?.status !== 'ACTIVE' || !farmId) {
+      return false;
+    }
+
+    if (this.sessionStore.isAdmin()) {
+      return true;
+    }
+
+    const access = this.farmAccessStore.access();
+
     return (
-      !!farmId &&
-      this.farmAccessStore.access()?.farmId === farmId &&
-      this.farmAccessStore.canManageTransactions()
+      access?.farmId === farmId &&
+      (access.role === 'PRODUCER' || access.role === 'EMPLOYEE') &&
+      access.permissions.canManageTransactions
     );
   });
 
@@ -226,6 +248,8 @@ export class DashboardPage {
       !this.quickTransactionText().trim() ||
       this.isParsingTransaction(),
   );
+  protected readonly quickTransactionPromptDescription =
+    'Descreva a movimentação em linguagem natural e revise os dados antes de salvar.';
 
   constructor() {
     this.quickTransactionControl.valueChanges
@@ -234,6 +258,20 @@ export class DashboardPage {
         this.quickTransactionText.set(`${value ?? ''}`);
         this.quickTransactionError.set(null);
       });
+
+    effect(() => {
+      const request = this.dashboardAiTransactionAction.openRequest();
+
+      if (request === this.handledAiTransactionOpenRequest) {
+        return;
+      }
+
+      this.handledAiTransactionOpenRequest = request;
+
+      if (request > 0) {
+        this.openQuickTransactionPromptDrawer();
+      }
+    });
 
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
@@ -334,6 +372,33 @@ export class DashboardPage {
     );
   }
 
+  protected openQuickTransactionPromptDrawer(): void {
+    this.quickTransactionError.set(null);
+
+    if (!this.selectedFarmStore.selectedFarmId()) {
+      this.quickTransactionError.set('Selecione uma fazenda para registrar uma movimentação.');
+      return;
+    }
+
+    if (!this.canUseQuickTransaction()) {
+      this.quickTransactionError.set('Você não tem permissão para usar a movimentação rápida.');
+      return;
+    }
+
+    this.quickTransactionPromptDrawerOpen.set(true);
+    setTimeout(() => this.focusQuickTransactionTextarea());
+  }
+
+  protected closeQuickTransactionPromptDrawer(): void {
+    if (this.isParsingTransaction()) {
+      return;
+    }
+
+    this.quickTransactionPromptDrawerOpen.set(false);
+    this.quickTransactionControl.reset('');
+    this.quickTransactionError.set(null);
+  }
+
   protected parseQuickTransaction(): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
     const text = this.trimmedQuickTransactionText();
@@ -395,6 +460,7 @@ export class DashboardPage {
         next: ({ parsed, categories, harvestSeasons }) => {
           this.quickTransactionCategories.set(categories);
           this.quickTransactionHarvestSeasons.set(harvestSeasons.content);
+          this.quickTransactionPromptDrawerOpen.set(false);
           this.openQuickTransactionDrawer(parsed, categories, harvestSeasons.content);
         },
         error: (error: unknown) => this.handleParseError(error),
@@ -402,9 +468,15 @@ export class DashboardPage {
   }
 
   protected closeQuickTransactionDrawer(): void {
-    if (!this.transactionSubmitting()) {
-      this.quickTransactionDrawerOpen.set(false);
+    if (this.transactionSubmitting()) {
+      return;
     }
+
+    this.quickTransactionDrawerOpen.set(false);
+    this.quickTransactionDraft.set(null);
+    this.quickTransactionWarnings.set([]);
+    this.quickTransactionControl.reset('');
+    this.quickTransactionError.set(null);
   }
 
   protected saveQuickTransaction(payload: UpdateFinancialTransactionRequest): void {
@@ -427,6 +499,7 @@ export class DashboardPage {
       .subscribe({
         next: () => {
           this.quickTransactionDrawerOpen.set(false);
+          this.quickTransactionPromptDrawerOpen.set(false);
           this.quickTransactionDraft.set(null);
           this.quickTransactionWarnings.set([]);
           this.quickTransactionControl.reset('');
@@ -454,7 +527,7 @@ export class DashboardPage {
     categories: readonly FinancialCategory[],
     harvestSeasons: readonly HarvestSeason[],
   ): { draft: FinancialTransactionDraft; warnings: readonly string[] } {
-    const warnings = new Set<string>(['Dados sugeridos por IA. Revise antes de salvar.']);
+    const warnings = new Set<string>();
     const type = this.normalizedTransactionType(parsed.type, warnings);
     const status = this.normalizedPaymentStatus(parsed.paymentStatus, warnings);
     const paymentMethod = this.normalizedPaymentMethod(parsed.paymentMethod, warnings);
@@ -473,7 +546,7 @@ export class DashboardPage {
     }
 
     if (parsed.confidence < 0.6) {
-      warnings.add('A interpretação tem baixa confiança. Revise os campos antes de salvar.');
+      warnings.add('A interpretação pode estar incompleta. Revise os campos.');
     }
 
     const categoryId = this.findMatchingCategoryId(parsed.categoryName, type, categories);
@@ -598,6 +671,14 @@ export class DashboardPage {
 
     warnings.add(`Método de pagamento sugerido pela IA não reconhecido: "${value}".`);
     return null;
+  }
+
+  private focusQuickTransactionTextarea(): void {
+    const textarea = this.document.getElementById('quick-transaction-text');
+
+    if (textarea instanceof HTMLTextAreaElement) {
+      textarea.focus();
+    }
   }
 
   private handleParseError(error: unknown): void {

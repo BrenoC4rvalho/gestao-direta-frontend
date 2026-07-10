@@ -48,47 +48,6 @@
       </div>
     }
 
-    @if (canUseQuickTransaction()) {
-      <gd-card class="gd-fade-in-up block" aria-labelledby="quick-transaction-title">
-        <div class="grid gap-4">
-          <div class="flex flex-col gap-1">
-            <h2 id="quick-transaction-title" class="text-lg font-semibold text-text-primary">
-              Movimentação rápida
-            </h2>
-            <p class="text-sm leading-6 text-text-muted">
-              Digite uma movimentação em texto livre e revise antes de salvar.
-            </p>
-          </div>
-
-          <gd-textarea
-            id="quick-transaction-text"
-            label="Descrição em texto livre"
-            placeholder="Ex: paguei 250 reais de adubo para a safra de milho ontem no pix"
-            [control]="quickTransactionControl"
-            [rows]="3"
-            [maxlength]="500"
-            [errorMessage]="quickTransactionError()"
-          />
-
-          @if (quickTransactionError(); as errorMessage) {
-            <p class="text-sm leading-5 text-danger" role="alert">{{ errorMessage }}</p>
-          }
-
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <gd-button
-              type="button"
-              [loading]="isParsingTransaction()"
-              [disabled]="quickTransactionDisabled()"
-              [fullWidth]="true"
-              (click)="parseQuickTransaction()"
-            >
-              Interpretar
-            </gd-button>
-          </div>
-        </div>
-      </gd-card>
-    }
-
     <gd-important-alerts
       [alerts]="alerts()"
       [loading]="alertsLoading()"
@@ -225,6 +184,53 @@
   }
 </section>
 
+<gd-drawer
+  [open]="quickTransactionPromptDrawerOpen()"
+  title="Nova movimentação com IA"
+  [description]="quickTransactionPromptDescription"
+  size="sm"
+  [closeOnBackdrop]="!isParsingTransaction()"
+  [showCloseButton]="!isParsingTransaction()"
+  (closed)="closeQuickTransactionPromptDrawer()"
+>
+  <div class="grid gap-4" [attr.aria-busy]="isParsingTransaction()">
+    <gd-textarea
+      id="quick-transaction-text"
+      label="Descrição da movimentação"
+      placeholder="Ex.: paguei 250 reais de adubo para a safra de milho ontem no Pix"
+      [control]="quickTransactionControl"
+      [rows]="4"
+      [maxlength]="500"
+      [required]="true"
+      [errorMessage]="quickTransactionError()"
+    />
+
+    @if (quickTransactionError(); as errorMessage) {
+      <p class="text-sm leading-5 text-danger" role="alert">{{ errorMessage }}</p>
+    }
+
+    <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+      <gd-button
+        type="button"
+        variant="outline"
+        [disabled]="isParsingTransaction()"
+        [fullWidth]="true"
+        (click)="closeQuickTransactionPromptDrawer()"
+      >
+        Cancelar
+      </gd-button>
+      <gd-button
+        type="button"
+        [loading]="isParsingTransaction()"
+        [disabled]="quickTransactionDisabled()"
+        [fullWidth]="true"
+        (click)="parseQuickTransaction()"
+      >
+        Interpretar
+      </gd-button>
+    </div>
+  </div>
+</gd-drawer>
 
 <gd-transaction-form-drawer
   [open]="quickTransactionDrawerOpen()"
@@ -234,6 +240,7 @@
   [categories]="quickTransactionCategories()"
   [harvestSeasons]="quickTransactionHarvestSeasons()"
   [warnings]="quickTransactionWarnings()"
+  [aiSuggested]="true"
   [submitting]="transactionSubmitting()"
   (submitted)="saveQuickTransaction($event)"
   (cancelled)="closeQuickTransactionDrawer()"
