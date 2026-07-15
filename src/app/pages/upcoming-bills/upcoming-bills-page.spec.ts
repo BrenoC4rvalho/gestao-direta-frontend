@@ -389,6 +389,9 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     expect(dueTooltip('Vencido há 6 dias')?.textContent?.trim()).toBe('Vencimento: 01/07/2026');
     expect(desktopTableContainer().classList.contains('overflow-visible')).toBe(true);
     expect(desktopTableContainer().classList.contains('overflow-hidden')).toBe(false);
+    expect(fixture.nativeElement.querySelector('thead')?.classList.contains('rounded-t-app')).toBe(true);
+    expect(fixture.nativeElement.querySelector('thead th:first-child')?.classList.contains('rounded-tl-app')).toBe(true);
+    expect(fixture.nativeElement.querySelector('thead th:last-child')?.classList.contains('rounded-tr-app')).toBe(true);
     expect(fixture.nativeElement.querySelector('thead th .sr-only')?.textContent?.trim()).toBe('Ações');
   });
 
@@ -396,15 +399,23 @@ describe('UpcomingBillsPage as Financial Agenda', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
 
-    expect(text()).toContain('Marcar como recebida');
-    expect(text()).toContain('Marcar como paga');
+    const receivableActions = actionButtons(fixture.nativeElement, 'Marcar como recebida');
+    const payableActions = actionButtons(fixture.nativeElement, 'Marcar como paga');
+
+    expect(receivableActions).toHaveLength(4);
+    expect(payableActions).toHaveLength(2);
+    [...receivableActions, ...payableActions].forEach((button) => {
+      expect(button.getAttribute('title')).toBe(button.getAttribute('aria-label'));
+      expect(button.textContent?.trim()).toBe('');
+      expect(button.querySelector('svg[lucideIcon="check"]')).not.toBeNull();
+    });
 
     sessionStore.setUser(user);
     farmAccessStore.setAccess(access);
     createPage();
 
-    expect(text()).not.toContain('Marcar como recebida');
-    expect(text()).not.toContain('Marcar como paga');
+    expect(actionButtons(fixture.nativeElement, 'Marcar como recebida')).toHaveLength(0);
+    expect(actionButtons(fixture.nativeElement, 'Marcar como paga')).toHaveLength(0);
   });
 
   it('should render signed amounts with income and expense color classes', () => {
@@ -769,6 +780,12 @@ function harvestSeason(id: number, name: string): HarvestSeason {
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   ) as HTMLButtonElement | undefined;
+}
+
+function actionButtons(root: HTMLElement, label: string): HTMLButtonElement[] {
+  return Array.from(root.querySelectorAll<HTMLButtonElement>('button')).filter(
+    (button) => button.getAttribute('aria-label') === label,
+  );
 }
