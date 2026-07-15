@@ -176,6 +176,7 @@ Erros principais:
 - `401 Unauthorized` para usuario nao autenticado.
 - `403 Forbidden` para usuario sem permissao na fazenda ou `ACCOUNTANT`.
 - `422 Unprocessable Entity` quando a IA nao retorna JSON valido ou retorna campos/enums invalidos.
+- `503 Service Unavailable` quando o modelo configurado nao esta disponivel no Ollama.
 
 Configuracao do provider:
 
@@ -192,8 +193,28 @@ Comandos Ollama:
 ```bash
 docker compose up -d ollama
 docker exec -it gestao-direta-ollama ollama pull llama3.1:8b
-docker exec -it gestao-direta-ollama ollama run llama3.1:8b
+docker exec -it gestao-direta-ollama ollama list
 ```
+
+Modelo menor opcional:
+
+```bash
+docker exec -it gestao-direta-ollama ollama pull llama3.2:3b
+```
+
+Para usar outro modelo, altere a configuracao:
+
+```properties
+app.ai.ollama.model=llama3.2:3b
+```
+
+ou a variavel de ambiente:
+
+```properties
+APP_AI_OLLAMA_MODEL=llama3.2:3b
+```
+
+Quando o modelo configurado nao foi baixado, a API retorna `503 Service Unavailable` com mensagem amigavel e detalhe do modelo configurado.
 
 Execucao local com Spring:
 
@@ -2587,6 +2608,18 @@ GET /api/harvest/seasons/summary-list?farmId=1&search=soja&statuses=PLANNED,IN_P
 - `transactionCount`, `incomeCount` e `expenseCount` consideram somente movimentações válidas vinculadas à safra.
 - Movimentações com `recordStatus=DELETED`, `status=CANCELED`, sem safra ou vinculadas a outra safra não entram nos totais nem nos contadores.
 - Safras sem movimentações aparecem na lista com totais e contadores zerados.
+
+### GET /api/harvest/seasons/summary
+
+**Descricao:** Retorna o resumo financeiro agregado das safras filtradas da fazenda.
+
+**Autenticacao e permissao:** ADMIN; PRODUCER, EMPLOYEE ou ACCOUNTANT com vinculo ativo na fazenda ativa.
+
+**Query params:** farmId (obrigatorio), status, statuses, productionActivityId, productionActivityIds, periodStart, periodEnd e search. Os filtros usam a mesma semantica de GET /api/harvest/seasons/summary-list, incluindo periodo por intersecao e busca por nome, descricao ou atividade.
+
+**Contrato:** farmId, activeHarvestCount, planning (plannedCost, plannedRevenue, plannedProfit), realized (realizedCost, realizedRevenue, realizedProfit), projection (projectedCost, projectedRevenue, projectedProfit) e comparison (profitPerformancePercentage, profitPerformanceStatus, costVarianceAmount, costVariancePercentage, costVarianceStatus).
+
+**Calculos:** planejamento soma expectedCost e expectedRevenue; realizado soma somente PAID; projecao soma realizado com PENDING e OVERDUE. Desempenho do lucro e realizedProfit / abs(plannedProfit) * 100. Desvio de custo e realizedCost - plannedCost, com percentual sobre plannedCost. Percentuais usam escala 2 e HALF_UP. Quando lucro ou custo planejado e zero, o percentual e null e o status correspondente e NOT_APPLICABLE.
 
 ### GET /api/harvest/seasons/{id}
 
