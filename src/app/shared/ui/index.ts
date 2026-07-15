@@ -3,6 +3,7 @@ export * from './button/button';
 export * from './card/card';
 export * from './empty-state/empty-state';
 export * from './error-state/error-state';
+export * from './floating-action-button/floating-action-button';
 export * from './list-filters/list-filters';
 export * from './skeleton/skeleton';
 export * from './summary-card/summary-card';

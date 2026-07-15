@@ -11,6 +11,7 @@ import { PageResponse } from '../../core/models/page-response.model';
 import { AuthService } from '../../core/services/auth.service';
 import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
+import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -71,6 +72,7 @@ describe('AppLayout', () => {
   let farmAccessService: { getAccess: ReturnType<typeof vi.fn> };
   let farmService: { list: ReturnType<typeof vi.fn> };
   let farmAccessStore: FarmAccessStore;
+  let dashboardAiTransactionAction: DashboardAiTransactionActionService;
   let router: Router;
   let selectedFarmStore: SelectedFarmStore;
   let sessionStore: SessionStore;
@@ -113,6 +115,7 @@ describe('AppLayout', () => {
     }).compileComponents();
 
     farmAccessStore = TestBed.inject(FarmAccessStore);
+    dashboardAiTransactionAction = TestBed.inject(DashboardAiTransactionActionService);
     router = TestBed.inject(Router);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
     sessionStore = TestBed.inject(SessionStore);
@@ -162,80 +165,49 @@ describe('AppLayout', () => {
     expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
   });
 
-  it('should render the IA transaction button on the dashboard before the farm selector', async () => {
-    sessionStore.setUser({
-      id: 1,
-      name: 'Maria Silva',
-      email: 'maria@example.com',
-      document: null,
-      userType: 'ADMIN',
-      status: 'ACTIVE',
-    });
-
+  it('should render the FAB only on dashboard, with safe-area positioning and its accessible tooltip', async () => {
+    sessionStore.setUser({ id: 1, name: 'Maria Silva', email: 'maria@example.com', document: null, userType: 'ADMIN', status: 'ACTIVE' });
     const fixture = TestBed.createComponent(AppLayout);
     fixture.detectChanges();
-
     await router.navigateByUrl('/dashboard');
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    const button = findButton(element, 'Nova movimentação com IA');
-    const selector = element.querySelector('gd-farm-context-selector');
+    const fab = element.querySelector('gd-floating-action-button') as HTMLElement;
+    const button = fab.querySelector('button') as HTMLButtonElement;
+    const tooltip = fab.querySelector('[role="tooltip"]') as HTMLElement;
+    expect(fab.className).toContain('fixed');
+    expect(fab.className).toContain('safe-area-inset-bottom');
+    expect(fab.className).toContain('safe-area-inset-right');
+    expect(button.textContent?.trim()).toBe('');
+    expect(tooltip.textContent).toContain('Nova movimentação com IA');
+    expect(tooltip.textContent).toContain('Descreva em texto e revise antes de salvar');
+    button.click();
+    expect(dashboardAiTransactionAction.openRequest()).toBe(1);
 
-    expect(button).not.toBeNull();
-    expect(selector).not.toBeNull();
-    expect(
-      button !== null &&
-        selector !== null &&
-        (button.compareDocumentPosition(selector) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
-    ).toBe(true);
+    await router.navigateByUrl('/farms');
+    fixture.detectChanges();
+    expect(element.querySelector('gd-floating-action-button')).toBeNull();
   });
 
-  it('should disable the IA transaction button on dashboard when there is no selected farm', async () => {
+  it('should hide the FAB when there is no selected farm', async () => {
     farmService.list.mockReturnValueOnce(of(pageResponse([])));
-    sessionStore.setUser({
-      id: 1,
-      name: 'Maria Silva',
-      email: 'maria@example.com',
-      document: null,
-      userType: 'ADMIN',
-      status: 'ACTIVE',
-    });
-
+    sessionStore.setUser({ id: 1, name: 'Maria Silva', email: 'maria@example.com', document: null, userType: 'ADMIN', status: 'ACTIVE' });
     const fixture = TestBed.createComponent(AppLayout);
     fixture.detectChanges();
-
     await router.navigateByUrl('/dashboard');
     fixture.detectChanges();
-
-    const button = findButton(fixture.nativeElement as HTMLElement, 'Nova movimentação com IA');
-
-    expect(button?.disabled).toBe(true);
-    expect(button?.getAttribute('title')).toBe('Selecione uma fazenda para registrar uma movimentação.');
+    expect(fixture.nativeElement.querySelector('gd-floating-action-button')).toBeNull();
   });
 
-  it('should not render the IA transaction button for accountant access', async () => {
-    farmAccessService.getAccess.mockReturnValueOnce(of({
-      ...access,
-      role: 'ACCOUNTANT',
-      permissions: { ...access.permissions, canManageTransactions: false },
-    }));
-    sessionStore.setUser({
-      id: 2,
-      name: 'Contador',
-      email: 'contador@example.com',
-      document: null,
-      userType: 'USER',
-      status: 'ACTIVE',
-    });
-
+  it('should hide the FAB for accountant access without transaction permission', async () => {
+    farmAccessService.getAccess.mockReturnValueOnce(of({ ...access, role: 'ACCOUNTANT', permissions: { ...access.permissions, canManageTransactions: false } }));
+    sessionStore.setUser({ id: 2, name: 'Contador', email: 'contador@example.com', document: null, userType: 'USER', status: 'ACTIVE' });
     const fixture = TestBed.createComponent(AppLayout);
     fixture.detectChanges();
-
     await router.navigateByUrl('/dashboard');
     fixture.detectChanges();
-
-    expect(findButton(fixture.nativeElement as HTMLElement, 'Nova movimentação com IA')).toBeNull();
+    expect(fixture.nativeElement.querySelector('gd-floating-action-button')).toBeNull();
   });
 
   it('should load farms on init and select the first farm', () => {
