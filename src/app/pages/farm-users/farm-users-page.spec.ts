@@ -536,7 +536,11 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     createPage();
 
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    const editButton = findButton(fixture.nativeElement, 'Editar vínculo');
+    expect(editButton?.getAttribute('title')).toBe('Editar vínculo');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('thead th:last-child .sr-only')?.textContent?.trim()).toBe('Ações');
     expect(findButton(fixture.nativeElement, 'Alterar papel')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Inativar vínculo')).toBeUndefined();
   });
@@ -544,7 +548,7 @@ describe('FarmUsersPage', () => {
   it('should open the edit drawer with user data and role select', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const drawer = getDialog('gd-drawer');
     expect(drawer?.classList.contains('sm:max-w-2xl')).toBe(true);
@@ -560,7 +564,7 @@ describe('FarmUsersPage', () => {
   it('should show admin role options without the current role in the edit drawer', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
     expect(form.textContent).not.toContain('Produtor');
@@ -571,7 +575,7 @@ describe('FarmUsersPage', () => {
   it('should update a role and reload the list', async () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     selectInForm('gd-farm-user-role-form', 0, 1);
     submitForm('gd-farm-user-role-form');
 
@@ -587,7 +591,7 @@ describe('FarmUsersPage', () => {
   it('should show the link status section for an active manageable link', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const drawer = getDialog('gd-drawer');
     expect(drawer?.textContent).toContain('Status do Vínculo');
@@ -604,7 +608,7 @@ describe('FarmUsersPage', () => {
     createPage();
 
     expect(fixture.nativeElement.textContent).toContain('Usuário Inativo');
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    expect(findButton(fixture.nativeElement, 'Editar vínculo')).toBeTruthy();
     expect(findButton(fixture.nativeElement, 'Inativar vínculo')).toBeUndefined();
   });
 
@@ -612,7 +616,7 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const drawer = getDialog('gd-drawer');
     expect(drawer?.textContent).toContain('Editar vínculo');
@@ -625,7 +629,7 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
     expect(form.textContent).toContain('Produtor');
@@ -638,7 +642,7 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const drawer = getDialog('gd-drawer');
     expect(drawer?.textContent).toContain('Status do Vínculo');
@@ -652,7 +656,7 @@ describe('FarmUsersPage', () => {
     setupAdminFarm();
     farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     selectInForm('gd-farm-user-role-form', 0, 2);
     submitForm('gd-farm-user-role-form');
 
@@ -668,7 +672,7 @@ describe('FarmUsersPage', () => {
   it('should open the inactivation confirmation over the edit drawer', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
 
     const drawer = getDialog('gd-drawer');
@@ -681,7 +685,7 @@ describe('FarmUsersPage', () => {
   it('should close only the confirmation when cancelling inactivation', async () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
 
     findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Cancelar')?.click();
@@ -696,7 +700,7 @@ describe('FarmUsersPage', () => {
   it('should reload the list and close confirmation plus drawer after inactivation', async () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
 
     findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Inativar')?.click();
@@ -714,7 +718,7 @@ describe('FarmUsersPage', () => {
   it('should close the pending confirmation when manually closing the edit drawer', async () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
 
     clickDialogClose('gd-drawer', 'Fechar drawer');
@@ -727,7 +731,7 @@ describe('FarmUsersPage', () => {
   it('should clear a pending inactivation when manually closing the edit drawer', () => {
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
 
     const staleConfirmButton = findButton(
@@ -747,7 +751,7 @@ describe('FarmUsersPage', () => {
     );
     setupAdminFarm();
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
     clickButton('Inativar vínculo');
     findButton(getDialog('gd-confirm-dialog') as HTMLElement, 'Inativar')?.click();
     fixture.detectChanges();
@@ -853,7 +857,7 @@ describe('FarmUsersPage', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(producerAccess);
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
     expect(form.textContent).not.toContain('Produtor');
@@ -867,7 +871,7 @@ describe('FarmUsersPage', () => {
     farmAccessStore.setAccess(producerAccess);
     farmUserService.listByFarm.mockReturnValueOnce(of(farmUserPage([farmUsers[3]])));
     createPage();
-    clickButton('Editar');
+    clickButton('Editar vínculo');
 
     const form = fixture.nativeElement.querySelector('gd-farm-user-role-form') as HTMLElement;
     expect(form.textContent).not.toContain('Produtor');
@@ -887,7 +891,7 @@ describe('FarmUsersPage', () => {
     ).find((article) => article.textContent?.includes('Produtor Atual'));
 
     expect(ownCard?.textContent).toContain('Seu vínculo — acesso protegido');
-    expect(findButton(ownCard as HTMLElement, 'Editar')).toBeUndefined();
+    expect(findButton(ownCard as HTMLElement, 'Editar vínculo')).toBeUndefined();
     expect(findButton(ownCard as HTMLElement, 'Inativar vínculo')).toBeUndefined();
   });
 
@@ -1012,7 +1016,7 @@ describe('FarmUsersPage', () => {
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }
 

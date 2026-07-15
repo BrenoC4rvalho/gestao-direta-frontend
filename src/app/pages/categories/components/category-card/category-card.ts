@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 import {
   FinancialCategory,
@@ -9,7 +10,7 @@ import { Badge, BadgeVariant, Button } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-category-card',
-  imports: [Badge, Button],
+  imports: [Badge, Button, LucideDynamicIcon],
   templateUrl: './category-card.html',
   host: {
     class: 'block',

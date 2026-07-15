@@ -352,8 +352,16 @@
                 <td class="px-5 py-4">
                   @if (canEditTransaction(transaction)) {
                     <div class="flex flex-wrap gap-2">
-                      <gd-button type="button" size="sm" variant="outline" (click)="openEditDrawer(transaction)">
-                        Editar
+                      <gd-button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        [iconOnly]="true"
+                        ariaLabel="Editar movimentação"
+                        title="Editar movimentação"
+                        (click)="openEditDrawer(transaction)"
+                      >
+                        <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                       </gd-button>
                     </div>
                   } @else {

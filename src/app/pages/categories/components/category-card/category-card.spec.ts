@@ -81,7 +81,13 @@ describe('CategoryCard', () => {
     fixture.componentInstance.editRequested.subscribe(edited);
     fixture.detectChanges();
 
-    findButton(fixture.nativeElement, 'Editar')?.click();
+    const editButton = findButton(fixture.nativeElement, 'Editar categoria');
+
+    expect(editButton?.getAttribute('aria-label')).toBe('Editar categoria');
+    expect(editButton?.getAttribute('title')).toBe('Editar categoria');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+    editButton?.click();
 
     expect(edited).toHaveBeenCalledWith(category);
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
@@ -93,7 +99,7 @@ describe('CategoryCard', () => {
     fixture.componentRef.setInput('category', category);
     fixture.detectChanges();
 
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar categoria')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Inativar')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
   });
@@ -107,6 +113,6 @@ function findBadge(root: HTMLElement, label: string): HTMLElement | undefined {
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }

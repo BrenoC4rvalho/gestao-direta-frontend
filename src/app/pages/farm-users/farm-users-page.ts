@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize, Subscription } from 'rxjs';
 
 import {
@@ -56,6 +57,7 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
     FarmUserForm,
     FarmUserRoleForm,
     ListFilters,
+    LucideDynamicIcon,
     Skeleton,
     StatusActionSection,
   ],

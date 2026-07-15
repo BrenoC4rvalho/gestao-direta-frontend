@@ -799,6 +799,11 @@ describe('TransactionsPage', () => {
     expect(findButton(transactionListRoot(), 'Marcar recebida')).toBeUndefined();
     expect(findButton(transactionListRoot(), 'Cancelar')).toBeUndefined();
 
+    const editButton = findButtonByAccessibleName(transactionListRoot(), 'Editar movimentação');
+    expect(editButton?.getAttribute('title')).toBe('Editar movimentação');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+
     const harvestCell = harvestSeasonText(longHarvestName);
     expect(harvestCell).toBeTruthy();
     expect(harvestCell?.classList.contains('truncate')).toBe(true);
@@ -837,7 +842,7 @@ describe('TransactionsPage', () => {
   it('should prefill harvest season when editing and send null when removed', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
-    clickButton('Editar');
+    clickButton('Editar movimentação');
 
     expect(findSelect('#transaction-harvest-season').value).toContain('10');
 
@@ -951,7 +956,7 @@ describe('TransactionsPage', () => {
   it('should update a transaction and reload', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
-    clickButton('Editar');
+    clickButton('Editar movimentação');
     fillForm('Compra atualizada');
     submitForm();
 
@@ -970,7 +975,7 @@ describe('TransactionsPage', () => {
     expect(findButton(fixture.nativeElement, 'Marcar recebida')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Cancelar')).toBeUndefined();
 
-    clickButton('Editar');
+    clickButton('Editar movimentação');
     expect(findButton(fixture.nativeElement, 'Cancelar movimentação')).toBeTruthy();
 
     clickButton('Cancelar movimentação');
@@ -999,7 +1004,7 @@ describe('TransactionsPage', () => {
     expect(findButton(fixture.nativeElement, 'Cancelar movimentação')).toBeUndefined();
     clickButton('Cancelar');
 
-    clickButton('Editar');
+    clickButton('Editar movimentação');
     clickButton('Cancelar movimentação');
     clickDialogButton('Cancelar movimentação');
 
@@ -1022,7 +1027,7 @@ describe('TransactionsPage', () => {
   it('should close only the top confirmation on Escape when a drawer is open behind it', async () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
-    clickButton('Editar');
+    clickButton('Editar movimentação');
     clickButton('Cancelar movimentação');
 
     pressEscape();
@@ -1270,13 +1275,13 @@ describe('TransactionsPage', () => {
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }
 
 function findButtonByAccessibleName(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }
 

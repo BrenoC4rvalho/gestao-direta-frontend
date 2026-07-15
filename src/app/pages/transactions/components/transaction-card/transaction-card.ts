@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 import {
   FinancialTransaction,
@@ -11,7 +12,7 @@ import { Badge, BadgeVariant, Button, Card } from '../../../../shared/ui';
 
 @Component({
   selector: 'gd-transaction-card',
-  imports: [Badge, BrCurrencyPipe, Button, Card],
+  imports: [Badge, BrCurrencyPipe, Button, Card, LucideDynamicIcon],
   templateUrl: './transaction-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

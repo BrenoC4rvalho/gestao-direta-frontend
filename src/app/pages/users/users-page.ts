@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import { UserStatus, UserType } from '../../core/models/auth.models';
@@ -61,6 +62,7 @@ interface UserActionConfirmation {
     EmptyState,
     ErrorState,
     ListFilters,
+    LucideDynamicIcon,
     Skeleton,
     UserEditForm,
     UserForm,

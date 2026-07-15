@@ -98,7 +98,13 @@ describe('TransactionCard', () => {
   });
 
   it('should emit edit action and hide direct payment or cancellation actions', () => {
-    findButton('Editar')?.click();
+    const editButton = findButton('Editar movimentação');
+
+    expect(editButton?.getAttribute('aria-label')).toBe('Editar movimentação');
+    expect(editButton?.getAttribute('title')).toBe('Editar movimentação');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+    editButton?.click();
 
     expect(fixture.componentInstance.editCount).toBe(1);
     expect(fixture.componentInstance.paidCount).toBe(0);
@@ -114,14 +120,14 @@ describe('TransactionCard', () => {
     fixture.componentInstance.canCancel = false;
     fixture.detectChanges();
 
-    expect(findButton('Editar')).toBeUndefined();
+    expect(findButton('Editar movimentação')).toBeUndefined();
     expect(findButton('Marcar paga')).toBeUndefined();
     expect(findButton('Cancelar')).toBeUndefined();
   });
 
   function findButton(label: string): HTMLButtonElement | undefined {
     return Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
-      (button) => button.textContent?.trim() === label,
+      (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
     );
   }
 });

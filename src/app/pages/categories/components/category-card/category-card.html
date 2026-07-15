@@ -23,15 +23,17 @@
   </div>
 
   @if (canEdit()) {
-    <div class="grid gap-2 border-t border-border pt-4 md:min-w-48 md:border-t-0 md:pt-0">
+    <div class="flex justify-end border-t border-border pt-4 md:min-w-48 md:border-t-0 md:pt-0">
       <gd-button
         type="button"
         variant="outline"
         size="sm"
-        [fullWidth]="true"
+        [iconOnly]="true"
+        ariaLabel="Editar categoria"
+        title="Editar categoria"
         (click)="editCategory()"
       >
-        Editar
+        <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
       </gd-button>
     </div>
   }

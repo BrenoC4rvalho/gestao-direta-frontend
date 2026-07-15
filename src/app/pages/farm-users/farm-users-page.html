@@ -104,15 +104,17 @@
                 Seu vínculo — acesso protegido
               </p>
             } @else if (canShowEditAction(farmUser)) {
-              <div class="mt-5 border-t border-border pt-4">
+              <div class="mt-5 flex justify-end border-t border-border pt-4">
                 <gd-button
                   type="button"
                   size="sm"
                   variant="outline"
-                  [fullWidth]="true"
+                  [iconOnly]="true"
+                  ariaLabel="Editar vínculo"
+                  title="Editar vínculo"
                   (click)="openEditDrawer(farmUser)"
                 >
-                  Editar
+                  <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                 </gd-button>
               </div>
             }
@@ -131,7 +133,7 @@
             <th class="px-5 py-4" scope="col">Papel</th>
             <th class="px-5 py-4" scope="col">Vinculado em</th>
             <th class="px-5 py-4" scope="col">Atualizado em</th>
-            <th class="px-5 py-4" scope="col">Ações</th>
+            <th class="px-5 py-4" scope="col"><span class="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -163,9 +165,12 @@
                     type="button"
                     size="sm"
                     variant="outline"
+                    [iconOnly]="true"
+                    ariaLabel="Editar vínculo"
+                    title="Editar vínculo"
                     (click)="openEditDrawer(farmUser)"
                   >
-                    Editar
+                    <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                   </gd-button>
                 }
               </td>

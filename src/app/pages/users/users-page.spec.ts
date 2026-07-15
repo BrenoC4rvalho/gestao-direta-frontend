@@ -168,7 +168,7 @@ describe('UsersPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Nenhuma fazenda selecionada');
     expect(userService.list).not.toHaveBeenCalled();
     expect(findButton(fixture.nativeElement, 'Novo usuário')).toBeUndefined();
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar usuário')).toBeUndefined();
   });
 
   it('should deny access without calling the API for a non-admin user without permission', () => {
@@ -207,7 +207,11 @@ describe('UsersPage', () => {
     expect(text).toContain('João Souza');
     expect(text).toContain('Usuário');
     expect(text).toContain('Bloqueado');
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeTruthy();
+    const editButton = findButton(fixture.nativeElement, 'Editar usuário');
+    expect(editButton?.getAttribute('title')).toBe('Editar usuário');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('thead th:last-child .sr-only')?.textContent?.trim()).toBe('Ações');
     expect(findButton(fixture.nativeElement, 'Ativar')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Bloquear')).toBeUndefined();
     expect(findButton(fixture.nativeElement, 'Tornar administrador')).toBeUndefined();
@@ -463,7 +467,7 @@ describe('UsersPage', () => {
 
     expect(userService.list).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Criação de usuários disponível');
-    expect(findButton(fixture.nativeElement, 'Editar')).toBeUndefined();
+    expect(findButton(fixture.nativeElement, 'Editar usuário')).toBeUndefined();
 
     openCreateDrawer();
     fillProducerForm();
@@ -804,7 +808,7 @@ describe('UsersPage', () => {
       throw new Error(`User not found: ${userName}`);
     }
 
-    findButton(container, 'Editar')?.click();
+    findButton(container, 'Editar usuário')?.click();
     fixture.detectChanges();
   }
 
@@ -876,7 +880,7 @@ describe('UsersPage', () => {
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return Array.from(root.querySelectorAll('button')).find(
-    (button) => button.textContent?.trim() === label,
+    (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
   );
 }
 

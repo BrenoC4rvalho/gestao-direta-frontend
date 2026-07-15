@@ -183,7 +183,11 @@ describe('ProductionActivitiesPage', () => {
     expect(getListFilters().textContent).not.toContain('Nova atividade produtiva');
     expect(text).toContain('Ativa');
     expect(text).toContain('Inativa');
-    expect(findButton('Editar')).toBeTruthy();
+    const editButton = findButton('Editar atividade produtiva');
+    expect(editButton?.getAttribute('title')).toBe('Editar atividade produtiva');
+    expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('thead th:last-child .sr-only')?.textContent?.trim()).toBe('Ações');
     expect(findButton('Inativar')).toBeUndefined();
     expect(findButton('Ativar')).toBeUndefined();
   });
@@ -215,7 +219,7 @@ describe('ProductionActivitiesPage', () => {
       status: null,
     });
     expect(findButton('Nova atividade produtiva')).toBeTruthy();
-    expect(findButton('Editar')).toBeTruthy();
+    expect(findButton('Editar atividade produtiva')).toBeTruthy();
   });
 
   it('should allow employees to view without management actions', () => {
@@ -227,7 +231,7 @@ describe('ProductionActivitiesPage', () => {
     expect(service.list).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Soja');
     expect(findButton('Nova atividade produtiva')).toBeUndefined();
-    expect(findButton('Editar')).toBeUndefined();
+    expect(findButton('Editar atividade produtiva')).toBeUndefined();
   });
 
   it('should show loading state', () => {
@@ -396,7 +400,7 @@ describe('ProductionActivitiesPage', () => {
   it('should open edit drawer with selected activity and call update when saving', async () => {
     createPage();
 
-    clickButton('Editar');
+    clickButton('Editar atividade produtiva');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
     expect(getPageHarness().drawerOpen()).toBe(true);
@@ -417,7 +421,7 @@ describe('ProductionActivitiesPage', () => {
   it('should show status action without current status card in the edit drawer for active activities', async () => {
     createPage();
 
-    clickButton('Editar');
+    clickButton('Editar atividade produtiva');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
 
@@ -433,7 +437,7 @@ describe('ProductionActivitiesPage', () => {
   it('should open confirmation and call inactivate from the edit drawer for active activities', async () => {
     createPage();
 
-    clickButton('Editar');
+    clickButton('Editar atividade produtiva');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
     clickButton('Inativar');
@@ -452,7 +456,7 @@ describe('ProductionActivitiesPage', () => {
   it('should show status action without current status card in the edit drawer for inactive activities', async () => {
     createPage();
 
-    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar');
+    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar atividade produtiva');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
 
@@ -468,7 +472,7 @@ describe('ProductionActivitiesPage', () => {
   it('should open confirmation and call activate from the edit drawer for inactive activities', async () => {
     createPage();
 
-    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar');
+    clickButtonIn(getActivityCard('Gado de leite') as HTMLElement, 'Editar atividade produtiva');
     await wait(drawerAnimationDurationMs + 10);
     fixture.detectChanges();
     clickButton('Ativar');
@@ -545,7 +549,7 @@ describe('ProductionActivitiesPage', () => {
 
   function clickButtonIn(container: HTMLElement, label: string): void {
     Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent?.trim() === label)
+      .find((button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
       ?.click();
     fixture.detectChanges();
   }
@@ -554,7 +558,7 @@ describe('ProductionActivitiesPage', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     return Array.from(element.querySelectorAll('button')).find(
-      (button) => button.textContent?.trim() === label,
+      (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
     );
   }
 

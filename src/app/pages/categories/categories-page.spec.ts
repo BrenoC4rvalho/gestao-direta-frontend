@@ -209,7 +209,7 @@ describe('CategoriesPage', () => {
     createPage();
 
     expect(findButton('Nova categoria')).toBeTruthy();
-    expect(findButton('Editar')).toBeTruthy();
+    expect(findButton('Editar categoria')).toBeTruthy();
   });
 
   it('should let accountant view without management actions', () => {
@@ -228,7 +228,7 @@ describe('CategoriesPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Adubo');
     expect(findButton('Nova categoria')).toBeUndefined();
-    expect(findButton('Editar')).toBeUndefined();
+    expect(findButton('Editar categoria')).toBeUndefined();
   });
 
   function createPage(): void {
@@ -247,6 +247,6 @@ describe('CategoriesPage', () => {
 
   function findButton(label: string): HTMLButtonElement | undefined {
     const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
-    return Array.from(buttons).find((button) => button.textContent?.trim() === label);
+    return Array.from(buttons).find((button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label);
   }
 });
