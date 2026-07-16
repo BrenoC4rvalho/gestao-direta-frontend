@@ -32,7 +32,7 @@ export class SummaryCard {
   protected articleClasses(): string {
     const densityClasses =
       this.density() === 'compact'
-        ? 'min-h-[104px] gap-3 p-4'
+        ? 'min-h-[100px] gap-2 p-4'
         : 'min-h-[128px] gap-5 p-6';
 
     return [
@@ -64,7 +64,7 @@ export class SummaryCard {
 
   protected valueClasses(): string {
     return this.density() === 'compact'
-      ? 'break-words text-lg font-semibold leading-tight text-text-primary'
+      ? 'min-w-0 truncate whitespace-nowrap text-lg font-semibold leading-tight text-text-primary xl:text-xl'
       : 'break-words text-2xl font-semibold leading-tight text-text-primary';
   }
 

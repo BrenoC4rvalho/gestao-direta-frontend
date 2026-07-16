@@ -306,9 +306,31 @@ describe('HarvestsPage', () => {
 
     const content = text();
 
-    expect(content).toContain('Custo realizado');
-    expect(content).toContain('Receita realizada');
-    expect(content).toContain('Lucro realizado');
+    for (const label of [
+      'Safras ativas',
+      'Custo planejado',
+      'Receita planejada',
+      'Lucro planejado',
+      'Custo realizado',
+      'Receita realizada',
+      'Lucro realizado',
+      'Custo projetado',
+      'Receita projetada',
+      'Lucro projetado',
+      'Desempenho do lucro',
+      'Desvio de custo',
+    ]) {
+      expect(content).toContain(label);
+    }
+    const summaryHeadings = Array.from(
+      fixture.nativeElement.querySelectorAll('section[aria-label="Resumo financeiro das safras"] h2') as NodeListOf<HTMLHeadingElement>,
+    ).map((heading) => heading.textContent?.trim());
+
+    expect(summaryHeadings).not.toContain('Visão geral');
+    expect(summaryHeadings).not.toContain('Planejamento');
+    expect(summaryHeadings).not.toContain('Realizado');
+    expect(summaryHeadings).not.toContain('Projeção atual');
+    expect(summaryHeadings).not.toContain('Comparação');
     expect(content).toContain('Resultado financeiro');
     expect(content).toContain('Pendencias e movimentacoes');
     expect(content).toContain('72.500,00');
@@ -317,6 +339,26 @@ describe('HarvestsPage', () => {
     expect(content).toContain('18.000,00');
     expect(content).toContain('6.000,00');
     expect(content).toContain('6');
+  });
+
+  it('should keep comparison cards for not-applicable summary values', () => {
+    harvestService.getFinancialSummary.mockReturnValueOnce(of({
+      ...financialSummary,
+      comparison: {
+        profitPerformancePercentage: null,
+        profitPerformanceStatus: 'NOT_APPLICABLE',
+        costVarianceAmount: -27500,
+        costVariancePercentage: null,
+        costVarianceStatus: 'NOT_APPLICABLE',
+      },
+    }));
+
+    setupSelectedFarm('PRODUCER');
+
+    expect(text()).toContain('Desempenho do lucro');
+    expect(text()).toContain('Desvio de custo');
+    expect(text()).toContain('Não aplicável');
+    expect(text()).toContain('Custo planejado igual a zero');
   });
 
   it('should show an error state and finish loading when the API fails', () => {

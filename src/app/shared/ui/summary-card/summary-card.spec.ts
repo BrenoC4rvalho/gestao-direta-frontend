@@ -141,12 +141,14 @@ describe('SummaryCard', () => {
     );
     const button = article.querySelector('button') as HTMLButtonElement;
 
-    expect(article.className).toContain('min-h-[104px]');
+    expect(article.className).toContain('min-h-[100px]');
     expect(article.className).toContain('p-4');
-    expect(article.className).toContain('gap-3');
+    expect(article.className).toContain('gap-2');
     expect(icon.className).toContain('size-9');
     expect(title?.className).toContain('text-xs');
     expect(value?.className).toContain('text-lg');
+    expect(value?.className).toContain('whitespace-nowrap');
+    expect(value?.className).toContain('truncate');
     expect(meta?.className).toContain('text-xs');
     expect(button.className).toContain('size-7');
     expect(visibleCardText(fixture)).not.toContain(description);

@@ -75,7 +75,6 @@ interface HarvestFormControls {
 }
 
 interface HarvestSummaryCard {
-  section: string;
   label: string;
   value: string;
   detail: string;
@@ -262,21 +261,20 @@ export class HarvestsPage {
     const profitApplicable = summary.comparison.profitPerformancePercentage !== null && profitStatus !== 'NOT_APPLICABLE';
     const costApplicable = summary.comparison.costVariancePercentage !== null && costStatus !== 'NOT_APPLICABLE';
     return [
-      { section: 'Visão geral', label: 'Safras ativas', value: String(summary.activeHarvestCount), detail: 'Planejadas e em andamento', description: 'Quantidade de safras planejadas ou em andamento dentro dos filtros aplicados.', icon: 'sprout', tone: 'neutral' },
-      { section: 'Planejamento', label: 'Custo planejado', value: money(summary.planning.plannedCost), detail: 'Total planejado', description: 'Soma dos custos planejados informados nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
-      { section: 'Planejamento', label: 'Receita planejada', value: money(summary.planning.plannedRevenue), detail: 'Total planejado', description: 'Soma das receitas planejadas informadas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
-      { section: 'Planejamento', label: 'Lucro planejado', value: money(summary.planning.plannedProfit), detail: 'Receita menos custo', description: 'Receita planejada menos custo planejado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.planning.plannedProfit) },
-      { section: 'Realizado', label: 'Custo realizado', value: money(summary.realized.realizedCost), detail: 'Despesas já pagas', description: 'Despesas já pagas nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
-      { section: 'Realizado', label: 'Receita realizada', value: money(summary.realized.realizedRevenue), detail: 'Receitas já recebidas', description: 'Receitas já recebidas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
-      { section: 'Realizado', label: 'Lucro realizado', value: money(summary.realized.realizedProfit), detail: 'Receita menos custo', description: 'Receita realizada menos custo realizado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.realized.realizedProfit) },
-      { section: 'Projeção atual', label: 'Custo projetado', value: money(summary.projection.projectedCost), detail: 'Realizado e em aberto', description: 'Custo realizado somado às despesas ainda em aberto.', icon: 'briefcase-business', tone: 'warning' },
-      { section: 'Projeção atual', label: 'Receita projetada', value: money(summary.projection.projectedRevenue), detail: 'Realizado e em aberto', description: 'Receita realizada somada às receitas ainda em aberto.', icon: 'trending-up', tone: 'success' },
-      { section: 'Projeção atual', label: 'Lucro projetado', value: money(summary.projection.projectedProfit), detail: 'Receita menos custo', description: 'Receita projetada menos custo projetado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.projection.projectedProfit) },
-      { section: 'Comparação', label: 'Desempenho do lucro', value: profitApplicable ? this.formatPercentage(summary.comparison.profitPerformancePercentage) : 'Não aplicável', detail: this.profitPerformanceLabel(profitStatus), description: 'Compara o lucro realizado com o lucro planejado.', icon: 'chart-no-axes-column-increasing', tone: this.comparisonTone(profitStatus, false) },
-      { section: 'Comparação', label: 'Desvio de custo', value: money(summary.comparison.costVarianceAmount), detail: costApplicable ? `${this.formatPercentage(Math.abs(summary.comparison.costVariancePercentage ?? 0))} ${this.costVarianceLabel(costStatus).toLowerCase()}` : 'Custo planejado igual a zero', description: 'Diferença entre o custo realizado e o custo planejado.', icon: 'badge-dollar-sign', tone: this.comparisonTone(costStatus, true) },
+      { label: 'Safras ativas', value: String(summary.activeHarvestCount), detail: 'Planejadas e em andamento', description: 'Quantidade de safras planejadas ou em andamento dentro dos filtros aplicados.', icon: 'sprout', tone: 'neutral' },
+      { label: 'Custo planejado', value: money(summary.planning.plannedCost), detail: 'Total planejado', description: 'Soma dos custos planejados informados nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
+      { label: 'Receita planejada', value: money(summary.planning.plannedRevenue), detail: 'Total planejado', description: 'Soma das receitas planejadas informadas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
+      { label: 'Lucro planejado', value: money(summary.planning.plannedProfit), detail: 'Receita menos custo', description: 'Receita planejada menos custo planejado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.planning.plannedProfit) },
+      { label: 'Custo realizado', value: money(summary.realized.realizedCost), detail: 'Despesas já pagas', description: 'Despesas já pagas nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
+      { label: 'Receita realizada', value: money(summary.realized.realizedRevenue), detail: 'Receitas já recebidas', description: 'Receitas já recebidas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
+      { label: 'Lucro realizado', value: money(summary.realized.realizedProfit), detail: 'Receita menos custo', description: 'Receita realizada menos custo realizado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.realized.realizedProfit) },
+      { label: 'Custo projetado', value: money(summary.projection.projectedCost), detail: 'Realizado e em aberto', description: 'Custo realizado somado às despesas ainda em aberto.', icon: 'briefcase-business', tone: 'warning' },
+      { label: 'Receita projetada', value: money(summary.projection.projectedRevenue), detail: 'Realizado e em aberto', description: 'Receita realizada somada às receitas ainda em aberto.', icon: 'trending-up', tone: 'success' },
+      { label: 'Lucro projetado', value: money(summary.projection.projectedProfit), detail: 'Receita menos custo', description: 'Receita projetada menos custo projetado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.projection.projectedProfit) },
+      { label: 'Desempenho do lucro', value: profitApplicable ? this.formatPercentage(summary.comparison.profitPerformancePercentage) : 'Não aplicável', detail: this.profitPerformanceLabel(profitStatus), description: 'Compara o lucro realizado com o lucro planejado.', icon: 'chart-no-axes-column-increasing', tone: this.comparisonTone(profitStatus, false) },
+      { label: 'Desvio de custo', value: money(summary.comparison.costVarianceAmount), detail: costApplicable ? `${this.formatPercentage(Math.abs(summary.comparison.costVariancePercentage ?? 0))} ${this.costVarianceLabel(costStatus).toLowerCase()}` : 'Custo planejado igual a zero', description: 'Diferença entre o custo realizado e o custo planejado.', icon: 'badge-dollar-sign', tone: this.comparisonTone(costStatus, true) },
     ];
   });
-  protected readonly summarySections = computed(() => ['Visão geral', 'Planejamento', 'Realizado', 'Projeção atual', 'Comparação'].map((title) => ({ title, cards: this.summaryCards().filter((card) => card.section === title) })));
   protected readonly drawerTitle = 'Nova safra';
   protected readonly drawerDescription = 'Cadastre uma safra vinculada à fazenda selecionada.';
 
@@ -596,7 +594,7 @@ export class HarvestsPage {
   }
 
   private profitPerformanceLabel(status: string): string {
-    return ({ ABOVE_PLANNED: 'Acima do lucro planejado', BELOW_PLANNED: 'Abaixo do lucro planejado', ON_TARGET: 'Dentro do lucro planejado', NOT_APPLICABLE: 'Lucro planejado igual a zero' } as Record<string, string>)[status] ?? 'Não aplicável';
+    return ({ ABOVE_PLANNED: 'Acima do planejado', BELOW_PLANNED: 'Abaixo do planejado', ON_TARGET: 'Dentro do planejado', NOT_APPLICABLE: 'Lucro planejado igual a zero' } as Record<string, string>)[status] ?? 'Não aplicável';
   }
 
   private costVarianceLabel(status: string): string {
