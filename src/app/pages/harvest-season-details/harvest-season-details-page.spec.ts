@@ -39,23 +39,31 @@ const harvest: HarvestSeason = {
 };
 
 const summary: HarvestSeasonDetailSummary = {
-  planning: { plannedCost: 90000, plannedRevenue: 150000, plannedProfit: 60000 },
-  realized: { realizedCost: 72500, realizedRevenue: 150000, realizedProfit: -2500 },
-  projection: { projectedCost: 96000, projectedRevenue: 175000, projectedProfit: 79000 },
+  harvestSeasonId: 25,
+  harvestSeasonName: 'Café 2026/2027',
+  productionActivityId: 25,
+  productionActivityName: 'Café',
+  farmId: 8,
+  farmName: 'Fazenda Boa Sorte',
+  areaHectares: 48,
+  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000 },
+  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0 },
+  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800 },
   comparison: {
-    profitPerformancePercentage: null,
-    profitPerformanceStatus: 'NOT_APPLICABLE',
-    costVarianceAmount: -6000,
-    costVariancePercentage: -6.67,
+    profitPerformanceAmount: -38200,
+    profitPerformancePercentage: -57.01,
+    profitPerformanceStatus: 'BELOW_PLANNED',
+    costVarianceAmount: -98800,
+    costVariancePercentage: -77.19,
     costVarianceStatus: 'BELOW_PLANNED',
   },
   openAmounts: {
-    payable: { count: 2, totalAmount: 18000 },
-    receivable: { count: 1, totalAmount: 25000 },
-    overduePayable: { count: 1, totalAmount: 6000 },
-    overdueReceivable: { count: 1, totalAmount: 3000 },
+    pending: { payableAmount: 29200, receivableAmount: 58000 },
+    overdue: { payableAmount: 0, receivableAmount: 0 },
   },
-  transactionCount: 42,
+  transactionCount: 3,
+  incomeCount: 1,
+  expenseCount: 2,
 };
 
 const transaction: FinancialTransaction = {
@@ -200,15 +208,15 @@ describe('HarvestSeasonDetailsPage', () => {
       'Vencidas a pagar',
       'Vencidas a receber',
     ]);
-    expect(text()).toContain('2.500,00');
-    expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 42');
+    expect(text()).toContain('98.800,00');
+    expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
     expect(text()).not.toContain('Indicadores por hectare');
     expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');
     expect(sectionHeadingTexts()).toEqual([
       'Resumo financeiro',
       'Informações da safra',
-      'Movimentações vinculadas · 42',
+      'Movimentações vinculadas · 3',
     ]);
   });
 
@@ -269,42 +277,21 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).not.toContain('Movimentações vinculadas · 1');
   });
 
-  it('should map pending cards from the exact openAmounts contract fields', () => {
+  it('should render pending and overdue amounts without counts', () => {
     setupUser('PRODUCER');
     createComponent();
 
     const cards = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
     );
-    const valueFor = (title: string) =>
+    const cardText = (title: string) =>
       cards.find((card) => card.textContent?.includes(title))?.textContent ?? '';
 
-    expect(valueFor('A pagar')).toContain('18.000,00');
-    expect(valueFor('A receber')).toContain('25.000,00');
-    expect(valueFor('Vencidas a pagar')).toContain('6.000,00');
-    expect(valueFor('Vencidas a receber')).toContain('3.000,00');
-  });
-
-  it('should keep amountCard safe while an amount is temporarily undefined', () => {
-    setupUser('PRODUCER');
-    createComponent();
-
-    const component = fixture.componentInstance as unknown as {
-      amountCard(
-        title: string,
-        amount: undefined,
-        description: string,
-        icon: string,
-        tone: 'warning',
-      ): { value: string; detail?: string };
-    };
-
-    expect(
-      component.amountCard('A pagar', undefined, 'Descrição', 'calendar-clock', 'warning'),
-    ).toMatchObject({
-      value: expect.stringContaining('0,00'),
-      detail: '0 contas',
-    });
+    expect(cardText('A pagar')).toContain('29.200,00');
+    expect(cardText('A receber')).toContain('58.000,00');
+    expect(cardText('Vencidas a pagar')).toContain('0,00');
+    expect(cardText('Vencidas a receber')).toContain('0,00');
+    expect(cardText('A pagar')).not.toContain('2 contas');
   });
 
   it('should use a positive tone for cost below planned', () => {

@@ -39,23 +39,31 @@ const season: HarvestSeason = {
 };
 
 const summary: HarvestSeasonDetailSummary = {
-  planning: { plannedCost: 90000, plannedRevenue: 150000, plannedProfit: 60000 },
-  realized: { realizedCost: 72500, realizedRevenue: 150000, realizedProfit: 77500 },
-  projection: { projectedCost: 96000, projectedRevenue: 175000, projectedProfit: 79000 },
+  harvestSeasonId: 25,
+  harvestSeasonName: 'Café 2026/2027',
+  productionActivityId: 25,
+  productionActivityName: 'Café',
+  farmId: 8,
+  farmName: 'Fazenda Boa Sorte',
+  areaHectares: 48,
+  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000 },
+  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0 },
+  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800 },
   comparison: {
-    profitPerformancePercentage: 31.67,
-    profitPerformanceStatus: 'ABOVE_PLANNED',
-    costVarianceAmount: -6000,
-    costVariancePercentage: -6.67,
+    profitPerformanceAmount: -38200,
+    profitPerformancePercentage: -57.01,
+    profitPerformanceStatus: 'BELOW_PLANNED',
+    costVarianceAmount: -98800,
+    costVariancePercentage: -77.19,
     costVarianceStatus: 'BELOW_PLANNED',
   },
   openAmounts: {
-    payable: { count: 2, totalAmount: 18000 },
-    receivable: { count: 1, totalAmount: 25000 },
-    overduePayable: { count: 1, totalAmount: 6000 },
-    overdueReceivable: { count: 1, totalAmount: 3000 },
+    pending: { payableAmount: 29200, receivableAmount: 58000 },
+    overdue: { payableAmount: 0, receivableAmount: 0 },
   },
-  transactionCount: 42,
+  transactionCount: 3,
+  incomeCount: 1,
+  expenseCount: 2,
 };
 
 const financialSummary: HarvestSeasonFinancialSummary = {
@@ -294,7 +302,9 @@ describe('HarvestSeasonService', () => {
 
   it('should reject an incomplete detail summary response', () => {
     service.getSummary(1).subscribe({
-      next: () => { throw new Error('Expected the invalid summary to be rejected.'); },
+      next: () => {
+        throw new Error('Expected the invalid summary to be rejected.');
+      },
       error: (error: unknown) =>
         expect(error).toBeInstanceOf(InvalidHarvestSeasonDetailSummaryError),
     });

@@ -98,8 +98,23 @@ export class HarvestSeasonService {
       this.isRealizedSummary(value['realized']) &&
       this.isProjectionSummary(value['projection']) &&
       this.isComparisonSummary(value['comparison']) &&
+      this.hasDetailMetadata(value) &&
       this.isOpenAmountsSummary(value['openAmounts']) &&
-      typeof value['transactionCount'] === 'number'
+      typeof value['transactionCount'] === 'number' &&
+      typeof value['incomeCount'] === 'number' &&
+      typeof value['expenseCount'] === 'number'
+    );
+  }
+
+  private hasDetailMetadata(value: Record<string, unknown>): boolean {
+    return (
+      typeof value['harvestSeasonId'] === 'number' &&
+      typeof value['harvestSeasonName'] === 'string' &&
+      typeof value['productionActivityId'] === 'number' &&
+      typeof value['productionActivityName'] === 'string' &&
+      typeof value['farmId'] === 'number' &&
+      typeof value['farmName'] === 'string' &&
+      (typeof value['areaHectares'] === 'number' || value['areaHectares'] === null)
     );
   }
 
@@ -123,6 +138,7 @@ export class HarvestSeasonService {
     return (
       (typeof value['profitPerformancePercentage'] === 'number' ||
         value['profitPerformancePercentage'] === null) &&
+      typeof value['profitPerformanceAmount'] === 'number' &&
       typeof value['profitPerformanceStatus'] === 'string' &&
       typeof value['costVarianceAmount'] === 'number' &&
       (typeof value['costVariancePercentage'] === 'number' ||
@@ -136,12 +152,10 @@ export class HarvestSeasonService {
       return false;
     }
 
-    return [
-      value['payable'],
-      value['receivable'],
-      value['overduePayable'],
-      value['overdueReceivable'],
-    ].every((amount) => this.hasNumericFields(amount, ['count', 'totalAmount']));
+    return (
+      this.hasNumericFields(value['pending'], ['payableAmount', 'receivableAmount']) &&
+      this.hasNumericFields(value['overdue'], ['payableAmount', 'receivableAmount'])
+    );
   }
 
   private hasNumericFields(value: unknown, fields: readonly string[]): boolean {

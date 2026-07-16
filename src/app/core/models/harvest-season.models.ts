@@ -1,5 +1,4 @@
 import { PageRequest } from './page-response.model';
-import { FinancialAmountSummary } from './financial.models';
 
 export type HarvestSeasonStatus = 'PLANNED' | 'IN_PROGRESS' | 'FINISHED' | 'INACTIVE';
 
@@ -101,19 +100,19 @@ export interface HarvestSeasonFilters {
   endDate?: string | null;
 }
 
-export interface HarvestPlanningSummary {
+export interface HarvestSeasonPlanningSummary {
   plannedCost: number;
   plannedRevenue: number;
   plannedProfit: number;
 }
 
-export interface HarvestRealizedSummary {
+export interface HarvestSeasonRealizedSummary {
   realizedCost: number;
   realizedRevenue: number;
   realizedProfit: number;
 }
 
-export interface HarvestProjectionSummary {
+export interface HarvestSeasonProjectionSummary {
   projectedCost: number;
   projectedRevenue: number;
   projectedProfit: number;
@@ -122,6 +121,18 @@ export interface HarvestProjectionSummary {
 export type HarvestComparisonStatus =
   'ABOVE_PLANNED' | 'BELOW_PLANNED' | 'ON_TARGET' | 'NOT_APPLICABLE' | string;
 
+export interface HarvestSeasonComparisonSummary {
+  profitPerformanceAmount: number;
+  profitPerformancePercentage: number | null;
+  profitPerformanceStatus: HarvestComparisonStatus;
+  costVarianceAmount: number;
+  costVariancePercentage: number | null;
+  costVarianceStatus: HarvestComparisonStatus;
+}
+
+export type HarvestPlanningSummary = HarvestSeasonPlanningSummary;
+export type HarvestRealizedSummary = HarvestSeasonRealizedSummary;
+export type HarvestProjectionSummary = HarvestSeasonProjectionSummary;
 export interface HarvestComparisonSummary {
   profitPerformancePercentage: number | null;
   profitPerformanceStatus: HarvestComparisonStatus;
@@ -139,18 +150,35 @@ export interface HarvestSeasonFinancialSummary {
   comparison: HarvestComparisonSummary;
 }
 
+export interface HarvestSeasonPendingAmountsSummary {
+  payableAmount: number;
+  receivableAmount: number;
+}
+
+export interface HarvestSeasonOverdueAmountsSummary {
+  payableAmount: number;
+  receivableAmount: number;
+}
+
 export interface HarvestSeasonOpenAmountsSummary {
-  payable: FinancialAmountSummary;
-  receivable: FinancialAmountSummary;
-  overduePayable: FinancialAmountSummary;
-  overdueReceivable: FinancialAmountSummary;
+  pending: HarvestSeasonPendingAmountsSummary;
+  overdue: HarvestSeasonOverdueAmountsSummary;
 }
 
 export interface HarvestSeasonDetailSummary {
-  planning: HarvestPlanningSummary;
-  realized: HarvestRealizedSummary;
-  projection: HarvestProjectionSummary;
-  comparison: HarvestComparisonSummary;
+  harvestSeasonId: number;
+  harvestSeasonName: string;
+  productionActivityId: number;
+  productionActivityName: string;
+  farmId: number;
+  farmName: string;
+  areaHectares: number | null;
+  planning: HarvestSeasonPlanningSummary;
+  realized: HarvestSeasonRealizedSummary;
+  projection: HarvestSeasonProjectionSummary;
+  comparison: HarvestSeasonComparisonSummary;
   openAmounts: HarvestSeasonOpenAmountsSummary;
   transactionCount: number;
+  incomeCount: number;
+  expenseCount: number;
 }

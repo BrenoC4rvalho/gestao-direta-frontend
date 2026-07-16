@@ -28,7 +28,6 @@ import {
   HarvestSeasonDetailSummary,
   UpdateHarvestSeasonRequest,
 } from '../../core/models/harvest-season.models';
-import { FinancialAmountSummary } from '../../core/models/financial.models';
 import {
   FinancialTransaction,
   PaymentStatus,
@@ -201,9 +200,15 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
     const { planning, realized, projection, comparison, openAmounts } = summary;
 
-    if (!openAmounts) {
+    const pending = openAmounts?.pending;
+    const overdue = openAmounts?.overdue;
+
+    if (!pending || !overdue) {
       return [];
     }
+
+    const payableAmount = pending.payableAmount + overdue.payableAmount;
+    const receivableAmount = pending.receivableAmount + overdue.receivableAmount;
 
     return [
       this.currencyCard(
@@ -285,30 +290,30 @@ export class HarvestSeasonDetailsPage implements OnInit {
         icon: 'chart-spline',
         tone: this.costVarianceTone(comparison.costVarianceStatus),
       },
-      this.amountCard(
+      this.moneyCard(
         'A pagar',
-        openAmounts.payable,
+        payableAmount,
         'Total de contas em aberto a pagar.',
         'calendar-clock',
         'warning',
       ),
-      this.amountCard(
+      this.moneyCard(
         'A receber',
-        openAmounts.receivable,
+        receivableAmount,
         'Total de contas em aberto a receber.',
         'calendar-clock',
         'success',
       ),
-      this.amountCard(
+      this.moneyCard(
         'Vencidas a pagar',
-        openAmounts.overduePayable,
+        overdue.payableAmount,
         'Total de contas vencidas a pagar.',
         'alert-circle',
         'warning',
       ),
-      this.amountCard(
+      this.moneyCard(
         'Vencidas a receber',
-        openAmounts.overdueReceivable,
+        overdue.receivableAmount,
         'Total de contas vencidas a receber.',
         'alert-circle',
         'success',
@@ -613,21 +618,14 @@ export class HarvestSeasonDetailsPage implements OnInit {
     return this.currencyCard(title, amount, description, icon, this.profitTone(amount));
   }
 
-  private amountCard(
+  private moneyCard(
     title: string,
-    amount: FinancialAmountSummary | null | undefined,
+    amount: number,
     description: string,
     icon: string,
     tone: SummaryCardTone,
   ): DetailSummaryCard {
-    return {
-      title,
-      value: this.currencyLabel(amount?.totalAmount ?? 0),
-      description,
-      detail: this.countLabel(amount?.count ?? 0),
-      icon,
-      tone,
-    };
+    return { title, value: this.currencyLabel(amount), description, icon, tone };
   }
 
   private profitTone(value: number): SummaryCardTone {
