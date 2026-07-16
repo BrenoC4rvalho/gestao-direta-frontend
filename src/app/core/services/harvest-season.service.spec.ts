@@ -7,13 +7,16 @@ import {
   CreateHarvestSeasonRequest,
   HarvestSeason,
   HarvestSeasonFinancialSummary,
-  HarvestSeasonSummary,
+  HarvestSeasonDetailSummary,
   HarvestSeasonSummaryListItem,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
 
-import { HarvestSeasonService } from './harvest-season.service';
+import {
+  HarvestSeasonService,
+  InvalidHarvestSeasonDetailSummaryError,
+} from './harvest-season.service';
 
 const apiUrl = 'http://localhost:8080/api/harvest/seasons';
 
@@ -35,29 +38,24 @@ const season: HarvestSeason = {
   updatedAt: '2026-06-21T10:00:00',
 };
 
-const summary: HarvestSeasonSummary = {
-  harvestSeasonId: 1,
-  harvestSeasonName: 'Safra Soja 2026',
-  productionActivityId: 2,
-  productionActivityName: 'Soja',
-  farmId: 10,
-  farmName: 'Fazenda Boa Safra',
-  expectedCost: 90000,
-  expectedRevenue: 150000,
-  expectedProfit: 60000,
-  realizedCost: 72500,
-  realizedRevenue: 150000,
-  realizedProfit: 77500,
-  pendingExpenses: 18000,
-  overdueExpenses: 6000,
-  pendingRevenue: 25000,
+const summary: HarvestSeasonDetailSummary = {
+  planning: { plannedCost: 90000, plannedRevenue: 150000, plannedProfit: 60000 },
+  realized: { realizedCost: 72500, realizedRevenue: 150000, realizedProfit: 77500 },
+  projection: { projectedCost: 96000, projectedRevenue: 175000, projectedProfit: 79000 },
+  comparison: {
+    profitPerformancePercentage: 31.67,
+    profitPerformanceStatus: 'ABOVE_PLANNED',
+    costVarianceAmount: -6000,
+    costVariancePercentage: -6.67,
+    costVarianceStatus: 'BELOW_PLANNED',
+  },
+  openAmounts: {
+    payable: { count: 2, totalAmount: 18000 },
+    receivable: { count: 1, totalAmount: 25000 },
+    overduePayable: { count: 1, totalAmount: 6000 },
+    overdueReceivable: { count: 1, totalAmount: 3000 },
+  },
   transactionCount: 42,
-  incomeCount: 8,
-  expenseCount: 34,
-  areaHectares: 120.5,
-  costPerHectare: 601.66,
-  revenuePerHectare: 1244.81,
-  profitPerHectare: 643.15,
 };
 
 const financialSummary: HarvestSeasonFinancialSummary = {
@@ -66,7 +64,13 @@ const financialSummary: HarvestSeasonFinancialSummary = {
   planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000 },
   realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500 },
   projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500 },
-  comparison: { profitPerformancePercentage: 12.5, profitPerformanceStatus: 'ABOVE_PLANNED', costVarianceAmount: -27500, costVariancePercentage: -21.15, costVarianceStatus: 'BELOW_PLANNED' },
+  comparison: {
+    profitPerformancePercentage: 12.5,
+    profitPerformanceStatus: 'ABOVE_PLANNED',
+    costVarianceAmount: -27500,
+    costVariancePercentage: -21.15,
+    costVarianceStatus: 'BELOW_PLANNED',
+  },
 };
 
 const response: PageResponse<HarvestSeason> = {
@@ -249,7 +253,16 @@ describe('HarvestSeasonService', () => {
   });
 
   it('should call financial summary with filters and without pagination', () => {
-    service.getFinancialSummary({ farmId: 10, search: 'soja', statuses: ['PLANNED', 'IN_PROGRESS'], productionActivityIds: [2, 3], startDate: '2026-01-01', endDate: '2026-12-31' }).subscribe((result) => expect(result).toEqual(financialSummary));
+    service
+      .getFinancialSummary({
+        farmId: 10,
+        search: 'soja',
+        statuses: ['PLANNED', 'IN_PROGRESS'],
+        productionActivityIds: [2, 3],
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+      })
+      .subscribe((result) => expect(result).toEqual(financialSummary));
     const request = http.expectOne((req) => req.url === apiUrl + '/summary');
     expect(request.request.params.get('farmId')).toBe('10');
     expect(request.request.params.get('search')).toBe('soja');
@@ -277,6 +290,16 @@ describe('HarvestSeasonService', () => {
     expect(request.request.method).toBe('GET');
     expect(request.request.withCredentials).toBe(true);
     request.flush(summary);
+  });
+
+  it('should reject an incomplete detail summary response', () => {
+    service.getSummary(1).subscribe({
+      next: () => { throw new Error('Expected the invalid summary to be rejected.'); },
+      error: (error: unknown) =>
+        expect(error).toBeInstanceOf(InvalidHarvestSeasonDetailSummaryError),
+    });
+
+    http.expectOne(apiUrl + '/1/summary').flush({ planning: {} });
   });
 
   it('should create a harvest season', () => {

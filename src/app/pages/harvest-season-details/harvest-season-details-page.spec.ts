@@ -6,11 +6,14 @@ import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { FinancialTransaction } from '../../core/models/financial-transaction.models';
-import { HarvestSeason, HarvestSeasonSummary } from '../../core/models/harvest-season.models';
+import { HarvestSeason, HarvestSeasonDetailSummary } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
-import { HarvestSeasonService } from '../../core/services/harvest-season.service';
+import {
+  HarvestSeasonService,
+  InvalidHarvestSeasonDetailSummaryError,
+} from '../../core/services/harvest-season.service';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -35,29 +38,24 @@ const harvest: HarvestSeason = {
   updatedAt: '2026-02-01T00:00:00',
 };
 
-const summary: HarvestSeasonSummary = {
-  harvestSeasonId: 1,
-  harvestSeasonName: 'Safra Soja 2026',
-  productionActivityId: 2,
-  productionActivityName: 'Soja',
-  farmId: 10,
-  farmName: 'Fazenda Boa Safra',
-  expectedCost: 90000,
-  expectedRevenue: 150000,
-  expectedProfit: 60000,
-  realizedCost: 72500,
-  realizedRevenue: 150000,
-  realizedProfit: 77500,
-  pendingExpenses: 18000,
-  overdueExpenses: 6000,
-  pendingRevenue: 25000,
-  transactionCount: 1,
-  incomeCount: 1,
-  expenseCount: 0,
-  areaHectares: 120.5,
-  costPerHectare: 601.66,
-  revenuePerHectare: 1244.81,
-  profitPerHectare: 643.15,
+const summary: HarvestSeasonDetailSummary = {
+  planning: { plannedCost: 90000, plannedRevenue: 150000, plannedProfit: 60000 },
+  realized: { realizedCost: 72500, realizedRevenue: 150000, realizedProfit: -2500 },
+  projection: { projectedCost: 96000, projectedRevenue: 175000, projectedProfit: 79000 },
+  comparison: {
+    profitPerformancePercentage: null,
+    profitPerformanceStatus: 'NOT_APPLICABLE',
+    costVarianceAmount: -6000,
+    costVariancePercentage: -6.67,
+    costVarianceStatus: 'BELOW_PLANNED',
+  },
+  openAmounts: {
+    payable: { count: 2, totalAmount: 18000 },
+    receivable: { count: 1, totalAmount: 25000 },
+    overduePayable: { count: 1, totalAmount: 6000 },
+    overdueReceivable: { count: 1, totalAmount: 3000 },
+  },
+  transactionCount: 42,
 };
 
 const transaction: FinancialTransaction = {
@@ -181,18 +179,36 @@ describe('HarvestSeasonDetailsPage', () => {
     });
   });
 
-  it('should render summary, harvest information, hectare indicators and transactions in order', () => {
+  it('should render the detail summary, harvest information and transactions in order', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Custo realizado');
-    expect(text()).toContain('Os indicadores por hectare dependem da área informada na safra.');
+    expect(summaryCardTitles()).toEqual([
+      'Custo planejado',
+      'Receita planejada',
+      'Lucro planejado',
+      'Custo realizado',
+      'Receita realizada',
+      'Lucro realizado',
+      'Custo projetado',
+      'Receita projetada',
+      'Lucro projetado',
+      'Desempenho do lucro',
+      'Desvio de custo',
+      'A pagar',
+      'A receber',
+      'Vencidas a pagar',
+      'Vencidas a receber',
+    ]);
+    expect(text()).toContain('2.500,00');
+    expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 42');
+    expect(text()).not.toContain('Indicadores por hectare');
+    expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');
     expect(sectionHeadingTexts()).toEqual([
       'Resumo financeiro',
       'Informações da safra',
-      'Indicadores por hectare',
-      'Movimentações da safra',
+      'Movimentações vinculadas · 42',
     ]);
   });
 
@@ -210,7 +226,14 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(tableHeaderTexts()).toEqual(['Data', 'Descrição', 'Tipo', 'Categoria', 'Status', 'Valor']);
+    expect(tableHeaderTexts()).toEqual([
+      'Data',
+      'Descrição',
+      'Tipo',
+      'Categoria',
+      'Status',
+      'Valor',
+    ]);
     expect(text()).toContain('Receita');
   });
 
@@ -222,6 +245,93 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Nenhuma movimentação vinculada a esta safra.');
   });
 
+  it('should return no summary cards while the summary is null', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const component = fixture.componentInstance as unknown as HarvestSeasonDetailsPage & {
+      summary: { set(value: HarvestSeasonDetailSummary | null): void };
+      summaryCards(): readonly unknown[];
+    };
+    component.summary.set(null);
+
+    expect(component.summaryCards()).toEqual([]);
+  });
+
+  it('should keep harvest details and transactions available when the summary fails without a fallback count', () => {
+    harvestService.getSummary.mockReturnValue(throwError(() => new Error('summary')));
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(text()).toContain('Safra Soja 2026');
+    expect(text()).toContain('Venda de soja');
+    expect(sectionHeadingTexts()).toContain('Movimentações vinculadas');
+    expect(text()).not.toContain('Movimentações vinculadas · 1');
+  });
+
+  it('should map pending cards from the exact openAmounts contract fields', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const cards = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
+    );
+    const valueFor = (title: string) =>
+      cards.find((card) => card.textContent?.includes(title))?.textContent ?? '';
+
+    expect(valueFor('A pagar')).toContain('18.000,00');
+    expect(valueFor('A receber')).toContain('25.000,00');
+    expect(valueFor('Vencidas a pagar')).toContain('6.000,00');
+    expect(valueFor('Vencidas a receber')).toContain('3.000,00');
+  });
+
+  it('should keep amountCard safe while an amount is temporarily undefined', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const component = fixture.componentInstance as unknown as {
+      amountCard(
+        title: string,
+        amount: undefined,
+        description: string,
+        icon: string,
+        tone: 'warning',
+      ): { value: string; detail?: string };
+    };
+
+    expect(
+      component.amountCard('A pagar', undefined, 'Descrição', 'calendar-clock', 'warning'),
+    ).toMatchObject({
+      value: expect.stringContaining('0,00'),
+      detail: '0 contas',
+    });
+  });
+
+  it('should use a positive tone for cost below planned', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const card = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
+    ).find((item) => item.textContent?.includes('Desvio de custo'));
+
+    expect(
+      Array.from(card?.querySelectorAll('div') ?? []).some((item) =>
+        item.classList.contains('bg-success/10'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should keep transactions available when a 200 summary payload is invalid', () => {
+    harvestService.getSummary.mockReturnValue(
+      throwError(() => new InvalidHarvestSeasonDetailSummaryError()),
+    );
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(text()).toContain('Não foi possível interpretar o resumo financeiro da safra.');
+    expect(text()).toContain('Venda de soja');
+  });
 
   it('should show isolated errors for summary and transactions', () => {
     harvestService.getSummary.mockReturnValue(throwError(() => new Error('summary')));
@@ -252,7 +362,9 @@ describe('HarvestSeasonDetailsPage', () => {
   });
 
   it('should show not found message for 404 errors', () => {
-    harvestService.getById.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    harvestService.getById.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 404 })),
+    );
     setupUser('PRODUCER');
     createComponent();
 
@@ -364,7 +476,6 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(harvestService.inactivate).not.toHaveBeenCalled();
   });
 
-
   function createComponent(): void {
     fixture = TestBed.createComponent(HarvestSeasonDetailsPage);
     fixture.detectChanges();
@@ -412,9 +523,9 @@ describe('HarvestSeasonDetailsPage', () => {
   }
 
   function clickButton(label: string): void {
-    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
-      (item) => item.textContent?.trim() === label,
-    );
+    const button = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).find((item) => item.textContent?.trim() === label);
 
     button?.click();
     fixture.detectChanges();
@@ -432,13 +543,19 @@ describe('HarvestSeasonDetailsPage', () => {
   function sectionHeadingTexts(): string[] {
     return Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('section[aria-labelledby] h2'),
+    ).map((item) => (item.textContent ?? '').replace(/\s+/g, ' ').trim());
+  }
+
+  function summaryCardTitles(): string[] {
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card p.text-xs'),
     ).map((item) => item.textContent?.trim() ?? '');
   }
 
   function tableHeaderTexts(): string[] {
-    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('table thead th')).map(
-      (item) => item.textContent?.trim() ?? '',
-    );
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('table thead th'),
+    ).map((item) => item.textContent?.trim() ?? '');
   }
 
   function text(): string {

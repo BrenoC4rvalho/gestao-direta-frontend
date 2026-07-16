@@ -25,22 +25,47 @@ import { finalize, Observable } from 'rxjs';
 import {
   HarvestSeason,
   HarvestSeasonStatus,
-  HarvestSeasonSummary,
+  HarvestSeasonDetailSummary,
   UpdateHarvestSeasonRequest,
 } from '../../core/models/harvest-season.models';
-import { FinancialTransaction, PaymentStatus } from '../../core/models/financial-transaction.models';
+import { FinancialAmountSummary } from '../../core/models/financial.models';
+import {
+  FinancialTransaction,
+  PaymentStatus,
+} from '../../core/models/financial-transaction.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
-import { HarvestSeasonService } from '../../core/services/harvest-season.service';
+import {
+  HarvestSeasonService,
+  InvalidHarvestSeasonDetailSummaryError,
+} from '../../core/services/harvest-season.service';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, GdSelectOption, Input, Select, Textarea } from '../../shared/forms';
+import {
+  GdFormControl,
+  GdFormValue,
+  GdSelectOption,
+  Input,
+  Select,
+  Textarea,
+} from '../../shared/forms';
 import { ConfirmDialog, ConfirmDialogVariant, Drawer } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
+import {
+  Badge,
+  BadgeVariant,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  StatusActionSection,
+  SummaryCard,
+  SummaryCardTone,
+} from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
   numberToBrazilianMoney,
@@ -58,12 +83,13 @@ interface HarvestFormControls {
   areaHectares: GdFormControl;
 }
 
-interface SummaryCard {
-  label: string;
-  value: number;
-  subtext: string;
+interface DetailSummaryCard {
+  title: string;
+  value: string;
+  description: string;
+  detail?: string;
   icon: string;
-  tone: 'success' | 'danger' | 'primary' | 'warning' | 'info';
+  tone: SummaryCardTone;
 }
 
 interface InfoItem {
@@ -96,6 +122,7 @@ interface StatusConfirmation {
     Select,
     Skeleton,
     StatusActionSection,
+    SummaryCard,
     Textarea,
   ],
   templateUrl: './harvest-season-details-page.html',
@@ -114,7 +141,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly sessionStore = inject(SessionStore);
 
   protected readonly harvest = signal<HarvestSeason | null>(null);
-  protected readonly summary = signal<HarvestSeasonSummary | null>(null);
+  protected readonly summary = signal<HarvestSeasonDetailSummary | null>(null);
   protected readonly transactionsPage = signal<PageResponse<FinancialTransaction> | null>(null);
   protected readonly productionActivities = signal<ProductionActivity[]>([]);
   protected readonly loadingHarvest = signal(false);
@@ -127,7 +154,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly statusTarget = signal<HarvestSeason | null>(null);
   protected readonly statusSubmitting = signal(false);
-  protected readonly skeletons = [1, 2, 3, 4];
+  protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
 
   private readonly harvestId = signal<number | null>(null);
 
@@ -159,74 +186,133 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
     const harvest = this.harvest();
 
-    return !!harvest && this.farmAccessStore.access()?.farmId === harvest.farmId && this.farmAccessStore.role() === 'PRODUCER';
+    return (
+      !!harvest &&
+      this.farmAccessStore.access()?.farmId === harvest.farmId &&
+      this.farmAccessStore.role() === 'PRODUCER'
+    );
   });
-  protected readonly mainCards = computed<readonly SummaryCard[]>(() => {
+  protected readonly summaryCards = computed<readonly DetailSummaryCard[]>(() => {
     const summary = this.summary();
 
-    return [
-      {
-        label: 'Custo realizado',
-        value: summary?.realizedCost ?? 0,
-        subtext: 'Despesas pagas da safra',
-        icon: 'briefcase-business',
-        tone: 'danger',
-      },
-      {
-        label: 'Receita realizada',
-        value: summary?.realizedRevenue ?? 0,
-        subtext: 'Receitas pagas da safra',
-        icon: 'trending-up',
-        tone: 'success',
-      },
-      {
-        label: 'Lucro realizado',
-        value: summary?.realizedProfit ?? 0,
-        subtext: 'Receitas menos custos pagos',
-        icon: 'wallet',
-        tone: (summary?.realizedProfit ?? 0) >= 0 ? 'primary' : 'danger',
-      },
-      {
-        label: 'Lucro previsto',
-        value: summary?.expectedProfit ?? this.estimatedProfit(this.harvest()),
-        subtext: 'Receita prevista menos custo',
-        icon: 'chart-no-axes-combined',
-        tone: 'info',
-      },
-    ];
-  });
-  protected readonly secondaryCards = computed<readonly SummaryCard[]>(() => {
-    const summary = this.summary();
+    if (!summary) {
+      return [];
+    }
+
+    const { planning, realized, projection, comparison, openAmounts } = summary;
+
+    if (!openAmounts) {
+      return [];
+    }
 
     return [
+      this.currencyCard(
+        'Custo planejado',
+        planning.plannedCost,
+        'Valor de custos planejados para a safra.',
+        'briefcase-business',
+        'warning',
+      ),
+      this.currencyCard(
+        'Receita planejada',
+        planning.plannedRevenue,
+        'Valor de receitas planejadas para a safra.',
+        'trending-up',
+        'success',
+      ),
+      this.profitCard(
+        'Lucro planejado',
+        planning.plannedProfit,
+        'Resultado planejado da safra.',
+        'chart-no-axes-combined',
+      ),
+      this.currencyCard(
+        'Custo realizado',
+        realized.realizedCost,
+        'Custos realizados nas movimentações da safra.',
+        'briefcase-business',
+        'warning',
+      ),
+      this.currencyCard(
+        'Receita realizada',
+        realized.realizedRevenue,
+        'Receitas realizadas nas movimentações da safra.',
+        'trending-up',
+        'success',
+      ),
+      this.profitCard(
+        'Lucro realizado',
+        realized.realizedProfit,
+        'Resultado realizado da safra.',
+        'wallet',
+      ),
+      this.currencyCard(
+        'Custo projetado',
+        projection.projectedCost,
+        'Custo estimado ao final da safra.',
+        'briefcase-business',
+        'warning',
+      ),
+      this.currencyCard(
+        'Receita projetada',
+        projection.projectedRevenue,
+        'Receita estimada ao final da safra.',
+        'trending-up',
+        'success',
+      ),
+      this.profitCard(
+        'Lucro projetado',
+        projection.projectedProfit,
+        'Resultado estimado ao final da safra.',
+        'chart-no-axes-combined',
+      ),
       {
-        label: 'Despesas pendentes',
-        value: summary?.pendingExpenses ?? 0,
-        subtext: 'Despesas a pagar',
-        icon: 'calendar-clock',
-        tone: 'warning',
+        title: 'Desempenho do lucro',
+        value: this.percentageLabel(comparison.profitPerformancePercentage),
+        description: 'Comparação do lucro projetado com o planejado.',
+        detail: this.comparisonStatusLabel(comparison.profitPerformanceStatus),
+        icon: 'chart-no-axes-column-increasing',
+        tone: this.profitPerformanceTone(comparison.profitPerformanceStatus),
       },
       {
-        label: 'Despesas atrasadas',
-        value: summary?.overdueExpenses ?? 0,
-        subtext: 'Despesas vencidas',
-        icon: 'alert-circle',
-        tone: 'danger',
+        title: 'Desvio de custo',
+        value: this.currencyLabel(comparison.costVarianceAmount),
+        description: 'Diferença entre o custo projetado e o custo planejado.',
+        detail: this.comparisonStatusLabel(
+          comparison.costVarianceStatus,
+          comparison.costVariancePercentage,
+        ),
+        icon: 'chart-spline',
+        tone: this.costVarianceTone(comparison.costVarianceStatus),
       },
-      {
-        label: 'Receitas pendentes',
-        value: summary?.pendingRevenue ?? 0,
-        subtext: 'Receitas a receber',
-        icon: 'trending-up',
-        tone: 'success',
-      },
-      {
-        label: 'Movimentações vinculadas',
-        value: summary?.transactionCount ?? this.transactionsPage()?.totalElements ?? 0,
-        subtext: 'Receitas e despesas da safra',
-        icon: 'receipt-text',
-        tone: 'primary',
-      },
+      this.amountCard(
+        'A pagar',
+        openAmounts.payable,
+        'Total de contas em aberto a pagar.',
+        'calendar-clock',
+        'warning',
+      ),
+      this.amountCard(
+        'A receber',
+        openAmounts.receivable,
+        'Total de contas em aberto a receber.',
+        'calendar-clock',
+        'success',
+      ),
+      this.amountCard(
+        'Vencidas a pagar',
+        openAmounts.overduePayable,
+        'Total de contas vencidas a pagar.',
+        'alert-circle',
+        'warning',
+      ),
+      this.amountCard(
+        'Vencidas a receber',
+        openAmounts.overdueReceivable,
+        'Total de contas vencidas a receber.',
+        'alert-circle',
+        'success',
+      ),
     ];
   });
   protected readonly infoItems = computed<readonly InfoItem[]>(() => {
@@ -240,15 +326,24 @@ export class HarvestSeasonDetailsPage implements OnInit {
       { label: 'Nome', value: this.emptyLabel(harvest.name) },
       { label: 'Descrição', value: this.emptyLabel(harvest.description) },
       { label: 'Atividade produtiva', value: this.emptyLabel(harvest.productionActivityName) },
-      { label: 'Fazenda', value: this.emptyLabel(harvest.farmName ?? `Fazenda #${harvest.farmId}`) },
+      {
+        label: 'Fazenda',
+        value: this.emptyLabel(harvest.farmName ?? `Fazenda #${harvest.farmId}`),
+      },
       { label: 'Status', value: this.statusLabel(harvest.status) },
       { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
       { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
       { label: 'Área em hectares', value: this.hectareLabel(harvest.areaHectares) },
       { label: 'Custo previsto', value: this.nullableCurrencyLabel(harvest.expectedCost ?? null) },
-      { label: 'Receita prevista', value: this.nullableCurrencyLabel(harvest.expectedRevenue ?? null) },
+      {
+        label: 'Receita prevista',
+        value: this.nullableCurrencyLabel(harvest.expectedRevenue ?? null),
+      },
       { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
-      { label: 'Atualizado em', value: harvest.updatedAt ? this.dateLabel(harvest.updatedAt) : '—' },
+      {
+        label: 'Atualizado em',
+        value: harvest.updatedAt ? this.dateLabel(harvest.updatedAt) : '—',
+      },
     ];
   });
   protected readonly statusConfirmation = computed<StatusConfirmation>(() => {
@@ -257,20 +352,21 @@ export class HarvestSeasonDetailsPage implements OnInit {
     return activating
       ? {
           title: 'Ativar safra?',
-          description: 'Esta safra voltará a ficar disponível para acompanhamento e novas operações.',
+          description:
+            'Esta safra voltará a ficar disponível para acompanhamento e novas operações.',
           confirmLabel: 'Ativar',
           variant: 'info',
           action: 'activate',
         }
       : {
           title: 'Inativar safra?',
-          description: 'Esta safra deixará de ficar disponível para novas operações, mas os registros existentes serão preservados.',
+          description:
+            'Esta safra deixará de ficar disponível para novas operações, mas os registros existentes serão preservados.',
           confirmLabel: 'Inativar',
           variant: 'warning',
           action: 'inactivate',
         };
   });
-
 
   ngOnInit(): void {
     this.bindMoneySanitizer(this.form.controls.expectedCost);
@@ -439,9 +535,10 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
 
     const confirmation = this.statusConfirmation();
-    const request$: Observable<unknown> = confirmation.action === 'activate'
-      ? this.harvestService.activate(harvest.id)
-      : this.harvestService.inactivate(harvest.id);
+    const request$: Observable<unknown> =
+      confirmation.action === 'activate'
+        ? this.harvestService.activate(harvest.id)
+        : this.harvestService.inactivate(harvest.id);
 
     this.statusSubmitting.set(true);
 
@@ -497,16 +594,80 @@ export class HarvestSeasonDetailsPage implements OnInit {
     return variants[status];
   }
 
-  protected summaryToneClasses(tone: SummaryCard['tone']): string {
-    const tones: Record<SummaryCard['tone'], string> = {
-      primary: 'bg-highlight-soft text-primary',
-      success: 'bg-success/10 text-success',
-      danger: 'bg-danger/10 text-danger',
-      info: 'bg-info/10 text-info',
-      warning: 'bg-warning/10 text-amber-700 dark:text-amber-300',
-    };
+  private currencyCard(
+    title: string,
+    amount: number,
+    description: string,
+    icon: string,
+    tone: SummaryCardTone,
+  ): DetailSummaryCard {
+    return { title, value: this.currencyLabel(amount), description, icon, tone };
+  }
 
-    return tones[tone];
+  private profitCard(
+    title: string,
+    amount: number,
+    description: string,
+    icon: string,
+  ): DetailSummaryCard {
+    return this.currencyCard(title, amount, description, icon, this.profitTone(amount));
+  }
+
+  private amountCard(
+    title: string,
+    amount: FinancialAmountSummary | null | undefined,
+    description: string,
+    icon: string,
+    tone: SummaryCardTone,
+  ): DetailSummaryCard {
+    return {
+      title,
+      value: this.currencyLabel(amount?.totalAmount ?? 0),
+      description,
+      detail: this.countLabel(amount?.count ?? 0),
+      icon,
+      tone,
+    };
+  }
+
+  private profitTone(value: number): SummaryCardTone {
+    return value > 0 ? 'success' : value < 0 ? 'danger' : 'neutral';
+  }
+
+  private profitPerformanceTone(status: string): SummaryCardTone {
+    if (status === 'ABOVE_PLANNED') return 'success';
+    if (status === 'BELOW_PLANNED') return 'danger';
+    if (status === 'ON_TARGET') return 'info';
+    return 'neutral';
+  }
+
+  private costVarianceTone(status: string): SummaryCardTone {
+    if (status === 'BELOW_PLANNED') return 'success';
+    if (status === 'ABOVE_PLANNED') return 'danger';
+    if (status === 'ON_TARGET') return 'info';
+    return 'neutral';
+  }
+
+  private comparisonStatusLabel(status: string, percentage?: number | null): string {
+    const labels: Record<string, string> = {
+      ABOVE_PLANNED: 'Acima do planejado',
+      BELOW_PLANNED: 'Abaixo do planejado',
+      ON_TARGET: 'Dentro do planejado',
+      NOT_APPLICABLE: 'Não aplicável',
+    };
+    const label = labels[status] ?? status;
+
+    return percentage === undefined ? label : label + ' · ' + this.percentageLabel(percentage);
+  }
+
+  private percentageLabel(value: number | null): string {
+    return value === null
+      ? '—'
+      : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value) + '%';
+  }
+
+  private countLabel(count: number): string {
+    return count === 1 ? '1 conta' : count + ' contas';
   }
 
   protected periodLabel(harvest: HarvestSeason): string {
@@ -625,9 +786,13 @@ export class HarvestSeasonDetailsPage implements OnInit {
       )
       .subscribe({
         next: (summary) => this.summary.set(summary),
-        error: () => {
+        error: (error: unknown) => {
           this.summary.set(null);
-          this.summaryError.set('Não foi possível carregar o resumo financeiro da safra.');
+          this.summaryError.set(
+            error instanceof InvalidHarvestSeasonDetailSummaryError
+              ? 'Não foi possível interpretar o resumo financeiro da safra.'
+              : 'Não foi possível carregar o resumo financeiro da safra.',
+          );
         },
       });
   }
@@ -681,7 +846,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       });
   }
 
-
   private emptyLabel(value: string | null | undefined): string {
     const text = `${value ?? ''}`.trim();
 
@@ -720,10 +884,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       expectedRevenue: this.moneyValue(this.form.controls.expectedRevenue.value),
       areaHectares: this.numberValue(this.form.controls.areaHectares.value),
     };
-  }
-
-  private estimatedProfit(harvest: HarvestSeason | null): number {
-    return (harvest?.expectedRevenue ?? 0) - (harvest?.expectedCost ?? 0);
   }
 
   private showOperationError(error: unknown): void {

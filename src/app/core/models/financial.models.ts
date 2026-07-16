@@ -19,7 +19,10 @@ export interface OverdueBillAlert {
   daysOverdue: number;
 }
 
-export interface DueBillsSummary {
+export type DueBillsSummary = FinancialAmountSummary
+
+/** A monetary total paired with the number of records that compose it. */
+export interface FinancialAmountSummary {
   count: number;
   totalAmount: number;
 }

@@ -1,4 +1,5 @@
 import { PageRequest } from './page-response.model';
+import { FinancialAmountSummary } from './financial.models';
 
 export type HarvestSeasonStatus = 'PLANNED' | 'IN_PROGRESS' | 'FINISHED' | 'INACTIVE';
 
@@ -18,31 +19,6 @@ export interface HarvestSeason {
   status: HarvestSeasonStatus;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export interface HarvestSeasonSummary {
-  harvestSeasonId: number;
-  harvestSeasonName: string;
-  productionActivityId: number;
-  productionActivityName: string;
-  farmId: number;
-  farmName: string;
-  expectedCost: number;
-  expectedRevenue: number;
-  expectedProfit: number;
-  realizedCost: number;
-  realizedRevenue: number;
-  realizedProfit: number;
-  pendingExpenses: number;
-  overdueExpenses: number;
-  pendingRevenue: number;
-  transactionCount: number;
-  incomeCount: number;
-  expenseCount: number;
-  areaHectares: number | null;
-  costPerHectare: number | null;
-  revenuePerHectare: number | null;
-  profitPerHectare: number | null;
 }
 
 export interface HarvestSeasonSummaryListItem {
@@ -144,11 +120,7 @@ export interface HarvestProjectionSummary {
 }
 
 export type HarvestComparisonStatus =
-  | 'ABOVE_PLANNED'
-  | 'BELOW_PLANNED'
-  | 'ON_TARGET'
-  | 'NOT_APPLICABLE'
-  | string;
+  'ABOVE_PLANNED' | 'BELOW_PLANNED' | 'ON_TARGET' | 'NOT_APPLICABLE' | string;
 
 export interface HarvestComparisonSummary {
   profitPerformancePercentage: number | null;
@@ -165,4 +137,20 @@ export interface HarvestSeasonFinancialSummary {
   realized: HarvestRealizedSummary;
   projection: HarvestProjectionSummary;
   comparison: HarvestComparisonSummary;
+}
+
+export interface HarvestSeasonOpenAmountsSummary {
+  payable: FinancialAmountSummary;
+  receivable: FinancialAmountSummary;
+  overduePayable: FinancialAmountSummary;
+  overdueReceivable: FinancialAmountSummary;
+}
+
+export interface HarvestSeasonDetailSummary {
+  planning: HarvestPlanningSummary;
+  realized: HarvestRealizedSummary;
+  projection: HarvestProjectionSummary;
+  comparison: HarvestComparisonSummary;
+  openAmounts: HarvestSeasonOpenAmountsSummary;
+  transactionCount: number;
 }

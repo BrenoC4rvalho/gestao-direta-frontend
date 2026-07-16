@@ -1,14 +1,12 @@
 import { PageRequest, PageResponse } from './page-response.model';
+import { FinancialAmountSummary } from './financial.models';
 
 export type FinancialAgendaType = 'RECEIVABLE' | 'PAYABLE' | string;
 export type FinancialAgendaStatus = 'PENDING' | 'OVERDUE' | string;
 export type FinancialAgendaFilterStatus = 'ALL' | 'PENDING' | 'OVERDUE';
 export type FinancialAgendaFilterType = 'ALL' | 'RECEIVABLE' | 'PAYABLE';
 
-export interface FinancialAgendaSummaryGroup {
-  count: number;
-  totalAmount: number;
-}
+export type FinancialAgendaSummaryGroup = FinancialAmountSummary;
 
 export interface FinancialAgendaSummary {
   farmId: number;

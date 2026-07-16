@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { appendQueryParam } from '../../shared/utils/query-params.utils';
@@ -9,14 +9,20 @@ import {
   HarvestSeason,
   HarvestSeasonFilters,
   HarvestSeasonFinancialSummary,
+  HarvestSeasonDetailSummary,
   HarvestSeasonListParams,
   HarvestSeasonStatus,
-  HarvestSeasonSummary,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
+
+export class InvalidHarvestSeasonDetailSummaryError extends Error {
+  constructor() {
+    super('Invalid harvest season detail summary response.');
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class HarvestSeasonService {
@@ -24,14 +30,21 @@ export class HarvestSeasonService {
   private readonly apiUrl = `${environment.apiUrl}/harvest/seasons`;
 
   list(params?: HarvestSeasonListParams): Observable<PageResponse<HarvestSeason>> {
-    return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, { params: this.buildParams(params) });
+    return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, {
+      params: this.buildParams(params),
+    });
   }
 
-  listSummary(params: HarvestSeasonSummaryListParams): Observable<PageResponse<HarvestSeasonSummaryListItem>> {
-    return this.http.get<PageResponse<HarvestSeasonSummaryListItem>>(`${this.apiUrl}/summary-list`, {
-      params: this.buildListSummaryParams(params),
-      withCredentials: true,
-    });
+  listSummary(
+    params: HarvestSeasonSummaryListParams,
+  ): Observable<PageResponse<HarvestSeasonSummaryListItem>> {
+    return this.http.get<PageResponse<HarvestSeasonSummaryListItem>>(
+      `${this.apiUrl}/summary-list`,
+      {
+        params: this.buildListSummaryParams(params),
+        withCredentials: true,
+      },
+    );
   }
 
   getFinancialSummary(filters: HarvestSeasonFilters): Observable<HarvestSeasonFinancialSummary> {
@@ -45,15 +58,99 @@ export class HarvestSeasonService {
     return this.http.get<HarvestSeason>(`${this.apiUrl}/${id}`);
   }
 
-  getSummary(id: number): Observable<HarvestSeasonSummary> {
-    return this.http.get<HarvestSeasonSummary>(`${this.apiUrl}/${id}/summary`);
+  getSummary(id: number): Observable<HarvestSeasonDetailSummary> {
+    return this.http
+      .get<unknown>(this.apiUrl + '/' + id + '/summary')
+      .pipe(map((response) => this.parseDetailSummary(response)));
   }
 
-  create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> { return this.http.post<HarvestSeason>(this.apiUrl, payload); }
-  update(id: number, payload: UpdateHarvestSeasonRequest): Observable<HarvestSeason> { return this.http.put<HarvestSeason>(`${this.apiUrl}/${id}`, payload); }
-  updateStatus(id: number, status: HarvestSeasonStatus): Observable<HarvestSeason> { return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/status`, { status }); }
-  activate(id: number): Observable<HarvestSeason> { return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/activate`, {}); }
-  inactivate(id: number): Observable<void> { return this.http.delete<void>(`${this.apiUrl}/${id}`); }
+  create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> {
+    return this.http.post<HarvestSeason>(this.apiUrl, payload);
+  }
+  update(id: number, payload: UpdateHarvestSeasonRequest): Observable<HarvestSeason> {
+    return this.http.put<HarvestSeason>(`${this.apiUrl}/${id}`, payload);
+  }
+  updateStatus(id: number, status: HarvestSeasonStatus): Observable<HarvestSeason> {
+    return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/status`, { status });
+  }
+  activate(id: number): Observable<HarvestSeason> {
+    return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/activate`, {});
+  }
+  inactivate(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  private parseDetailSummary(value: unknown): HarvestSeasonDetailSummary {
+    if (!this.isDetailSummary(value)) {
+      throw new InvalidHarvestSeasonDetailSummaryError();
+    }
+
+    return value;
+  }
+
+  private isDetailSummary(value: unknown): value is HarvestSeasonDetailSummary {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+
+    return (
+      this.isPlanningSummary(value['planning']) &&
+      this.isRealizedSummary(value['realized']) &&
+      this.isProjectionSummary(value['projection']) &&
+      this.isComparisonSummary(value['comparison']) &&
+      this.isOpenAmountsSummary(value['openAmounts']) &&
+      typeof value['transactionCount'] === 'number'
+    );
+  }
+
+  private isPlanningSummary(value: unknown): boolean {
+    return this.hasNumericFields(value, ['plannedCost', 'plannedRevenue', 'plannedProfit']);
+  }
+
+  private isRealizedSummary(value: unknown): boolean {
+    return this.hasNumericFields(value, ['realizedCost', 'realizedRevenue', 'realizedProfit']);
+  }
+
+  private isProjectionSummary(value: unknown): boolean {
+    return this.hasNumericFields(value, ['projectedCost', 'projectedRevenue', 'projectedProfit']);
+  }
+
+  private isComparisonSummary(value: unknown): boolean {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+
+    return (
+      (typeof value['profitPerformancePercentage'] === 'number' ||
+        value['profitPerformancePercentage'] === null) &&
+      typeof value['profitPerformanceStatus'] === 'string' &&
+      typeof value['costVarianceAmount'] === 'number' &&
+      (typeof value['costVariancePercentage'] === 'number' ||
+        value['costVariancePercentage'] === null) &&
+      typeof value['costVarianceStatus'] === 'string'
+    );
+  }
+
+  private isOpenAmountsSummary(value: unknown): boolean {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+
+    return [
+      value['payable'],
+      value['receivable'],
+      value['overduePayable'],
+      value['overdueReceivable'],
+    ].every((amount) => this.hasNumericFields(amount, ['count', 'totalAmount']));
+  }
+
+  private hasNumericFields(value: unknown, fields: readonly string[]): boolean {
+    return this.isRecord(value) && fields.every((field) => typeof value[field] === 'number');
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
 
   private buildParams(params?: HarvestSeasonListParams): HttpParams {
     let result = new HttpParams();
@@ -76,22 +173,38 @@ export class HarvestSeasonService {
     result = appendQueryParam(result, 'farmId', filters.farmId);
     result = appendQueryParam(result, 'search', filters.search);
     result = this.appendStatuses(result, filters.statuses);
-    result = this.appendCommaSeparatedParam(result, 'productionActivityIds', filters.productionActivityIds);
+    result = this.appendCommaSeparatedParam(
+      result,
+      'productionActivityIds',
+      filters.productionActivityIds,
+    );
     result = appendQueryParam(result, 'startDate', filters.startDate);
     return appendQueryParam(result, 'endDate', filters.endDate);
   }
 
-  private appendStatuses(params: HttpParams, statuses: readonly HarvestSeasonStatus[] | null | undefined): HttpParams {
+  private appendStatuses(
+    params: HttpParams,
+    statuses: readonly HarvestSeasonStatus[] | null | undefined,
+  ): HttpParams {
     if (!statuses || statuses.length === 0) return params;
     if (statuses.length === 1) return appendQueryParam(params, 'status', statuses[0]);
     return this.appendCommaSeparatedParam(params, 'statuses', statuses);
   }
 
-  private appendCommaSeparatedParam(params: HttpParams, key: string, values: readonly (string | number)[] | null | undefined): HttpParams {
-    return !values || values.length === 0 ? params : appendQueryParam(params, key, values.join(','));
+  private appendCommaSeparatedParam(
+    params: HttpParams,
+    key: string,
+    values: readonly (string | number)[] | null | undefined,
+  ): HttpParams {
+    return !values || values.length === 0
+      ? params
+      : appendQueryParam(params, key, values.join(','));
   }
 
-  private appendPageParams(params: HttpParams, page: HarvestSeasonListParams | HarvestSeasonSummaryListParams): HttpParams {
+  private appendPageParams(
+    params: HttpParams,
+    page: HarvestSeasonListParams | HarvestSeasonSummaryListParams,
+  ): HttpParams {
     let result = appendQueryParam(params, 'page', page.page);
     result = appendQueryParam(result, 'size', page.size);
     result = appendQueryParam(result, 'sort', page.sort);
