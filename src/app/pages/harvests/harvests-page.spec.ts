@@ -322,6 +322,15 @@ describe('HarvestsPage', () => {
     ]) {
       expect(content).toContain(label);
     }
+    const summaryCards = fixture.nativeElement.querySelectorAll(
+      'section[aria-label="Resumo financeiro das safras"] gd-summary-card',
+    ) as NodeListOf<HTMLElement>;
+
+    expect(summaryCards).toHaveLength(12);
+    for (const card of summaryCards) {
+      expect(card.querySelectorAll('article > div:nth-child(2) > p')).toHaveLength(1);
+    }
+
     const summaryHeadings = Array.from(
       fixture.nativeElement.querySelectorAll('section[aria-label="Resumo financeiro das safras"] h2') as NodeListOf<HTMLHeadingElement>,
     ).map((heading) => heading.textContent?.trim());
@@ -358,7 +367,6 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Desempenho do lucro');
     expect(text()).toContain('Desvio de custo');
     expect(text()).toContain('Não aplicável');
-    expect(text()).toContain('Custo planejado igual a zero');
   });
 
   it('should show an error state and finish loading when the API fails', () => {

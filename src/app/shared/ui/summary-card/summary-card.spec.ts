@@ -139,13 +139,19 @@ describe('SummaryCard', () => {
     const meta = Array.from(article.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>).find(
       (item) => item.textContent?.includes('2 contas'),
     );
+    const header = article.firstElementChild as HTMLElement;
+    const headerContent = header.firstElementChild as HTMLElement;
     const button = article.querySelector('button') as HTMLButtonElement;
 
     expect(article.className).toContain('min-h-[100px]');
     expect(article.className).toContain('p-4');
-    expect(article.className).toContain('gap-2');
+    expect(article.className).toContain('gap-4');
+    expect(article.className).toContain('justify-start');
+    expect(header.className).toContain('items-center');
+    expect(headerContent.className).toContain('items-center');
     expect(icon.className).toContain('size-9');
     expect(title?.className).toContain('text-xs');
+    expect(title?.className).not.toContain('pt-0.5');
     expect(value?.className).toContain('text-lg');
     expect(value?.className).toContain('whitespace-nowrap');
     expect(value?.className).toContain('truncate');

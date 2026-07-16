@@ -32,11 +32,14 @@ export class SummaryCard {
   protected articleClasses(): string {
     const densityClasses =
       this.density() === 'compact'
-        ? 'min-h-[100px] gap-2 p-4'
+        ? 'min-h-[100px] gap-4 p-4'
         : 'min-h-[128px] gap-5 p-6';
 
+    const contentAlignment = this.density() === 'compact' ? 'justify-start' : 'justify-between';
+
     return [
-      'relative z-0 flex h-full flex-col justify-between overflow-visible rounded-app border border-border bg-surface text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+      'relative z-0 flex h-full flex-col overflow-visible rounded-app border border-border bg-surface text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+      contentAlignment,
       densityClasses,
     ].join(' ');
   }
@@ -51,7 +54,7 @@ export class SummaryCard {
 
   protected titleClasses(): string {
     return this.density() === 'compact'
-      ? 'min-w-0 pt-0.5 text-xs font-medium leading-4 text-text-muted'
+      ? 'min-w-0 text-xs font-medium leading-4 text-text-muted'
       : 'min-w-0 pt-1 text-sm font-medium leading-5 text-text-muted';
   }
 
