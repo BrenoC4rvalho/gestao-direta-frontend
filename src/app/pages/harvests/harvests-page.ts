@@ -23,6 +23,8 @@ import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import {
+  HarvestSeasonFinancialSummary,
+  HarvestSeasonFilters,
   HarvestSeasonStatus,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
@@ -50,6 +52,7 @@ import {
   ListFiltersConfig,
   ListFilterValues,
   Skeleton,
+  SummaryCard,
 } from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
@@ -72,12 +75,13 @@ interface HarvestFormControls {
 }
 
 interface HarvestSummaryCard {
+  section: string;
   label: string;
-  value: string | number;
-  subtext: string;
+  value: string;
+  detail: string;
+  description: string;
   icon: string;
-  tone: 'primary' | 'success' | 'info' | 'warning';
-  currency: boolean;
+  tone: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 }
 
 @Component({
@@ -96,6 +100,7 @@ interface HarvestSummaryCard {
     ReactiveFormsModule,
     Select,
     Skeleton,
+    SummaryCard,
     Textarea,
   ],
   templateUrl: './harvests-page.html',
@@ -122,6 +127,9 @@ export class HarvestsPage {
   private currentFarmId: number | null = null;
 
   protected readonly response = signal<PageResponse<HarvestSeasonSummaryListItem> | null>(null);
+  protected readonly summary = signal<HarvestSeasonFinancialSummary | null>(null);
+  protected readonly loadingSummary = signal(false);
+  protected readonly summaryError = signal(false);
   protected readonly productionActivities = signal<ProductionActivity[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
@@ -129,6 +137,7 @@ export class HarvestsPage {
   protected readonly drawerOpen = signal(false);
   protected readonly submitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4];
+  protected readonly summarySkeletons = Array.from({ length: 12 }, (_, index) => index + 1);
   protected readonly filtersConfig = computed<ListFiltersConfig>(() => ({
     subtitle: 'Busque e filtre safras da fazenda selecionada.',
     search: { placeholder: 'Buscar por nome ou atividade' },
@@ -244,49 +253,30 @@ export class HarvestsPage {
       : 'Crie uma safra para acompanhar custos, receitas e períodos produtivos.',
   );
   protected readonly summaryCards = computed<readonly HarvestSummaryCard[]>(() => {
-    const harvests = this.response()?.content ?? [];
-    const activeSeasons = harvests.filter(
-      (harvest) => harvest.status === 'PLANNED' || harvest.status === 'IN_PROGRESS',
-    ).length;
-    const realizedCost = harvests.reduce((total, harvest) => total + (harvest.realizedCost ?? 0), 0);
-    const realizedRevenue = harvests.reduce((total, harvest) => total + (harvest.realizedRevenue ?? 0), 0);
-    const realizedProfit = harvests.reduce((total, harvest) => total + (harvest.realizedProfit ?? 0), 0);
-
+    const summary = this.summary();
+    if (!summary) return [];
+    const money = (value: number | null | undefined) => this.formatMoney(value);
+    const profitTone = (value: number): HarvestSummaryCard['tone'] => value > 0 ? 'success' : value < 0 ? 'danger' : 'neutral';
+    const profitStatus = summary.comparison.profitPerformanceStatus;
+    const costStatus = summary.comparison.costVarianceStatus;
+    const profitApplicable = summary.comparison.profitPerformancePercentage !== null && profitStatus !== 'NOT_APPLICABLE';
+    const costApplicable = summary.comparison.costVariancePercentage !== null && costStatus !== 'NOT_APPLICABLE';
     return [
-      {
-        label: 'Safras ativas',
-        value: activeSeasons,
-        subtext: 'Planejadas e em andamento',
-        icon: 'sprout',
-        tone: 'primary',
-        currency: false,
-      },
-      {
-        label: 'Custo realizado',
-        value: realizedCost,
-        subtext: 'Despesas pagas nas safras',
-        icon: 'briefcase-business',
-        tone: 'warning',
-        currency: true,
-      },
-      {
-        label: 'Receita realizada',
-        value: realizedRevenue,
-        subtext: 'Receitas pagas nas safras',
-        icon: 'trending-up',
-        tone: 'success',
-        currency: true,
-      },
-      {
-        label: 'Lucro realizado',
-        value: realizedProfit,
-        subtext: 'Receita realizada menos custo',
-        icon: 'chart-no-axes-combined',
-        tone: 'info',
-        currency: true,
-      },
+      { section: 'Visão geral', label: 'Safras ativas', value: String(summary.activeHarvestCount), detail: 'Planejadas e em andamento', description: 'Quantidade de safras planejadas ou em andamento dentro dos filtros aplicados.', icon: 'sprout', tone: 'neutral' },
+      { section: 'Planejamento', label: 'Custo planejado', value: money(summary.planning.plannedCost), detail: 'Total planejado', description: 'Soma dos custos planejados informados nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
+      { section: 'Planejamento', label: 'Receita planejada', value: money(summary.planning.plannedRevenue), detail: 'Total planejado', description: 'Soma das receitas planejadas informadas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
+      { section: 'Planejamento', label: 'Lucro planejado', value: money(summary.planning.plannedProfit), detail: 'Receita menos custo', description: 'Receita planejada menos custo planejado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.planning.plannedProfit) },
+      { section: 'Realizado', label: 'Custo realizado', value: money(summary.realized.realizedCost), detail: 'Despesas já pagas', description: 'Despesas já pagas nas safras filtradas.', icon: 'briefcase-business', tone: 'warning' },
+      { section: 'Realizado', label: 'Receita realizada', value: money(summary.realized.realizedRevenue), detail: 'Receitas já recebidas', description: 'Receitas já recebidas nas safras filtradas.', icon: 'trending-up', tone: 'success' },
+      { section: 'Realizado', label: 'Lucro realizado', value: money(summary.realized.realizedProfit), detail: 'Receita menos custo', description: 'Receita realizada menos custo realizado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.realized.realizedProfit) },
+      { section: 'Projeção atual', label: 'Custo projetado', value: money(summary.projection.projectedCost), detail: 'Realizado e em aberto', description: 'Custo realizado somado às despesas ainda em aberto.', icon: 'briefcase-business', tone: 'warning' },
+      { section: 'Projeção atual', label: 'Receita projetada', value: money(summary.projection.projectedRevenue), detail: 'Realizado e em aberto', description: 'Receita realizada somada às receitas ainda em aberto.', icon: 'trending-up', tone: 'success' },
+      { section: 'Projeção atual', label: 'Lucro projetado', value: money(summary.projection.projectedProfit), detail: 'Receita menos custo', description: 'Receita projetada menos custo projetado.', icon: 'chart-no-axes-combined', tone: profitTone(summary.projection.projectedProfit) },
+      { section: 'Comparação', label: 'Desempenho do lucro', value: profitApplicable ? this.formatPercentage(summary.comparison.profitPerformancePercentage) : 'Não aplicável', detail: this.profitPerformanceLabel(profitStatus), description: 'Compara o lucro realizado com o lucro planejado.', icon: 'chart-no-axes-column-increasing', tone: this.comparisonTone(profitStatus, false) },
+      { section: 'Comparação', label: 'Desvio de custo', value: money(summary.comparison.costVarianceAmount), detail: costApplicable ? `${this.formatPercentage(Math.abs(summary.comparison.costVariancePercentage ?? 0))} ${this.costVarianceLabel(costStatus).toLowerCase()}` : 'Custo planejado igual a zero', description: 'Diferença entre o custo realizado e o custo planejado.', icon: 'badge-dollar-sign', tone: this.comparisonTone(costStatus, true) },
     ];
   });
+  protected readonly summarySections = computed(() => ['Visão geral', 'Planejamento', 'Realizado', 'Projeção atual', 'Comparação'].map((title) => ({ title, cards: this.summaryCards().filter((card) => card.section === title) })));
   protected readonly drawerTitle = 'Nova safra';
   protected readonly drawerDescription = 'Cadastre uma safra vinculada à fazenda selecionada.';
 
@@ -334,6 +324,7 @@ export class HarvestsPage {
       this.accessDenied.set(false);
       this.error.set(false);
       this.loading.set(true);
+      this.loadSummary(farmId);
 
       const subscription = this.harvestService
         .listSummary(this.listParams(farmId, 0, DEFAULT_PAGE_SIZE))
@@ -509,17 +500,6 @@ export class HarvestsPage {
     return variants[status];
   }
 
-  protected summaryToneClasses(tone: HarvestSummaryCard['tone']): string {
-    const tones: Record<HarvestSummaryCard['tone'], string> = {
-      primary: 'bg-highlight-soft text-primary',
-      success: 'bg-success/10 text-success',
-      info: 'bg-info/10 text-info',
-      warning: 'bg-warning/10 text-amber-700 dark:text-amber-300',
-    };
-
-    return tones[tone];
-  }
-
   protected periodLabel(harvest: HarvestSeasonSummaryListItem): string {
     if (!harvest.startDate) {
       return 'Sem periodo definido';
@@ -587,18 +567,47 @@ export class HarvestsPage {
   }
 
   private listParams(farmId: number, page: number, size: number): HarvestSeasonSummaryListParams {
-    return {
-      farmId,
-      search: this.searchTerm(),
-      statuses: this.selectedStatuses(),
-      productionActivityIds: this.selectedProductionActivityIds(),
-      periodStart: this.periodStart(),
-      periodEnd: this.periodEnd(),
-      page,
-      size,
-      sort: 'startDate',
-      direction: 'DESC',
-    };
+    return { ...this.currentFilters(farmId), page, size, sort: 'startDate', direction: 'DESC' };
+  }
+
+  private currentFilters(farmId: number): HarvestSeasonFilters {
+    return { farmId, search: this.searchTerm(), statuses: this.selectedStatuses(), productionActivityIds: this.selectedProductionActivityIds(), startDate: this.periodStart(), endDate: this.periodEnd() };
+  }
+
+  private loadSummary(farmId: number): void {
+    this.summaryError.set(false);
+    this.loadingSummary.set(true);
+    this.harvestService.getFinancialSummary(this.currentFilters(farmId))
+      .pipe(finalize(() => this.loadingSummary.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (summary) => this.summary.set(summary), error: () => { this.summary.set(null); this.summaryError.set(true); } });
+  }
+
+  protected retrySummary(): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (farmId) this.loadSummary(farmId);
+  }
+
+  private formatMoney(value: number | null | undefined): string {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value ?? 0);
+  }
+
+  private formatPercentage(value: number | null): string {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value ?? 0) + '%';
+  }
+
+  private profitPerformanceLabel(status: string): string {
+    return ({ ABOVE_PLANNED: 'Acima do lucro planejado', BELOW_PLANNED: 'Abaixo do lucro planejado', ON_TARGET: 'Dentro do lucro planejado', NOT_APPLICABLE: 'Lucro planejado igual a zero' } as Record<string, string>)[status] ?? 'Não aplicável';
+  }
+
+  private costVarianceLabel(status: string): string {
+    return ({ ABOVE_PLANNED: 'Acima do planejado', BELOW_PLANNED: 'Abaixo do planejado', ON_TARGET: 'Dentro do planejado', NOT_APPLICABLE: 'Custo planejado igual a zero' } as Record<string, string>)[status] ?? 'Não aplicável';
+  }
+
+  private comparisonTone(status: string, isCost: boolean): HarvestSummaryCard['tone'] {
+    if (status === 'NOT_APPLICABLE') return 'neutral';
+    if (status === 'ON_TARGET') return 'info';
+    if (status === 'ABOVE_PLANNED') return isCost ? 'danger' : 'success';
+    return isCost ? 'success' : 'danger';
   }
 
   private buildSavePayload(
@@ -650,6 +659,8 @@ export class HarvestsPage {
 
   private clearListState(): void {
     this.response.set(null);
+    this.summary.set(null);
+    this.summaryError.set(false);
     this.error.set(false);
     this.accessDenied.set(false);
     this.loading.set(false);
@@ -663,6 +674,7 @@ export class HarvestsPage {
     this.periodEnd.set('');
     this.periodError.set(null);
     this.response.set(null);
+    this.summary.set(null);
   }
 
   private loadProductionActivities(farmId: number): void {

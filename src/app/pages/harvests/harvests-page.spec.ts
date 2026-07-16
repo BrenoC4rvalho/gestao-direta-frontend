@@ -7,6 +7,7 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { Farm } from '../../core/models/farm.models';
 import {
   HarvestSeason,
+  HarvestSeasonFinancialSummary,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
 } from '../../core/models/harvest-season.models';
@@ -154,6 +155,15 @@ const response: PageResponse<HarvestSeasonSummaryListItem> = {
   last: true,
 };
 
+const financialSummary: HarvestSeasonFinancialSummary = {
+  farmId: 10,
+  activeHarvestCount: 2,
+  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000 },
+  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500 },
+  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500 },
+  comparison: { profitPerformancePercentage: 12.5, profitPerformanceStatus: 'ABOVE_PLANNED', costVarianceAmount: -27500, costVariancePercentage: -21.15, costVarianceStatus: 'BELOW_PLANNED' },
+};
+
 const emptyResponse: PageResponse<HarvestSeasonSummaryListItem> = {
   content: [],
   page: 0,
@@ -179,6 +189,7 @@ describe('HarvestsPage', () => {
   let harvestService: {
     list: Mock;
     listSummary: Mock;
+    getFinancialSummary: Mock;
     create: Mock;
     update: Mock;
     updateStatus: Mock;
@@ -194,6 +205,7 @@ describe('HarvestsPage', () => {
     harvestService = {
       list: vi.fn(() => of(response)),
       listSummary: vi.fn(() => of(response)),
+      getFinancialSummary: vi.fn(() => of(financialSummary)),
       create: vi.fn(() => of(seasons[0] as HarvestSeason)),
       update: vi.fn(() => of(seasons[0] as HarvestSeason)),
       updateStatus: vi.fn(() => of({ ...(seasons[0] as HarvestSeason), status: 'IN_PROGRESS' })),
@@ -245,8 +257,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -265,8 +277,8 @@ describe('HarvestsPage', () => {
     expect(getListFilters().textContent).not.toContain('Nova safra');
     expect(text()).toContain('Safra Soja 2026');
     expect(text()).toContain('Safras ativas');
-    expect(text()).toContain('114.500,00');
-    expect(text()).toContain('108.500,00');
+    expect(text()).toContain('130.000,00');
+    expect(text()).toContain('112.500,00');
   });
 
   it('should finish loading after a successful PageResponse and avoid reloading in a loop', () => {
@@ -343,8 +355,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -366,8 +378,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['IN_PROGRESS', 'PLANNED'],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -381,8 +393,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['PLANNED'],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -396,8 +408,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -416,8 +428,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [2, 3],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -436,8 +448,8 @@ describe('HarvestsPage', () => {
       search: 'soja',
       statuses: [],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -460,8 +472,8 @@ describe('HarvestsPage', () => {
       search: 'soja',
       statuses: ['IN_PROGRESS'],
       productionActivityIds: [2],
-      periodStart: '2026-01-01',
-      periodEnd: '2026-12-31',
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -497,8 +509,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -518,8 +530,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['IN_PROGRESS'],
       productionActivityIds: [],
-      periodStart: '',
-      periodEnd: '',
+      startDate: '',
+      endDate: '',
       page: 1,
       size: 10,
       sort: 'startDate',

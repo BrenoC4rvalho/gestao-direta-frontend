@@ -112,6 +112,57 @@ export interface HarvestSeasonSummaryListParams extends PageRequest {
   statuses?: HarvestSeasonStatus[] | null;
   productionActivityId?: number | null;
   productionActivityIds?: number[] | null;
-  periodStart?: string | null;
-  periodEnd?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface HarvestSeasonFilters {
+  farmId: number;
+  search?: string | null;
+  statuses?: HarvestSeasonStatus[] | null;
+  productionActivityIds?: number[] | null;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface HarvestPlanningSummary {
+  plannedCost: number;
+  plannedRevenue: number;
+  plannedProfit: number;
+}
+
+export interface HarvestRealizedSummary {
+  realizedCost: number;
+  realizedRevenue: number;
+  realizedProfit: number;
+}
+
+export interface HarvestProjectionSummary {
+  projectedCost: number;
+  projectedRevenue: number;
+  projectedProfit: number;
+}
+
+export type HarvestComparisonStatus =
+  | 'ABOVE_PLANNED'
+  | 'BELOW_PLANNED'
+  | 'ON_TARGET'
+  | 'NOT_APPLICABLE'
+  | string;
+
+export interface HarvestComparisonSummary {
+  profitPerformancePercentage: number | null;
+  profitPerformanceStatus: HarvestComparisonStatus;
+  costVarianceAmount: number;
+  costVariancePercentage: number | null;
+  costVarianceStatus: HarvestComparisonStatus;
+}
+
+export interface HarvestSeasonFinancialSummary {
+  farmId: number;
+  activeHarvestCount: number;
+  planning: HarvestPlanningSummary;
+  realized: HarvestRealizedSummary;
+  projection: HarvestProjectionSummary;
+  comparison: HarvestComparisonSummary;
 }

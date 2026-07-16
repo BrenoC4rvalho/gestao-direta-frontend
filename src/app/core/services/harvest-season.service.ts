@@ -7,6 +7,8 @@ import { appendQueryParam } from '../../shared/utils/query-params.utils';
 import {
   CreateHarvestSeasonRequest,
   HarvestSeason,
+  HarvestSeasonFilters,
+  HarvestSeasonFinancialSummary,
   HarvestSeasonListParams,
   HarvestSeasonStatus,
   HarvestSeasonSummary,
@@ -16,24 +18,25 @@ import {
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class HarvestSeasonService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/harvest/seasons`;
 
   list(params?: HarvestSeasonListParams): Observable<PageResponse<HarvestSeason>> {
-    return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, {
-      params: this.buildParams(params),
+    return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, { params: this.buildParams(params) });
+  }
+
+  listSummary(params: HarvestSeasonSummaryListParams): Observable<PageResponse<HarvestSeasonSummaryListItem>> {
+    return this.http.get<PageResponse<HarvestSeasonSummaryListItem>>(`${this.apiUrl}/summary-list`, {
+      params: this.buildListSummaryParams(params),
+      withCredentials: true,
     });
   }
 
-  listSummary(
-    params: HarvestSeasonSummaryListParams,
-  ): Observable<PageResponse<HarvestSeasonSummaryListItem>> {
-    return this.http.get<PageResponse<HarvestSeasonSummaryListItem>>(this.apiUrl + '/summary-list', {
-      params: this.buildSummaryParams(params),
+  getFinancialSummary(filters: HarvestSeasonFilters): Observable<HarvestSeasonFinancialSummary> {
+    return this.http.get<HarvestSeasonFinancialSummary>(`${this.apiUrl}/summary`, {
+      params: this.buildFinancialSummaryParams(filters),
       withCredentials: true,
     });
   }
@@ -46,77 +49,52 @@ export class HarvestSeasonService {
     return this.http.get<HarvestSeasonSummary>(`${this.apiUrl}/${id}/summary`);
   }
 
-  create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> {
-    return this.http.post<HarvestSeason>(this.apiUrl, payload);
-  }
-
-  update(id: number, payload: UpdateHarvestSeasonRequest): Observable<HarvestSeason> {
-    return this.http.put<HarvestSeason>(`${this.apiUrl}/${id}`, payload);
-  }
-
-  updateStatus(id: number, status: HarvestSeasonStatus): Observable<HarvestSeason> {
-    return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/status`, { status });
-  }
-
-  activate(id: number): Observable<HarvestSeason> {
-    return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/activate`, {});
-  }
-
-  inactivate(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
+  create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> { return this.http.post<HarvestSeason>(this.apiUrl, payload); }
+  update(id: number, payload: UpdateHarvestSeasonRequest): Observable<HarvestSeason> { return this.http.put<HarvestSeason>(`${this.apiUrl}/${id}`, payload); }
+  updateStatus(id: number, status: HarvestSeasonStatus): Observable<HarvestSeason> { return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/status`, { status }); }
+  activate(id: number): Observable<HarvestSeason> { return this.http.patch<HarvestSeason>(`${this.apiUrl}/${id}/activate`, {}); }
+  inactivate(id: number): Observable<void> { return this.http.delete<void>(`${this.apiUrl}/${id}`); }
 
   private buildParams(params?: HarvestSeasonListParams): HttpParams {
-    let httpParams = new HttpParams();
-
-    if (!params) {
-      return httpParams;
-    }
-
-    httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
-    httpParams = appendQueryParam(httpParams, 'includeInactive', params.includeInactive);
-    httpParams = this.appendPageParams(httpParams, params);
-
-    return httpParams;
+    let result = new HttpParams();
+    if (!params) return result;
+    result = appendQueryParam(result, 'farmId', params.farmId);
+    result = appendQueryParam(result, 'includeInactive', params.includeInactive);
+    return this.appendPageParams(result, params);
   }
 
-  private buildSummaryParams(params: HarvestSeasonSummaryListParams): HttpParams {
-    let httpParams = new HttpParams();
-
-    httpParams = appendQueryParam(httpParams, 'farmId', params.farmId);
-    httpParams = appendQueryParam(httpParams, 'search', params.search);
-    httpParams = appendQueryParam(httpParams, 'status', params.status);
-    httpParams = this.appendCommaSeparatedParam(httpParams, 'statuses', params.statuses);
-    httpParams = appendQueryParam(httpParams, 'productionActivityId', params.productionActivityId);
-    httpParams = this.appendCommaSeparatedParam(httpParams, 'productionActivityIds', params.productionActivityIds);
-    httpParams = appendQueryParam(httpParams, 'periodStart', params.periodStart);
-    httpParams = appendQueryParam(httpParams, 'periodEnd', params.periodEnd);
-    httpParams = this.appendPageParams(httpParams, params);
-
-    return httpParams;
+  private buildListSummaryParams(params: HarvestSeasonSummaryListParams): HttpParams {
+    return this.appendPageParams(this.buildFilterParams(params), params);
   }
 
-  private appendCommaSeparatedParam(
-    httpParams: HttpParams,
-    key: string,
-    values: readonly (string | number)[] | null | undefined,
-  ): HttpParams {
-    if (!values || values.length === 0) {
-      return httpParams;
-    }
-
-    return appendQueryParam(httpParams, key, values.join(','));
+  private buildFinancialSummaryParams(filters: HarvestSeasonFilters): HttpParams {
+    return this.buildFilterParams(filters);
   }
 
-  private appendPageParams(
-    httpParams: HttpParams,
-    params: HarvestSeasonListParams | HarvestSeasonSummaryListParams,
-  ): HttpParams {
-    let nextParams = appendQueryParam(httpParams, 'page', params.page);
-    nextParams = appendQueryParam(nextParams, 'size', params.size);
-    nextParams = appendQueryParam(nextParams, 'sort', params.sort);
-    nextParams = appendQueryParam(nextParams, 'direction', params.direction);
+  private buildFilterParams(filters: HarvestSeasonFilters): HttpParams {
+    let result = new HttpParams();
+    result = appendQueryParam(result, 'farmId', filters.farmId);
+    result = appendQueryParam(result, 'search', filters.search);
+    result = this.appendStatuses(result, filters.statuses);
+    result = this.appendCommaSeparatedParam(result, 'productionActivityIds', filters.productionActivityIds);
+    result = appendQueryParam(result, 'startDate', filters.startDate);
+    return appendQueryParam(result, 'endDate', filters.endDate);
+  }
 
-    return nextParams;
+  private appendStatuses(params: HttpParams, statuses: readonly HarvestSeasonStatus[] | null | undefined): HttpParams {
+    if (!statuses || statuses.length === 0) return params;
+    if (statuses.length === 1) return appendQueryParam(params, 'status', statuses[0]);
+    return this.appendCommaSeparatedParam(params, 'statuses', statuses);
+  }
+
+  private appendCommaSeparatedParam(params: HttpParams, key: string, values: readonly (string | number)[] | null | undefined): HttpParams {
+    return !values || values.length === 0 ? params : appendQueryParam(params, key, values.join(','));
+  }
+
+  private appendPageParams(params: HttpParams, page: HarvestSeasonListParams | HarvestSeasonSummaryListParams): HttpParams {
+    let result = appendQueryParam(params, 'page', page.page);
+    result = appendQueryParam(result, 'size', page.size);
+    result = appendQueryParam(result, 'sort', page.sort);
+    return appendQueryParam(result, 'direction', page.direction);
   }
 }
