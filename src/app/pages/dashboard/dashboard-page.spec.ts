@@ -11,7 +11,6 @@ import {
   FinancialSummary,
   FinancialTransaction,
 } from '../../core/models/financial.models';
-import { HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { AiTransactionService } from '../../core/services/ai-transaction.service';
 import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
@@ -130,34 +129,6 @@ const alerts: FinancialAlerts = {
   dueNext7Days: { count: 5, totalAmount: 7400 },
 };
 
-const harvest: HarvestSeasonSummaryListItem = {
-  id: 10,
-  farmId: 1,
-  farmName: 'Fazenda Boa Safra',
-  productionActivityId: 2,
-  productionActivityName: 'Soja',
-  name: 'Safra Soja 2026',
-  description: null,
-  startDate: '2026-01-01',
-  endDate: null,
-  expectedCost: 9000,
-  expectedRevenue: 18000,
-  expectedProfit: 9000,
-  areaHectares: 50,
-  status: 'IN_PROGRESS',
-  realizedCost: 4200,
-  realizedRevenue: 9500,
-  realizedProfit: 5300,
-  pendingExpenses: 2,
-  overdueExpenses: 1,
-  pendingRevenue: 0,
-  transactionCount: 7,
-  incomeCount: 3,
-  expenseCount: 4,
-  createdAt: '2026-01-01T00:00:00Z',
-  updatedAt: '2026-01-10T00:00:00Z',
-};
-
 function pageResponse<T>(content: T[]): PageResponse<T> {
   return {
     content,
@@ -241,7 +212,7 @@ describe('DashboardPage', () => {
       getUpcomingBills: vi.fn(),
     };
     harvestSeasonService = {
-      listSummary: vi.fn().mockReturnValue(of(pageResponse([harvest]))),
+      listSummary: vi.fn(),
       list: vi.fn().mockReturnValue(of(pageResponse([
         {
           id: 20,
@@ -338,14 +309,7 @@ describe('DashboardPage', () => {
     expect(financialService.getAlerts).toHaveBeenCalledWith(1);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
-    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
-      farmId: 1,
-      status: 'IN_PROGRESS',
-      page: 0,
-      size: 3,
-      sort: 'startDate',
-      direction: 'DESC',
-    });
+    expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
 
     const text = textContent(fixture);
     const summaryCards = Array.from(
@@ -380,7 +344,7 @@ describe('DashboardPage', () => {
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
-  it('should render in-progress harvest cards and links', () => {
+  it("should render mocked in-progress harvest cards with financial comparisons and tooltips", () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
 
@@ -388,58 +352,50 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     const text = textContent(fixture);
-    const anchors = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
+    const anchors = Array.from(fixture.nativeElement.querySelectorAll("a")) as HTMLAnchorElement[];
+    const tooltips = Array.from(
+      fixture.nativeElement.querySelectorAll("gd-tooltip [role=tooltip]") as NodeListOf<HTMLElement>,
+    );
+    const negativeProfit = fixture.nativeElement.querySelector("span.text-danger") as HTMLElement;
+    const positiveProfit = Array.from(
+      fixture.nativeElement.querySelectorAll("span.text-success") as NodeListOf<HTMLElement>,
+    ).find((value) => value.textContent?.replace(/\u00a0/g, " ").includes("R$ 64.000,00")) as HTMLElement;
 
-    expect(text).toContain('Safras em andamento');
-    expect(text).toContain('Acompanhe o resultado financeiro dos ciclos produtivos ativos.');
-    expect(text).toContain('Safra Soja 2026');
-    expect(text).toContain('Soja');
-    expect(text).toContain('Em andamento');
-    expect(text).toContain('Custo realizado');
-    expect(text).toContain('R$ 4.200,00');
-    expect(text).toContain('Receita realizada');
-    expect(text).toContain('R$ 9.500,00');
-    expect(text).toContain('Lucro realizado');
-    expect(text).toContain('R$ 5.300,00');
-    expect(text).toContain('Pendentes');
-    expect(text).toContain('Atrasadas');
-    expect(text).toContain('Movimentações');
-    expect(text).toContain('Possui atrasos');
-    expect(text).toContain('Pendências abertas');
-    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver todas') && anchor.getAttribute('href') === '/harvests')).toBe(true);
-    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver detalhes') && anchor.getAttribute('href') === '/harvests/10')).toBe(true);
-  });
-
-  it('should render empty state when there are no in-progress harvests', () => {
-    selectedFarmStore.setFarms(farms);
-    farmAccessStore.setAccess(farmAccess(1));
-    harvestSeasonService.listSummary.mockReturnValueOnce(of(pageResponse([])));
-
-    const fixture = TestBed.createComponent(DashboardPage);
-    fixture.detectChanges();
-
-    const anchors = Array.from(fixture.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[];
-
-    expect(textContent(fixture)).toContain('Nenhuma safra em andamento no momento.');
-    expect(anchors.some((anchor) => anchor.textContent?.includes('Ver safras') && anchor.getAttribute('href') === '/harvests')).toBe(true);
-  });
-
-  it('should render harvest error state without breaking financial sections', () => {
-    selectedFarmStore.setFarms(farms);
-    farmAccessStore.setAccess(farmAccess(1));
-    harvestSeasonService.listSummary.mockReturnValueOnce(throwError(() => new Error('harvests')));
-
-    const fixture = TestBed.createComponent(DashboardPage);
-    fixture.detectChanges();
-
-    const text = textContent(fixture);
-
-    expect(text).toContain('Erro ao carregar safras');
-    expect(text).toContain('Não foi possível carregar as safras em andamento.');
-    expect(text).toContain('Saldo atual');
-    expect(text).toContain('Alertas importantes');
-    expect(text).toContain('Boleto fornecedor AgroSul');
-    expect(text).toContain('Venda de soja');
+    expect(text).toContain("Safras em andamento");
+    expect(text).toContain("Café 2026/2027");
+    expect(text).toContain("Tomate 2025/2026");
+    expect(text).toContain("Milho 2024/2025");
+    expect(text).toContain("Café");
+    expect(text).toContain("Tomate");
+    expect(text).toContain("Milho");
+    expect(text.match(/Em andamento/g)).toHaveLength(3);
+    expect(text).toContain("Realizado");
+    expect(text).toContain("Projetado");
+    expect(text).toContain("R$ 40.000,00");
+    expect(text).toContain("R$ 68.000,00");
+    expect(text).toContain("R$ 50.000,00");
+    expect(text).toContain("R$ 132.000,00");
+    expect(text).toContain("-R$ 72.200,00");
+    expect(text).toContain("R$ 25.000,00");
+    expect(negativeProfit.textContent?.replace(/\u00a0/g, " ")).toContain("-R$ 72.200,00");
+    expect(positiveProfit.textContent?.replace(/\u00a0/g, " ")).toContain("R$ 64.000,00");
+    expect(text).toContain("Próximos 7 dias");
+    expect(text).toContain("Atrasadas");
+    expect(tooltips).toHaveLength(6);
+    expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("2 contas a pagar");
+    expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 10.000,00");
+    expect(tooltips[1].textContent).toContain("Nenhuma conta atrasada.");
+    expect(tooltips[3].textContent?.replace(/\u00a0/g, " ")).toContain("2 contas atrasadas");
+    expect(tooltips[3].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 27.100,00");
+    expect(text).not.toContain("Pendentes");
+    expect(text).not.toContain("Movimentações");
+    expect(text).not.toContain("Pendências abertas");
+    expect(text).not.toContain("Possui atrasos");
+    expect(anchors.some((anchor) => anchor.textContent?.includes("Ver todas") && anchor.getAttribute("href") === "/harvests")).toBe(true);
+    expect(anchors.some((anchor) => anchor.textContent?.includes("Ver detalhes") && anchor.getAttribute("href") === "/harvests/25")).toBe(true);
+    expect(anchors.some((anchor) => anchor.textContent?.includes("Ver detalhes") && anchor.getAttribute("href") === "/harvests/26")).toBe(true);
+    expect(anchors.some((anchor) => anchor.textContent?.includes("Ver detalhes") && anchor.getAttribute("href") === "/harvests/27")).toBe(true);
+    expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
   });
 
   it('should reload dashboard and harvest data when the global farm selection changes', () => {
@@ -460,22 +416,7 @@ describe('DashboardPage', () => {
     expect(financialService.getAlerts).toHaveBeenCalledWith(2);
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
-    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
-      farmId: 1,
-      status: 'IN_PROGRESS',
-      page: 0,
-      size: 3,
-      sort: 'startDate',
-      direction: 'DESC',
-    });
-    expect(harvestSeasonService.listSummary).toHaveBeenCalledWith({
-      farmId: 2,
-      status: 'IN_PROGRESS',
-      page: 0,
-      size: 3,
-      sort: 'startDate',
-      direction: 'DESC',
-    });
+    expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
   });
 
   it('should not call dashboard endpoints without financial permission', () => {
@@ -714,7 +655,7 @@ describe('DashboardPage', () => {
     expect(text).toContain('Erro ao carregar alertas');
     expect(text).toContain('Erro ao carregar movimentações');
     expect(text).toContain('Safras em andamento');
-    expect(text).toContain('Safra Soja 2026');
+    expect(text).toContain('Café 2026/2027');
   });
 });
 

@@ -9,3 +9,4 @@ export * from './skeleton/skeleton';
 export * from './summary-card/summary-card';
 export * from './status-action-section/status-action-section';
 export * from './theme-toggle-button/theme-toggle-button';
+export * from './tooltip/tooltip';

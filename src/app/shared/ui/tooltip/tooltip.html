@@ -1,0 +1,9 @@
+<ng-content />
+
+<span
+  [id]="tooltipId"
+  role="tooltip"
+  class="pointer-events-none invisible absolute bottom-full left-1/2 z-[999] mb-2 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 whitespace-pre-line rounded-app border border-border bg-surface px-3 py-2 text-center text-xs font-medium leading-5 text-text-primary opacity-0 shadow-soft transition duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+>
+  {{ content() }}
+</span>

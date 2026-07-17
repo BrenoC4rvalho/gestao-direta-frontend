@@ -74,105 +74,59 @@
         </a>
       </div>
 
-      @if (harvestsLoading()) {
-        <div class="grid gap-4 md:grid-cols-3">
-          @for (item of harvestSkeletons; track item) {
-            <div class="rounded-app border border-border bg-surface p-5">
-              <gd-skeleton width="55%" height="1rem" />
-              <gd-skeleton class="mt-3 block" width="40%" height="0.75rem" />
-              <gd-skeleton class="mt-5 block" width="80%" height="1.5rem" />
-              <gd-skeleton class="mt-4 block" width="70%" height="0.875rem" />
-              <gd-skeleton class="mt-3 block" width="65%" height="0.875rem" />
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @for (harvest of inProgressHarvests(); track harvest.id) {
+          <article class="rounded-app border border-border bg-surface p-4 shadow-sm sm:p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="truncate text-base font-semibold text-text-primary">{{ harvest.name }}</h3>
+                <p class="mt-1 truncate text-sm text-text-muted">{{ harvest.productionActivityName }}</p>
+              </div>
+              <gd-badge variant="success" size="sm">Em andamento</gd-badge>
             </div>
-          }
-        </div>
-      } @else if (harvestsError(); as errorMessage) {
-        <gd-error-state title="Erro ao carregar safras" [description]="errorMessage" />
-      } @else if (inProgressHarvests().length === 0) {
-        <div class="rounded-app border border-dashed border-border bg-surface px-6 py-8 text-center">
-          <h3 class="text-base font-semibold text-text-primary">Nenhuma safra em andamento no momento.</h3>
-          <a
-            routerLink="/harvests"
-            class="mt-4 inline-flex min-h-10 cursor-pointer items-center justify-center rounded-app border border-primary px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            Ver safras
-          </a>
-        </div>
-      } @else {
-        <div class="grid gap-4 md:grid-cols-3">
-          @for (harvest of inProgressHarvests(); track harvest.id) {
-            <article class="rounded-app border border-border bg-surface p-5 shadow-sm">
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <h3 class="truncate text-base font-semibold text-text-primary">{{ harvest.name }}</h3>
-                  <p class="mt-1 truncate text-sm text-text-muted">
-                    {{ harvest.productionActivityName || 'Atividade não informada' }}
-                  </p>
-                </div>
-                <gd-badge variant="success" size="sm">Em andamento</gd-badge>
-              </div>
 
-              <dl class="mt-5 grid gap-3">
-                <div class="flex items-center justify-between gap-3">
-                  <dt class="text-sm text-text-muted">Custo realizado</dt>
-                  <dd class="text-sm font-semibold text-text-primary">
-                    {{ formatHarvestCurrency(harvest.realizedCost) }}
-                  </dd>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <dt class="text-sm text-text-muted">Receita realizada</dt>
-                  <dd class="text-sm font-semibold text-text-primary">
-                    {{ formatHarvestCurrency(harvest.realizedRevenue) }}
-                  </dd>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <dt class="text-sm text-text-muted">Lucro realizado</dt>
-                  <dd
-                    class="text-sm font-semibold"
-                    [class.text-danger]="isNegativeHarvestProfit(harvest.realizedProfit)"
-                    [class.text-success]="!isNegativeHarvestProfit(harvest.realizedProfit)"
-                  >
-                    {{ formatHarvestCurrency(harvest.realizedProfit) }}
-                  </dd>
-                </div>
-              </dl>
+            <div class="mt-5 grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-2 gap-y-3 text-xs sm:gap-x-4 sm:text-sm">
+              <span></span>
+              <span class="whitespace-nowrap text-right font-medium text-text-muted">Realizado</span>
+              <span class="whitespace-nowrap text-right font-medium text-text-muted">Projetado</span>
 
-              <div class="mt-5 grid grid-cols-3 gap-2 text-center">
-                <div class="rounded-app bg-background px-2 py-3">
-                  <p class="text-xs text-text-muted">Pendentes</p>
-                  <p class="mt-1 text-sm font-semibold text-text-primary">{{ harvest.pendingExpenses ?? 0 }}</p>
+              <span class="text-text-muted">Custo</span>
+              <span class="whitespace-nowrap text-right font-semibold text-amber-700 dark:text-amber-300">{{ formatHarvestCurrency(harvest.realized.cost) }}</span>
+              <span class="whitespace-nowrap text-right font-semibold text-amber-700 dark:text-amber-300">{{ formatHarvestCurrency(harvest.projection.cost) }}</span>
+
+              <span class="text-text-muted">Receita</span>
+              <span class="whitespace-nowrap text-right font-semibold text-success">{{ formatHarvestCurrency(harvest.realized.revenue) }}</span>
+              <span class="whitespace-nowrap text-right font-semibold text-success">{{ formatHarvestCurrency(harvest.projection.revenue) }}</span>
+
+              <span class="text-text-muted">Lucro</span>
+              <span class="whitespace-nowrap text-right font-semibold" [class]="harvestProfitClasses(harvest.realized.profit)">{{ formatHarvestCurrency(harvest.realized.profit) }}</span>
+              <span class="whitespace-nowrap text-right font-semibold" [class]="harvestProfitClasses(harvest.projection.profit)">{{ formatHarvestCurrency(harvest.projection.profit) }}</span>
+            </div>
+
+            <div class="mt-5 grid grid-cols-2 gap-3">
+              <gd-tooltip [ariaLabel]="upcomingBillsTooltip(harvest)" [content]="upcomingBillsTooltip(harvest)">
+                <div class="rounded-app bg-background px-3 py-3 text-center">
+                  <p class="text-xs text-text-muted">Próximos 7 dias</p>
+                  <p [class]="upcomingCountClasses(harvest.dueNext7Days.count)">{{ harvest.dueNext7Days.count }}</p>
                 </div>
-                <div class="rounded-app bg-background px-2 py-3">
+              </gd-tooltip>
+              <gd-tooltip [ariaLabel]="overdueBillsTooltip(harvest)" [content]="overdueBillsTooltip(harvest)">
+                <div class="rounded-app bg-background px-3 py-3 text-center">
                   <p class="text-xs text-text-muted">Atrasadas</p>
-                  <p class="mt-1 text-sm font-semibold text-danger">{{ harvest.overdueExpenses ?? 0 }}</p>
+                  <p [class]="overdueCountClasses(harvest.overdue.count)">{{ harvest.overdue.count }}</p>
                 </div>
-                <div class="rounded-app bg-background px-2 py-3">
-                  <p class="text-xs text-text-muted">Movimentações</p>
-                  <p class="mt-1 text-sm font-semibold text-text-primary">{{ harvest.transactionCount ?? 0 }}</p>
-                </div>
-              </div>
+              </gd-tooltip>
+            </div>
 
-              <div class="mt-4 flex flex-wrap gap-2">
-                @if ((harvest.overdueExpenses ?? 0) > 0) {
-                  <gd-badge variant="danger" size="sm">Possui atrasos</gd-badge>
-                }
-                @if ((harvest.pendingExpenses ?? 0) > 0) {
-                  <span class="inline-flex min-h-6 items-center text-xs font-medium text-text-muted">
-                    Pendências abertas
-                  </span>
-                }
-              </div>
-
-              <a
-                [routerLink]="['/harvests', harvest.id]"
-                class="mt-5 inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                Ver detalhes
-              </a>
-            </article>
-          }
-        </div>
-      }
+            <a
+              routerLink="/harvests/{{ harvest.id }}"
+              class="mt-5 inline-flex min-h-10 cursor-pointer items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Ver detalhes
+            </a>
+          </article>
+        }
+      </div>
     </section>
 
     <gd-latest-transactions-card

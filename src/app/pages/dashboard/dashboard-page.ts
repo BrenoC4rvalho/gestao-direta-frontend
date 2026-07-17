@@ -21,7 +21,7 @@ import {
   FinancialSummary,
   FinancialTransaction as DashboardFinancialTransaction,
 } from '../../core/models/financial.models';
-import { HarvestSeason, HarvestSeasonSummaryListItem } from '../../core/models/harvest-season.models';
+import { HarvestSeason } from '../../core/models/harvest-season.models';
 import {
   CreateFinancialTransactionRequest,
   FinancialTransactionDraft,
@@ -51,9 +51,14 @@ import {
   Skeleton,
   SummaryCard,
   SummaryCardTone,
+  Tooltip,
 } from '../../shared/ui';
 import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
+import {
+  DASHBOARD_IN_PROGRESS_HARVESTS_MOCK,
+  DashboardHarvestMock,
+} from './mocks/in-progress-harvests.mock';
 import { TransactionFormDrawer } from '../transactions/components/transaction-form-drawer/transaction-form-drawer';
 
 interface SummaryCardViewModel {
@@ -79,6 +84,7 @@ interface SummaryCardViewModel {
     RouterLink,
     Skeleton,
     SummaryCard,
+    Tooltip,
     Textarea,
     TransactionFormDrawer,
   ],
@@ -112,9 +118,11 @@ export class DashboardPage {
   protected readonly alertsLoading = signal(false);
   protected readonly alertsError = signal<string | null>(null);
 
-  protected readonly inProgressHarvests = signal<readonly HarvestSeasonSummaryListItem[]>([]);
-  protected readonly harvestsLoading = signal(false);
-  protected readonly harvestsError = signal<string | null>(null);
+  // TODO: substituir os dados mocks pela integração com
+  // GET /api/harvest/seasons/dashboard?farmId={farmId}
+  protected readonly inProgressHarvests = signal<readonly DashboardHarvestMock[]>(
+    DASHBOARD_IN_PROGRESS_HARVESTS_MOCK,
+  );
 
   protected readonly quickTransactionControl = new FormControl<GdFormValue>('', {
     validators: [Validators.required],
@@ -293,7 +301,6 @@ export class DashboardPage {
       this.loadSummary(farmId, subscriptions);
       this.loadTransactions(farmId, subscriptions);
       this.loadAlerts(farmId, subscriptions);
-      this.loadInProgressHarvests(farmId, subscriptions);
 
       onCleanup(() => subscriptions.unsubscribe());
     });
@@ -344,30 +351,6 @@ export class DashboardPage {
         .subscribe({
           next: (alerts) => this.alerts.set(alerts),
           error: () => this.alertsError.set('Não foi possível carregar os alertas financeiros.'),
-        }),
-    );
-  }
-
-  private loadInProgressHarvests(farmId: number, subscriptions: Subscription): void {
-    this.inProgressHarvests.set([]);
-    this.harvestsError.set(null);
-    this.harvestsLoading.set(true);
-
-    subscriptions.add(
-      this.harvestSeasonService
-        .listSummary({
-          farmId,
-          status: 'IN_PROGRESS',
-          page: 0,
-          size: 3,
-          sort: 'startDate',
-          direction: 'DESC',
-        })
-        .pipe(finalize(() => this.harvestsLoading.set(false)))
-        .subscribe({
-          next: (response) => this.inProgressHarvests.set(response.content),
-          error: () =>
-            this.harvestsError.set('Não foi possível carregar as safras em andamento.'),
         }),
     );
   }
@@ -730,9 +713,6 @@ export class DashboardPage {
     this.alerts.set(null);
     this.alertsLoading.set(false);
     this.alertsError.set(null);
-    this.inProgressHarvests.set([]);
-    this.harvestsLoading.set(false);
-    this.harvestsError.set(null);
   }
 
   protected formatHarvestCurrency(value: number | null | undefined): string {
@@ -741,6 +721,43 @@ export class DashboardPage {
 
   protected isNegativeHarvestProfit(value: number | null | undefined): boolean {
     return (value ?? 0) < 0;
+  }
+
+  protected harvestProfitClasses(value: number): string {
+    if (value > 0) return "text-success";
+    if (value < 0) return "text-danger";
+    return "text-text-primary";
+  }
+
+  protected upcomingBillsTooltip(harvest: DashboardHarvestMock): string {
+    const { count, totalAmount } = harvest.dueNext7Days;
+    if (count === 0) return "Nenhuma conta a pagar nos próximos 7 dias.";
+
+    return this.accountCountLabel(count, "a pagar") + "\nTotal: " + this.formatHarvestCurrency(totalAmount) + "\nVencem nos próximos 7 dias";
+  }
+
+  protected overdueBillsTooltip(harvest: DashboardHarvestMock): string {
+    const { count, totalAmount } = harvest.overdue;
+    if (count === 0) return "Nenhuma conta atrasada.";
+
+    return this.accountCountLabel(count, "atrasada") + "\nTotal: " + this.formatHarvestCurrency(totalAmount);
+  }
+
+  private accountCountLabel(count: number, suffix: "a pagar" | "atrasada"): string {
+    const account = count === 1 ? "conta" : "contas";
+    return String(count) + " " + account + " " + suffix + (suffix === "atrasada" && count !== 1 ? "s" : "");
+  }
+
+  protected upcomingCountClasses(count: number): string {
+    return count > 0
+      ? "mt-1 text-lg font-semibold text-amber-700 dark:text-amber-300"
+      : "mt-1 text-lg font-semibold text-text-primary";
+  }
+
+  protected overdueCountClasses(count: number): string {
+    return count > 0
+      ? "mt-1 text-lg font-semibold text-danger"
+      : "mt-1 text-lg font-semibold text-text-primary";
   }
 
   private formatCurrency(value: number): string {
