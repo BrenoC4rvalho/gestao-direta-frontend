@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { appendQueryParam } from '../../shared/utils/query-params.utils';
 import {
   CreateHarvestSeasonRequest,
+  DashboardHarvestSeason,
   HarvestSeason,
   HarvestSeasonFilters,
   HarvestSeasonFinancialSummary,
@@ -32,6 +33,12 @@ export class HarvestSeasonService {
   list(params?: HarvestSeasonListParams): Observable<PageResponse<HarvestSeason>> {
     return this.http.get<PageResponse<HarvestSeason>>(this.apiUrl, {
       params: this.buildParams(params),
+    });
+  }
+
+  getDashboardHarvests(farmId: number): Observable<readonly DashboardHarvestSeason[]> {
+    return this.http.get<readonly DashboardHarvestSeason[]>(`${this.apiUrl}/dashboard`, {
+      params: new HttpParams().set("farmId", farmId),
     });
   }
 

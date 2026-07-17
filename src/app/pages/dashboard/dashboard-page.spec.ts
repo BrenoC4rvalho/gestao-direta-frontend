@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
@@ -11,6 +11,7 @@ import {
   FinancialSummary,
   FinancialTransaction,
 } from '../../core/models/financial.models';
+import { DashboardHarvestSeason } from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { AiTransactionService } from '../../core/services/ai-transaction.service';
 import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
@@ -129,6 +130,24 @@ const alerts: FinancialAlerts = {
   dueNext7Days: { count: 5, totalAmount: 7400 },
 };
 
+const dashboardHarvests: readonly DashboardHarvestSeason[] = [
+  {
+    id: 25, farmId: 1, name: 'Café 2026/2027', status: 'IN_PROGRESS', productionActivityId: 25, productionActivityName: 'Café',
+    realized: { cost: 40000, revenue: 50000, profit: 10000 }, projection: { cost: 68000, revenue: 132000, profit: 64000 },
+    dueNext7Days: { count: 2, totalAmount: 12500 }, overdue: { count: 0, totalAmount: 0 },
+  },
+  {
+    id: 26, farmId: 1, name: 'Tomate 2025/2026', status: 'IN_PROGRESS', productionActivityId: 26, productionActivityName: 'Tomate',
+    realized: { cost: 102700, revenue: 30500, profit: -72200 }, projection: { cost: 136100, revenue: 88500, profit: -47600 },
+    dueNext7Days: { count: 3, totalAmount: 33400 }, overdue: { count: 2, totalAmount: 27100 },
+  },
+  {
+    id: 27, farmId: 1, name: 'Milho 2024/2025', status: 'IN_PROGRESS', productionActivityId: 27, productionActivityName: 'Milho',
+    realized: { cost: 175900, revenue: 129000, profit: -46900 }, projection: { cost: 205000, revenue: 230000, profit: 25000 },
+    dueNext7Days: { count: 1, totalAmount: 8500 }, overdue: { count: 1, totalAmount: 5900 },
+  },
+];
+
 function pageResponse<T>(content: T[]): PageResponse<T> {
   return {
     content,
@@ -164,6 +183,7 @@ describe('DashboardPage', () => {
   };
   let harvestSeasonService: {
     listSummary: ReturnType<typeof vi.fn>;
+    getDashboardHarvests: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
   };
   let farmAccessStore: FarmAccessStore;
@@ -213,6 +233,7 @@ describe('DashboardPage', () => {
     };
     harvestSeasonService = {
       listSummary: vi.fn(),
+      getDashboardHarvests: vi.fn().mockReturnValue(of(dashboardHarvests)),
       list: vi.fn().mockReturnValue(of(pageResponse([
         {
           id: 20,
@@ -310,6 +331,7 @@ describe('DashboardPage', () => {
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledWith(1);
 
     const text = textContent(fixture);
     const summaryCards = Array.from(
@@ -344,7 +366,7 @@ describe('DashboardPage', () => {
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
-  it("should render mocked in-progress harvest cards with financial comparisons and tooltips", () => {
+  it("should render dashboard harvest cards with financial comparisons and tooltips", () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
 
@@ -383,7 +405,7 @@ describe('DashboardPage', () => {
     expect(text).toContain("Atrasadas");
     expect(tooltips).toHaveLength(6);
     expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("2 contas a pagar");
-    expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 10.000,00");
+    expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 12.500,00");
     expect(tooltips[1].textContent).toContain("Nenhuma conta atrasada.");
     expect(tooltips[3].textContent?.replace(/\u00a0/g, " ")).toContain("2 contas atrasadas");
     expect(tooltips[3].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 27.100,00");
@@ -396,6 +418,51 @@ describe('DashboardPage', () => {
     expect(anchors.some((anchor) => anchor.textContent?.includes("Ver detalhes") && anchor.getAttribute("href") === "/harvests/26")).toBe(true);
     expect(anchors.some((anchor) => anchor.textContent?.includes("Ver detalhes") && anchor.getAttribute("href") === "/harvests/27")).toBe(true);
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
+  });
+
+  it("should render skeletons while dashboard harvests load", () => {
+    const harvests = new Subject<readonly DashboardHarvestSeason[]>();
+    harvestSeasonService.getDashboardHarvests.mockReturnValueOnce(harvests);
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll("gd-skeleton").length).toBeGreaterThan(0);
+    expect(textContent(fixture)).not.toContain("Café 2026/2027");
+  });
+
+  it("should render an empty state when the dashboard endpoint returns no harvests", () => {
+    harvestSeasonService.getDashboardHarvests.mockReturnValueOnce(of([]));
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(textContent(fixture)).toContain("Nenhuma safra em andamento");
+    expect(textContent(fixture)).toContain("Não há safras em andamento para a fazenda selecionada.");
+  });
+
+  it("should isolate dashboard harvest errors and retry only this section", () => {
+    harvestSeasonService.getDashboardHarvests
+      .mockReturnValueOnce(throwError(() => new Error("harvests")))
+      .mockReturnValueOnce(of(dashboardHarvests));
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    expect(textContent(fixture)).toContain("Não foi possível carregar as safras em andamento.");
+    expect(textContent(fixture)).toContain("Saldo atual");
+    const retryButton = findButton(fixture, "Tentar novamente");
+    retryButton?.click();
+    fixture.detectChanges();
+
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledTimes(2);
+    expect(textContent(fixture)).toContain("Café 2026/2027");
   });
 
   it('should reload dashboard and harvest data when the global farm selection changes', () => {
@@ -417,9 +484,11 @@ describe('DashboardPage', () => {
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledWith(1);
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledWith(2);
   });
 
-  it('should not call dashboard endpoints without financial permission', () => {
+  it('should not call dashboard endpoints) without financial permission', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1, false));
 

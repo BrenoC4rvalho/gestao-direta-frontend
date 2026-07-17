@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { credentialsInterceptor } from '../interceptors/credentials.interceptor';
 import {
   CreateHarvestSeasonRequest,
+  DashboardHarvestSeason,
   HarvestSeason,
   HarvestSeasonFinancialSummary,
   HarvestSeasonDetailSummary,
@@ -80,6 +81,21 @@ const financialSummary: HarvestSeasonFinancialSummary = {
     costVarianceStatus: 'BELOW_PLANNED',
   },
 };
+
+const dashboardHarvests: readonly DashboardHarvestSeason[] = [
+  {
+    id: 25,
+    farmId: 8,
+    name: 'Café 2026/2027',
+    status: 'IN_PROGRESS',
+    productionActivityId: 25,
+    productionActivityName: 'Café',
+    realized: { cost: 40000, revenue: 50000, profit: 10000 },
+    projection: { cost: 68000, revenue: 132000, profit: 64000 },
+    dueNext7Days: { count: 2, totalAmount: 12500 },
+    overdue: { count: 1, totalAmount: 4800 },
+  },
+];
 
 const response: PageResponse<HarvestSeason> = {
   content: [season],
@@ -158,6 +174,19 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.get('direction')).toBe('DESC');
     expect(request.request.withCredentials).toBe(true);
     request.flush(response);
+  });
+
+  it("should call the dashboard endpoint with only farmId", () => {
+    service.getDashboardHarvests(8).subscribe((result) => expect(result).toEqual(dashboardHarvests));
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/dashboard`);
+    expect(request.request.method).toBe("GET");
+    expect(request.request.params.get("farmId")).toBe("8");
+    expect(request.request.params.has("page")).toBe(false);
+    expect(request.request.params.has("size")).toBe(false);
+    expect(request.request.params.has("status")).toBe(false);
+    expect(request.request.params.has("statuses")).toBe(false);
+    request.flush(dashboardHarvests);
   });
 
   it('should call GET /api/harvest/seasons/summary-list with supported params', () => {

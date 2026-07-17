@@ -1,3 +1,4 @@
+import { FinancialAmountSummary } from './financial.models';
 import { PageRequest } from './page-response.model';
 
 export type HarvestSeasonStatus = 'PLANNED' | 'IN_PROGRESS' | 'FINISHED' | 'INACTIVE';
@@ -46,6 +47,25 @@ export interface HarvestSeasonSummaryListItem {
   expenseCount?: number | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface DashboardHarvestFinancialValues {
+  cost: number;
+  revenue: number;
+  profit: number;
+}
+
+export interface DashboardHarvestSeason {
+  id: number;
+  farmId: number;
+  name: string;
+  status: HarvestSeasonStatus;
+  productionActivityId: number | null;
+  productionActivityName: string | null;
+  realized: DashboardHarvestFinancialValues;
+  projection: DashboardHarvestFinancialValues;
+  dueNext7Days: FinancialAmountSummary;
+  overdue: FinancialAmountSummary;
 }
 
 export interface CreateHarvestSeasonRequest {
