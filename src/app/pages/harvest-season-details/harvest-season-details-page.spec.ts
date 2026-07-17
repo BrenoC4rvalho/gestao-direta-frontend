@@ -211,6 +211,7 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('98.800,00');
     expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
     expect(text()).not.toContain('Indicadores por hectare');
+    expect(text()).toContain('Lucro planejado');
     expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');
     expect(sectionHeadingTexts()).toEqual([

@@ -339,9 +339,9 @@ export class HarvestSeasonDetailsPage implements OnInit {
       { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
       { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
       { label: 'Área em hectares', value: this.hectareLabel(harvest.areaHectares) },
-      { label: 'Custo previsto', value: this.nullableCurrencyLabel(harvest.expectedCost ?? null) },
+      { label: 'Custo planejado', value: this.nullableCurrencyLabel(harvest.expectedCost ?? null) },
       {
-        label: 'Receita prevista',
+        label: 'Receita planejada',
         value: this.nullableCurrencyLabel(harvest.expectedRevenue ?? null),
       },
       { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
