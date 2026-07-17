@@ -763,7 +763,7 @@ export class DashboardPage {
     const { count, totalAmount } = harvest.dueNext7Days;
     if (count === 0) return "Nenhuma conta a pagar nos próximos 7 dias.";
 
-    return this.accountCountLabel(count, "a pagar") + "\nTotal: " + this.formatHarvestCurrency(totalAmount) + "\nVencem nos próximos 7 dias";
+    return this.accountCountLabel(count, "a pagar") + "\nTotal: " + this.formatHarvestCurrency(totalAmount) + "\nVencem entre hoje e os próximos 7 dias.";
   }
 
   protected overdueBillsTooltip(harvest: DashboardHarvestSeason): string {
@@ -784,10 +784,22 @@ export class DashboardPage {
       : "mt-1 text-lg font-semibold text-text-primary";
   }
 
+  protected upcomingIndicatorClasses(count: number): string {
+    return count > 0
+      ? "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
+      : "bg-background";
+  }
+
   protected overdueCountClasses(count: number): string {
     return count > 0
       ? "mt-1 text-lg font-semibold text-danger"
       : "mt-1 text-lg font-semibold text-text-primary";
+  }
+
+  protected overdueIndicatorClasses(count: number): string {
+    return count > 0
+      ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+      : "bg-background";
   }
 
   private formatCurrency(value: number): string {

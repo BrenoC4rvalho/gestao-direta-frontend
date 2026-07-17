@@ -378,6 +378,12 @@ describe('DashboardPage', () => {
     const tooltips = Array.from(
       fixture.nativeElement.querySelectorAll("gd-tooltip [role=tooltip]") as NodeListOf<HTMLElement>,
     );
+    const indicatorStrips = Array.from(
+      fixture.nativeElement.querySelectorAll('[data-testid="harvest-bills-indicators"]') as NodeListOf<HTMLElement>,
+    );
+    const indicatorTriggers = Array.from(
+      fixture.nativeElement.querySelectorAll('[data-testid="harvest-bills-indicators"] > gd-tooltip') as NodeListOf<HTMLElement>,
+    );
     const negativeProfit = fixture.nativeElement.querySelector("span.text-danger") as HTMLElement;
     const positiveProfit = Array.from(
       fixture.nativeElement.querySelectorAll("span.text-success") as NodeListOf<HTMLElement>,
@@ -403,6 +409,24 @@ describe('DashboardPage', () => {
     expect(positiveProfit.textContent?.replace(/\u00a0/g, " ")).toContain("R$ 64.000,00");
     expect(text).toContain("Próximos 7 dias");
     expect(text).toContain("Atrasadas");
+    expect(indicatorStrips).toHaveLength(3);
+    expect(indicatorStrips[0].className).toContain("w-full");
+    expect(indicatorStrips[0].className).toContain("grid-cols-2");
+    expect(indicatorStrips[0].className).toContain("gap-3");
+    expect(indicatorStrips[0].className).not.toContain("divide-x");
+    expect(indicatorStrips[0].className).not.toContain("overflow-hidden");
+    expect(indicatorTriggers).toHaveLength(6);
+    expect(indicatorTriggers.every((trigger) => trigger.className.includes("w-full"))).toBe(true);
+    expect(indicatorTriggers.every((trigger) => trigger.className.includes("min-w-0"))).toBe(true);
+    expect(indicatorTriggers.every((trigger) => trigger.className.includes("focus-visible:outline"))).toBe(true);
+    expect(indicatorTriggers[0].getAttribute("aria-label")).toContain("Vencem entre hoje e os próximos 7 dias.");
+    expect((indicatorTriggers[0].firstElementChild as HTMLElement).textContent?.replace(/\u00a0/g, " ")).not.toContain("R$ 12.500,00");
+    expect((indicatorTriggers[0].firstElementChild as HTMLElement).className).toContain("bg-amber-50");
+    expect((indicatorTriggers[0].firstElementChild as HTMLElement).className).toContain("rounded-app");
+    expect((indicatorTriggers[0].firstElementChild as HTMLElement).className).toContain("items-center");
+    expect((indicatorTriggers[1].firstElementChild as HTMLElement).className).toContain("bg-background");
+    expect((indicatorTriggers[2].firstElementChild as HTMLElement).className).toContain("bg-amber-50");
+    expect((indicatorTriggers[3].firstElementChild as HTMLElement).className).toContain("bg-red-50");
     expect(tooltips).toHaveLength(6);
     expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("2 contas a pagar");
     expect(tooltips[0].textContent?.replace(/\u00a0/g, " ")).toContain("Total: R$ 12.500,00");

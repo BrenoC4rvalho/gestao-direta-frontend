@@ -131,15 +131,23 @@
                 <span class="whitespace-nowrap text-right font-semibold" [class]="harvestProfitClasses(harvest.projection.profit)">{{ formatHarvestCurrency(harvest.projection.profit) }}</span>
               </div>
 
-              <div class="mt-5 grid grid-cols-2 gap-3">
-                <gd-tooltip [ariaLabel]="upcomingBillsTooltip(harvest)" [content]="upcomingBillsTooltip(harvest)">
-                  <div class="rounded-app bg-background px-3 py-3 text-center">
+              <div data-testid="harvest-bills-indicators" class="mt-5 grid w-full grid-cols-2 gap-3">
+                <gd-tooltip
+                  class="min-w-0 w-full focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  [ariaLabel]="upcomingBillsTooltip(harvest)"
+                  [content]="upcomingBillsTooltip(harvest)"
+                >
+                  <div class="flex w-full min-w-0 flex-col items-center justify-center rounded-app border border-border px-3 py-3 text-center" [class]="upcomingIndicatorClasses(harvest.dueNext7Days.count)">
                     <p class="text-xs text-text-muted">Próximos 7 dias</p>
                     <p [class]="upcomingCountClasses(harvest.dueNext7Days.count)">{{ harvest.dueNext7Days.count }}</p>
                   </div>
                 </gd-tooltip>
-                <gd-tooltip [ariaLabel]="overdueBillsTooltip(harvest)" [content]="overdueBillsTooltip(harvest)">
-                  <div class="rounded-app bg-background px-3 py-3 text-center">
+                <gd-tooltip
+                  class="min-w-0 w-full focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  [ariaLabel]="overdueBillsTooltip(harvest)"
+                  [content]="overdueBillsTooltip(harvest)"
+                >
+                  <div class="flex w-full min-w-0 flex-col items-center justify-center rounded-app border border-border px-3 py-3 text-center" [class]="overdueIndicatorClasses(harvest.overdue.count)">
                     <p class="text-xs text-text-muted">Atrasadas</p>
                     <p [class]="overdueCountClasses(harvest.overdue.count)">{{ harvest.overdue.count }}</p>
                   </div>
