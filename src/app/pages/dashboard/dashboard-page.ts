@@ -46,6 +46,7 @@ import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import {
   Badge,
   Button,
+  Card,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -71,6 +72,7 @@ interface SummaryCardViewModel {
   imports: [
     Badge,
     Button,
+    Card,
     Drawer,
     EmptyState,
     ErrorState,

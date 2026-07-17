@@ -49,14 +49,16 @@
     }
 
     <gd-important-alerts
+      class="block"
       [alerts]="alerts()"
       [loading]="alertsLoading()"
       [error]="alertsError()"
     />
 
 
-    <section class="gd-fade-in-up space-y-4" aria-labelledby="in-progress-harvests-title">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <gd-card class="gd-fade-in-up block w-full">
+      <section aria-labelledby="in-progress-harvests-title">
+      <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 id="in-progress-harvests-title" class="text-lg font-semibold text-text-primary">
             Safras em andamento
@@ -74,10 +76,11 @@
         </a>
       </div>
 
+      <div class="mt-5">
       @if (harvestsLoading()) {
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           @for (item of harvestSkeletons; track item) {
-            <div class="min-h-[335px] rounded-app border border-border bg-surface p-4 sm:p-5">
+            <div class="min-h-[335px] w-full min-w-0 rounded-app border border-border bg-surface p-4 sm:p-5">
               <gd-skeleton width="55%" height="1rem" />
               <gd-skeleton class="mt-3 block" width="35%" height="0.875rem" />
               <gd-skeleton class="mt-6 block" width="100%" height="6.5rem" />
@@ -100,9 +103,9 @@
           </p>
         </div>
       } @else {
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           @for (harvest of inProgressHarvests(); track harvest.id) {
-            <article class="rounded-app border border-border bg-surface p-4 shadow-sm sm:p-5">
+            <article class="w-full min-w-0 rounded-app border border-border bg-surface p-4 shadow-sm sm:p-5">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <h3 class="truncate text-base font-semibold text-text-primary">{{ harvest.name }}</h3>
@@ -164,7 +167,9 @@
           }
         </div>
       }
-    </section>
+      </div>
+      </section>
+    </gd-card>
 
     <gd-latest-transactions-card
       class="gd-fade-in-up block"

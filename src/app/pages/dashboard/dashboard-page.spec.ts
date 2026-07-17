@@ -362,7 +362,20 @@ describe('DashboardPage', () => {
     expect(text).toContain('1 conta a pagar no valor total de R$ 1.850,00');
     expect(text).not.toContain('Contas a vencer');
     expect(text).not.toContain('1 conta(s) somando');
-    expect(fixture.nativeElement.querySelector('gd-important-alerts')).not.toBeNull();
+    const dashboardContent = fixture.nativeElement.querySelector(':scope > section') as HTMLElement;
+    const importantAlerts = dashboardContent.querySelector(':scope > gd-important-alerts') as HTMLElement;
+    const harvestSection = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="in-progress-harvests-title"]',
+    ) as HTMLElement;
+    const harvestCard = harvestSection.closest('gd-card') as HTMLElement;
+    const latestTransactions = dashboardContent.querySelector(
+      ':scope > gd-latest-transactions-card',
+    ) as HTMLElement;
+
+    expect(dashboardContent.className).toContain('space-y-6');
+    expect(importantAlerts.className).toContain('block');
+    expect(importantAlerts.nextElementSibling).toBe(harvestCard);
+    expect(harvestCard.nextElementSibling).toBe(latestTransactions);
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
@@ -374,6 +387,14 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     const text = textContent(fixture);
+    const harvestSection = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="in-progress-harvests-title"]',
+    ) as HTMLElement;
+    const harvestCard = harvestSection.closest('gd-card') as HTMLElement;
+    const harvestContainer = harvestCard.firstElementChild as HTMLElement;
+    const harvestHeader = harvestSection.firstElementChild as HTMLElement;
+    const harvestGrid = harvestSection.querySelector(':scope > div:last-child > div') as HTMLElement;
+    const harvestCards = Array.from(harvestGrid.querySelectorAll('article')) as HTMLElement[];
     const anchors = Array.from(fixture.nativeElement.querySelectorAll("a")) as HTMLAnchorElement[];
     const tooltips = Array.from(
       fixture.nativeElement.querySelectorAll("gd-tooltip [role=tooltip]") as NodeListOf<HTMLElement>,
@@ -390,6 +411,25 @@ describe('DashboardPage', () => {
     ).find((value) => value.textContent?.replace(/\u00a0/g, " ").includes("R$ 64.000,00")) as HTMLElement;
 
     expect(text).toContain("Safras em andamento");
+    expect(harvestCard.className).toContain('gd-fade-in-up');
+    expect(harvestCard.className).toContain('block');
+    expect(harvestCard.className).toContain('w-full');
+    expect(harvestContainer.className).toContain('rounded-app');
+    expect(harvestContainer.className).toContain('bg-surface');
+    expect(harvestContainer.className).toContain('border-border');
+    expect(harvestContainer.className).toContain('p-5');
+    expect(harvestContainer.className).toContain('sm:hover:shadow-md');
+    expect(harvestHeader.className).toContain('flex');
+    expect(harvestHeader.className).toContain('w-full');
+    expect(harvestHeader.className).toContain('sm:justify-between');
+    expect(harvestGrid.className).toContain('grid');
+    expect(harvestGrid.className).toContain('w-full');
+    expect(harvestGrid.className).toContain('grid-cols-1');
+    expect(harvestGrid.className).toContain('md:grid-cols-2');
+    expect(harvestGrid.className).toContain('xl:grid-cols-3');
+    expect(harvestCards).toHaveLength(3);
+    expect(harvestCards.every((card) => card.className.includes('w-full'))).toBe(true);
+    expect(harvestCards.every((card) => card.className.includes('min-w-0'))).toBe(true);
     expect(text).toContain("Café 2026/2027");
     expect(text).toContain("Tomate 2025/2026");
     expect(text).toContain("Milho 2024/2025");
@@ -453,7 +493,22 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
+    const harvestSection = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="in-progress-harvests-title"]',
+    ) as HTMLElement;
+    const harvestCard = harvestSection.closest('gd-card') as HTMLElement;
+    const harvestGrid = harvestSection.querySelector(':scope > div:last-child > div') as HTMLElement;
+    const skeletonCards = Array.from(harvestGrid.children) as HTMLElement[];
+
     expect(fixture.nativeElement.querySelectorAll("gd-skeleton").length).toBeGreaterThan(0);
+    expect(harvestCard.className).toContain('w-full');
+    expect(harvestGrid.className).toContain('w-full');
+    expect(harvestGrid.className).toContain('grid-cols-1');
+    expect(harvestGrid.className).toContain('md:grid-cols-2');
+    expect(harvestGrid.className).toContain('xl:grid-cols-3');
+    expect(skeletonCards).toHaveLength(3);
+    expect(skeletonCards.every((card) => card.className.includes('w-full'))).toBe(true);
+    expect(skeletonCards.every((card) => card.className.includes('min-w-0'))).toBe(true);
     expect(textContent(fixture)).not.toContain("Café 2026/2027");
   });
 
