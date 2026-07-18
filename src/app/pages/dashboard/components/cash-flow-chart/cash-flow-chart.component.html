@@ -1,0 +1,29 @@
+<gd-card class="gd-fade-in-up block w-full">
+  <section aria-labelledby="cash-flow-chart-title">
+    <div>
+      <h2 id="cash-flow-chart-title" class="text-lg font-semibold text-text-primary">Fluxo de Caixa</h2>
+      <p class="mt-1 text-sm leading-6 text-text-muted">Saldo projetado ao longo do ano</p>
+    </div>
+
+    @if (data().length === 0) {
+      <p class="py-12 text-center text-sm text-text-muted">Nenhum dado de fluxo de caixa disponível.</p>
+    } @else {
+      <div class="relative mt-5 h-64 w-full sm:h-72 lg:h-80">
+        <canvas
+          baseChart
+          [type]="chartType"
+          [data]="chartData()"
+          [options]="chartOptions()"
+          aria-label="Gráfico de fluxo de caixa projetado de janeiro a dezembro"
+          role="img"
+        ></canvas>
+      </div>
+
+      <ul class="sr-only" aria-label="Valores mensais do fluxo de caixa">
+        @for (point of accessiblePoints(); track point.label) {
+          <li>{{ point.month }}: {{ point.formattedValue }}</li>
+        }
+      </ul>
+    }
+  </section>
+</gd-card>

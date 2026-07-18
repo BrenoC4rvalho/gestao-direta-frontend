@@ -368,6 +368,9 @@ describe('DashboardPage', () => {
       'section[aria-labelledby="in-progress-harvests-title"]',
     ) as HTMLElement;
     const harvestCard = harvestSection.closest('gd-card') as HTMLElement;
+    const cashFlowChart = dashboardContent.querySelector(
+      ':scope > gd-cash-flow-chart',
+    ) as HTMLElement;
     const latestTransactions = dashboardContent.querySelector(
       ':scope > gd-latest-transactions-card',
     ) as HTMLElement;
@@ -375,7 +378,9 @@ describe('DashboardPage', () => {
     expect(dashboardContent.className).toContain('space-y-6');
     expect(importantAlerts.className).toContain('block');
     expect(importantAlerts.nextElementSibling).toBe(harvestCard);
-    expect(harvestCard.nextElementSibling).toBe(latestTransactions);
+    expect(harvestCard.nextElementSibling).toBe(cashFlowChart);
+    expect(cashFlowChart.nextElementSibling).toBe(latestTransactions);
+    expect(cashFlowChart.textContent).toContain('Fluxo de Caixa');
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 

@@ -6,6 +6,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { routes } from './app.routes';
 import { provideGestaoDiretaIcons } from './core/constants/lucide-icons';
@@ -17,6 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideHttpClient(withInterceptors([credentialsInterceptor])),
     provideRouter(routes),
+    provideCharts(withDefaultRegisterables()),
     provideGestaoDiretaIcons(),
     provideAppInitializer(() => inject(ThemeStore).init()),
   ],
