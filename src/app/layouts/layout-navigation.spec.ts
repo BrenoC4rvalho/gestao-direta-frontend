@@ -29,8 +29,7 @@ const noPermissions: FarmAccessPermissions = {
 const adminLabels = [
   'Dashboard',
   'Fazendas',
-  'Usuários',
-  'Vínculos',
+  'Usuários e vínculos',
   'Categorias',
   'Atividades produtivas',
   'Movimentações',
@@ -41,8 +40,7 @@ const adminLabels = [
 const allLabels = [
   'Dashboard',
   'Fazendas',
-  'Usuários',
-  'Vínculos',
+  'Usuários e vínculos',
   'Categorias',
   'Movimentações',
   'Safras',

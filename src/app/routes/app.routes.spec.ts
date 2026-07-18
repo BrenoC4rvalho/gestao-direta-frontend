@@ -1,11 +1,16 @@
 import { apiAvailableGuard } from '../core/guards/api-available.guard';
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
+import {
+  peopleManagementDefaultRedirectGuard,
+  peopleManagementGuard,
+} from '../core/guards/people-management.guard';
 import { AppLayout } from '../layouts/app-layout/app-layout';
 import { AuthLayout } from '../layouts/auth-layout/auth-layout';
 import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { LandingPage } from '../pages/landing/landing-page';
 import { ServerErrorPage } from '../pages/server-error/server-error-page';
+import { PeopleManagementPage } from '../pages/people-management/people-management-page';
 
 import { routes } from './app.routes';
 
@@ -65,5 +70,30 @@ describe('routes', () => {
 
     const dashboardComponent = await (dashboardRoute?.loadComponent as () => Promise<unknown>)();
     expect(dashboardComponent).toBe(DashboardPage);
+  });
+});
+
+describe('people management routes', () => {
+  it('should group users and farm links under /people and preserve legacy redirects', async () => {
+    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+    const peopleRoute = appLayoutRoute?.children?.find((route) => route.path === 'people');
+    const usersRoute = peopleRoute?.children?.find((route) => route.path === 'users');
+    const farmUsersRoute = peopleRoute?.children?.find((route) => route.path === 'farm-users');
+    const defaultRoute = peopleRoute?.children?.find((route) => route.path === '');
+    const legacyUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'users');
+    const legacyFarmUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'farm-users');
+
+    expect(peopleRoute?.data).toEqual({
+      title: 'Usuários e vínculos',
+      subtitle: 'Gerencie usuários cadastrados e seus vínculos com as fazendas.',
+    });
+    expect(defaultRoute?.canActivate).toEqual([peopleManagementDefaultRedirectGuard]);
+    expect(usersRoute?.canActivate).toEqual([peopleManagementGuard]);
+    expect(farmUsersRoute?.canActivate).toEqual([peopleManagementGuard]);
+    expect(legacyUsersRoute?.redirectTo).toBe('people/users');
+    expect(legacyFarmUsersRoute?.redirectTo).toBe('people/farm-users');
+
+    const component = await (peopleRoute?.loadComponent as () => Promise<unknown>)();
+    expect(component).toBe(PeopleManagementPage);
   });
 });

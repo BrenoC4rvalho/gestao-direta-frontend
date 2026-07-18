@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, finalize } from 'rxjs';
 
 import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
@@ -164,18 +164,25 @@ export class AppLayout implements OnInit {
   }
 
   private updatePageHeaderData(): void {
-    let route = this.router.routerState.snapshot.root;
+    let route: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
+    let title = '';
+    let subtitle = '';
 
-    while (route.firstChild) {
+    while (route) {
+      const routeTitle = route.data['title'];
+      const routeSubtitle = route.data['subtitle'];
+
+      if (typeof routeTitle === 'string') {
+        title = routeTitle;
+      }
+
+      if (typeof routeSubtitle === 'string') {
+        subtitle = routeSubtitle;
+      }
+
       route = route.firstChild;
     }
 
-    const title = route.data['title'];
-    const subtitle = route.data['subtitle'];
-
-    this.pageHeaderData.set({
-      title: typeof title === 'string' ? title : '',
-      subtitle: typeof subtitle === 'string' ? subtitle : '',
-    });
+    this.pageHeaderData.set({ title, subtitle });
   }
 }

@@ -1,0 +1,19 @@
+<nav aria-label="Seçåes de usuários e vínculos" class="mb-6 grid grid-cols-2 gap-2">
+  @if (showUsersTab()) {
+    <a
+      routerLink="users"
+      routerLinkActive="bg-primary text-white"
+      class="flex min-h-11 cursor-pointer items-center justify-center rounded-control border border-border px-3 text-center text-sm font-semibold text-text-primary transition-colors hover:bg-highlight-soft focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >Usuários</a>
+  }
+
+  @if (showFarmUsersTab()) {
+    <a
+      routerLink="farm-users"
+      routerLinkActive="bg-primary text-white"
+      class="flex min-h-11 cursor-pointer items-center justify-center rounded-control border border-border px-3 text-center text-sm font-semibold text-text-primary transition-colors hover:bg-highlight-soft focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >Vínculos</a>
+  }
+</nav>
+
+<router-outlet />

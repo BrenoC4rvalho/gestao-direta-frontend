@@ -14,6 +14,7 @@ export interface LayoutNavItem {
   route: string;
   icon: string;
   visibility: LayoutNavVisibility;
+  exact?: boolean;
 }
 
 export interface LayoutNavVisibilityContext {
@@ -31,12 +32,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'authenticated',
   },
   { label: 'Fazendas', route: '/farms', icon: 'tractor', visibility: 'authenticated' },
-  { label: 'Usuários', route: '/users', icon: 'users', visibility: 'manageFarmUsers' },
   {
-    label: 'Vínculos',
-    route: '/farm-users',
-    icon: 'user-round-cog',
+    label: 'Usuários e vínculos',
+    route: '/people',
+    icon: 'users',
     visibility: 'manageFarmUsers',
+    exact: false,
   },
   { label: 'Categorias', route: '/categories', icon: 'tags', visibility: 'manageCategories' },
   {
@@ -90,10 +91,6 @@ export function canShowNavItem(
 
   if (!context.hasSelectedFarm || !context.permissions) {
     return false;
-  }
-
-  if (item.route === '/users' && context.role === 'PRODUCER') {
-    return true;
   }
 
   switch (item.visibility) {

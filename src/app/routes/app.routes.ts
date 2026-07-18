@@ -3,6 +3,10 @@ import { Routes } from '@angular/router';
 import { apiAvailableGuard } from '../core/guards/api-available.guard';
 import { authGuard } from '../core/guards/auth.guard';
 import { guestGuard } from '../core/guards/guest.guard';
+import {
+  peopleManagementDefaultRedirectGuard,
+  peopleManagementGuard,
+} from '../core/guards/people-management.guard';
 
 export const routes: Routes = [
   {
@@ -62,25 +66,52 @@ export const routes: Routes = [
       },
       {
         path: 'users',
-        title: 'Usuários',
-        data: {
-          title: 'Usuários',
-          subtitle: 'Gerencie os usuários cadastrados no sistema.',
-        },
-        loadComponent: () =>
-          import('../pages/users/users-page').then((component) => component.UsersPage),
+        pathMatch: 'full',
+        redirectTo: 'people/users',
       },
       {
         path: 'farm-users',
-        title: 'Usuários por fazenda',
+        pathMatch: 'full',
+        redirectTo: 'people/farm-users',
+      },
+      {
+        path: 'people',
+        title: 'Usuários e vínculos',
         data: {
-          title: 'Vínculos da fazenda',
-          subtitle: 'Gerencie os usuários vinculados à fazenda selecionada.',
+          title: 'Usuários e vínculos',
+          subtitle: 'Gerencie usuários cadastrados e seus vínculos com as fazendas.',
         },
         loadComponent: () =>
-          import('../pages/farm-users/farm-users-page').then(
-            (component) => component.FarmUsersPage,
+          import('../pages/people-management/people-management-page').then(
+            (component) => component.PeopleManagementPage,
           ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [peopleManagementDefaultRedirectGuard],
+            loadComponent: () =>
+              import('../pages/people-management/people-management-page').then(
+                (component) => component.PeopleManagementPage,
+              ),
+          },
+          {
+            path: 'users',
+            title: 'Usuários',
+            canActivate: [peopleManagementGuard],
+            loadComponent: () =>
+              import('../pages/users/users-page').then((component) => component.UsersPage),
+          },
+          {
+            path: 'farm-users',
+            title: 'Vínculos da fazenda',
+            canActivate: [peopleManagementGuard],
+            loadComponent: () =>
+              import('../pages/farm-users/farm-users-page').then(
+                (component) => component.FarmUsersPage,
+              ),
+          },
+        ],
       },
       {
         path: 'categories',
