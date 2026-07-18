@@ -3,9 +3,7 @@ import { ChartConfiguration, ScriptableContext } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
 import { ThemeStore } from '../../../../core/stores/theme.store';
-import { Card } from '../../../../shared/ui';
-import { CASH_FLOW_CHART_MOCK } from '../../mocks/cash-flow-chart.mock';
-import { CashFlowChartPoint } from '../../models/cash-flow-chart.models';
+import { CashFlowPoint } from '../../../../core/models/financial.models';
 
 const chartLineColor = '#22C55E';
 const chartFillColor = 'rgba(34, 197, 94, 0.18)';
@@ -23,12 +21,12 @@ interface ChartThemeColors {
 
 @Component({
   selector: 'gd-cash-flow-chart',
-  imports: [BaseChartDirective, Card],
+  imports: [BaseChartDirective],
   templateUrl: './cash-flow-chart.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CashFlowChartComponent {
-  readonly data = input<readonly CashFlowChartPoint[]>(CASH_FLOW_CHART_MOCK);
+  readonly data = input.required<readonly CashFlowPoint[]>();
 
   private readonly themeStore = inject(ThemeStore);
   private readonly chartDirective = viewChild(BaseChartDirective);
@@ -38,7 +36,7 @@ export class CashFlowChartComponent {
     labels: this.data().map((point) => point.label),
     datasets: [{
       label: 'Saldo',
-      data: this.data().map((point) => point.value),
+      data: this.data().map((point) => point.balance),
       borderColor: chartLineColor,
       borderWidth: 2,
       tension: 0.35,
@@ -69,7 +67,7 @@ export class CashFlowChartComponent {
           borderColor: colors.border,
           borderWidth: 1,
           padding: 12,
-          callbacks: { label: (context) => `Saldo: ${this.formatCurrency(context.parsed.y ?? 0)}` },
+          callbacks: { label: (context) => this.cashFlowTooltip(context.dataIndex, context.parsed.y ?? 0) },
         },
       },
       scales: {
@@ -98,7 +96,7 @@ export class CashFlowChartComponent {
     this.data().map((point) => ({
       ...point,
       month: this.monthName(point.label),
-      formattedValue: this.formatCurrency(point.value),
+      formattedValue: this.formatCurrency(point.balance),
     })),
   );
 
@@ -108,6 +106,18 @@ export class CashFlowChartComponent {
       this.chartOptions();
       queueMicrotask(() => this.chartDirective()?.update());
     });
+  }
+
+  protected cashFlowTooltip(dataIndex: number, fallbackBalance: number): string[] {
+    const point = this.data()[dataIndex];
+    const balance = point?.balance ?? fallbackBalance;
+
+    return [
+      `Saldo: ${this.formatCurrency(balance)}`,
+      `Entradas: ${this.formatCurrency(point?.income ?? 0)}`,
+      `Saídas: ${this.formatCurrency(point?.expense ?? 0)}`,
+      `Fluxo líquido: ${this.formatCurrency(point?.netFlow ?? 0)}`,
+    ];
   }
 
   protected formatCompactCurrency(value: number): string {

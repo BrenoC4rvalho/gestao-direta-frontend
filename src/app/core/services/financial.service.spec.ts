@@ -57,6 +57,18 @@ describe('FinancialService', () => {
     request.flush(alerts);
   });
 
+  it('should call GET /api/financial/cash-flow with farmId and year', () => {
+    service.getCashFlow(1, 2026).subscribe();
+
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/financial/cash-flow') &&
+      candidate.params.get('farmId') === '1' &&
+      candidate.params.get('year') === '2026',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush({});
+  });
+
   it('should call GET /api/financial/transactions with dashboard pagination', () => {
     service.getLatestTransactions(1).subscribe();
 

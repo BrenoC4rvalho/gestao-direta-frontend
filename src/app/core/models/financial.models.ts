@@ -10,6 +10,23 @@ export interface FinancialSummary {
   cashFlowNext30Days: number;
 }
 
+export interface CashFlowPoint {
+  month: number;
+  label: string;
+  income: number;
+  expense: number;
+  netFlow: number;
+  balance: number;
+}
+
+export interface CashFlowResponse {
+  farmId: number;
+  year: number;
+  openingBalance: number;
+  closingBalance: number;
+  points: readonly CashFlowPoint[];
+}
+
 export interface OverdueBillAlert {
   transactionId: number;
   description: string;

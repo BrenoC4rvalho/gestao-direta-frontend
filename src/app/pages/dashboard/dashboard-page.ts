@@ -17,6 +17,7 @@ import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { ParsedTransactionResponse } from '../../core/models/ai-transaction.models';
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
+  CashFlowResponse,
   FinancialAlerts,
   FinancialSummary,
   FinancialTransaction as DashboardFinancialTransaction,
@@ -117,6 +118,16 @@ export class DashboardPage {
   protected readonly alerts = signal<FinancialAlerts | null>(null);
   protected readonly alertsLoading = signal(false);
   protected readonly alertsError = signal<string | null>(null);
+
+  protected readonly cashFlow = signal<CashFlowResponse | null>(null);
+  protected readonly cashFlowLoading = signal(false);
+  protected readonly cashFlowError = signal<string | null>(null);
+  protected readonly cashFlowYear = signal(new Date().getFullYear());
+  protected readonly cashFlowYears = Array.from(
+    { length: 5 },
+    (_, index) => this.cashFlowYear() - index,
+  );
+  private readonly cashFlowReloadTrigger = signal(0);
 
   protected readonly inProgressHarvests = signal<readonly DashboardHarvestSeason[]>([]);
   protected readonly harvestsLoading = signal(false);
@@ -227,6 +238,23 @@ export class DashboardPage {
     return 'Selecione uma fazenda no topo do dashboard para visualizar os indicadores financeiros.';
   });
 
+  protected readonly cashFlowPoints = computed(() => this.cashFlow()?.points ?? []);
+  protected readonly hasCashFlowData = computed(() => {
+    const cashFlow = this.cashFlow();
+
+    return (
+      cashFlow !== null &&
+      (cashFlow.openingBalance !== 0 ||
+        cashFlow.points.some(
+          (point) =>
+            point.income !== 0 ||
+            point.expense !== 0 ||
+            point.netFlow !== 0 ||
+            point.balance !== 0,
+        ))
+    );
+  });
+
   protected readonly canUseQuickTransaction = computed(() => {
     const user = this.sessionStore.user();
     const farmId = this.selectedFarmStore.selectedFarmId();
@@ -303,6 +331,27 @@ export class DashboardPage {
 
       onCleanup(() => subscriptions.unsubscribe());
     });
+
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      const access = this.farmAccessStore.access();
+      const accessLoading = this.farmAccessStore.loading();
+      const year = this.cashFlowYear();
+      this.cashFlowReloadTrigger();
+
+      if (
+        !farmId ||
+        accessLoading ||
+        access?.farmId !== farmId ||
+        !access.permissions.canViewFinancial
+      ) {
+        this.clearCashFlowData();
+        return;
+      }
+
+      const subscription = this.loadCashFlow(farmId, year);
+      onCleanup(() => subscription.unsubscribe());
+    });
   }
 
   private loadSummary(farmId: number, subscriptions: Subscription): void {
@@ -352,6 +401,20 @@ export class DashboardPage {
           error: () => this.alertsError.set('Não foi possível carregar os alertas financeiros.'),
         }),
     );
+  }
+
+  private loadCashFlow(farmId: number, year: number): Subscription {
+    this.cashFlow.set(null);
+    this.cashFlowError.set(null);
+    this.cashFlowLoading.set(true);
+
+    return this.financialService
+      .getCashFlow(farmId, year)
+      .pipe(finalize(() => this.cashFlowLoading.set(false)))
+      .subscribe({
+        next: (cashFlow) => this.cashFlow.set(cashFlow),
+        error: () => this.cashFlowError.set('Não foi possível carregar o fluxo de caixa.'),
+      });
   }
 
   private loadInProgressHarvests(farmId: number, subscriptions: Subscription): void {
@@ -709,6 +772,7 @@ export class DashboardPage {
 
   private reloadDashboardData(): void {
     this.reloadTrigger.update((value) => value + 1);
+    this.cashFlowReloadTrigger.update((value) => value + 1);
   }
 
   private trimmedQuickTransactionText(): string {
@@ -732,6 +796,28 @@ export class DashboardPage {
     this.inProgressHarvests.set([]);
     this.harvestsLoading.set(false);
     this.harvestsError.set(null);
+  }
+
+  private clearCashFlowData(): void {
+    this.cashFlow.set(null);
+    this.cashFlowLoading.set(false);
+    this.cashFlowError.set(null);
+  }
+
+  protected setCashFlowYear(value: string): void {
+    const year = Number(value);
+
+    if (this.cashFlowYears.includes(year)) {
+      this.cashFlowYear.set(year);
+    }
+  }
+
+  protected retryCashFlow(): void {
+    if (this.cashFlowLoading()) {
+      return;
+    }
+
+    this.cashFlowReloadTrigger.update((value) => value + 1);
   }
 
   protected retryHarvests(): void {

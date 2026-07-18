@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  CashFlowResponse,
   FinancialAlerts,
   FinancialSummary,
   FinancialTransaction,
@@ -27,6 +28,12 @@ export class FinancialService {
   getAlerts(farmId: number): Observable<FinancialAlerts> {
     return this.http.get<FinancialAlerts>(`${this.apiUrl}/financial/alerts`, {
       params: new HttpParams().set('farmId', farmId),
+    });
+  }
+
+  getCashFlow(farmId: number, year: number): Observable<CashFlowResponse> {
+    return this.http.get<CashFlowResponse>(`/financial/cash-flow`, {
+      params: new HttpParams().set('farmId', farmId).set('year', year),
     });
   }
 

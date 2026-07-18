@@ -7,6 +7,7 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { FarmAccessResponse } from '../../core/models/farm-access.models';
 import { Farm } from '../../core/models/farm.models';
 import {
+  CashFlowResponse,
   FinancialAlerts,
   FinancialSummary,
   FinancialTransaction,
@@ -114,6 +115,16 @@ const transaction: FinancialTransaction = {
   updatedAt: '2026-01-10T00:00:00Z',
 };
 
+const cashFlow: CashFlowResponse = {
+  farmId: 1,
+  year: new Date().getFullYear(),
+  openingBalance: 1000,
+  closingBalance: 1500,
+  points: [
+    { month: 1, label: 'Jan', income: 1000, expense: 500, netFlow: 500, balance: 1500 },
+  ],
+};
+
 const alerts: FinancialAlerts = {
   farmId: 1,
   overdueBills: [
@@ -178,6 +189,7 @@ describe('DashboardPage', () => {
   let financialService: {
     getSummary: ReturnType<typeof vi.fn>;
     getAlerts: ReturnType<typeof vi.fn>;
+    getCashFlow: ReturnType<typeof vi.fn>;
     getLatestTransactions: ReturnType<typeof vi.fn>;
     getUpcomingBills: ReturnType<typeof vi.fn>;
   };
@@ -228,6 +240,7 @@ describe('DashboardPage', () => {
     financialService = {
       getSummary: vi.fn().mockReturnValue(of(summary)),
       getAlerts: vi.fn().mockReturnValue(of(alerts)),
+      getCashFlow: vi.fn().mockReturnValue(of(cashFlow)),
       getLatestTransactions: vi.fn().mockReturnValue(of(pageResponse([transaction]))),
       getUpcomingBills: vi.fn(),
     };
@@ -306,6 +319,8 @@ describe('DashboardPage', () => {
     expect(textContent(fixture)).toContain('Nenhuma fazenda selecionada');
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getAlerts).not.toHaveBeenCalled();
+    expect(financialService.getCashFlow).not.toHaveBeenCalled();
+    expect(financialService.getCashFlow).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
@@ -328,6 +343,7 @@ describe('DashboardPage', () => {
 
     expect(financialService.getSummary).toHaveBeenCalledWith(1);
     expect(financialService.getAlerts).toHaveBeenCalledWith(1);
+    expect(financialService.getCashFlow).toHaveBeenCalledWith(1, new Date().getFullYear());
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
@@ -368,9 +384,8 @@ describe('DashboardPage', () => {
       'section[aria-labelledby="in-progress-harvests-title"]',
     ) as HTMLElement;
     const harvestCard = harvestSection.closest('gd-card') as HTMLElement;
-    const cashFlowChart = dashboardContent.querySelector(
-      ':scope > gd-cash-flow-chart',
-    ) as HTMLElement;
+    const cashFlowCard = harvestCard.nextElementSibling as HTMLElement;
+    const cashFlowChart = cashFlowCard.querySelector('gd-cash-flow-chart') as HTMLElement;
     const latestTransactions = dashboardContent.querySelector(
       ':scope > gd-latest-transactions-card',
     ) as HTMLElement;
@@ -378,9 +393,9 @@ describe('DashboardPage', () => {
     expect(dashboardContent.className).toContain('space-y-6');
     expect(importantAlerts.className).toContain('block');
     expect(importantAlerts.nextElementSibling).toBe(harvestCard);
-    expect(harvestCard.nextElementSibling).toBe(cashFlowChart);
-    expect(cashFlowChart.nextElementSibling).toBe(latestTransactions);
-    expect(cashFlowChart.textContent).toContain('Fluxo de Caixa');
+    expect(harvestCard.nextElementSibling).toBe(cashFlowCard);
+    expect(cashFlowCard.nextElementSibling).toBe(latestTransactions);
+    expect(cashFlowCard.textContent).toContain('Fluxo de Caixa');
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
@@ -565,6 +580,7 @@ describe('DashboardPage', () => {
     expect(financialService.getSummary).toHaveBeenCalledWith(2);
     expect(financialService.getAlerts).toHaveBeenCalledWith(1);
     expect(financialService.getAlerts).toHaveBeenCalledWith(2);
+    expect(financialService.getCashFlow).toHaveBeenCalledWith(2, new Date().getFullYear());
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(2);
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
@@ -581,6 +597,7 @@ describe('DashboardPage', () => {
 
     expect(financialService.getSummary).not.toHaveBeenCalled();
     expect(financialService.getAlerts).not.toHaveBeenCalled();
+    expect(financialService.getCashFlow).not.toHaveBeenCalled();
     expect(financialService.getLatestTransactions).not.toHaveBeenCalled();
     expect(financialService.getUpcomingBills).not.toHaveBeenCalled();
     expect(harvestSeasonService.listSummary).not.toHaveBeenCalled();
