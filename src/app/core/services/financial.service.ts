@@ -58,7 +58,7 @@ export class FinancialService {
   }
 
   getFinancialReport(filters: FinancialReportRequest): Observable<FinancialReportResponse> {
-    return this.http.get<FinancialReportResponse>(`/financial/reports`, {
+    return this.http.get<FinancialReportResponse>(`${this.apiUrl}/financial/reports`, {
       params: this.buildReportParams(filters),
     });
   }
@@ -73,7 +73,7 @@ export class FinancialService {
       .set('sort', filters.sort)
       .set('direction', filters.direction);
     return this.http.get<PageResponse<FinancialReportTransaction>>(
-      `/financial/reports/transactions`,
+      `${this.apiUrl}/financial/reports/transactions`,
       { params },
     );
   }

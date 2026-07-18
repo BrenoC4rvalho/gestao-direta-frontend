@@ -124,7 +124,7 @@ describe('FinancialService report endpoints', () => {
         categoryIds: [4, 7],
       })
       .subscribe();
-    const request = http.expectOne((item) => item.url.includes('/financial/reports'));
+    const request = http.expectOne((item) => item.url === `${apiUrl}/financial/reports`);
     expect(request.request.params.get('farmId')).toBe('8');
     expect(request.request.params.get('startDate')).toBe('2026-01-01');
     expect(request.request.params.get('endDate')).toBe('2026-12-31');
@@ -149,7 +149,9 @@ describe('FinancialService report endpoints', () => {
         direction: 'DESC',
       })
       .subscribe();
-    const request = http.expectOne((item) => item.url.includes('/financial/reports/transactions'));
+    const request = http.expectOne(
+      (item) => item.url === `${apiUrl}/financial/reports/transactions`,
+    );
     expect(request.request.params.has('categoryIds')).toBe(false);
     expect(request.request.params.get('page')).toBe('0');
     expect(request.request.params.get('size')).toBe('6');
