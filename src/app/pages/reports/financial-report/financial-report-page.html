@@ -6,20 +6,47 @@
   } @else if (!canViewReport()) {
     <gd-empty-state title="Acesso financeiro indisponível" description="Você não tem permissão para visualizar os dados financeiros desta fazenda." icon="alert-circle" />
   } @else {
-    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div><h1 class="text-2xl font-semibold text-text-primary">Relatório Financeiro</h1><p class="mt-1 text-sm leading-6 text-text-muted">Visão consolidada das movimentações, resultados e indicadores.</p></div>
-      <div class="flex flex-wrap gap-2"><gd-button variant="outline" [disabled]="true">Exportar PDF</gd-button><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button></div>
-    </header>
+    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+      <gd-button variant="outline" [disabled]="true">
+        <svg lucideIcon="file-down" class="size-4" aria-hidden="true"></svg>
+        <span>Exportar PDF</span>
+      </gd-button>
+      <gd-button variant="outline" [disabled]="true">
+        <svg lucideIcon="download" class="size-4" aria-hidden="true"></svg>
+        <span>Baixar planilha</span>
+      </gd-button>
+    </div>
 
     <gd-card>
-      <form class="space-y-5" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
-        <div class="flex items-start gap-3"><span class="flex size-10 items-center justify-center rounded-full bg-highlight-soft text-primary"><svg lucideIcon="filter" class="size-5" aria-hidden="true"></svg></span><div><h2 class="text-base font-semibold text-text-primary">Filtros globais</h2><p class="mt-1 text-sm text-text-muted">Aplique os filtros para recalcular os dados mockados.</p></div></div>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <fieldset class="grid gap-3 sm:grid-cols-2 xl:col-span-2"><legend class="mb-1 text-sm font-medium text-text-primary">Período</legend><gd-input id="financial-report-start-date" label="Data inicial" type="date" [control]="control('startDate')" /><gd-input id="financial-report-end-date" label="Data final" type="date" [control]="control('endDate')" /></fieldset>
-          <gd-select id="financial-report-basis" label="Regime" [control]="control('basis')" [options]="basisOptions" />
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"><gd-select id="financial-report-harvest" label="Safra" placeholder="Todas" [control]="control('harvestSeasonId')" [options]="harvestOptions" /><gd-select id="financial-report-category" label="Categoria" placeholder="Todas" [control]="control('categoryId')" [options]="categoryOptions" /></div>
+      <form class="space-y-5" [formGroup]="filterForm" (ngSubmit)="applyFilters()" aria-label="Filtros do relatório financeiro">
+        <div class="flex min-w-0 items-start gap-3">
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary" aria-hidden="true">
+            <svg lucideIcon="filter" class="size-5"></svg>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
+            <p class="mt-1 text-sm leading-5 text-text-muted">Filtre o relatório por período, regime, safra e categoria.</p>
+          </div>
         </div>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><gd-button type="button" variant="outline" (click)="resetFilters()">Limpar</gd-button><gd-button type="submit">Aplicar filtros</gd-button></div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
+          <gd-input id="financial-report-start-date" label="Data inicial" type="date" [control]="control('startDate')" />
+          <gd-input id="financial-report-end-date" label="Data final" type="date" [control]="control('endDate')" />
+          <gd-select id="financial-report-basis" label="Regime" [control]="control('basis')" [options]="basisOptions" />
+          <gd-select id="financial-report-harvest" label="Safra" placeholder="Todas" [control]="control('harvestSeasonId')" [options]="harvestOptions" />
+          <gd-select id="financial-report-category" label="Categoria" placeholder="Todas" [control]="control('categoryId')" [options]="categoryOptions" />
+        </div>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
+          <gd-button type="button" variant="outline" (click)="resetFilters()">
+            <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
+            <span>Limpar</span>
+          </gd-button>
+          <gd-button type="submit">
+            <svg lucideIcon="filter" class="size-4" aria-hidden="true"></svg>
+            <span>Aplicar filtros</span>
+          </gd-button>
+        </div>
       </form>
     </gd-card>
 
