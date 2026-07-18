@@ -122,10 +122,11 @@ export class DashboardPage {
   protected readonly cashFlow = signal<CashFlowResponse | null>(null);
   protected readonly cashFlowLoading = signal(false);
   protected readonly cashFlowError = signal<string | null>(null);
-  protected readonly cashFlowYear = signal(new Date().getFullYear());
+  protected readonly currentYear = new Date().getFullYear();
+  protected readonly cashFlowYear = signal(this.currentYear);
   protected readonly cashFlowYears = Array.from(
-    { length: 5 },
-    (_, index) => this.cashFlowYear() - index,
+    { length: 9 },
+    (_, index) => this.currentYear - 4 + index,
   );
   private readonly cashFlowReloadTrigger = signal(0);
 

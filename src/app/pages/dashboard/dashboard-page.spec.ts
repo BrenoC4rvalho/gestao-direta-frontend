@@ -399,6 +399,58 @@ describe('DashboardPage', () => {
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
   });
 
+  it('should render nine cash flow years around the current year in ascending order', () => {
+    const currentYear = new Date().getFullYear();
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector('#cash-flow-year') as HTMLSelectElement;
+    const years = Array.from(select.options, (option) => option.value);
+
+    expect(select.value).toBe(String(currentYear));
+    expect(years).toHaveLength(9);
+    expect(years[0]).toBe(String(currentYear - 4));
+    expect(years[8]).toBe(String(currentYear + 4));
+    expect(years).toContain(String(currentYear));
+    expect(years.every((year) => Number(year) > 0)).toBe(true);
+    expect(years).not.toContain('');
+  });
+
+  it('should reload only cash flow when selecting the first and last available years', () => {
+    const currentYear = new Date().getFullYear();
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const summaryCalls = financialService.getSummary.mock.calls.length;
+    const alertsCalls = financialService.getAlerts.mock.calls.length;
+    const transactionsCalls = financialService.getLatestTransactions.mock.calls.length;
+    const harvestsCalls = harvestSeasonService.getDashboardHarvests.mock.calls.length;
+    const select = fixture.nativeElement.querySelector('#cash-flow-year') as HTMLSelectElement;
+
+    select.value = String(currentYear - 4);
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(financialService.getCashFlow).toHaveBeenLastCalledWith(1, currentYear - 4);
+
+    select.value = String(currentYear + 4);
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(financialService.getCashFlow).toHaveBeenLastCalledWith(1, currentYear + 4);
+    expect(financialService.getCashFlow).toHaveBeenCalledTimes(3);
+    expect(financialService.getSummary).toHaveBeenCalledTimes(summaryCalls);
+    expect(financialService.getAlerts).toHaveBeenCalledTimes(alertsCalls);
+    expect(financialService.getLatestTransactions).toHaveBeenCalledTimes(transactionsCalls);
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledTimes(harvestsCalls);
+  });
+
   it("should render dashboard harvest cards with financial comparisons and tooltips", () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));

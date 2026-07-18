@@ -191,7 +191,7 @@
               (change)="setCashFlowYear(cashFlowYearSelect.value)"
             >
               @for (year of cashFlowYears; track year) {
-                <option [value]="year">{{ year }}</option>
+                <option [value]="year" [selected]="year === cashFlowYear()">{{ year }}</option>
               }
             </select>
           </label>
