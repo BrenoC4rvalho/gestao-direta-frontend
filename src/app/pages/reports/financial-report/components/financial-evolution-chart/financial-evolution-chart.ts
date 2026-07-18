@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
 import { ChartConfiguration, ChartEvent } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -6,6 +15,16 @@ import { ThemeStore } from '../../../../../core/stores/theme.store';
 import { FinancialEvolutionPoint } from '../../financial-report.models';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+
+interface ChartThemeColors {
+  muted: string;
+  grid: string;
+  zeroGrid: string;
+  surface: string;
+  foreground: string;
+  border: string;
+}
 
 @Component({
   selector: 'gd-financial-evolution-chart',
@@ -24,33 +43,92 @@ export class FinancialEvolutionChart {
   protected readonly chartData = computed<ChartConfiguration<'bar' | 'line'>['data']>(() => ({
     labels: this.points().map((point) => point.label),
     datasets: [
-      { type: 'bar', label: 'Receitas', data: this.points().map((point) => point.income), backgroundColor: '#22C55E', borderRadius: 4 },
-      { type: 'bar', label: 'Despesas', data: this.points().map((point) => point.expense), backgroundColor: '#DC2626', borderRadius: 4 },
-      { type: 'line', label: 'Saldo', data: this.points().map((point) => point.netBalance), borderColor: '#2563EB', backgroundColor: '#2563EB', borderWidth: 2, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
+      {
+        type: 'bar',
+        label: 'Receitas',
+        data: this.points().map((point) => point.income),
+        backgroundColor: '#22C55E',
+        categoryPercentage: 0.6,
+        barPercentage: 0.75,
+        borderRadius: 3,
+        borderSkipped: false,
+      },
+      {
+        type: 'bar',
+        label: 'Despesas',
+        data: this.points().map((point) => -Math.abs(point.expense)),
+        backgroundColor: '#DC2626',
+        categoryPercentage: 0.6,
+        barPercentage: 0.75,
+        borderRadius: 3,
+        borderSkipped: false,
+      },
+      {
+        type: 'line',
+        label: 'Saldo líquido',
+        data: this.points().map((point) => point.netBalance),
+        borderColor: '#15803D',
+        backgroundColor: '#15803D',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointHitRadius: 16,
+      },
     ],
   }));
   protected readonly chartOptions = computed<ChartConfiguration<'bar' | 'line'>['options']>(() => {
-    const dark = this.themeStore.isDark();
-    const muted = dark ? '#9CA3AF' : '#6B7280';
-    const grid = dark ? 'rgba(229, 231, 235, 0.12)' : 'rgba(31, 41, 55, 0.10)';
-    const surface = dark ? '#16231D' : '#FFFFFF';
-    const foreground = dark ? '#E5E7EB' : '#1F2937';
-    const border = dark ? '#263A30' : '#DDE5DD';
+    const colors = this.themeColors();
 
     return {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
       plugins: {
-        legend: { display: true, labels: { color: muted, usePointStyle: true, boxWidth: 8 } },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: colors.muted, usePointStyle: true, boxWidth: 8, padding: 12 },
+        },
         tooltip: {
-          backgroundColor: surface, titleColor: foreground, bodyColor: foreground, borderColor: border, borderWidth: 1, padding: 12,
-          callbacks: { label: (context) => `${context.dataset.label}: ${currencyFormatter.format(context.parsed.y ?? 0)}` },
+          backgroundColor: colors.surface,
+          titleColor: colors.foreground,
+          bodyColor: colors.foreground,
+          borderColor: colors.border,
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label: (context) => {
+              const value =
+                context.dataset.label === 'Despesas'
+                  ? Math.abs(context.parsed.y ?? 0)
+                  : (context.parsed.y ?? 0);
+
+              return `${context.dataset.label}: ${currencyFormatter.format(value)}`;
+            },
+          },
         },
       },
       scales: {
-        x: { border: { display: false }, grid: { display: false }, ticks: { color: muted } },
-        y: { border: { display: false }, grid: { color: grid, drawTicks: false }, ticks: { color: muted, callback: (value) => this.compactCurrency(Number(value)) } },
+        x: {
+          border: { display: false },
+          grid: { display: false },
+          ticks: { color: colors.muted, padding: 10 },
+        },
+        y: {
+          border: { display: false },
+          grid: {
+            color: (context) => (context.tick.value === 0 ? colors.zeroGrid : colors.grid),
+            lineWidth: (context) => (context.tick.value === 0 ? 1.25 : 1),
+            drawTicks: false,
+          },
+          ticks: {
+            color: colors.muted,
+            padding: 10,
+            callback: (value) => this.compactCurrency(Number(value)),
+          },
+        },
       },
     };
   });
@@ -75,6 +153,33 @@ export class FinancialEvolutionChart {
   }
 
   private compactCurrency(value: number): string {
-    return value === 0 ? 'R$ 0' : `R$ ${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value / 1000)}k`;
+    const absoluteValue = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+
+    if (absoluteValue === 0) return 'R$ 0';
+    if (absoluteValue >= 1000)
+      return `${sign}R$ ${compactCurrencyFormatter.format(absoluteValue / 1000)} mil`;
+
+    return `${sign}R$ ${compactCurrencyFormatter.format(absoluteValue)}`;
+  }
+
+  private themeColors(): ChartThemeColors {
+    return this.themeStore.isDark()
+      ? {
+          muted: '#9CA3AF',
+          grid: 'rgba(229, 231, 235, 0.12)',
+          zeroGrid: 'rgba(229, 231, 235, 0.28)',
+          surface: '#16231D',
+          foreground: '#E5E7EB',
+          border: '#263A30',
+        }
+      : {
+          muted: '#6B7280',
+          grid: 'rgba(31, 41, 55, 0.10)',
+          zeroGrid: 'rgba(31, 41, 55, 0.24)',
+          surface: '#FFFFFF',
+          foreground: '#1F2937',
+          border: '#DDE5DD',
+        };
   }
 }
