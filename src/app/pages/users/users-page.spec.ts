@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -135,7 +136,7 @@ describe('UsersPage', () => {
 
     await TestBed.configureTestingModule({
       imports: [UsersPage],
-      providers: [provideGestaoDiretaIcons(), { provide: UserService, useValue: userService }],
+      providers: [provideGestaoDiretaIcons(), provideRouter([]), { provide: UserService, useValue: userService }],
     }).compileComponents();
 
     selectedFarmStore = TestBed.inject(SelectedFarmStore);

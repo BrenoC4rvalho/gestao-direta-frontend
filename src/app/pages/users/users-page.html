@@ -1,9 +1,8 @@
 <section class="gd-fade-in-up space-y-6">
-  @if (canCreateUsers()) {
-    <div class="flex justify-end">
-      <gd-button type="button" (click)="openCreateDrawer()">Novo usuário</gd-button>
-    </div>
-  }
+  <gd-people-management-tabs class="block"
+    [actionLabel]="canCreateUsers() ? 'Novo usuário' : null"
+    (action)="openCreateDrawer()"
+  />
 
   @if (canListUsers()) {
     <gd-list-filters [config]="filtersConfig" [quickFiltersApplyOnChange]="true" (filtersChange)="changeFilters($event)" />

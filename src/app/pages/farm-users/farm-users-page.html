@@ -1,9 +1,8 @@
 <section class="gd-fade-in-up space-y-6">
-  @if (canManageContext() && !accessDenied()) {
-    <div class="flex justify-end">
-      <gd-button type="button" (click)="openLinkDrawer()">Vincular usuário</gd-button>
-    </div>
-  }
+  <gd-people-management-tabs class="block"
+    [actionLabel]="canManageContext() && !accessDenied() ? 'Vincular usuário' : null"
+    (action)="openLinkDrawer()"
+  />
 
   @if (selectedFarmStore.selectedFarmId() && canManageContext() && !accessDenied()) {
     <gd-list-filters [config]="filtersConfig" [quickFiltersApplyOnChange]="true" (filtersChange)="changeFilters($event)" />

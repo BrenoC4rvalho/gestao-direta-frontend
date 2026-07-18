@@ -1,0 +1,47 @@
+<div
+  data-testid="people-management-tabs-actions"
+  class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+>
+  <nav
+    aria-label="Seções de usuários e vínculos"
+    class="inline-flex items-center gap-5 border-b border-border"
+  >
+    @if (showUsersTab()) {
+      <a
+        routerLink="/people/users"
+        routerLinkActive="text-text-primary font-semibold"
+        #usersLinkActive="routerLinkActive"
+        [attr.aria-current]="usersLinkActive.isActive ? 'page' : null"
+        class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <svg lucideIcon="users" class="size-4" aria-hidden="true"></svg>
+        <span>Usuários</span>
+        @if (usersLinkActive.isActive) {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </a>
+    }
+
+    @if (showFarmUsersTab()) {
+      <a
+        routerLink="/people/farm-users"
+        routerLinkActive="text-text-primary font-semibold"
+        #farmUsersLinkActive="routerLinkActive"
+        [attr.aria-current]="farmUsersLinkActive.isActive ? 'page' : null"
+        class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <svg lucideIcon="user-round-cog" class="size-4" aria-hidden="true"></svg>
+        <span>Vínculos</span>
+        @if (farmUsersLinkActive.isActive) {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </a>
+    }
+  </nav>
+
+  @if (actionLabel(); as label) {
+    <div>
+      <gd-button type="button" (click)="emitAction()">{{ label }}</gd-button>
+    </div>
+  }
+</div>

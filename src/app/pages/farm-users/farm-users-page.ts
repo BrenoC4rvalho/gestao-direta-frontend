@@ -43,6 +43,7 @@ import {
 } from '../../shared/ui';
 import { FarmUserForm } from './components/farm-user-form/farm-user-form';
 import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-role-form';
+import { PeopleManagementTabs } from '../people-management/components/people-management-tabs/people-management-tabs';
 
 @Component({
   selector: 'gd-farm-users-page',
@@ -57,6 +58,7 @@ import { FarmUserRoleForm } from './components/farm-user-role-form/farm-user-rol
     FarmUserForm,
     FarmUserRoleForm,
     ListFilters,
+    PeopleManagementTabs,
     LucideDynamicIcon,
     Skeleton,
     StatusActionSection,

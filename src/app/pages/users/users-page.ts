@@ -26,6 +26,7 @@ import { DocumentFormatPipe } from '../../shared/pipes/document-format.pipe';
 import { Badge, BadgeVariant, Button, EmptyState, ErrorState, ListFilters, ListFiltersConfig, ListFilterValues, Skeleton } from '../../shared/ui';
 import { UserEditForm } from './components/user-edit-form/user-edit-form';
 import { UserForm } from './components/user-form/user-form';
+import { PeopleManagementTabs } from '../people-management/components/people-management-tabs/people-management-tabs';
 
 type UserEditAction =
   | {
@@ -62,6 +63,7 @@ interface UserActionConfirmation {
     EmptyState,
     ErrorState,
     ListFilters,
+    PeopleManagementTabs,
     LucideDynamicIcon,
     Skeleton,
     UserEditForm,

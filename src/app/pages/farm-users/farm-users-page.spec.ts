@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -230,6 +231,7 @@ describe('FarmUsersPage', () => {
       imports: [FarmUsersPage],
       providers: [
         provideGestaoDiretaIcons(),
+        provideRouter([]),
         { provide: FarmUserService, useValue: farmUserService },
         { provide: UserService, useValue: userService },
       ],

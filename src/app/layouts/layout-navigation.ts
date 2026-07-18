@@ -33,7 +33,7 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
   },
   { label: 'Fazendas', route: '/farms', icon: 'tractor', visibility: 'authenticated' },
   {
-    label: 'Usuários e vínculos',
+    label: 'Usuários',
     route: '/people',
     icon: 'users',
     visibility: 'manageFarmUsers',
