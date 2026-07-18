@@ -32,7 +32,7 @@ export class FinancialService {
   }
 
   getCashFlow(farmId: number, year: number): Observable<CashFlowResponse> {
-    return this.http.get<CashFlowResponse>(`/financial/cash-flow`, {
+    return this.http.get<CashFlowResponse>(`${this.apiUrl}/financial/cash-flow`, {
       params: new HttpParams().set('farmId', farmId).set('year', year),
     });
   }

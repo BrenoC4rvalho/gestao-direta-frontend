@@ -2,9 +2,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
+import { environment } from '../../../environments/environment';
+import { CashFlowResponse } from '../models/financial.models';
 import { FinancialService } from './financial.service';
 
-const apiUrl = 'http://localhost:8080/api';
+const apiUrl = environment.apiUrl;
 
 describe('FinancialService', () => {
   let service: FinancialService;
@@ -58,15 +60,21 @@ describe('FinancialService', () => {
   });
 
   it('should call GET /api/financial/cash-flow with farmId and year', () => {
-    service.getCashFlow(1, 2026).subscribe();
+    const cashFlow: CashFlowResponse = {
+      farmId: 1,
+      year: 2026,
+      openingBalance: 1000,
+      closingBalance: 1500,
+      points: [],
+    };
 
-    const request = http.expectOne((candidate) =>
-      candidate.url.endsWith('/financial/cash-flow') &&
-      candidate.params.get('farmId') === '1' &&
-      candidate.params.get('year') === '2026',
-    );
+    service.getCashFlow(1, 2026).subscribe((response) => {
+      expect(response).toEqual(cashFlow);
+    });
+
+    const request = http.expectOne(apiUrl + '/financial/cash-flow?farmId=1&year=2026');
     expect(request.request.method).toBe('GET');
-    request.flush({});
+    request.flush(cashFlow);
   });
 
   it('should call GET /api/financial/transactions with dashboard pagination', () => {
