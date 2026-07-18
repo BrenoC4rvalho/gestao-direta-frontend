@@ -1,18 +1,37 @@
-<nav aria-label="Seçåes de usuários e vínculos" class="mb-6 grid grid-cols-2 gap-2">
+<nav
+  aria-label="Seções de usuários e vínculos"
+  class="mb-6 inline-flex items-center gap-5 border-b border-border"
+>
   @if (showUsersTab()) {
     <a
       routerLink="users"
-      routerLinkActive="bg-primary text-white"
-      class="flex min-h-11 cursor-pointer items-center justify-center rounded-control border border-border px-3 text-center text-sm font-semibold text-text-primary transition-colors hover:bg-highlight-soft focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >Usuários</a>
+      routerLinkActive="text-text-primary font-semibold"
+      #usersLinkActive="routerLinkActive"
+      [attr.aria-current]="usersLinkActive.isActive ? 'page' : null"
+      class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <svg lucideIcon="users" class="size-4" aria-hidden="true"></svg>
+      <span>Usuários</span>
+      @if (usersLinkActive.isActive) {
+        <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+      }
+    </a>
   }
 
   @if (showFarmUsersTab()) {
     <a
       routerLink="farm-users"
-      routerLinkActive="bg-primary text-white"
-      class="flex min-h-11 cursor-pointer items-center justify-center rounded-control border border-border px-3 text-center text-sm font-semibold text-text-primary transition-colors hover:bg-highlight-soft focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >Vínculos</a>
+      routerLinkActive="text-text-primary font-semibold"
+      #farmUsersLinkActive="routerLinkActive"
+      [attr.aria-current]="farmUsersLinkActive.isActive ? 'page' : null"
+      class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <svg lucideIcon="user-round-cog" class="size-4" aria-hidden="true"></svg>
+      <span>Vínculos</span>
+      @if (farmUsersLinkActive.isActive) {
+        <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+      }
+    </a>
   }
 </nav>
 
