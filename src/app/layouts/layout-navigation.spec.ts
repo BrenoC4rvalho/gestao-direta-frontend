@@ -33,6 +33,7 @@ const adminLabels = [
   'Categorias',
   'Atividades produtivas',
   'Movimentações',
+  'Relatório financeiro',
   'Safras',
   'Agenda financeira',
 ];
@@ -43,6 +44,7 @@ const allLabels = [
   'Usuários',
   'Categorias',
   'Movimentações',
+  'Relatório financeiro',
   'Safras',
   'Agenda financeira',
 ];
@@ -51,6 +53,7 @@ const financialLabels = [
   'Dashboard',
   'Fazendas',
   'Movimentações',
+  'Relatório financeiro',
   'Safras',
   'Agenda financeira',
 ];

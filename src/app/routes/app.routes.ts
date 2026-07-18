@@ -150,6 +150,18 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reports/financial',
+        title: 'Relatório Financeiro',
+        data: {
+          title: 'Relatório Financeiro',
+          subtitle: 'Visão consolidada das movimentações, resultados e indicadores.',
+        },
+        loadComponent: () =>
+          import('../pages/reports/financial-report/financial-report-page').then(
+            (component) => component.FinancialReportPage,
+          ),
+      },
+      {
         path: 'harvests',
         title: 'Safras',
         data: {

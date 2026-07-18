@@ -53,6 +53,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'viewFinancial',
   },
   {
+    label: 'Relatório financeiro',
+    route: '/reports/financial',
+    icon: 'chart-no-axes-combined',
+    visibility: 'viewFinancial',
+  },
+  {
     label: 'Safras',
     route: '/harvests',
     icon: 'sprout',

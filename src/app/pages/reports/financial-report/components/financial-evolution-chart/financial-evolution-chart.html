@@ -1,0 +1,17 @@
+<div class="relative h-72 w-full lg:h-80">
+  <canvas
+    baseChart
+    [type]="chartType"
+    [data]="chartData()"
+    [options]="chartOptions()"
+    role="img"
+    aria-label="Gráfico de evolução financeira mensal com receitas, despesas e saldo"
+    (chartClick)="selectPeriod($event)"
+  ></canvas>
+</div>
+
+<ul class="sr-only" aria-label="Dados mensais da evolução financeira">
+  @for (point of points(); track point.period) {
+    <li>{{ point.label }}: receitas {{ formatCurrency(point.income) }}, despesas {{ formatCurrency(point.expense) }}, saldo {{ formatCurrency(point.netBalance) }}</li>
+  }
+</ul>
