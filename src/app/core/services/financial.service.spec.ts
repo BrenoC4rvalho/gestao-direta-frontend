@@ -98,3 +98,71 @@ describe('FinancialService', () => {
     request.flush({});
   });
 });
+
+describe('FinancialService report endpoints', () => {
+  let service: FinancialService;
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [FinancialService, provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(FinancialService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  it('builds the consolidated report request with optional CSV filters', () => {
+    service
+      .getFinancialReport({
+        farmId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        basis: 'CASH',
+        harvestSeasonIds: [25, 26],
+        categoryIds: [4, 7],
+      })
+      .subscribe();
+    const request = http.expectOne((item) => item.url.includes('/financial/reports'));
+    expect(request.request.params.get('farmId')).toBe('8');
+    expect(request.request.params.get('startDate')).toBe('2026-01-01');
+    expect(request.request.params.get('endDate')).toBe('2026-12-31');
+    expect(request.request.params.get('basis')).toBe('CASH');
+    expect(request.request.params.get('harvestSeasonIds')).toBe('25,26');
+    expect(request.request.params.get('categoryIds')).toBe('4,7');
+    request.flush({});
+  });
+
+  it('omits empty filters and sends transaction pagination', () => {
+    service
+      .getFinancialReportTransactions({
+        farmId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-01-31',
+        basis: 'ACCRUAL',
+        harvestSeasonIds: [],
+        categoryIds: [],
+        page: 0,
+        size: 6,
+        sort: 'referenceDate',
+        direction: 'DESC',
+      })
+      .subscribe();
+    const request = http.expectOne((item) => item.url.includes('/financial/reports/transactions'));
+    expect(request.request.params.has('categoryIds')).toBe(false);
+    expect(request.request.params.get('page')).toBe('0');
+    expect(request.request.params.get('size')).toBe('6');
+    expect(request.request.params.get('sort')).toBe('referenceDate');
+    expect(request.request.params.get('direction')).toBe('DESC');
+    request.flush({
+      content: [],
+      page: 0,
+      size: 6,
+      totalElements: 0,
+      totalPages: 0,
+      first: true,
+      last: true,
+    });
+  });
+});

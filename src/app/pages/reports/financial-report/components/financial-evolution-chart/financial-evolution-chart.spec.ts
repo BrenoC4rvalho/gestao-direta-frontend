@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BaseChartDirective } from 'ng2-charts';
 
 import { ThemeStore } from '../../../../../core/stores/theme.store';
-import { FinancialEvolutionPoint } from '../../financial-report.models';
+import { FinancialEvolutionPoint } from '../../../../../core/models/financial-report.models';
 
 import { FinancialEvolutionChart } from './financial-evolution-chart';
 

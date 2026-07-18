@@ -1,13 +1,18 @@
-export type FinancialReportBasis = 'CASH' | 'ACCRUAL';
+import { PageRequest } from './page-response.model';
 
-export interface FinancialReportFilters {
+export type FinancialReportBasis = 'CASH' | 'ACCRUAL';
+export interface FinancialReportRequest {
+  farmId: number;
   startDate: string;
   endDate: string;
   basis: FinancialReportBasis;
-  harvestSeasonId: number | null;
-  categoryId: number | null;
+  harvestSeasonIds: readonly number[];
+  categoryIds: readonly number[];
 }
-
+export interface FinancialReportTransactionsRequest
+  extends
+    FinancialReportRequest,
+    Required<Pick<PageRequest, 'page' | 'size' | 'sort' | 'direction'>> {}
 export interface FinancialReportSummary {
   totalIncome: number;
   totalExpense: number;
@@ -18,7 +23,6 @@ export interface FinancialReportSummary {
   projectedIncome: number;
   projectedExpense: number;
 }
-
 export interface FinancialEvolutionPoint {
   period: string;
   label: string;
@@ -29,7 +33,6 @@ export interface FinancialEvolutionPoint {
   netBalance: number;
   transactionCount: number;
 }
-
 export interface FinancialCategorySummary {
   categoryId: number;
   categoryName: string;
@@ -38,7 +41,6 @@ export interface FinancialCategorySummary {
   percentage: number;
   transactionCount: number;
 }
-
 export interface FinancialHarvestSummary {
   harvestSeasonId: number | null;
   harvestSeasonName: string;
@@ -48,22 +50,21 @@ export interface FinancialHarvestSummary {
   marginPercentage: number;
   transactionCount: number;
 }
-
 export interface FinancialPeriodIndicator {
+  period: string;
   label: string;
   amount: number;
 }
-
 export interface FinancialCategoryIndicator {
+  categoryId: number;
   categoryName: string;
   amount: number;
 }
-
 export interface FinancialHarvestIndicator {
+  harvestSeasonId: number | null;
   harvestSeasonName: string;
   profit: number;
 }
-
 export interface FinancialReportIndicators {
   analyzedMonthCount: number;
   highestIncomePeriod: FinancialPeriodIndicator | null;
@@ -73,7 +74,23 @@ export interface FinancialReportIndicators {
   highestExpenseCategory: FinancialCategoryIndicator | null;
   mostProfitableHarvest: FinancialHarvestIndicator | null;
 }
-
+export interface FinancialReportUnallocated {
+  income: number;
+  expense: number;
+  transactionCount: number;
+}
+export interface FinancialReportResponse {
+  farmId: number;
+  startDate: string;
+  endDate: string;
+  basis: FinancialReportBasis;
+  summary: FinancialReportSummary;
+  evolution: readonly FinancialEvolutionPoint[];
+  categories: readonly FinancialCategorySummary[];
+  harvests: readonly FinancialHarvestSummary[];
+  indicators: FinancialReportIndicators;
+  unallocated: FinancialReportUnallocated;
+}
 export interface FinancialReportTransaction {
   id: number;
   description: string;
@@ -88,9 +105,4 @@ export interface FinancialReportTransaction {
   categoryName: string;
   harvestSeasonId: number | null;
   harvestSeasonName: string | null;
-}
-
-export interface FinancialReportOption {
-  id: number;
-  name: string;
 }

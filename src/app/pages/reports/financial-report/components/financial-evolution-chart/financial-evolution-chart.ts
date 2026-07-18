@@ -12,7 +12,7 @@ import { ChartConfiguration, ChartEvent } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
 import { ThemeStore } from '../../../../../core/stores/theme.store';
-import { FinancialEvolutionPoint } from '../../financial-report.models';
+import { FinancialEvolutionPoint } from '../../../../../core/models/financial-report.models';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });

@@ -11,6 +11,12 @@ import {
   UpcomingBill,
 } from '../models/financial.models';
 import { PageResponse } from '../models/page-response.model';
+import {
+  FinancialReportRequest,
+  FinancialReportResponse,
+  FinancialReportTransaction,
+  FinancialReportTransactionsRequest,
+} from '../models/financial-report.models';
 
 @Injectable({
   providedIn: 'root',
@@ -51,17 +57,47 @@ export class FinancialService {
     );
   }
 
-  getUpcomingBills(farmId: number): Observable<PageResponse<UpcomingBill>> {
-    return this.http.get<PageResponse<UpcomingBill>>(
-      `${this.apiUrl}/financial/upcoming-bills`,
-      {
-        params: new HttpParams()
-          .set('farmId', farmId)
-          .set('page', 0)
-          .set('size', 5)
-          .set('sort', 'dueDate')
-          .set('direction', 'ASC'),
-      },
+  getFinancialReport(filters: FinancialReportRequest): Observable<FinancialReportResponse> {
+    return this.http.get<FinancialReportResponse>(`/financial/reports`, {
+      params: this.buildReportParams(filters),
+    });
+  }
+
+  getFinancialReportTransactions(
+    filters: FinancialReportTransactionsRequest,
+  ): Observable<PageResponse<FinancialReportTransaction>> {
+    let params = this.buildReportParams(filters);
+    params = params
+      .set('page', filters.page)
+      .set('size', filters.size)
+      .set('sort', filters.sort)
+      .set('direction', filters.direction);
+    return this.http.get<PageResponse<FinancialReportTransaction>>(
+      `/financial/reports/transactions`,
+      { params },
     );
+  }
+
+  getUpcomingBills(farmId: number): Observable<PageResponse<UpcomingBill>> {
+    return this.http.get<PageResponse<UpcomingBill>>(`${this.apiUrl}/financial/upcoming-bills`, {
+      params: new HttpParams()
+        .set('farmId', farmId)
+        .set('page', 0)
+        .set('size', 5)
+        .set('sort', 'dueDate')
+        .set('direction', 'ASC'),
+    });
+  }
+  private buildReportParams(filters: FinancialReportRequest): HttpParams {
+    let params = new HttpParams()
+      .set('farmId', filters.farmId)
+      .set('startDate', filters.startDate)
+      .set('endDate', filters.endDate)
+      .set('basis', filters.basis);
+    if (filters.harvestSeasonIds.length)
+      params = params.set('harvestSeasonIds', filters.harvestSeasonIds.join(','));
+    if (filters.categoryIds.length)
+      params = params.set('categoryIds', filters.categoryIds.join(','));
+    return params;
   }
 }
