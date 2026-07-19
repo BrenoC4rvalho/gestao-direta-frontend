@@ -30,7 +30,19 @@ interface TestApi {
   chartType: 'bar';
   chartData: () => {
     labels?: unknown[];
-    datasets: { type?: string; label?: string; data: unknown[] }[];
+    datasets: {
+      type?: string;
+      label?: string;
+      data: unknown[];
+      stack?: string;
+      borderColor?: string;
+      backgroundColor?: string;
+      borderWidth?: number;
+      tension?: number;
+      fill?: boolean;
+      pointRadius?: number;
+      pointHoverRadius?: number;
+    }[];
   };
   chartOptions: () => {
     plugins?: {
@@ -46,7 +58,9 @@ interface TestApi {
       };
     };
     scales?: {
+      x?: { stacked?: boolean };
       y?: {
+        stacked?: boolean;
         min?: number;
         grid?: {
           color?: (context: { tick: { value: number } }) => string;
@@ -76,7 +90,7 @@ async function createComponent(): Promise<ComponentFixture<FinancialEvolutionCha
 describe('FinancialEvolutionChart', () => {
   afterEach(() => TestBed.resetTestingModule());
 
-  it('maps Jan–Dez into grouped income and expense bars with a net balance line', async () => {
+  it('maps Jan–Dez into stacked income and expense bars with a blue net balance line', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const chartData = component.chartData();
 
@@ -90,6 +104,19 @@ describe('FinancialEvolutionChart', () => {
     expect(chartData.datasets[0].data).toEqual(points.map((point) => point.income));
     expect(chartData.datasets[1].data).toEqual(points.map((point) => -Math.abs(point.expense)));
     expect(chartData.datasets[2].data).toEqual(points.map((point) => point.netBalance));
+    expect(chartData.datasets[0].stack).toBe('financial');
+    expect(chartData.datasets[1].stack).toBe('financial');
+    expect(chartData.datasets[0].backgroundColor).toBe('#22C55E');
+    expect(chartData.datasets[1].backgroundColor).toBe('#DC2626');
+    expect(chartData.datasets[2]).toMatchObject({
+      borderColor: '#2563EB',
+      backgroundColor: '#2563EB',
+      borderWidth: 2,
+      tension: 0.25,
+      fill: false,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+    });
     expect(points[1].expense).toBe(3000);
   });
 
@@ -99,6 +126,8 @@ describe('FinancialEvolutionChart', () => {
     const grid = options.scales?.y?.grid;
 
     expect(options.plugins?.legend?.position).toBe('bottom');
+    expect(options.scales?.x?.stacked).toBe(true);
+    expect(options.scales?.y?.stacked).toBe(true);
     expect(options.scales?.y?.min).toBeUndefined();
     expect(grid?.lineWidth?.({ tick: { value: 0 } })).toBeGreaterThan(
       grid?.lineWidth?.({ tick: { value: 1 } }) ?? 0,

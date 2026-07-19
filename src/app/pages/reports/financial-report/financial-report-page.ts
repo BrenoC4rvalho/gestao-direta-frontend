@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import {
@@ -67,6 +68,7 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
     ErrorState,
     FinancialEvolutionChart,
     Input,
+    LucideDynamicIcon,
     ReactiveFormsModule,
     Select,
     Skeleton,

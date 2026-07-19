@@ -27,6 +27,20 @@
         (ngSubmit)="applyFilters()"
         aria-label="Filtros do relatório financeiro"
       >
+        <div class="flex min-w-0 items-start gap-3">
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary"
+            aria-hidden="true"
+          >
+            <svg lucideIcon="filter" class="size-5"></svg>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
+            <p class="mt-1 text-sm leading-5 text-text-muted">
+              Filtre o relatório por período, regime, safra e categoria.
+            </p>
+          </div>
+        </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
           <gd-input
             id="financial-report-start-date"
