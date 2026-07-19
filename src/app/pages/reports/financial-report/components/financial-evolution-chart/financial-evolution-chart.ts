@@ -48,6 +48,7 @@ export class FinancialEvolutionChart {
         label: 'Receitas',
         data: this.points().map((point) => point.income),
         backgroundColor: '#22C55E',
+        order: 1,
         stack: 'financial',
         categoryPercentage: 0.55,
         barPercentage: 0.8,
@@ -59,6 +60,7 @@ export class FinancialEvolutionChart {
         label: 'Despesas',
         data: this.points().map((point) => -Math.abs(point.expense)),
         backgroundColor: '#DC2626',
+        order: 1,
         stack: 'financial',
         categoryPercentage: 0.55,
         barPercentage: 0.8,
@@ -69,6 +71,7 @@ export class FinancialEvolutionChart {
         type: 'line',
         label: 'Saldo líquido',
         data: this.points().map((point) => point.netBalance),
+        order: 0,
         borderColor: '#2563EB',
         backgroundColor: '#2563EB',
         borderWidth: 2,
@@ -89,9 +92,7 @@ export class FinancialEvolutionChart {
       interaction: { intersect: false, mode: 'index' },
       plugins: {
         legend: {
-          display: true,
-          position: 'bottom',
-          labels: { color: colors.muted, usePointStyle: true, boxWidth: 8, padding: 12 },
+          display: false,
         },
         tooltip: {
           backgroundColor: colors.surface,

@@ -35,6 +35,7 @@ interface TestApi {
       label?: string;
       data: unknown[];
       stack?: string;
+      order?: number;
       borderColor?: string;
       backgroundColor?: string;
       borderWidth?: number;
@@ -46,7 +47,7 @@ interface TestApi {
   };
   chartOptions: () => {
     plugins?: {
-      legend?: { position?: string };
+      legend?: { display?: boolean; position?: string };
       tooltip?: {
         backgroundColor?: string;
         callbacks?: {
@@ -108,6 +109,9 @@ describe('FinancialEvolutionChart', () => {
     expect(chartData.datasets[1].stack).toBe('financial');
     expect(chartData.datasets[0].backgroundColor).toBe('#22C55E');
     expect(chartData.datasets[1].backgroundColor).toBe('#DC2626');
+    expect(chartData.datasets[0].order).toBe(1);
+    expect(chartData.datasets[1].order).toBe(1);
+    expect(chartData.datasets[2].order).toBe(0);
     expect(chartData.datasets[2]).toMatchObject({
       borderColor: '#2563EB',
       backgroundColor: '#2563EB',
@@ -125,7 +129,7 @@ describe('FinancialEvolutionChart', () => {
     const options = component.chartOptions();
     const grid = options.scales?.y?.grid;
 
-    expect(options.plugins?.legend?.position).toBe('bottom');
+    expect(options.plugins?.legend?.display).toBe(false);
     expect(options.scales?.x?.stacked).toBe(true);
     expect(options.scales?.y?.stacked).toBe(true);
     expect(options.scales?.y?.min).toBeUndefined();
@@ -133,6 +137,22 @@ describe('FinancialEvolutionChart', () => {
       grid?.lineWidth?.({ tick: { value: 1 } }) ?? 0,
     );
     expect(grid?.color?.({ tick: { value: 0 } })).not.toBe(grid?.color?.({ tick: { value: 1 } }));
+  });
+
+  it('renders an accessible HTML legend in the dataset order', async () => {
+    const fixture = await createComponent();
+    const legend = fixture.nativeElement.querySelector(
+      '[aria-label="Legenda do gráfico de evolução financeira"]',
+    ) as HTMLUListElement;
+
+    expect(Array.from(legend.querySelectorAll('li')).map((item) => item.textContent?.trim())).toEqual([
+      'Receitas',
+      'Despesas',
+      'Saldo líquido',
+    ]);
+    expect(Array.from(legend.querySelectorAll('li > span')).map((marker) => marker.className)).toEqual(
+      expect.arrayContaining(['size-2.5 rounded-full bg-[#22C55E]', 'size-2.5 rounded-full bg-[#DC2626]', 'size-2.5 rounded-full bg-[#2563EB]']),
+    );
   });
 
   it('updates chart colors for light and dark themes', async () => {

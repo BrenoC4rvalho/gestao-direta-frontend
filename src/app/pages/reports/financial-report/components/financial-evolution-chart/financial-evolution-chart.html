@@ -10,6 +10,24 @@
   ></canvas>
 </div>
 
+<ul
+  class="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
+  aria-label="Legenda do gráfico de evolução financeira"
+>
+  <li class="inline-flex items-center gap-2">
+    <span class="size-2.5 rounded-full bg-[#22C55E]" aria-hidden="true"></span>
+    <span>Receitas</span>
+  </li>
+  <li class="inline-flex items-center gap-2">
+    <span class="size-2.5 rounded-full bg-[#DC2626]" aria-hidden="true"></span>
+    <span>Despesas</span>
+  </li>
+  <li class="inline-flex items-center gap-2">
+    <span class="size-2.5 rounded-full bg-[#2563EB]" aria-hidden="true"></span>
+    <span>Saldo líquido</span>
+  </li>
+</ul>
+
 <ul class="sr-only" aria-label="Dados mensais da evolução financeira">
   @for (point of points(); track point.period) {
     <li>{{ point.label }}: receitas {{ formatCurrency(point.income) }}, despesas {{ formatCurrency(point.expense) }}, saldo {{ formatCurrency(point.netBalance) }}</li>
