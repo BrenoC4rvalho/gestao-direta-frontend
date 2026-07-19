@@ -20,6 +20,66 @@
       <gd-button variant="outline" [disabled]="true">Exportar PDF</gd-button
       ><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button>
     </div>
+    @if (reportLoading()) {
+      <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <gd-card class="h-full"
+            ><gd-skeleton width="45%" height="1rem" /><gd-skeleton
+              class="mt-4 block"
+              width="70%"
+              height="2rem"
+          /></gd-card>
+        }
+      </div>
+    } @else if (report(); as report) {
+      <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <gd-summary-card
+          class="h-full"
+          density="compact"
+          title="Receitas totais"
+          [value]="formatCurrency(report.summary.totalIncome)"
+          [meta]="
+            'Realizado: ' +
+            formatCurrency(report.summary.realizedIncome) +
+            '\nProjetado: ' +
+            formatCurrency(report.summary.projectedIncome)
+          "
+          icon="trending-up"
+          tone="success"
+        /><gd-summary-card
+          class="h-full"
+          density="compact"
+          title="Despesas totais"
+          [value]="formatCurrency(report.summary.totalExpense)"
+          [meta]="
+            'Realizado: ' +
+            formatCurrency(report.summary.realizedExpense) +
+            '\nProjetado: ' +
+            formatCurrency(report.summary.projectedExpense)
+          "
+          icon="trending-down"
+          tone="danger"
+        /><gd-summary-card
+          class="h-full"
+          density="compact"
+          title="Saldo líquido"
+          [value]="formatCurrency(report.summary.netBalance)"
+          [meta]="report.summary.netBalance >= 0 ? 'Resultado positivo' : 'Resultado negativo'"
+          icon="wallet"
+          [tone]="report.summary.netBalance >= 0 ? 'success' : 'danger'"
+        /><gd-summary-card
+          class="h-full"
+          density="compact"
+          title="Margem"
+          [value]="formatPercentage(report.summary.marginPercentage)"
+          [meta]="
+            report.summary.marginPercentage >= 0 ? 'Resultado positivo' : 'Resultado negativo'
+          "
+          icon="chart-no-axes-combined"
+          [tone]="report.summary.marginPercentage >= 0 ? 'info' : 'danger'"
+        />
+      </div>
+    }
     <gd-card class="block"
       ><form
         class="space-y-5"
@@ -80,16 +140,6 @@
       </form></gd-card
     >
     @if (reportLoading()) {
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        @for (item of [1, 2, 3, 4]; track item) {
-          <gd-card
-            ><gd-skeleton width="45%" height="1rem" /><gd-skeleton
-              class="mt-4 block"
-              width="70%"
-              height="2rem"
-          /></gd-card>
-        }
-      </div>
       <div class="grid gap-6 xl:grid-cols-3">
         <gd-card class="xl:col-span-2"><gd-skeleton height="20rem" /></gd-card
         ><gd-card><gd-skeleton height="20rem" /></gd-card>
@@ -108,42 +158,6 @@
         icon="inbox"
       />
     } @else if (report(); as report) {
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <gd-summary-card
-          title="Receitas totais"
-          [value]="formatCurrency(report.summary.totalIncome)"
-          [meta]="
-            'Realizado: ' +
-            formatCurrency(report.summary.realizedIncome) +
-            ' · Projetado: ' +
-            formatCurrency(report.summary.projectedIncome)
-          "
-          icon="trending-up"
-          tone="success"
-        /><gd-summary-card
-          title="Despesas totais"
-          [value]="formatCurrency(report.summary.totalExpense)"
-          [meta]="
-            'Realizado: ' +
-            formatCurrency(report.summary.realizedExpense) +
-            ' · Projetado: ' +
-            formatCurrency(report.summary.projectedExpense)
-          "
-          icon="trending-down"
-          tone="danger"
-        /><gd-summary-card
-          title="Saldo líquido"
-          [value]="formatCurrency(report.summary.netBalance)"
-          [meta]="report.summary.netBalance >= 0 ? 'Resultado positivo' : 'Resultado negativo'"
-          icon="wallet"
-          [tone]="report.summary.netBalance >= 0 ? 'success' : 'danger'"
-        /><gd-summary-card
-          title="Margem"
-          [value]="formatPercentage(report.summary.marginPercentage)"
-          icon="chart-no-axes-combined"
-          [tone]="report.summary.marginPercentage >= 0 ? 'info' : 'danger'"
-        />
-      </div>
       @if (report.basis === 'CASH' && report.unallocated.transactionCount > 0) {
         <gd-card
           ><p class="text-sm text-text-muted">

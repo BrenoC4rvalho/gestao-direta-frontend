@@ -73,8 +73,8 @@ export class SummaryCard {
 
   protected metaClasses(): string {
     return this.density() === 'compact'
-      ? 'mt-1 text-xs font-medium text-text-muted'
-      : 'mt-2 text-sm font-medium text-text-muted';
+      ? 'mt-1 whitespace-pre-line text-xs font-medium text-text-muted'
+      : 'mt-2 whitespace-pre-line text-sm font-medium text-text-muted';
   }
 
   protected toggleTooltip(): void {

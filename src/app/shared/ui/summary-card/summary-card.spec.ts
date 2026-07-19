@@ -159,4 +159,15 @@ describe('SummaryCard', () => {
     expect(button.className).toContain('size-7');
     expect(visibleCardText(fixture)).not.toContain(description);
   });
+
+  it('should preserve multi-line meta text in compact density', async () => {
+    const fixture = await createComponent(null, 'Realizado: R$ 800,00\nProjetado: R$ 200,00', 'compact');
+    const meta = Array.from(
+      fixture.nativeElement.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>,
+    ).find((item) => item.textContent?.includes('Realizado: R$ 800,00'));
+
+    expect(meta?.textContent).toContain('Realizado: R$ 800,00\nProjetado: R$ 200,00');
+    expect(meta?.className).toContain('whitespace-pre-line');
+    expect(meta?.className).toContain('text-xs');
+  });
 });
