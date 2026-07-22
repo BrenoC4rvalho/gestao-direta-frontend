@@ -19,6 +19,7 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../shared/forms';
 import { Badge, BadgeVariant, Button, Card, ErrorState, Skeleton } from '../../shared/ui';
+import { ContactMessagingSection } from './contact-messaging-section';
 import {
   DocumentType,
   formatCnpj,
@@ -42,7 +43,17 @@ interface PasswordFormControls {
 
 @Component({
   selector: 'gd-profile-page',
-  imports: [Badge, Button, Card, ErrorState, Input, ReactiveFormsModule, Select, Skeleton],
+  imports: [
+    Badge,
+    Button,
+    Card,
+    ContactMessagingSection,
+    ErrorState,
+    Input,
+    ReactiveFormsModule,
+    Select,
+    Skeleton,
+  ],
   templateUrl: './profile-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

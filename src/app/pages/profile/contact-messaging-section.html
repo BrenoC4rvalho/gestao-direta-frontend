@@ -1,0 +1,39 @@
+<section class="space-y-5" aria-labelledby="contact-messaging-title">
+  <header class="flex items-start gap-3">
+    <div class="flex size-11 shrink-0 items-center justify-center rounded-app bg-highlight-soft text-primary" aria-hidden="true"><svg lucideIcon="message-circle" class="size-5"></svg></div>
+    <div class="min-w-0"><h2 id="contact-messaging-title" class="text-xl font-semibold text-text-primary">Contato e mensagens</h2><p class="mt-1 text-sm leading-6 text-text-muted">Gerencie seu telefone e os canais usados para receber mensagens do Gestão Direta.</p></div>
+  </header>
+  <gd-card variant="elevated" padding="lg">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex min-w-0 gap-4">
+        <div class="flex size-11 shrink-0 items-center justify-center rounded-app bg-highlight-soft text-primary" aria-hidden="true"><svg lucideIcon="phone" class="size-5"></svg></div>
+        <div class="min-w-0">
+          <h3 class="text-lg font-semibold text-text-primary">Número de telefone</h3>
+          <p class="mt-1 text-sm leading-6 text-text-muted">Cadastre um número para futuras integrações com WhatsApp e notificações.</p>
+          @if (contact().phoneNumber; as phoneNumber) {
+            <div class="mt-4 flex flex-wrap items-center gap-2"><p class="font-semibold text-text-primary">{{ formatBrazilianPhone(phoneNumber) }}</p><gd-badge [variant]="phoneStatusVariant(contact().phoneVerificationStatus)" size="sm">{{ phoneStatusLabel(contact().phoneVerificationStatus) }}</gd-badge></div>
+          } @else {
+            <p class="mt-4 font-semibold text-text-primary">Nenhum telefone cadastrado</p><p class="mt-1 text-sm text-text-muted">Adicione um número com código do país e DDD.</p>
+          }
+        </div>
+      </div>
+      <gd-button type="button" variant="outline" class="w-full shrink-0 sm:w-auto" (click)="openPhoneDrawer()"><svg [lucideIcon]="contact().phoneNumber ? 'pencil' : 'plus'" class="size-4" aria-hidden="true"></svg>{{ contact().phoneNumber ? 'Editar telefone' : 'Adicionar telefone' }}</gd-button>
+    </div>
+    <div class="mt-6 flex gap-3 rounded-app border border-info/20 bg-info/10 p-4 text-sm leading-6 text-text-primary" role="status"><svg lucideIcon="info" class="mt-0.5 size-5 shrink-0 text-info" aria-hidden="true"></svg><p>A validação do número estará disponível quando a integração com WhatsApp for ativada.</p></div>
+  </gd-card>
+  <gd-card variant="elevated" padding="lg">
+    <div><h3 class="text-lg font-semibold text-text-primary">Canais de mensagens</h3><p class="mt-1 text-sm leading-6 text-text-muted">Conecte seus canais para receber mensagens e acessar recursos do Gestão Direta.</p></div>
+    <div class="mt-6 divide-y divide-border border-y border-border">
+      @for (channel of channels; track channel.name) {
+        <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><h4 class="font-semibold text-text-primary">{{ channel.name }}</h4><gd-badge variant="neutral" size="sm">{{ channel.status }}</gd-badge></div><p class="mt-1 text-sm leading-6 text-text-muted">{{ channel.description }}</p></div><gd-button type="button" variant="outline" [disabled]="true" class="w-full shrink-0 sm:w-auto">{{ channel.actionLabel }}</gd-button></div>
+      }
+    </div>
+  </gd-card>
+</section>
+<gd-drawer [open]="drawerOpen()" [title]="editing() ? 'Editar telefone' : 'Adicionar telefone'" description="Informe o número com código do país e DDD." size="sm" [closeOnBackdrop]="!saving()" [showCloseButton]="!saving()" (closed)="closePhoneDrawer()">
+  <form class="flex min-h-full flex-col" [formGroup]="phoneForm" (ngSubmit)="submitPhone()" novalidate>
+    <gd-input id="contact-phone" label="Telefone" type="tel" [control]="phoneForm.controls.phone" placeholder="+55 (24) 99999-9999" hint="Use o formato internacional, incluindo +55 e o DDD." [required]="true" inputmode="tel" autocomplete="tel" [maxlength]="19" [disabled]="saving()" [errorMessage]="phoneErrorMessage()" />
+    <div class="mt-auto grid gap-3 pt-8 sm:grid-cols-2"><gd-button type="button" variant="outline" [fullWidth]="true" [disabled]="saving()" (click)="closePhoneDrawer()"><svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>Cancelar</gd-button><gd-button type="submit" [fullWidth]="true" [loading]="saving()" [disabled]="phoneForm.invalid"><svg lucideIcon="save" class="size-4" aria-hidden="true"></svg>Salvar telefone</gd-button></div>
+  </form>
+</gd-drawer>
+<gd-confirm-dialog [open]="confirmChangeOpen()" title="Alterar telefone" description="Ao alterar o telefone, a validação atual será reiniciada. Deseja continuar?" confirmLabel="Continuar" cancelLabel="Cancelar" variant="warning" (confirmed)="confirmPhoneChange()" (cancelled)="cancelPhoneChange()" (closed)="cancelPhoneChange()" />
