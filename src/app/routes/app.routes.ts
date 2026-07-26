@@ -150,6 +150,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'transactions/pending-approvals',
+        title: 'Movimentações pendentes',
+        data: { title: 'Movimentações pendentes', subtitle: 'Revise as movimentações identificadas pelo Telegram antes de incluí-las no controle financeiro.' },
+        loadComponent: () => import('../pages/pending-transactions/pending-transactions-page').then((component) => component.PendingTransactionsPage),
+      },
+      {
         path: 'reports/financial',
         title: 'Relatório Financeiro',
         data: {

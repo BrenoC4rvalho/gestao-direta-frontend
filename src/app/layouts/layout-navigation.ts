@@ -53,6 +53,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'viewFinancial',
   },
   {
+    label: 'Pendentes de aprovação',
+    route: '/transactions/pending-approvals',
+    icon: 'calendar-clock',
+    visibility: 'viewFinancial',
+  },
+  {
     label: 'Relatório financeiro',
     route: '/reports/financial',
     icon: 'chart-no-axes-combined',

@@ -1,0 +1,44 @@
+import { DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
+import { Button, EmptyState, ErrorState, Skeleton, Badge } from '../../shared/ui';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
+import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { PendingFinancialTransaction, PendingFinancialTransactionStatus } from '../../core/models/pending-financial-transaction.models';
+import { PendingFinancialTransactionService } from '../../core/services/pending-financial-transaction.service';
+import { ToastStore } from '../../core/stores/toast.store';
+
+@Component({
+  selector: 'gd-pending-transactions-page',
+  imports: [Badge, BrCurrencyPipe, DecimalPipe, Button, EmptyState, ErrorState, Skeleton],
+  templateUrl: './pending-transactions-page.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class PendingTransactionsPage {
+  private readonly service = inject(PendingFinancialTransactionService);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly selectedFarmStore = inject(SelectedFarmStore);
+  protected readonly access = inject(FarmAccessStore);
+  private readonly toast = inject(ToastStore);
+  protected readonly items = signal<PendingFinancialTransaction[]>([]);
+  protected readonly loading = signal(false);
+  protected readonly error = signal(false);
+
+  constructor() {
+    effect(() => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      if (farmId) this.load(farmId);
+      else this.items.set([]);
+    });
+  }
+  protected approve(item: PendingFinancialTransaction): void {
+    this.service.approve(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação aprovada e adicionada ao controle financeiro.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível aprovar a movimentação.') });
+  }
+  protected reject(item: PendingFinancialTransaction): void {
+    this.service.reject(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação rejeitada.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível rejeitar a movimentação.') });
+  }
+  protected label(status: PendingFinancialTransactionStatus): string { return { PENDING_REVIEW: 'Pendente de aprovação', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', PROCESSING_ERROR: 'Erro de processamento' }[status]; }
+  protected variant(status: PendingFinancialTransactionStatus): 'warning' | 'success' | 'danger' { return status === 'APPROVED' ? 'success' : status === 'PENDING_REVIEW' ? 'warning' : 'danger'; }
+  private load(farmId: number): void { this.loading.set(true); this.error.set(false); this.service.list({ farmId, status: 'PENDING_REVIEW', size: 30 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: response => { this.items.set(response.content); this.loading.set(false); }, error: () => { this.error.set(true); this.loading.set(false); } }); }
+}
