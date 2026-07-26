@@ -9,6 +9,7 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+import { PendingFinancialTransactionCountService } from '../../core/services/pending-financial-transaction-count.service';
 import { Drawer } from '../../shared/overlays';
 import { ThemeToggleButton } from '../../shared/ui';
 import { getVisibleNavItems, MAIN_NAV_ITEMS } from '../layout-navigation';
@@ -34,6 +35,7 @@ export class MobileHeader {
   protected readonly sessionStore = inject(SessionStore);
   private readonly farmAccessStore = inject(FarmAccessStore);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
+  protected readonly pendingCount = inject(PendingFinancialTransactionCountService);
   protected readonly navItems = computed(() =>
     getVisibleNavItems(MAIN_NAV_ITEMS, {
       userType: this.sessionStore.userType(),

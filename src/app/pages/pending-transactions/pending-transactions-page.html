@@ -14,9 +14,11 @@
           <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold text-text-primary">{{ item.description }}</p><p class="mt-1 text-sm text-text-muted">Telegram · {{ item.requestedByUserName }} · {{ item.transactionDate }}</p></div><gd-badge [variant]="variant(item.status)">{{ label(item.status) }}</gd-badge></div>
           <p [class]="'mt-3 text-lg font-semibold ' + (item.type === 'INCOME' ? 'text-success' : 'text-danger')">{{ item.type === 'INCOME' ? '+' : '-' }}{{ item.amount | brCurrency }}</p>
           <p class="mt-2 text-sm text-text-muted">Mensagem: “{{ item.sourceMessageContent }}” · Confiança: {{ item.confidence * 100 | number:'1.0-0' }}%</p>
-          @if (access.canManageTransactions()) { <div class="mt-4 flex flex-col gap-2 sm:flex-row"><gd-button type="button" (click)="approve(item)">Aprovar movimentação</gd-button><gd-button type="button" variant="outline" (click)="reject(item)">Rejeitar</gd-button></div> }
+          @if (access.canManageTransactions()) { <div class="mt-4"><gd-button type="button" variant="outline" (click)="review(item)">Revisar</gd-button></div> }
         </article>
       }
     </div>
   }
 </section>
+
+<gd-pending-review-drawer [open]="reviewOpen()" [pendingId]="selectedPendingId()" (refreshed)="handleReviewed($event)" (decided)="handleDecision()" (closed)="reviewOpen.set(false)" />

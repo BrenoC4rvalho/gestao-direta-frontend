@@ -8,10 +8,12 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { PendingFinancialTransaction, PendingFinancialTransactionStatus } from '../../core/models/pending-financial-transaction.models';
 import { PendingFinancialTransactionService } from '../../core/services/pending-financial-transaction.service';
 import { ToastStore } from '../../core/stores/toast.store';
+import { PendingReviewDrawer } from './pending-review-drawer';
+import { PendingFinancialTransactionCountService } from '../../core/services/pending-financial-transaction-count.service';
 
 @Component({
   selector: 'gd-pending-transactions-page',
-  imports: [Badge, BrCurrencyPipe, DecimalPipe, Button, EmptyState, ErrorState, Skeleton],
+  imports: [Badge, BrCurrencyPipe, DecimalPipe, Button, EmptyState, ErrorState, Skeleton, PendingReviewDrawer],
   templateUrl: './pending-transactions-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -21,9 +23,12 @@ export class PendingTransactionsPage {
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly access = inject(FarmAccessStore);
   private readonly toast = inject(ToastStore);
+  private readonly pendingCount = inject(PendingFinancialTransactionCountService);
   protected readonly items = signal<PendingFinancialTransaction[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
+  protected readonly selectedPendingId = signal<number | null>(null);
+  protected readonly reviewOpen = signal(false);
 
   constructor() {
     effect(() => {
@@ -32,6 +37,23 @@ export class PendingTransactionsPage {
       else this.items.set([]);
     });
   }
+  protected review(item: PendingFinancialTransaction): void {
+    this.selectedPendingId.set(item.id);
+    this.reviewOpen.set(true);
+  }
+
+  protected handleReviewed(value: PendingFinancialTransaction): void {
+    this.items.update((items) => items.map((item) => item.id === value.id ? value : item));
+    this.toast.success('Alterações salvas com sucesso.');
+  }
+
+  protected handleDecision(): void {
+    this.reviewOpen.set(false);
+    this.pendingCount.refresh();
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (farmId) this.load(farmId);
+  }
+
   protected approve(item: PendingFinancialTransaction): void {
     this.service.approve(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação aprovada e adicionada ao controle financeiro.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível aprovar a movimentação.') });
   }

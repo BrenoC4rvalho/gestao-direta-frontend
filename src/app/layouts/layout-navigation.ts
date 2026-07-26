@@ -15,6 +15,7 @@ export interface LayoutNavItem {
   icon: string;
   visibility: LayoutNavVisibility;
   exact?: boolean;
+  pendingBadge?: boolean;
 }
 
 export interface LayoutNavVisibilityContext {
@@ -57,6 +58,7 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     route: '/transactions/pending-approvals',
     icon: 'calendar-clock',
     visibility: 'viewFinancial',
+    pendingBadge: true,
   },
   {
     label: 'Relatório financeiro',
