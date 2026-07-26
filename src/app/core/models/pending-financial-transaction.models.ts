@@ -39,6 +39,12 @@ export interface PendingFinancialTransactionListParams {
   direction?: 'ASC' | 'DESC';
 }
 
+export interface ApprovePendingFinancialTransactionRequest {
+  status: 'PAID' | 'PENDING';
+  dueDate?: string | null;
+  paidAt?: string | null;
+}
+
 export interface UpdatePendingFinancialTransactionRequest {
   type: TransactionType;
   amount: number;

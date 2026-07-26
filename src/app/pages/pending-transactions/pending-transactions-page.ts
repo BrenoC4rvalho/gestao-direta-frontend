@@ -55,7 +55,7 @@ export class PendingTransactionsPage {
   }
 
   protected approve(item: PendingFinancialTransaction): void {
-    this.service.approve(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação aprovada e adicionada ao controle financeiro.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível aprovar a movimentação.') });
+    this.service.approve(item.id, { status: 'PAID', paidAt: item.transactionDate, dueDate: null }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação aprovada e adicionada ao controle financeiro.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível aprovar a movimentação.') });
   }
   protected reject(item: PendingFinancialTransaction): void {
     this.service.reject(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação rejeitada.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível rejeitar a movimentação.') });
