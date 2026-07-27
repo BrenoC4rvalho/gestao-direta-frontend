@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, switchMap } from 'rxjs';
+import { ToastStore } from '../../core/stores/toast.store';
 
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import { PendingFinancialTransaction } from '../../core/models/pending-financial-transaction.models';
@@ -34,6 +35,7 @@ export class PendingReviewDrawer {
   private readonly service = inject(PendingFinancialTransactionService);
   private readonly categoriesService = inject(FinancialCategoryService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastStore);
   readonly open = input(false);
   readonly pendingId = input<number | null>(null);
   readonly refreshed = output<PendingFinancialTransaction>();
@@ -87,7 +89,20 @@ export class PendingReviewDrawer {
 
   protected categoryOptions(): { label: string; value: number }[] { return this.categories().filter((category) => category.status === 'ACTIVE' && category.type === this.form.controls.type.value).map((category) => ({ label: category.name, value: category.id })); }
   protected save(): void { const item = this.detail(); if (!item || !this.form.valid) return; this.saving.set(true); this.service.update(item.id, { type: this.form.controls.type.value as string, amount: brazilianMoneyToNumber(`${this.form.controls.amount.value}`) ?? 0, transactionDate: `${this.form.controls.transactionDate.value}`, categoryId: Number(this.form.controls.categoryId.value) || null, description: `${this.form.controls.description.value}`.trim() }).pipe(finalize(() => this.saving.set(false))).subscribe((value) => { this.detail.set(value); this.form.markAsPristine(); this.refreshed.emit(value); }); }
-  protected approve(): void { const item = this.detail(); const status = this.form.controls.paymentStatus.value; if (!item || this.form.dirty || (status === "PENDING" && !this.form.controls.dueDate.value) || (status === "PAID" && !this.form.controls.paidAt.value)) return; this.approving.set(true); this.service.approve(item.id, this.approvalRequest()).pipe(finalize(() => this.approving.set(false))).subscribe({ next: () => { this.approveConfirm.set(false); this.decided.emit(); }, error: () => this.decided.emit() }); }
+  protected approve(): void {
+    const item = this.detail();
+    const status = this.form.controls.paymentStatus.value;
+    if (!item || (status === 'PENDING' && !this.form.controls.dueDate.value) || (status === 'PAID' && !this.form.controls.paidAt.value)) {
+      return;
+    }
+    this.approving.set(true);
+    const update = this.form.dirty
+      ? this.service.update(item.id, { type: this.form.controls.type.value as string, amount: brazilianMoneyToNumber(String(this.form.controls.amount.value)) ?? 0, transactionDate: String(this.form.controls.transactionDate.value), categoryId: Number(this.form.controls.categoryId.value) || null, description: String(this.form.controls.description.value).trim() })
+      : null;
+    (update ? update.pipe(switchMap((value) => { this.detail.set(value); this.refreshed.emit(value); return this.service.approve(item.id, this.approvalRequest()); })) : this.service.approve(item.id, this.approvalRequest()))
+      .pipe(finalize(() => this.approving.set(false)))
+      .subscribe({ next: () => { this.approveConfirm.set(false); this.decided.emit(); }, error: (response) => this.handleDecisionError(response.status) });
+  }
   private approvalRequest() {
     const status = this.form.controls.paymentStatus.value as 'PAID' | 'PENDING';
     return status === 'PAID'
@@ -95,5 +110,12 @@ export class PendingReviewDrawer {
       : { status, paidAt: null, dueDate: String(this.form.controls.dueDate.value) };
   }
 
-  protected reject(): void { const item = this.detail(); if (!item) return; this.rejecting.set(true); this.service.reject(item.id, String(this.form.controls.rejectionReason.value || '').trim() || undefined).pipe(finalize(() => this.rejecting.set(false))).subscribe({ next: () => { this.rejectConfirm.set(false); this.decided.emit(); }, error: () => this.decided.emit() }); }
+  protected reject(): void { const item = this.detail(); if (!item) return; this.rejecting.set(true); this.service.reject(item.id, String(this.form.controls.rejectionReason.value || '').trim() || undefined).pipe(finalize(() => this.rejecting.set(false))).subscribe({ next: () => { this.rejectConfirm.set(false); this.decided.emit(); }, error: (response) => this.handleDecisionError(response.status) }); }
+
+  private handleDecisionError(status: number): void {
+    if (status === 409) { this.toast.error('Esta pendência já foi processada.'); }
+    else if (status === 403) { this.toast.error('Você não tem permissão para concluir esta ação.'); }
+    else if (status === 404) { this.closed.emit(); }
+    else { this.toast.error('Não foi possível concluir a decisão.'); }
+  }
 }

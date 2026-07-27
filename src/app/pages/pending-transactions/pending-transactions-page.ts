@@ -54,12 +54,6 @@ export class PendingTransactionsPage {
     if (farmId) this.load(farmId);
   }
 
-  protected approve(item: PendingFinancialTransaction): void {
-    this.service.approve(item.id, { status: 'PAID', paidAt: item.transactionDate, dueDate: null }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação aprovada e adicionada ao controle financeiro.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível aprovar a movimentação.') });
-  }
-  protected reject(item: PendingFinancialTransaction): void {
-    this.service.reject(item.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.toast.success('Movimentação rejeitada.'); this.load(item.farmId); }, error: () => this.toast.error('Não foi possível rejeitar a movimentação.') });
-  }
   protected label(status: PendingFinancialTransactionStatus): string { return { PENDING_REVIEW: 'Pendente de aprovação', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', PROCESSING_ERROR: 'Erro de processamento' }[status]; }
   protected variant(status: PendingFinancialTransactionStatus): 'warning' | 'success' | 'danger' { return status === 'APPROVED' ? 'success' : status === 'PENDING_REVIEW' ? 'warning' : 'danger'; }
   private load(farmId: number): void { this.loading.set(true); this.error.set(false); this.service.list({ farmId, status: 'PENDING_REVIEW', size: 30 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: response => { this.items.set(response.content); this.loading.set(false); }, error: () => { this.error.set(true); this.loading.set(false); } }); }
