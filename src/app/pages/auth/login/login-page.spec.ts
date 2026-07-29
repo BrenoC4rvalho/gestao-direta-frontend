@@ -191,6 +191,7 @@ describe('LoginPage', () => {
     expect(authService.login).toHaveBeenCalledWith({
       email: 'maria@example.com',
       password: 'secret',
+      rememberMe: false,
     });
   });
 

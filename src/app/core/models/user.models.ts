@@ -17,6 +17,7 @@ export interface CreateUserRequest {
   password: string;
   document: string | null;
   userType: UserType;
+  phoneNumber: string;
 }
 
 export interface UpdateProfileRequest {

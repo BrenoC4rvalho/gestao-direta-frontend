@@ -19,6 +19,7 @@ describe('UserForm', () => {
     expect(getInput(fixture.nativeElement, 1).id).toBe('user-email');
     expect(getInput(fixture.nativeElement, 2).id).toBe('user-password');
     expect(getInput(fixture.nativeElement, 3).id).toBe('user-document');
+    expect(getInput(fixture.nativeElement, 4).id).toBe('user-phone');
     const selects = fixture.nativeElement.querySelectorAll('gd-select select');
     expect(selects[0]?.id).toBe('user-document-type');
     expect(selects[1]?.id).toBe('user-type');
@@ -64,6 +65,7 @@ describe('UserForm', () => {
     setInput(fixture.nativeElement, 1, ' MARIA@EXAMPLE.COM ');
     setInput(fixture.nativeElement, 2, ' password123 ');
     setInput(fixture.nativeElement, 3, ' 123.456.789-00 ');
+    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
     setSelect(fixture.nativeElement, 'USER');
     submit(fixture.nativeElement);
 
@@ -73,6 +75,7 @@ describe('UserForm', () => {
         email: 'maria@example.com',
         password: 'password123',
         document: '12345678900',
+        phoneNumber: '+5524999999999',
         userType: 'USER',
       },
     ]);
@@ -85,6 +88,7 @@ describe('UserForm', () => {
 
     setInput(fixture.nativeElement, 0, 'Maria Silva');
     setInput(fixture.nativeElement, 1, 'maria@example.com');
+    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
     setInput(fixture.nativeElement, 2, 'password123');
     setSelect(fixture.nativeElement, 'ADMIN');
     submit(fixture.nativeElement);
@@ -95,6 +99,7 @@ describe('UserForm', () => {
         email: 'maria@example.com',
         password: 'password123',
         document: null,
+        phoneNumber: '+5524999999999',
         userType: 'ADMIN',
       },
     ]);
@@ -151,6 +156,7 @@ describe('UserForm', () => {
     fixture.detectChanges();
 
     setInput(fixture.nativeElement, 0, 'Maria Silva');
+    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
     setInput(fixture.nativeElement, 1, 'maria@example.com');
     setInput(fixture.nativeElement, 2, 'password123');
     submit(fixture.nativeElement);
@@ -161,6 +167,7 @@ describe('UserForm', () => {
         email: 'maria@example.com',
         password: 'password123',
         document: null,
+        phoneNumber: '+5524999999999',
         userType: 'USER',
       },
     ]);
@@ -244,7 +251,12 @@ function setDocumentType(root: HTMLElement, value: 'CPF' | 'CNPJ'): void {
 }
 
 function submit(root: HTMLElement): void {
-  (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+  const phone = root.querySelector<HTMLInputElement>("#user-phone");
+  if (phone && !phone.value) {
+    phone.value = "+55 (24) 99999-9999";
+    phone.dispatchEvent(new Event("input"));
+  }
+  (root.querySelector("form") as HTMLFormElement).dispatchEvent(new Event('submit'));
 }
 
 function findButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {

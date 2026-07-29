@@ -55,6 +55,17 @@
       [errorMessage]="documentErrorMessage()"
     />
 
+    <gd-input
+      id="user-phone"
+      label="Telefone"
+      placeholder="+55 (24) 99999-9999"
+      type="tel"
+      hint="O telefone será usado para contato e futuras integrações de mensagens."
+      [control]="form.controls.phone"
+      [required]="true"
+      [disabled]="submitting()"
+    />
+
     @if (showUserTypeSelect()) {
       <gd-select
         id="user-type"

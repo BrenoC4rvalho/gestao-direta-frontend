@@ -31,6 +31,13 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'forgot-password',
+    title: 'Recuperar senha',
+    loadComponent: () => import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
+    children: [{ path: '', loadComponent: () => import('../pages/auth/forgot-password/forgot-password-page').then((component) => component.ForgotPasswordPage) }],
+  },
+  { path: 'reset-password', title: 'Redefinir senha', loadComponent: () => import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout), children: [{ path: '', loadComponent: () => import('../pages/auth/reset-password/reset-password-page').then((component) => component.ResetPasswordPage) }] },
+  {
     path: 'server-error',
     title: 'Servidor indisponível',
     loadComponent: () =>

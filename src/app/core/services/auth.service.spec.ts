@@ -37,13 +37,13 @@ describe('AuthService', () => {
   });
 
   it('should call POST /api/auth/login', () => {
-    service.login({ email: 'maria@example.com', password: 'secret' }).subscribe((response) => {
+    service.login({ email: 'maria@example.com', password: 'secret', rememberMe: false }).subscribe((response) => {
       expect(response).toEqual(authResponse);
     });
 
     const request = http.expectOne(apiUrl + '/auth/login');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ email: 'maria@example.com', password: 'secret' });
+    expect(request.request.body).toEqual({ email: 'maria@example.com', password: 'secret', rememberMe: false });
     request.flush(authResponse);
   });
 

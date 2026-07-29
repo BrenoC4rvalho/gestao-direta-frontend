@@ -16,6 +16,7 @@ import { Button } from '../../../shared/ui';
 interface LoginForm {
   email: GdFormControl;
   password: GdFormControl;
+  rememberMe: GdFormControl;
 }
 
 @Component({
@@ -41,6 +42,7 @@ export class LoginPage {
     password: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
+    rememberMe: new FormControl<GdFormValue>(false),
   });
 
   protected submit(): void {
@@ -51,6 +53,8 @@ export class LoginPage {
 
     const email = `${this.form.controls.email.value ?? ''}`;
     const password = `${this.form.controls.password.value ?? ''}`;
+
+    const rememberMe = this.form.controls.rememberMe.value === true;
 
     this.submitting.set(true);
 
@@ -71,7 +75,7 @@ export class LoginPage {
             return of(null);
           }
 
-          return this.authService.login({ email, password });
+          return this.authService.login({ email, password, rememberMe });
         }),
         finalize(() => this.submitting.set(false)),
       )

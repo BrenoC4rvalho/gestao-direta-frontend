@@ -408,6 +408,7 @@ describe('UsersPage', () => {
       name: 'Maria Nova',
       email: 'maria.nova@example.com',
       password: 'password123',
+      phoneNumber: '+5524999999999',
       document: null,
       userType: 'USER',
     });
@@ -435,6 +436,7 @@ describe('UsersPage', () => {
       name: 'Maria Nova',
       email: 'maria.nova@example.com',
       password: 'password123',
+      phoneNumber: '+5524999999999',
       document: '12345678900',
       userType: 'USER',
     });
@@ -478,6 +480,7 @@ describe('UsersPage', () => {
       name: 'Maria Nova',
       email: 'maria.nova@example.com',
       password: 'password123',
+      phoneNumber: '+5524999999999',
       document: null,
       userType: 'USER',
     });
@@ -817,6 +820,7 @@ describe('UsersPage', () => {
     setCreateInput(0, 'Maria Nova');
     setCreateInput(1, 'maria.nova@example.com');
     setCreateInput(2, 'password123');
+    setCreateInput(4, '+55 (24) 99999-9999');
     setUserSelect('USER');
   }
 
@@ -824,6 +828,7 @@ describe('UsersPage', () => {
     setCreateInput(0, 'Maria Nova');
     setCreateInput(1, 'maria.nova@example.com');
     setCreateInput(2, 'password123');
+    setCreateInput(4, '+55 (24) 99999-9999');
   }
 
   function getCreateInput(index: number): HTMLInputElement {

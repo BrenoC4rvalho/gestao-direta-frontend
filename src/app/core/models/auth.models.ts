@@ -1,6 +1,12 @@
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe: boolean;
+}
+
+export interface PasswordRecoveryVerifyResponse {
+  resetToken: string;
+  expiresAt: string;
 }
 
 export type UserType = 'ADMIN' | 'USER' | string;

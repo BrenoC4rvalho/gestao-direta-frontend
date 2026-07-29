@@ -87,6 +87,7 @@ describe('UserService', () => {
       email: 'maria@example.com',
       password: 'password123',
       document: null,
+      phoneNumber: "+5524999999999",
       userType: 'USER',
     };
 

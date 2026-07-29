@@ -27,6 +27,7 @@ import {
   Input,
   Select,
 } from '../../../../shared/forms';
+import { normalizeBrazilianPhone } from "../../../profile/phone.utils";
 import { Button } from '../../../../shared/ui';
 import {
   DocumentType,
@@ -42,6 +43,7 @@ interface UserFormControls {
   documentType: GdFormControl;
   document: GdFormControl;
   userType: GdFormControl;
+  phone: GdFormControl;
 }
 
 @Component({
@@ -88,6 +90,7 @@ export class UserForm {
     userType: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
+    phone: new FormControl<GdFormValue>("", { validators: [Validators.required] }),
   });
 
   constructor() {
@@ -130,6 +133,7 @@ export class UserForm {
     const allowedUserTypes = this.allowedUserTypes();
     const selectedUserType = this.stringValue(this.form.controls.userType.value) as UserType;
     const userType = this.normalizedUserType(selectedUserType, allowedUserTypes);
+    const phoneNumber = normalizeBrazilianPhone(this.form.controls.phone.value);
 
     this.form.controls.userType.setValue(userType);
     this.form.controls.document.updateValueAndValidity({ emitEvent: false });
@@ -139,6 +143,7 @@ export class UserForm {
     this.setRequiredErrorIfEmpty(this.form.controls.password, password);
     this.setRequiredErrorIfEmpty(this.form.controls.documentType, this.documentType());
     this.setRequiredErrorIfEmpty(this.form.controls.userType, userType);
+    if (!phoneNumber) this.form.controls.phone.setErrors({ required: true });
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -151,6 +156,7 @@ export class UserForm {
       password,
       document: this.documentPayload(),
       userType,
+      phoneNumber: phoneNumber!,
     });
   }
 

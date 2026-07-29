@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthResponse, ChangePasswordRequest, LoginRequest } from '../models/auth.models';
+import { AuthResponse, ChangePasswordRequest, LoginRequest, PasswordRecoveryVerifyResponse } from '../models/auth.models';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +11,18 @@ import { AuthResponse, ChangePasswordRequest, LoginRequest } from '../models/aut
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+
+  requestPasswordRecovery(email: string): Observable<string> {
+    return this.http.post(`/auth/password-recovery/requests`, { email }, { responseType: "text" });
+  }
+
+  verifyPasswordRecoveryCode(email: string, code: string): Observable<PasswordRecoveryVerifyResponse> {
+    return this.http.post<PasswordRecoveryVerifyResponse>(`/auth/password-recovery/verify`, { email, code });
+  }
+
+  resetPassword(resetToken: string, newPassword: string, confirmPassword: string): Observable<string> {
+    return this.http.post(`/auth/password-recovery/reset`, { resetToken, newPassword, confirmPassword }, { responseType: 'text' });
+  }
 
   login(payload: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, payload);
