@@ -177,7 +177,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-4 lg:justify-between">
-          <label for="remember-me" class="hidden cursor-pointer items-center gap-2 text-sm text-text-muted lg:inline-flex">
+          <label for="remember-me" class="inline-flex cursor-pointer items-center gap-2 text-sm text-text-muted">
             <input
               id="remember-me"
               type="checkbox"
@@ -187,9 +187,8 @@
             Lembrar de mim
           </label>
           <a
-            href="/forgot-password"
+            routerLink="/forgot-password"
             class="text-sm cursor-pointer font-medium text-primary hover:text-primary-hover focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            (click)="$event.preventDefault()"
           >
             Esqueci minha senha
           </a>

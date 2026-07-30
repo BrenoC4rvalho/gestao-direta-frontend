@@ -33,10 +33,63 @@ export const routes: Routes = [
   {
     path: 'forgot-password',
     title: 'Recuperar senha',
-    loadComponent: () => import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
-    children: [{ path: '', loadComponent: () => import('../pages/auth/forgot-password/forgot-password-page').then((component) => component.ForgotPasswordPage) }],
+    loadComponent: () =>
+      import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('../pages/auth/forgot-password/forgot-password-page').then(
+            (component) => component.ForgotPasswordPage,
+          ),
+      },
+    ],
   },
-  { path: 'reset-password', title: 'Redefinir senha', loadComponent: () => import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout), children: [{ path: '', loadComponent: () => import('../pages/auth/reset-password/reset-password-page').then((component) => component.ResetPasswordPage) }] },
+  {
+    path: 'verify-recovery-code',
+    title: 'Validar código de recuperação',
+    loadComponent: () =>
+      import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('../pages/auth/verify-recovery-code/verify-recovery-code-page').then(
+            (component) => component.VerifyRecoveryCodePage,
+          ),
+      },
+    ],
+  },
+  {
+    path: 'reset-password',
+    title: 'Redefinir senha',
+    loadComponent: () =>
+      import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('../pages/auth/reset-password/reset-password-page').then(
+            (component) => component.ResetPasswordPage,
+          ),
+      },
+    ],
+  },
+  {
+    path: 'password-recovery-success',
+    title: 'Senha redefinida',
+    loadComponent: () =>
+      import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('../pages/auth/password-recovery-success/password-recovery-success-page').then(
+            (component) => component.PasswordRecoverySuccessPage,
+          ),
+      },
+    ],
+  },
   {
     path: 'server-error',
     title: 'Servidor indisponível',

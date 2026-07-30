@@ -2,7 +2,7 @@ import { NgOptimizedImage } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, of, switchMap } from 'rxjs';
 
@@ -21,7 +21,7 @@ interface LoginForm {
 
 @Component({
   selector: 'gd-login-page',
-  imports: [Button, LucideDynamicIcon, NgOptimizedImage, ReactiveFormsModule],
+  imports: [Button, LucideDynamicIcon, NgOptimizedImage, ReactiveFormsModule, RouterLink],
   templateUrl: './login-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

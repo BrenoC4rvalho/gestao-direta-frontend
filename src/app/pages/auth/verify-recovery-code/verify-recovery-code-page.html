@@ -1,0 +1,14 @@
+<main class="mx-auto flex min-h-dvh max-w-md items-center px-6">
+  <section class="w-full rounded-3xl border border-border bg-surface p-8 shadow-soft">
+    <h1 class="text-2xl font-semibold text-text-primary">Informe o código</h1>
+    <p class="mt-3 text-sm leading-6 text-text-muted">Digite o código de seis dígitos enviado ao seu Telegram.</p>
+    <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+      <gd-input id="recovery-code" label="Código de seis dígitos" inputmode="numeric" [control]="form.controls.code" [required]="true" />
+      @if (errorMessage()) {
+        <p class="text-sm text-danger">{{ errorMessage() }}</p>
+      }
+      <gd-button type="submit" [fullWidth]="true" [loading]="loading()">Validar código</gd-button>
+    </form>
+    <a routerLink="/forgot-password" class="mt-6 block text-center text-sm font-medium text-primary">Solicitar outro código</a>
+  </section>
+</main>
