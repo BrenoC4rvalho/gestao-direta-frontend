@@ -78,6 +78,18 @@ describe('ContactMessagingSection', () => {
     expect(localStorage.getItem('userContactLinkCode')).toBeNull();
   });
 
+  it('copies the full Telegram command and shows feedback', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const component = create();
+
+    component['generateTelegramCode']();
+    await component['copyCode']();
+
+    expect(writeText).toHaveBeenCalledWith('/vincular 482913');
+    expect(toastStore.toasts()[0]?.title).toBe('Comando copiado para a área de transferência.');
+  });
+
   it('shows active and blocked Telegram account states', () => {
     service.getMyContact.mockReturnValueOnce(of({ ...emptyContact, messagingAccounts: [{ id: 9, channel: 'TELEGRAM', status: 'ACTIVE', username: 'breno', displayName: 'Breno', verifiedAt: '2026-07-23T00:00:00Z', createdAt: '2026-07-23T00:00:00Z' }] }));
     create();

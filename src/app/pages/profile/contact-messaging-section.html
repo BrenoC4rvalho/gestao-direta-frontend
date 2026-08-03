@@ -1,9 +1,4 @@
-<section class="space-y-5" aria-labelledby="contact-messaging-title">
-  <header class="flex items-start gap-3">
-    <div class="flex size-11 shrink-0 items-center justify-center rounded-app bg-highlight-soft text-primary" aria-hidden="true"><svg lucideIcon="message-circle" class="size-5"></svg></div>
-    <div class="min-w-0"><h2 id="contact-messaging-title" class="text-xl font-semibold text-text-primary">Contato e mensagens</h2><p class="mt-1 text-sm leading-6 text-text-muted">Gerencie seu telefone e os canais usados para receber mensagens do Gestão Direta.</p></div>
-  </header>
-
+<section class="space-y-6" aria-labelledby="contact-messaging-title">
   @if (loading()) {
     <div class="space-y-5" aria-label="Carregando contato e mensagens" aria-busy="true">
       <gd-card variant="elevated" padding="lg"><gd-skeleton width="38%" height="1.5rem" /><gd-skeleton class="mt-3 block" width="75%" height="1rem" /><gd-skeleton class="mt-6 block" height="2.75rem" /></gd-card>
@@ -13,23 +8,25 @@
     <gd-error-state title="Não foi possível carregar seus contatos" description="Verifique sua conexão e tente novamente." actionLabel="Tentar novamente" (action)="loadContact()" />
   } @else if (contact(); as currentContact) {
     <gd-card variant="elevated" padding="lg">
-      <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex min-w-0 gap-4">
-          <div class="flex size-11 shrink-0 items-center justify-center rounded-app bg-highlight-soft text-primary" aria-hidden="true"><svg lucideIcon="phone" class="size-5"></svg></div>
-          <div class="min-w-0"><h3 class="text-lg font-semibold text-text-primary">Número de telefone</h3><p class="mt-1 text-sm leading-6 text-text-muted">Cadastre um número para futuras integrações com WhatsApp e notificações.</p>
-            @if (currentContact.phoneNumber; as phoneNumber) {
-              <div class="mt-4 flex flex-wrap items-center gap-2"><p class="font-semibold text-text-primary">{{ formatBrazilianPhone(phoneNumber) }}</p><gd-badge [variant]="phoneStatusVariant(currentContact.phoneVerificationStatus)" size="sm">{{ phoneStatusLabel(currentContact.phoneVerificationStatus) }}</gd-badge></div>
-            } @else { <p class="mt-4 font-semibold text-text-primary">Nenhum telefone cadastrado</p><p class="mt-1 text-sm text-text-muted">Adicione um número com código do país e DDD.</p> }
-          </div>
-        </div>
-        <gd-button type="button" variant="outline" class="w-full shrink-0 sm:w-auto" (click)="openPhoneDrawer()"><svg [lucideIcon]="currentContact.phoneNumber ? 'pencil' : 'plus'" class="size-4" aria-hidden="true"></svg>{{ currentContact.phoneNumber ? 'Editar telefone' : 'Adicionar telefone' }}</gd-button>
+      <div class="flex items-start gap-4">
+        <div class="flex size-11 shrink-0 items-center justify-center rounded-app bg-highlight-soft text-primary" aria-hidden="true"><svg lucideIcon="message-circle" class="size-5"></svg></div>
+        <div class="min-w-0"><h2 id="contact-messaging-title" class="text-xl font-semibold text-text-primary">Contato e mensagens</h2><p class="mt-2 text-sm leading-6 text-text-muted">Gerencie seu telefone e os canais usados para receber mensagens do Gestão Direta.</p></div>
       </div>
-    </gd-card>
 
-    <gd-card variant="elevated" padding="lg">
-      <div><h3 class="text-lg font-semibold text-text-primary">Canais de mensagens</h3><p class="mt-1 text-sm leading-6 text-text-muted">Conecte seus canais para receber mensagens e acessar recursos do Gestão Direta.</p></div>
-      <div class="mt-6 divide-y divide-border border-y border-border">
-        <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mt-6 border-t border-border pt-6">
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0"><h3 class="text-lg font-semibold text-text-primary">Número de telefone</h3><p class="mt-2 text-sm leading-6 text-text-muted">Cadastre um número para futuras integrações com WhatsApp e notificações.</p>
+            @if (currentContact.phoneNumber; as phoneNumber) {
+              <div class="mt-5 flex flex-wrap items-center gap-2"><p class="font-semibold text-text-primary">{{ formatBrazilianPhone(phoneNumber) }}</p><gd-badge [variant]="phoneStatusVariant(currentContact.phoneVerificationStatus)" size="sm">{{ phoneStatusLabel(currentContact.phoneVerificationStatus) }}</gd-badge></div>
+            } @else { <p class="mt-5 font-semibold text-text-primary">Nenhum telefone cadastrado</p><p class="mt-1 text-sm text-text-muted">Adicione um número com código do país e DDD.</p> }
+          </div>
+        <gd-button type="button" variant="outline" class="w-full shrink-0 sm:w-auto" (click)="openPhoneDrawer()"><svg [lucideIcon]="currentContact.phoneNumber ? 'pencil' : 'plus'" class="size-4" aria-hidden="true"></svg>{{ currentContact.phoneNumber ? 'Editar telefone' : 'Adicionar telefone' }}</gd-button>
+        </div>
+      </div>
+
+      <div class="mt-6 border-t border-border pt-6">
+        <div class="divide-y divide-border">
+        <div class="flex flex-col gap-5 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h4 class="font-semibold text-text-primary">Telegram</h4>@if (telegramAccount(); as account) { <gd-badge [variant]="accountStatusVariant(account.status)" size="sm">{{ accountStatusLabel(account.status) }}</gd-badge> } @else { <gd-badge variant="neutral" size="sm">Não vinculado</gd-badge> }</div><p class="mt-1 text-sm leading-6 text-text-muted">{{ accountDescription(telegramAccount()) }}</p>
             @if (telegramAccount(); as account) { <p class="mt-2 text-sm text-text-muted">@if (account.username) { <span>@{{ account.username }}</span> } @if (account.displayName) { <span>{{ account.username ? ' · ' : '' }}{{ account.displayName }}</span> } @if (formatDate(account.verifiedAt); as verifiedAt) { <span>{{ (account.username || account.displayName) ? ' · ' : '' }}Vinculado em {{ verifiedAt }}</span> }</p> }
           </div>
@@ -37,9 +34,10 @@
             @if (account.status === 'ACTIVE') { <gd-button type="button" variant="danger" class="w-full shrink-0 sm:w-auto" [loading]="unlinkingAccountId() === account.id" [disabled]="unlinkingAccountId() !== null" (click)="openUnlinkConfirmation()"><svg lucideIcon="unlink" class="size-4" aria-hidden="true"></svg>Desvincular</gd-button> }
           } @else { <gd-button type="button" variant="outline" class="w-full shrink-0 sm:w-auto" [loading]="generatingCode()" [disabled]="generatingCode()" (click)="generateTelegramCode()"><svg lucideIcon="link" class="size-4" aria-hidden="true"></svg>Gerar código de vinculação</gd-button> }
         </div>
-        <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><h4 class="font-semibold text-text-primary">WhatsApp</h4><gd-badge variant="neutral" size="sm">Em breve</gd-badge></div><p class="mt-1 text-sm leading-6 text-text-muted">A integração será disponibilizada futuramente.</p></div></div>
+        <div class="flex flex-col gap-5 py-6 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><h4 class="font-semibold text-text-primary">WhatsApp</h4><gd-badge variant="neutral" size="sm">Em breve</gd-badge></div><p class="mt-2 text-sm leading-6 text-text-muted">A integração será disponibilizada futuramente.</p></div></div>
       </div>
-      <div class="mt-5 flex justify-end"><gd-button type="button" variant="ghost" size="sm" (click)="refreshContact()"><svg lucideIcon="refresh-cw" class="size-4" aria-hidden="true"></svg>Já vinculei, atualizar</gd-button></div>
+      <div class="flex border-t border-border pt-5 sm:justify-end"><gd-button type="button" variant="ghost" size="sm" class="w-full sm:w-auto" (click)="refreshContact()"><svg lucideIcon="refresh-cw" class="size-4" aria-hidden="true"></svg>Já vinculei, atualizar</gd-button></div>
+      </div>
     </gd-card>
   }
 </section>
@@ -49,7 +47,7 @@
 </gd-drawer>
 
 <gd-drawer [open]="codeDrawerOpen()" title="Código de vinculação" description="Envie o comando abaixo para o bot no Telegram." size="sm" (closed)="closeCodeDrawer()">
-  @if (linkCode(); as code) { <div class="space-y-6"><div class="rounded-app border border-primary/20 bg-highlight-soft p-5 text-center"><p class="text-sm text-text-muted">Código de vinculação</p><p class="mt-2 font-mono text-3xl font-bold tracking-[0.2em] text-text-primary" aria-label="Código de vinculação {{ code.code }}">{{ formatCode(code.code) }}</p><p class="mt-3 text-sm font-medium text-text-muted" role="status">{{ codeExpiryLabel() }}</p></div><p class="text-sm leading-6 text-text-muted">Abra o Telegram, acesse o bot do Gestão Direta e envie:</p><code class="block rounded-control bg-background p-3 text-center text-sm text-text-primary">/vincular {{ code.code }}</code><gd-button type="button" variant="outline" [fullWidth]="true" [disabled]="codeExpired()" aria-label="Copiar código de vinculação" (click)="copyCode()"><svg lucideIcon="copy" class="size-4" aria-hidden="true"></svg>Copiar código</gd-button><gd-button type="button" [fullWidth]="true" (click)="refreshContact()">Já vinculei, atualizar</gd-button></div> }
+  @if (linkCode(); as code) { <div class="space-y-6"><div class="rounded-app border border-primary/20 bg-highlight-soft p-5 text-center"><p class="text-sm text-text-muted">Código de vinculação</p><p class="mt-2 font-mono text-3xl font-bold tracking-[0.2em] text-text-primary" aria-label="Código de vinculação {{ code.code }}">{{ formatCode(code.code) }}</p><p class="mt-3 text-sm font-medium text-text-muted" role="status">{{ codeExpiryLabel() }}</p></div><div><p class="text-sm leading-6 text-text-muted">Abra o Telegram, acesse o bot do Gestão Direta e envie:</p><code class="mt-3 block rounded-control bg-background p-3 text-center text-sm text-text-primary">/vincular {{ code.code }}</code></div><div class="flex flex-col gap-2 border-t border-border pt-6"><gd-button type="button" [fullWidth]="true" [disabled]="codeExpired()" aria-label="Copiar comando de vinculação" (click)="copyCode()"><svg lucideIcon="copy" class="size-4" aria-hidden="true"></svg>Copiar comando</gd-button><gd-button type="button" variant="outline" [fullWidth]="true" (click)="refreshContact()"><svg lucideIcon="refresh-cw" class="size-4" aria-hidden="true"></svg>Já vinculei, atualizar</gd-button></div></div> }
 </gd-drawer>
 
 <gd-confirm-dialog [open]="confirmChangeOpen()" title="Alterar telefone" description="Ao alterar o telefone, o status de verificação poderá ser reiniciado. Deseja continuar?" confirmLabel="Continuar" cancelLabel="Cancelar" variant="warning" [loading]="savingPhone()" (confirmed)="confirmPhoneChange()" (cancelled)="cancelPhoneChange()" (closed)="cancelPhoneChange()" />

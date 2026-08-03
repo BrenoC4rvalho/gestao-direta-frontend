@@ -205,10 +205,10 @@ export class ContactMessagingSection {
     const code = this.linkCode()?.code;
     if (!code) return;
     try {
-      await navigator.clipboard.writeText(code);
-      this.toastStore.success('Código copiado.');
+      await navigator.clipboard.writeText(`/vincular ${code}`);
+      this.toastStore.success('Comando copiado para a área de transferência.');
     } catch {
-      this.toastStore.error('Não foi possível copiar o código.');
+      this.toastStore.error('Não foi possível copiar o comando.');
     }
   }
 
