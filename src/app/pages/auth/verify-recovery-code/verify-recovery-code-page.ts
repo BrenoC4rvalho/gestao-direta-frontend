@@ -20,6 +20,7 @@ export class VerifyRecoveryCodePage {
   private readonly email = `${history.state.email ?? ''}`.trim();
 
   protected readonly loading = signal(false);
+  protected readonly resending = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly form = new FormGroup<{ code: GdFormControl }>({
     code: new FormControl<GdFormValue>('', {
@@ -31,6 +32,12 @@ export class VerifyRecoveryCodePage {
     if (!this.email) {
       void this.router.navigate(['/forgot-password']);
     }
+  }
+
+  protected maskedEmail(): string {
+    const [localPart = '', domain = ''] = this.email.split('@');
+    const visible = localPart.slice(0, 2);
+    return `${visible}${'*'.repeat(Math.max(1, localPart.length - visible.length))}@${domain}`;
   }
 
   protected submit(): void {
@@ -46,11 +53,24 @@ export class VerifyRecoveryCodePage {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (response) => {
-          void this.router.navigate(['/reset-password'], {
-            state: { resetToken: response.resetToken },
+          void this.router.navigate(['/forgot-password/reset'], {
+            state: { recoveryToken: response.recoveryToken },
           });
         },
         error: (error: unknown) => this.errorMessage.set(this.toErrorMessage(error)),
+      });
+  }
+
+  protected resend(): void {
+    this.resending.set(true);
+    this.errorMessage.set(null);
+    this.authService
+      .requestTelegramPasswordRecovery(this.email)
+      .pipe(finalize(() => this.resending.set(false)))
+      .subscribe({
+        next: () => this.form.reset(),
+        error: () =>
+          this.errorMessage.set('Não foi possível enviar outro código. Tente novamente.'),
       });
   }
 

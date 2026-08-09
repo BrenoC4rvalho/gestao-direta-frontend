@@ -7,6 +7,7 @@ import {
   AuthResponse,
   ChangePasswordRequest,
   LoginRequest,
+  PasswordRecoveryOptionsResponse,
   PasswordRecoveryVerifyResponse,
 } from '../models/auth.models';
 
@@ -17,8 +18,21 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  requestPasswordRecovery(email: string): Observable<string> {
-    return this.http.post(`${this.apiUrl}/auth/password-recovery/requests`, { email }, { responseType: 'text' });
+  passwordRecoveryOptions(email: string): Observable<PasswordRecoveryOptionsResponse> {
+    return this.http.post<PasswordRecoveryOptionsResponse>(
+      `${this.apiUrl}/auth/password-recovery/options`,
+      { email },
+    );
+  }
+
+  requestTelegramPasswordRecovery(email: string): Observable<string> {
+    return this.http.post(
+      `${this.apiUrl}/auth/password-recovery/telegram`,
+      { email },
+      {
+        responseType: 'text',
+      },
+    );
   }
 
   verifyPasswordRecoveryCode(
@@ -32,13 +46,13 @@ export class AuthService {
   }
 
   resetPassword(
-    resetToken: string,
+    recoveryToken: string,
     newPassword: string,
     confirmPassword: string,
   ): Observable<string> {
     return this.http.post(
       `${this.apiUrl}/auth/password-recovery/reset`,
-      { resetToken, newPassword, confirmPassword },
+      { recoveryToken, newPassword, confirmPassword },
       { responseType: 'text' },
     );
   }

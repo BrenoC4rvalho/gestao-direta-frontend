@@ -17,7 +17,7 @@ import { Button } from '../../../shared/ui';
 export class ResetPasswordPage {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly resetToken = `${history.state.resetToken ?? ''}`;
+  private readonly recoveryToken = `${history.state.recoveryToken ?? ''}`;
 
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -35,13 +35,16 @@ export class ResetPasswordPage {
   });
 
   constructor() {
-    if (!this.resetToken) {
+    if (!this.recoveryToken) {
       void this.router.navigate(['/forgot-password']);
     }
   }
 
   protected submit(): void {
-    if (this.form.invalid || this.form.controls.password.value !== this.form.controls.confirmPassword.value) {
+    if (
+      this.form.invalid ||
+      this.form.controls.password.value !== this.form.controls.confirmPassword.value
+    ) {
       this.form.markAllAsTouched();
       this.errorMessage.set('As senhas devem ser iguais e atender aos requisitos.');
       return;
@@ -51,13 +54,13 @@ export class ResetPasswordPage {
     this.errorMessage.set(null);
     this.authService
       .resetPassword(
-        this.resetToken,
+        this.recoveryToken,
         `${this.form.controls.password.value ?? ''}`,
         `${this.form.controls.confirmPassword.value ?? ''}`,
       )
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: () => void this.router.navigate(['/password-recovery-success']),
+        next: () => void this.router.navigate(['/login']),
         error: (error: unknown) => {
           const message = error instanceof HttpErrorResponse ? error.error?.message : null;
           this.errorMessage.set(

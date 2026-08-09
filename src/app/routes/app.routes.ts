@@ -46,7 +46,7 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'verify-recovery-code',
+    path: 'forgot-password/verify',
     title: 'Validar código de recuperação',
     loadComponent: () =>
       import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
@@ -61,7 +61,7 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'reset-password',
+    path: 'forgot-password/reset',
     title: 'Redefinir senha',
     loadComponent: () =>
       import('../layouts/auth-layout/auth-layout').then((component) => component.AuthLayout),
@@ -212,8 +212,15 @@ export const routes: Routes = [
       {
         path: 'transactions/pending-approvals',
         title: 'Movimentações pendentes',
-        data: { title: 'Movimentações pendentes', subtitle: 'Revise as movimentações identificadas pelo Telegram antes de incluí-las no controle financeiro.' },
-        loadComponent: () => import('../pages/pending-transactions/pending-transactions-page').then((component) => component.PendingTransactionsPage),
+        data: {
+          title: 'Movimentações pendentes',
+          subtitle:
+            'Revise as movimentações identificadas pelo Telegram antes de incluí-las no controle financeiro.',
+        },
+        loadComponent: () =>
+          import('../pages/pending-transactions/pending-transactions-page').then(
+            (component) => component.PendingTransactionsPage,
+          ),
       },
       {
         path: 'reports/financial',
@@ -235,9 +242,7 @@ export const routes: Routes = [
           subtitle: 'Acompanhe ciclos produtivos, custos, receitas e resultados estimados.',
         },
         loadComponent: () =>
-          import('../pages/harvests/harvests-page').then(
-            (component) => component.HarvestsPage,
-          ),
+          import('../pages/harvests/harvests-page').then((component) => component.HarvestsPage),
       },
       {
         path: 'harvests/:id',

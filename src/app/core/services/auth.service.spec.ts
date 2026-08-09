@@ -37,13 +37,19 @@ describe('AuthService', () => {
   });
 
   it('should call POST /api/auth/login', () => {
-    service.login({ email: 'maria@example.com', password: 'secret', rememberMe: false }).subscribe((response) => {
-      expect(response).toEqual(authResponse);
-    });
+    service
+      .login({ email: 'maria@example.com', password: 'secret', rememberMe: false })
+      .subscribe((response) => {
+        expect(response).toEqual(authResponse);
+      });
 
     const request = http.expectOne(apiUrl + '/auth/login');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ email: 'maria@example.com', password: 'secret', rememberMe: false });
+    expect(request.request.body).toEqual({
+      email: 'maria@example.com',
+      password: 'secret',
+      rememberMe: false,
+    });
     request.flush(authResponse);
   });
 
@@ -81,5 +87,27 @@ describe('AuthService', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(payload);
     request.flush(null);
+  });
+
+  it('should call password recovery options endpoint', () => {
+    service.passwordRecoveryOptions('maria@example.com').subscribe((response) => {
+      expect(response).toEqual({ telegramAvailable: true });
+    });
+
+    const request = http.expectOne(apiUrl + '/auth/password-recovery/options');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ email: 'maria@example.com' });
+    request.flush({ telegramAvailable: true });
+  });
+
+  it('should call Telegram password recovery endpoint', () => {
+    service.requestTelegramPasswordRecovery('maria@example.com').subscribe((response) => {
+      expect(response).toBeTruthy();
+    });
+
+    const request = http.expectOne(apiUrl + '/auth/password-recovery/telegram');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ email: 'maria@example.com' });
+    request.flush('accepted');
   });
 });

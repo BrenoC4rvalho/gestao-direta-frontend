@@ -4,8 +4,12 @@ export interface LoginRequest {
   rememberMe: boolean;
 }
 
+export interface PasswordRecoveryOptionsResponse {
+  telegramAvailable: boolean;
+}
+
 export interface PasswordRecoveryVerifyResponse {
-  resetToken: string;
+  recoveryToken: string;
   expiresAt: string;
 }
 
