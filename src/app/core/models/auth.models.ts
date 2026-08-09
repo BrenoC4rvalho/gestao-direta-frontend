@@ -8,6 +8,14 @@ export interface PasswordRecoveryOptionsResponse {
   telegramAvailable: boolean;
 }
 
+export interface PasswordRecoveryTelegramResponse {
+  phoneLastFour: string | null;
+}
+
+export interface PasswordRecoveryTelegramResponse {
+  phoneLastFour: string | null;
+}
+
 export interface PasswordRecoveryVerifyResponse {
   recoveryToken: string;
   expiresAt: string;

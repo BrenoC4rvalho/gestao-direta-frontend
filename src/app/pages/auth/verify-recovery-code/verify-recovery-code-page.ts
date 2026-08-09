@@ -19,6 +19,7 @@ export class VerifyRecoveryCodePage {
   private readonly router = inject(Router);
   private readonly email = `${history.state.email ?? ''}`.trim();
 
+  protected readonly phoneLastFour = signal(`${history.state.phoneLastFour ?? ''}`.trim());
   protected readonly loading = signal(false);
   protected readonly resending = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -29,15 +30,9 @@ export class VerifyRecoveryCodePage {
   });
 
   constructor() {
-    if (!this.email) {
+    if (!this.email || !this.phoneLastFour()) {
       void this.router.navigate(['/forgot-password']);
     }
-  }
-
-  protected maskedEmail(): string {
-    const [localPart = '', domain = ''] = this.email.split('@');
-    const visible = localPart.slice(0, 2);
-    return `${visible}${'*'.repeat(Math.max(1, localPart.length - visible.length))}@${domain}`;
   }
 
   protected submit(): void {
@@ -68,7 +63,15 @@ export class VerifyRecoveryCodePage {
       .requestTelegramPasswordRecovery(this.email)
       .pipe(finalize(() => this.resending.set(false)))
       .subscribe({
-        next: () => this.form.reset(),
+        next: (response) => {
+          if (!response.phoneLastFour) {
+            this.errorMessage.set('Não foi possível enviar outro código. Tente novamente.');
+            return;
+          }
+
+          this.phoneLastFour.set(response.phoneLastFour);
+          this.form.reset();
+        },
         error: () =>
           this.errorMessage.set('Não foi possível enviar outro código. Tente novamente.'),
       });

@@ -50,10 +50,16 @@ export class ForgotPasswordPage {
       .requestTelegramPasswordRecovery(this.email())
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: () =>
+        next: (response) => {
+          if (!response.phoneLastFour) {
+            this.requestFailed.set(true);
+            return;
+          }
+
           void this.router.navigate(['/forgot-password/verify'], {
-            state: { email: this.email() },
-          }),
+            state: { email: this.email(), phoneLastFour: response.phoneLastFour },
+          });
+        },
         error: () => this.requestFailed.set(true),
       });
   }
