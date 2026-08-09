@@ -1,13 +1,31 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
 
 import { FinancialCategory } from '../../core/models/financial-category.models';
-import { FinancialTransactionDraft, PaymentStatus, UpdateFinancialTransactionRequest } from '../../core/models/financial-transaction.models';
+import {
+  FinancialTransactionDraft,
+  PaymentStatus,
+  UpdateFinancialTransactionRequest,
+} from '../../core/models/financial-transaction.models';
 import { HarvestSeason } from '../../core/models/harvest-season.models';
-import { ApprovePendingFinancialTransactionRequest, PendingFinancialTransaction } from '../../core/models/pending-financial-transaction.models';
+import {
+  ApprovePendingFinancialTransactionRequest,
+  PendingFinancialTransaction,
+} from '../../core/models/pending-financial-transaction.models';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { PendingFinancialTransactionService } from '../../core/services/pending-financial-transaction.service';
@@ -19,7 +37,17 @@ import { TransactionForm } from '../transactions/components/transaction-form/tra
 
 @Component({
   selector: 'gd-pending-review-drawer',
-  imports: [Badge, DatePipe, Button, ConfirmDialog, Drawer, ErrorState, Skeleton, Textarea, TransactionForm],
+  imports: [
+    Badge,
+    DatePipe,
+    Button,
+    ConfirmDialog,
+    Drawer,
+    ErrorState,
+    Skeleton,
+    Textarea,
+    TransactionForm,
+  ],
   templateUrl: './pending-review-drawer.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -44,8 +72,10 @@ export class PendingReviewDrawer {
   protected readonly approving = signal(false);
   protected readonly rejecting = signal(false);
   protected readonly approveConfirm = signal(false);
-  protected readonly rejectConfirm = signal(false);
-  protected readonly approvalRequest = signal<ApprovePendingFinancialTransactionRequest | null>(null);
+  protected readonly rejectionMode = signal(false);
+  protected readonly approvalRequest = signal<ApprovePendingFinancialTransactionRequest | null>(
+    null,
+  );
   protected readonly rejectionReason = new FormControl('');
   protected readonly approvalStatuses: readonly PaymentStatus[] = ['PENDING', 'PAID'];
   protected readonly reviewDraft = computed<FinancialTransactionDraft | null>(() => {
@@ -88,12 +118,18 @@ export class PendingReviewDrawer {
     }
   }
 
+  protected requestClose(): void {
+    if (!this.approving() && !this.rejecting()) {
+      this.closed.emit();
+    }
+  }
+
   protected submitReview(): void {
     document.querySelector<HTMLFormElement>('gd-pending-review-drawer form')?.requestSubmit();
   }
 
   protected requestApproval(value: UpdateFinancialTransactionRequest): void {
-    if (value.status !== 'PAID' && value.status !== 'PENDING') {
+    if (this.rejecting() || (value.status !== 'PAID' && value.status !== 'PENDING')) {
       return;
     }
 
@@ -129,7 +165,7 @@ export class PendingReviewDrawer {
   protected reject(): void {
     const item = this.detail();
 
-    if (!item) {
+    if (!item || !this.rejectionMode() || this.rejecting()) {
       return;
     }
 
@@ -139,8 +175,8 @@ export class PendingReviewDrawer {
       .pipe(finalize(() => this.rejecting.set(false)))
       .subscribe({
         next: () => {
-          this.rejectConfirm.set(false);
-          this.toast.success('Movimentação rejeitada.');
+          this.rejectionMode.set(false);
+          this.toast.success('Movimentação rejeitada com sucesso.');
           this.decided.emit();
         },
         error: (response: { status?: number }) => this.handleDecisionError(response.status),
@@ -151,6 +187,7 @@ export class PendingReviewDrawer {
     this.loading.set(true);
     this.error.set(false);
     this.approvalRequest.set(null);
+    this.rejectionMode.set(false);
     this.rejectionReason.reset('');
 
     this.service

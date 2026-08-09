@@ -7,12 +7,25 @@ import { PendingFinancialTransactionService } from './pending-financial-transact
 
 const apiUrl = 'http://localhost:8080/api/pending-financial-transactions';
 const pending: PendingFinancialTransaction = {
-  id: 1, farmId: 10, farmName: 'Boa Safra', type: 'EXPENSE', amount: 250,
-  transactionDate: '2026-07-20', description: 'Combustível', categoryId: 2,
-  categoryName: 'Insumos', rawCategoryName: null, status: 'PENDING_REVIEW',
-  confidence: 0.9, sourceChannel: 'TELEGRAM', sourceMessageContent: 'Gastei 250',
-  sourceMessageReceivedAt: '2026-07-20T10:00:00', requestedByUserId: 3,
-  requestedByUserName: 'Maria', reviewedAt: null, rejectionReason: null,
+  id: 1,
+  farmId: 10,
+  farmName: 'Boa Safra',
+  type: 'EXPENSE',
+  amount: 250,
+  transactionDate: '2026-07-20',
+  description: 'Combustível',
+  categoryId: 2,
+  categoryName: 'Insumos',
+  rawCategoryName: null,
+  status: 'PENDING_REVIEW',
+  confidence: 0.9,
+  sourceChannel: 'TELEGRAM',
+  sourceMessageContent: 'Gastei 250',
+  sourceMessageReceivedAt: '2026-07-20T10:00:00',
+  requestedByUserId: 3,
+  requestedByUserName: 'Maria',
+  reviewedAt: null,
+  rejectionReason: null,
 };
 
 describe('PendingFinancialTransactionService', () => {
@@ -21,7 +34,11 @@ describe('PendingFinancialTransactionService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [PendingFinancialTransactionService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        PendingFinancialTransactionService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(PendingFinancialTransactionService);
     http = TestBed.inject(HttpTestingController);
@@ -33,7 +50,17 @@ describe('PendingFinancialTransactionService', () => {
   });
 
   it('lists pending transactions with pagination and filters', () => {
-    service.list({ farmId: 10, status: 'PENDING_REVIEW', type: 'EXPENSE', page: 2, size: 1, sort: 'transactionDate', direction: 'ASC' }).subscribe();
+    service
+      .list({
+        farmId: 10,
+        status: 'PENDING_REVIEW',
+        type: 'EXPENSE',
+        page: 2,
+        size: 1,
+        sort: 'transactionDate',
+        direction: 'ASC',
+      })
+      .subscribe();
     const request = http.expectOne((request) => request.url === apiUrl);
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('farmId')).toBe('10');
@@ -54,7 +81,13 @@ describe('PendingFinancialTransactionService', () => {
   });
 
   it('updates a pending transaction with the typed body', () => {
-    const body = { type: 'EXPENSE' as const, amount: 300, transactionDate: '2026-07-21', categoryId: 2, description: 'Diesel' };
+    const body = {
+      type: 'EXPENSE' as const,
+      amount: 300,
+      transactionDate: '2026-07-21',
+      categoryId: 2,
+      description: 'Diesel',
+    };
     service.update(1, body).subscribe();
     const request = http.expectOne(`${apiUrl}/1`);
     expect(request.request.method).toBe('PUT');
@@ -76,6 +109,14 @@ describe('PendingFinancialTransactionService', () => {
     const request = http.expectOne(`${apiUrl}/1/reject`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ reason: 'Duplicada' });
+    request.flush({ ...pending, status: 'REJECTED' });
+  });
+
+  it('rejects without a reason', () => {
+    service.reject(1).subscribe();
+    const request = http.expectOne(`${apiUrl}/1/reject`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
     request.flush({ ...pending, status: 'REJECTED' });
   });
 });
