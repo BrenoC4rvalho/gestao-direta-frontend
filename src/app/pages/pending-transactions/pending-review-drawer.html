@@ -1,0 +1,119 @@
+<gd-drawer
+  [open]="open()"
+  title="Revisar movimentação"
+  description="Confira os dados antes de incluir a movimentação no controle financeiro."
+  size="lg"
+  (closed)="closed.emit()"
+>
+  @if (loading()) {
+    <div class="p-5"><gd-skeleton height="28rem" /></div>
+  } @else if (error()) {
+    <div class="p-5">
+      <gd-error-state
+        title="Não foi possível carregar a pendência"
+        description="Tente novamente."
+        actionLabel="Tentar novamente"
+        (action)="retry()"
+      />
+    </div>
+  } @else if (detail(); as item) {
+    <div class="space-y-6 p-5">
+      @if (item.status === 'PENDING_REVIEW') {
+        <gd-transaction-form
+          [draft]="reviewDraft()"
+          [categories]="categories()"
+          [harvestSeasons]="harvestSeasons()"
+          [open]="open()"
+          [submitting]="approving()"
+          [showActions]="false"
+          [paymentStatuses]="approvalStatuses"
+          (submitted)="requestApproval($event)"
+        />
+
+        <div class="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+          <gd-button
+            type="button"
+            variant="danger"
+            [loading]="rejecting()"
+            (click)="rejectConfirm.set(true)"
+          >
+            Rejeitar
+          </gd-button>
+          <gd-button type="button" [loading]="approving()" (click)="submitReview()">
+            Aprovar movimentação
+          </gd-button>
+        </div>
+
+        @if (rejectConfirm()) {
+          <div class="rounded-app border border-danger/30 bg-danger/5 p-4">
+            <gd-textarea
+              id="review-rejection-reason"
+              label="Descrição do motivo da rejeição"
+              hint="Opcional. Esta mensagem será enviada ao solicitante."
+              [control]="rejectionReason"
+              [rows]="3"
+              [maxlength]="500"
+            />
+          </div>
+        }
+      } @else {
+        <gd-badge [variant]="item.status === 'APPROVED' ? 'success' : 'danger'">
+          {{ item.status === 'APPROVED' ? 'Aprovada' : 'Rejeitada' }}
+        </gd-badge>
+        <p class="text-sm text-text-muted">
+          Revisada em: {{ item.reviewedAt | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        @if (item.rejectionReason) {
+          <p class="text-sm text-text-muted">Motivo: {{ item.rejectionReason }}</p>
+        }
+      }
+
+      <section class="border-t border-border pt-5 text-sm">
+        <h3 class="font-semibold text-text-primary">Dados de origem</h3>
+        <dl class="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <dt class="text-text-muted">Solicitante</dt>
+            <dd>{{ item.requestedByUserName }}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Data e hora</dt>
+            <dd>{{ item.sourceMessageReceivedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Canal</dt>
+            <dd>{{ item.sourceChannel }}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Identificador da mensagem</dt>
+            <dd>{{ item.sourceMessageId }}</dd>
+          </div>
+        </dl>
+        <p class="mt-4 text-text-muted">Conteúdo original</p>
+        <p class="mt-1 whitespace-pre-wrap rounded-app bg-background p-3 text-text-primary">
+          {{ item.sourceMessageContent }}
+        </p>
+      </section>
+    </div>
+  }
+</gd-drawer>
+
+<gd-confirm-dialog
+  [open]="approveConfirm()"
+  title="Aprovar movimentação?"
+  description="Ela será incluída nos cálculos financeiros da fazenda."
+  confirmLabel="Aprovar"
+  [loading]="approving()"
+  (confirmed)="approve()"
+  (cancelled)="approveConfirm.set(false)"
+/>
+
+<gd-confirm-dialog
+  [open]="rejectConfirm()"
+  title="Rejeitar movimentação?"
+  description="A movimentação não será incluída nos cálculos financeiros."
+  confirmLabel="Rejeitar"
+  variant="danger"
+  [loading]="rejecting()"
+  (confirmed)="reject()"
+  (cancelled)="rejectConfirm.set(false)"
+/>

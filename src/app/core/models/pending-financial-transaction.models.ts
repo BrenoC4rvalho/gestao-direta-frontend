@@ -1,5 +1,9 @@
 import { PageResponse } from './page-response.model';
-import { TransactionType } from './financial-transaction.models';
+import {
+  PaymentMethod,
+  PaymentStatus,
+  TransactionType,
+} from './financial-transaction.models';
 
 export type PendingFinancialTransactionStatus =
   | 'PENDING_REVIEW'
@@ -18,9 +22,14 @@ export interface PendingFinancialTransaction {
   categoryId: number | null;
   categoryName: string | null;
   rawCategoryName: string | null;
+  harvestSeasonId?: number | null;
+  harvestSeasonName?: string | null;
+  paymentMethod?: PaymentMethod | null;
+  notes?: string | null;
   status: PendingFinancialTransactionStatus;
   confidence: number;
   sourceChannel: 'TELEGRAM';
+  sourceMessageId?: number;
   sourceMessageContent: string;
   sourceMessageReceivedAt: string | null;
   requestedByUserId: number;
@@ -40,9 +49,17 @@ export interface PendingFinancialTransactionListParams {
 }
 
 export interface ApprovePendingFinancialTransactionRequest {
+  description?: string;
+  amount?: number;
+  type?: TransactionType;
   status: 'PAID' | 'PENDING';
+  paymentMethod?: PaymentMethod | null;
+  transactionDate?: string;
   dueDate?: string | null;
   paidAt?: string | null;
+  notes?: string | null;
+  categoryId?: number | null;
+  harvestSeasonId?: number | null;
 }
 
 export interface UpdatePendingFinancialTransactionRequest {
@@ -51,6 +68,9 @@ export interface UpdatePendingFinancialTransactionRequest {
   transactionDate: string;
   description: string;
   categoryId: number | null;
+  harvestSeasonId?: number | null;
+  paymentMethod?: PaymentMethod | null;
+  notes?: string | null;
 }
 
 export type PendingFinancialTransactionPage = PageResponse<PendingFinancialTransaction>;

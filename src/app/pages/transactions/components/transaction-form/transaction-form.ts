@@ -66,6 +66,8 @@ export class TransactionForm {
   readonly harvestSeasons = input<readonly HarvestSeason[]>([]);
   readonly open = input(false);
   readonly submitting = input(false);
+  readonly showActions = input(true);
+  readonly paymentStatuses = input<readonly PaymentStatus[] | null>(null);
 
   readonly submitted = output<UpdateFinancialTransactionRequest>();
   readonly cancelled = output<void>();
@@ -77,12 +79,20 @@ export class TransactionForm {
     { label: 'Receita', value: 'INCOME' },
     { label: 'Despesa', value: 'EXPENSE' },
   ];
-  protected readonly statusOptions: readonly GdSelectOption[] = [
+  protected readonly allStatusOptions: readonly GdSelectOption[] = [
     { label: 'Pendente', value: 'PENDING' },
     { label: 'Paga', value: 'PAID' },
     { label: 'Atrasada', value: 'OVERDUE' },
     { label: 'Cancelada', value: 'CANCELED' },
   ];
+  protected readonly statusOptions = computed<readonly GdSelectOption[]>(() => {
+    const statuses = this.paymentStatuses();
+
+    return statuses
+      ? this.allStatusOptions.filter((option) => statuses.includes(option.value as PaymentStatus))
+      : this.allStatusOptions;
+  });
+
   protected readonly paymentMethodOptions: readonly GdSelectOption[] = [
     { label: 'Pix', value: 'PIX' },
     { label: 'Dinheiro', value: 'CASH' },
