@@ -188,13 +188,25 @@ describe('ConfirmDialog', () => {
     expect(fixture.componentInstance.confirmedCount).toBe(0);
   });
 
-  it('should support visual variants', async () => {
+  it('should apply success styling to the icon, border, and confirm button', async () => {
     fixture.componentInstance.variant.set('success');
     openDialog();
     await completeOpeningAnimation();
 
-    expect(fixture.nativeElement.textContent).toContain('Confirmar ação');
     expect(fixture.nativeElement.querySelector('.text-success')).toBeTruthy();
+    expect(panel().classList.contains('border-success/30')).toBe(true);
+    expect(confirmButton().classList.contains('bg-success')).toBe(true);
+    expect(cancelButton().classList.contains('border-border')).toBe(true);
+  });
+
+  it('should apply danger styling to the icon, border, and confirm button', async () => {
+    openDialog();
+    await completeOpeningAnimation();
+
+    expect(fixture.nativeElement.querySelector('.text-danger')).toBeTruthy();
+    expect(panel().classList.contains('border-danger/30')).toBe(true);
+    expect(confirmButton().classList.contains('bg-danger')).toBe(true);
+    expect(cancelButton().classList.contains('border-border')).toBe(true);
   });
 
   it('should include transition classes on backdrop and panel', async () => {

@@ -107,23 +107,32 @@ export class ConfirmDialog {
 
   protected readonly panelClasses = computed(() =>
     [
-      'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 rounded-app border border-border bg-surface p-5 text-text-primary shadow-soft',
+      'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 rounded-app border bg-surface p-5 text-text-primary shadow-soft',
+      this.panelVariantClasses(),
       'transition-[opacity,transform] ease-out will-change-transform',
       this.animationDurationClass,
-      this.visible() ? '-translate-y-1/2 scale-100 opacity-100' : '-translate-y-[46%] scale-[0.98] opacity-0',
+      this.visible()
+        ? '-translate-y-1/2 scale-100 opacity-100'
+        : '-translate-y-[46%] scale-[0.98] opacity-0',
     ].join(' '),
   );
 
   protected readonly iconClasses = computed(() =>
-    [
-      'flex size-11 shrink-0 items-center justify-center rounded-full',
-      this.variantClasses(),
-    ].join(' '),
+    ['flex size-11 shrink-0 items-center justify-center rounded-full', this.variantClasses()].join(
+      ' ',
+    ),
   );
 
-  protected readonly confirmVariant = computed<ButtonVariant>(() =>
-    this.variant() === 'danger' ? 'danger' : 'primary',
-  );
+  protected readonly confirmVariant = computed<ButtonVariant>(() => {
+    const variants: Record<ConfirmDialogVariant, ButtonVariant> = {
+      danger: 'danger',
+      warning: 'warning',
+      info: 'primary',
+      success: 'success',
+    };
+
+    return variants[this.variant()];
+  });
 
   protected confirm(): void {
     if (this.open() && !this.loading()) {
@@ -150,7 +159,12 @@ export class ConfirmDialog {
   protected handleEscape(event: Event): void {
     const overlayId = this.overlayId();
 
-    if (!this.open() || overlayId === null || this.overlayStack.hasHandledEscape(event) || !this.overlayStack.isTop(overlayId)) {
+    if (
+      !this.open() ||
+      overlayId === null ||
+      this.overlayStack.hasHandledEscape(event) ||
+      !this.overlayStack.isTop(overlayId)
+    ) {
       return;
     }
 
@@ -200,6 +214,17 @@ export class ConfirmDialog {
 
     clearTimeout(this.closeTimeoutId);
     this.closeTimeoutId = null;
+  }
+
+  private panelVariantClasses(): string {
+    const variants: Record<ConfirmDialogVariant, string> = {
+      danger: 'border-danger/30',
+      warning: 'border-warning/30',
+      info: 'border-info/30',
+      success: 'border-success/30',
+    };
+
+    return variants[this.variant()];
   }
 
   private variantClasses(): string {

@@ -10,6 +10,7 @@ import { FinancialCategoryService } from '../../core/services/financial-category
 import { HarvestSeasonService } from '../../core/services/harvest-season.service';
 import { PendingFinancialTransactionService } from '../../core/services/pending-financial-transaction.service';
 import { ToastStore } from '../../core/stores/toast.store';
+import { ConfirmDialog } from '../../shared/overlays';
 
 import { PendingReviewDrawer } from './pending-review-drawer';
 
@@ -91,6 +92,15 @@ describe('PendingReviewDrawer', () => {
   });
 
   afterEach(() => TestBed.resetTestingModule());
+
+  it('configures approval confirmation with success intent and copy', () => {
+    const confirmation = fixture.debugElement.query(By.directive(ConfirmDialog))
+      .componentInstance as ConfirmDialog;
+
+    expect(confirmation.variant()).toBe('success');
+    expect(confirmation.confirmLabel()).toBe('Aprovar movimentação');
+    expect(confirmation.description()).toBe('A movimentação será incluída no controle financeiro.');
+  });
 
   it('shows source data before the review form and enters rejection mode without a second dialog', () => {
     const text = fixture.nativeElement.textContent as string;

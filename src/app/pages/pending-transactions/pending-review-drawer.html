@@ -124,8 +124,9 @@
 <gd-confirm-dialog
   [open]="approveConfirm()"
   title="Aprovar movimentação?"
-  description="Ela será incluída nos cálculos financeiros da fazenda."
-  confirmLabel="Aprovar"
+  description="A movimentação será incluída no controle financeiro."
+  confirmLabel="Aprovar movimentação"
+  variant="success"
   [loading]="approving()"
   (confirmed)="approve()"
   (cancelled)="approveConfirm.set(false)"
