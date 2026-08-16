@@ -91,6 +91,7 @@ describe('CategoriesPage', () => {
   let fixture: ComponentFixture<CategoriesPage>;
   let categoryService: {
     listByFarm: ReturnType<typeof vi.fn>;
+    listPageByFarm: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -104,6 +105,19 @@ describe('CategoriesPage', () => {
 
   beforeEach(async () => {
     categoryService = {
+      listPageByFarm: vi
+        .fn()
+        .mockReturnValue(
+          of({
+            content: [category],
+            page: 0,
+            size: 20,
+            totalElements: 1,
+            totalPages: 1,
+            first: true,
+            last: true,
+          }),
+        ),
       listByFarm: vi.fn().mockReturnValue(of([category])),
       getById: vi.fn().mockReturnValue(of(category)),
       create: vi.fn().mockReturnValue(of({ ...category, id: 2 })),
@@ -143,7 +157,7 @@ describe('CategoriesPage', () => {
   it('should not load categories without selected farm', () => {
     createPage();
 
-    expect(categoryService.listByFarm).not.toHaveBeenCalled();
+    expect(categoryService.listPageByFarm).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain(
       'Selecione uma fazenda para visualizar as categorias.',
     );
@@ -153,7 +167,15 @@ describe('CategoriesPage', () => {
     selectFarm(farm);
     createPage();
 
-    expect(categoryService.listByFarm).toHaveBeenCalledWith(1, { includeInactive: true });
+    expect(categoryService.listPageByFarm).toHaveBeenCalledWith(1, {
+      includeInactive: true,
+      search: null,
+      status: null,
+      page: 0,
+      size: 20,
+      sort: 'name',
+      direction: 'ASC',
+    });
     expect(fixture.nativeElement.textContent).toContain('Adubo');
     expect(fixture.nativeElement.textContent).not.toContain('Categorias globais');
   });
@@ -203,7 +225,15 @@ describe('CategoriesPage', () => {
     selectedFarmStore.selectFarm(secondFarm);
     fixture.detectChanges();
 
-    expect(categoryService.listByFarm).toHaveBeenCalledWith(2, { includeInactive: true });
+    expect(categoryService.listPageByFarm).toHaveBeenCalledWith(2, {
+      includeInactive: true,
+      search: null,
+      status: null,
+      page: 0,
+      size: 20,
+      sort: 'name',
+      direction: 'ASC',
+    });
   });
 
   it('should let producer manage farm categories', () => {

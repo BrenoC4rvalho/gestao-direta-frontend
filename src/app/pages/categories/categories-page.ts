@@ -18,6 +18,7 @@ import {
   FinancialCategoryFormType,
   UpdateFinancialCategoryRequest,
 } from '../../core/models/financial-category.models';
+import { PageResponse } from '../../core/models/page-response.model';
 import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
@@ -25,7 +26,17 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
-import { Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  ListFilters,
+  ListFiltersConfig,
+  ListFilterValues,
+  Skeleton,
+  StatusActionSection,
+} from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
 import { CategoryForm, CategoryFormPayload } from './components/category-form/category-form';
 import { RegistrationsTabs } from '../registrations/components/registrations-tabs/registrations-tabs';
@@ -33,6 +44,7 @@ import { RegistrationsTabs } from '../registrations/components/registrations-tab
 @Component({
   selector: 'gd-categories-page',
   imports: [
+    Button,
     Card,
     CategoryCard,
     CategoryForm,
@@ -40,6 +52,7 @@ import { RegistrationsTabs } from '../registrations/components/registrations-tab
     Drawer,
     EmptyState,
     ErrorState,
+    ListFilters,
     RegistrationsTabs,
     Skeleton,
     StatusActionSection,
@@ -56,7 +69,8 @@ export class CategoriesPage {
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
 
-  protected readonly categories = signal<FinancialCategory[]>([]);
+  protected readonly response = signal<PageResponse<FinancialCategory> | null>(null);
+  protected readonly categories = computed(() => this.response()?.content ?? []);
   protected readonly loading = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
@@ -70,8 +84,31 @@ export class CategoriesPage {
   protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
+  private readonly page = signal(0);
+  private readonly searchTerm = signal<string | null>(null);
+  private readonly selectedStatus = signal<string | null>(null);
   private readonly allowedFormTypes = new Set<FinancialCategoryFormType>(['INCOME', 'EXPENSE']);
   private lastFarmId: number | null = null;
+
+  protected readonly filtersConfig: ListFiltersConfig = {
+    subtitle: 'Busque e filtre categorias financeiras',
+    search: { placeholder: 'Buscar por nome' },
+    quickFilters: [
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { label: 'Todas', value: null },
+          { label: 'Ativas', value: 'ACTIVE' },
+          { label: 'Inativas', value: 'INACTIVE' },
+        ],
+      },
+    ],
+  };
+  protected readonly currentPage = computed(() => this.response()?.page ?? 0);
+  protected readonly hasActiveFilters = computed(
+    () => this.searchTerm() !== null || this.selectedStatus() !== null,
+  );
 
   protected readonly selectedFarmName = computed(
     () => this.selectedFarmStore.selectedFarm()?.name ?? null,
@@ -108,6 +145,9 @@ export class CategoriesPage {
       const farmId = this.selectedFarmStore.selectedFarmId();
       const isAdmin = this.sessionStore.isAdmin();
       this.reloadTrigger();
+      const page = this.page();
+      const search = this.searchTerm();
+      const status = this.selectedStatus();
 
       if (farmId !== this.lastFarmId) {
         this.lastFarmId = farmId;
@@ -135,10 +175,18 @@ export class CategoriesPage {
       this.loading.set(true);
 
       const subscription = this.categoryService
-        .listByFarm(farmId, { includeInactive: true })
+        .listPageByFarm(farmId, {
+          includeInactive: true,
+          search,
+          status,
+          page,
+          size: 20,
+          sort: 'name',
+          direction: 'ASC',
+        })
         .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
-          next: (categories) => this.categories.set(categories),
+          next: (response) => this.response.set(response),
           error: (error: unknown) => this.handleListError(error),
         });
 
@@ -148,6 +196,23 @@ export class CategoriesPage {
 
   protected retry(): void {
     this.reloadTrigger.update((value) => value + 1);
+  }
+
+  protected changeFilters(filters: ListFilterValues): void {
+    const value = (filters['status'] ?? null) as string | null;
+    this.searchTerm.set((filters['search'] ?? null) as string | null);
+    this.selectedStatus.set(Array.isArray(value) ? (value[0] ?? null) : value);
+    this.page.set(0);
+  }
+
+  protected previousPage(): void {
+    const response = this.response();
+    if (response && !response.first) this.page.set(response.page - 1);
+  }
+
+  protected nextPage(): void {
+    const response = this.response();
+    if (response && !response.last) this.page.set(response.page + 1);
   }
 
   protected openCreateDrawer(): void {
@@ -402,7 +467,7 @@ export class CategoriesPage {
   }
 
   private handleListError(error: unknown): void {
-    this.categories.set([]);
+    this.response.set(null);
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
       this.accessDenied.set(true);
@@ -441,8 +506,11 @@ export class CategoriesPage {
   }
 
   private resetFarmScopedState(): void {
-    this.categories.set([]);
+    this.response.set(null);
     this.error.set(false);
+    this.page.set(0);
+    this.searchTerm.set(null);
+    this.selectedStatus.set(null);
     this.deleteTarget.set(null);
     this.activateTarget.set(null);
     this.editingCategory.set(null);
@@ -450,7 +518,7 @@ export class CategoriesPage {
   }
 
   private clearListState(): void {
-    this.categories.set([]);
+    this.response.set(null);
     this.loading.set(false);
     this.error.set(false);
     this.accessDenied.set(false);

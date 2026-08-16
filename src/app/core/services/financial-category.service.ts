@@ -28,11 +28,16 @@ export class FinancialCategoryService {
     farmId: number,
     params: FinancialCategoryListByFarmParams = {},
   ): Observable<FinancialCategory[]> {
-    return this.http
-      .get<PageResponse<FinancialCategory>>(`${this.apiUrl}/financial/categories`, {
-        params: this.buildListParams(farmId, params),
-      })
-      .pipe(map((response) => response.content));
+    return this.listPageByFarm(farmId, params).pipe(map((response) => response.content));
+  }
+
+  listPageByFarm(
+    farmId: number,
+    params: FinancialCategoryListByFarmParams = {},
+  ): Observable<PageResponse<FinancialCategory>> {
+    return this.http.get<PageResponse<FinancialCategory>>(`${this.apiUrl}/financial/categories`, {
+      params: this.buildListParams(farmId, params),
+    });
   }
 
   listUsedInTransactions(farmId: number): Observable<FinancialCategory[]> {
@@ -49,20 +54,11 @@ export class FinancialCategoryService {
   }
 
   create(payload: CreateFinancialCategoryRequest): Observable<FinancialCategory> {
-    return this.http.post<FinancialCategory>(
-      `${this.apiUrl}/financial/categories`,
-      payload,
-    );
+    return this.http.post<FinancialCategory>(`${this.apiUrl}/financial/categories`, payload);
   }
 
-  update(
-    id: number,
-    payload: UpdateFinancialCategoryRequest,
-  ): Observable<FinancialCategory> {
-    return this.http.put<FinancialCategory>(
-      `${this.apiUrl}/financial/categories/${id}`,
-      payload,
-    );
+  update(id: number, payload: UpdateFinancialCategoryRequest): Observable<FinancialCategory> {
+    return this.http.put<FinancialCategory>(`${this.apiUrl}/financial/categories/${id}`, payload);
   }
 
   activate(id: number): Observable<FinancialCategory> {
@@ -76,10 +72,7 @@ export class FinancialCategoryService {
     return this.http.delete<void>(`${this.apiUrl}/financial/categories/${id}`);
   }
 
-  private buildListParams(
-    farmId: number,
-    params: FinancialCategoryListByFarmParams,
-  ): HttpParams {
+  private buildListParams(farmId: number, params: FinancialCategoryListByFarmParams): HttpParams {
     let httpParams = new HttpParams().set('farmId', farmId);
 
     if (params.includeInactive !== undefined) {

@@ -159,19 +159,16 @@ export class ProductionActivitiesPage {
   });
 
   protected readonly activities = computed(() => {
-    const search = this.normalizeText(this.searchTerm());
+    const search = this.searchTerm().trim().toLowerCase();
     const activities = this.response()?.content ?? [];
 
-    return activities.filter((activity) => {
-      if (!search) {
-        return true;
-      }
+    if (!search) {
+      return activities;
+    }
 
-      return (
-        this.normalizeText(activity.name).includes(search) ||
-        this.normalizeText(activity.description ?? '').includes(search)
-      );
-    });
+    return activities.filter((activity) =>
+      `${activity.name} ${activity.description ?? activity.name}`.toLowerCase().includes(search),
+    );
   });
   protected readonly currentPage = computed(() => this.response()?.page ?? 0);
   protected readonly hasActiveFilters = computed(
@@ -248,7 +245,7 @@ export class ProductionActivitiesPage {
       this.loading.set(true);
 
       const subscription = this.activityService
-        .list(this.listParams(farmId, 0, 10))
+        .list(this.listParams(farmId, 0, 20))
         .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
           next: (response) => this.response.set(response),
@@ -268,6 +265,7 @@ export class ProductionActivitiesPage {
 
     this.searchTerm.set(this.firstFilterValue(filters['search']) ?? '');
     this.selectedStatus.set(status);
+    this.loadPage(0);
   }
 
   private firstFilterValue(value: string | string[] | null | undefined): string | null {
@@ -464,7 +462,7 @@ export class ProductionActivitiesPage {
       return;
     }
 
-    const params = this.listParams(farmId, page, this.response()?.size ?? 10);
+    const params = this.listParams(farmId, page, 20);
 
     this.error.set(false);
     this.loading.set(true);
@@ -548,13 +546,6 @@ export class ProductionActivitiesPage {
 
   private showPermissionError(): void {
     this.toastStore.error('Você não tem permissão para gerenciar atividades produtivas.');
-  }
-
-  private normalizeText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
   }
 
   private stringValue(value: GdFormValue): string {
