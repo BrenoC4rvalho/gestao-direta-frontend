@@ -22,6 +22,7 @@ const pending: PendingFinancialTransaction = {
   amount: 250,
   transactionDate: '2026-07-20',
   description: 'Combustível',
+  missingFields: ['categoryName'],
   categoryId: null,
   categoryName: null,
   rawCategoryName: null,
@@ -98,13 +99,15 @@ describe('PendingReviewDrawer', () => {
       .componentInstance as ConfirmDialog;
 
     expect(confirmation.variant()).toBe('success');
-    expect(confirmation.confirmLabel()).toBe('Aprovar movimentação');
+    expect(confirmation.confirmLabel()).toBe('Aprovar');
     expect(confirmation.description()).toBe('A movimentação será incluída no controle financeiro.');
   });
 
   it('shows source data before the review form and enters rejection mode without a second dialog', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text.indexOf('Dados de origem')).toBeLessThan(text.indexOf('Descrição'));
+    expect(text).toContain('Informações pendentes');
+    expect(text).toContain('Categoria');
 
     clickButton('Rejeitar');
     fixture.detectChanges();
@@ -120,7 +123,7 @@ describe('PendingReviewDrawer', () => {
     clickButton('Cancelar');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Aprovar movimentação');
+    expect(fixture.nativeElement.textContent).toContain('Aprovar');
     expect(fixture.nativeElement.querySelector('gd-drawer')).not.toBeNull();
   });
 

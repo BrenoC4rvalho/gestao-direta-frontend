@@ -8,6 +8,7 @@
         autocomplete="off"
         [control]="form.controls.description"
         [required]="true"
+        [hint]="missingFieldHint('description')"
         [errorMessage]="descriptionErrorMessage()"
       />
     </div>
@@ -19,6 +20,7 @@
       [control]="form.controls.type"
       [options]="typeOptions"
       [required]="true"
+      [hint]="missingFieldHint('type')"
       [errorMessage]="typeErrorMessage()"
     />
 
@@ -31,6 +33,7 @@
       prefix="R$"
       [control]="form.controls.amount"
       [required]="true"
+      [hint]="missingFieldHint('amount')"
       [errorMessage]="amountErrorMessage()"
     />
 
@@ -43,6 +46,7 @@
         [options]="categoryOptions()"
         [required]="categoryRequired()"
         [disabled]="categoryDisabled()"
+        [hint]="missingFieldHint('category')"
         [errorMessage]="categoryErrorMessage()"
       />
     </div>
@@ -63,6 +67,7 @@
       type="date"
       [control]="form.controls.transactionDate"
       [required]="true"
+      [hint]="missingFieldHint('transactionDate')"
       [errorMessage]="transactionDateErrorMessage()"
     />
 
@@ -86,7 +91,8 @@
         label="Método de pagamento"
         placeholder="Selecione o método"
         [control]="form.controls.paymentMethod"
-        [options]="paymentMethodOptions"
+      [options]="paymentMethodOptions"
+      [hint]="missingFieldHint('paymentMethod')"
       />
     </div>
 

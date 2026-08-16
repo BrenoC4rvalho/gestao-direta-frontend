@@ -1,24 +1,66 @@
 <section class="space-y-6 gd-fade-in-up">
   @if (!selectedFarmStore.selectedFarmId()) {
     <gd-empty-state title="Selecione uma fazenda" description="Escolha uma fazenda para revisar movimentações pendentes." icon="tractor" />
-  } @else if (loading()) {
-    @for (item of [1, 2, 3]; track item) { <gd-skeleton height="6rem" /> }
-  } @else if (error()) {
-    <gd-error-state title="Não foi possível carregar as pendências" description="Tente novamente em alguns instantes." />
-  } @else if (items().length === 0) {
-    <gd-empty-state title="Nenhuma pendência" description="As movimentações identificadas pelo Telegram aparecerão aqui antes de entrar no controle financeiro." icon="receipt-text" />
-  } @else {
-    <div class="grid gap-4">
-      @for (item of items(); track item.id) {
-        <article class="rounded-app border border-border bg-surface p-4 shadow-soft">
-          <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold text-text-primary">{{ item.description }}</p><p class="mt-1 text-sm text-text-muted">Telegram · {{ item.requestedByUserName }} · {{ item.transactionDate }}</p></div><gd-badge [variant]="variant(item.status)">{{ label(item.status) }}</gd-badge></div>
-          <p [class]="'mt-3 text-lg font-semibold ' + (item.type === 'INCOME' ? 'text-success' : 'text-danger')">{{ item.type === 'INCOME' ? '+' : '-' }}{{ item.amount | brCurrency }}</p>
-          <p class="mt-2 text-sm text-text-muted">Mensagem: “{{ item.sourceMessageContent }}” · Confiança: {{ item.confidence * 100 | number:'1.0-0' }}%</p>
-          @if (access.canManageTransactions()) { <div class="mt-4"><gd-button type="button" variant="outline" (click)="review(item)">Revisar</gd-button></div> }
-        </article>
-      }
+  } @else if (pendingTransactions.loading()) {
+    <div class="grid gap-3">
+      @for (item of [1, 2, 3]; track item) { <gd-skeleton height="8rem" /> }
     </div>
+  } @else if (pendingTransactions.error()) {
+    <gd-error-state title="Não foi possível carregar as pendências" description="Tente novamente em alguns instantes." actionLabel="Tentar novamente" (action)="retry()" />
+  } @else {
+    <gd-list-filters [config]="filterConfig" (filtersChange)="applyFilters($event)" (clear)="clearFilters()" />
+
+    @if (pendingTransactions.items().length === 0) {
+      <gd-empty-state title="Nenhuma movimentação pendente" description="Quando novas movimentações forem identificadas pelo Telegram, elas aparecerão aqui para revisão." icon="receipt-text" />
+    } @else {
+      <div class="grid gap-3">
+        @for (item of pendingTransactions.items(); track item.id) {
+          <article [attr.aria-label]="'Movimentação pendente ' + item.description">
+            <gd-card variant="elevated" padding="none">
+              <div class="p-4 sm:p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <h2 class="truncate text-base font-semibold text-text-primary sm:text-lg">{{ item.description }}</h2>
+                    <p class="mt-1 text-sm text-text-muted">
+                      {{ item.sourceChannel === 'TELEGRAM' ? 'Telegram' : item.sourceChannel }} · {{ item.requestedByUserName }} ·
+                      {{ (item.sourceMessageReceivedAt ?? item.transactionDate) | date: 'dd/MM/yyyy HH:mm' }}
+                    </p>
+                  </div>
+                  <gd-badge variant="warning" size="sm">Pendente</gd-badge>
+                </div>
+
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <p [class]="'text-xl font-semibold ' + amountClasses(item.type)">
+                    {{ item.type === 'INCOME' ? '+' : '-' }}{{ item.amount | brCurrency }}
+                  </p>
+                  @if (access.canManageTransactions()) {
+                    <gd-button type="button" variant="outline" size="sm" (click)="review(item)">Revisar</gd-button>
+                  }
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <gd-badge variant="neutral" size="sm">Telegram</gd-badge>
+                  <gd-badge variant="neutral" size="sm">IA {{ item.confidence * 100 | number: '1.0-0' }}%</gd-badge>
+                  @if (item.categoryName) { <gd-badge variant="neutral" size="sm">{{ item.categoryName }}</gd-badge> }
+                  @if (item.harvestSeasonName) { <gd-badge variant="neutral" size="sm">{{ item.harvestSeasonName }}</gd-badge> }
+                  @if (item.missingFields.length > 0) {
+                    <gd-badge variant="warning" size="sm">{{ missingFieldsLabel(item) }}</gd-badge>
+                  }
+                </div>
+
+                @if (item.missingFields.length > 0) {
+                  <p class="mt-3 flex items-center gap-2 text-sm text-warning" role="status">
+                    <span aria-hidden="true">⚠</span>
+                    <span>{{ missingFieldSummary(item) }} não identificado{{ item.missingFields.length > 1 ? 's' : '' }} pela IA.</span>
+                  </p>
+                }
+              </div>
+            </gd-card>
+          </article>
+        }
+      </div>
+    }
   }
 </section>
 
-<gd-pending-review-drawer [open]="reviewOpen()" [pendingId]="selectedPendingId()" (refreshed)="handleReviewed($event)" (decided)="handleDecision()" (closed)="reviewOpen.set(false)" />
+<gd-pending-review-drawer [open]="reviewOpen()" [pendingId]="selectedPendingId()" (refreshed)="handleReviewed($event)" (decided)="handleDecision($event)" (closed)="reviewOpen.set(false)" />

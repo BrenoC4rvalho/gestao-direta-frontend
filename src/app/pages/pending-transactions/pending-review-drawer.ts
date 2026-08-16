@@ -61,7 +61,7 @@ export class PendingReviewDrawer {
   readonly open = input(false);
   readonly pendingId = input<number | null>(null);
   readonly refreshed = output<PendingFinancialTransaction>();
-  readonly decided = output<void>();
+  readonly decided = output<PendingFinancialTransaction>();
   readonly closed = output<void>();
 
   protected readonly detail = signal<PendingFinancialTransaction | null>(null);
@@ -156,7 +156,7 @@ export class PendingReviewDrawer {
         next: () => {
           this.approveConfirm.set(false);
           this.toast.success('Movimentação aprovada com sucesso.');
-          this.decided.emit();
+          this.decided.emit({ ...item, status: 'APPROVED' });
         },
         error: (response: { status?: number }) => this.handleDecisionError(response.status),
       });
@@ -177,7 +177,7 @@ export class PendingReviewDrawer {
         next: () => {
           this.rejectionMode.set(false);
           this.toast.success('Movimentação rejeitada com sucesso.');
-          this.decided.emit();
+          this.decided.emit({ ...item, status: 'REJECTED' });
         },
         error: (response: { status?: number }) => this.handleDecisionError(response.status),
       });

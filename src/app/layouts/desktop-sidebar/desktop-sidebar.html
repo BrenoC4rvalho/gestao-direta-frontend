@@ -22,8 +22,8 @@
           >
             <svg [lucideIcon]="item.icon" class="size-5 shrink-0" aria-hidden="true"></svg>
             <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-            @if (item.pendingBadge && pendingCount.count() > 0) {
-              <span class="rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-white" [attr.aria-label]="pendingCount.count() + ' pendências aguardando aprovação'">{{ pendingCount.count() }}</span>
+            @if (item.pendingBadge && pendingTransactions.count() > 0) {
+              <span class="rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-white" [attr.aria-label]="pendingTransactions.count() + ' pendências aguardando aprovação'">{{ pendingTransactions.count() }}</span>
             }
           </a>
         </li>

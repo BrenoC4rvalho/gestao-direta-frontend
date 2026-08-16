@@ -18,6 +18,7 @@ import { FarmService } from '../../core/services/farm.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
+import { PendingFinancialTransactionsStore } from '../../core/stores/pending-financial-transactions.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { FloatingActionButton } from '../../shared/ui';
 import { DesktopSidebar } from '../desktop-sidebar/desktop-sidebar';
@@ -49,6 +50,7 @@ export class AppLayout implements OnInit {
   private readonly router = inject(Router);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
   private readonly sessionStore = inject(SessionStore);
+  private readonly pendingTransactionsStore = inject(PendingFinancialTransactionsStore);
   private readonly toastStore = inject(ToastStore);
   private readonly pageHeaderData = signal<PageHeaderData>({
     title: '',

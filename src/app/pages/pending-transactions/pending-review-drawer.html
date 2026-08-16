@@ -47,6 +47,25 @@
       </section>
 
       @if (item.status === 'PENDING_REVIEW') {
+        <section class="rounded-app border border-warning/30 bg-warning/5 p-4" role="status">
+          @if (item.missingFields.length > 0) {
+            <h3 class="font-semibold text-text-primary">Informações pendentes</h3>
+            <p class="mt-1 text-sm leading-6 text-text-muted">
+              A IA não conseguiu identificar todos os dados desta movimentação.
+            </p>
+            <ul class="mt-3 list-inside list-disc text-sm text-text-primary">
+              @for (field of item.missingFields; track field) {
+                <li>{{ field === 'type' ? 'Tipo' : field === 'amount' ? 'Valor' : field === 'description' ? 'Descrição' : field === 'transactionDate' ? 'Data da movimentação' : field === 'category' || field === 'categoryName' ? 'Categoria' : field === 'paymentMethod' ? 'Método de pagamento' : field }}</li>
+              }
+            </ul>
+          } @else {
+            <h3 class="font-semibold text-text-primary">Dados completos</h3>
+            <p class="mt-1 text-sm leading-6 text-text-muted">
+              Revise os dados antes de aprovar a movimentação.
+            </p>
+          }
+        </section>
+
         @if (rejectionMode()) {
           <section class="rounded-app border border-danger/30 bg-danger/5 p-4">
             <h3 class="text-lg font-semibold text-text-primary">Rejeitar movimentação</h3>
@@ -81,6 +100,10 @@
             </div>
           </section>
         } @else {
+          <section>
+            <h3 class="font-semibold text-text-primary">Dados da movimentação</h3>
+            <p class="mt-1 text-sm text-text-muted">Revise e complete os dados identificados.</p>
+          </section>
           <gd-transaction-form
             [draft]="reviewDraft()"
             [categories]="categories()"
@@ -89,8 +112,14 @@
             [submitting]="approving()"
             [showActions]="false"
             [paymentStatuses]="approvalStatuses"
+            [missingFields]="item.missingFields"
             (submitted)="requestApproval($event)"
           />
+
+          <section class="border-t border-border pt-4">
+            <h3 class="font-semibold text-text-primary">Informações financeiras e observações</h3>
+            <p class="mt-1 text-sm text-text-muted">Categoria, pagamento, safra e observações podem ser ajustados no formulário.</p>
+          </section>
 
           <div class="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
             <gd-button
@@ -102,7 +131,7 @@
               Rejeitar
             </gd-button>
             <gd-button type="button" [loading]="approving()" (click)="submitReview()">
-              Aprovar movimentação
+              Aprovar
             </gd-button>
           </div>
         }
@@ -125,7 +154,7 @@
   [open]="approveConfirm()"
   title="Aprovar movimentação?"
   description="A movimentação será incluída no controle financeiro."
-  confirmLabel="Aprovar movimentação"
+  confirmLabel="Aprovar"
   variant="success"
   [loading]="approving()"
   (confirmed)="approve()"

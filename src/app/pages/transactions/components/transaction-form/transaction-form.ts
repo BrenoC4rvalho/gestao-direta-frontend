@@ -68,6 +68,7 @@ export class TransactionForm {
   readonly submitting = input(false);
   readonly showActions = input(true);
   readonly paymentStatuses = input<readonly PaymentStatus[] | null>(null);
+  readonly missingFields = input<readonly string[]>([]);
 
   readonly submitted = output<UpdateFinancialTransactionRequest>();
   readonly cancelled = output<void>();
@@ -262,6 +263,21 @@ export class TransactionForm {
 
   protected categoryRequired(): boolean {
     return this.categoryOptions().length > 0;
+  }
+
+  protected missingFieldHint(field: string): string | null {
+    const aliases: Record<string, readonly string[]> = {
+      description: ['description'],
+      type: ['type'],
+      amount: ['amount'],
+      category: ['category', 'categoryName'],
+      transactionDate: ['transactionDate'],
+      paymentMethod: ['paymentMethod'],
+    };
+
+    return aliases[field]?.some((alias) => this.missingFields().includes(alias))
+      ? 'Informação não identificada pela IA.'
+      : null;
   }
 
   protected descriptionErrorMessage(): string | null {

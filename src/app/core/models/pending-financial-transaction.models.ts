@@ -19,6 +19,7 @@ export interface PendingFinancialTransaction {
   amount: number;
   transactionDate: string;
   description: string;
+  missingFields: string[];
   categoryId: number | null;
   categoryName: string | null;
   rawCategoryName: string | null;

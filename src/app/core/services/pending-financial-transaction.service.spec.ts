@@ -14,6 +14,7 @@ const pending: PendingFinancialTransaction = {
   amount: 250,
   transactionDate: '2026-07-20',
   description: 'Combustível',
+  missingFields: [],
   categoryId: 2,
   categoryName: 'Insumos',
   rawCategoryName: null,
