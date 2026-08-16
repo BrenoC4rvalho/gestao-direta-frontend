@@ -211,7 +211,7 @@
             <h2 id="category-summary-title" class="text-lg font-semibold text-text-primary">
               Resumo por categoria
             </h2>
-            <div class="mt-5 max-h-[28rem] space-y-4 overflow-y-auto pr-1">
+            <div class="mt-5 max-h-[28rem] space-y-4 overflow-y-auto pr-3">
               @for (category of report.categories; track category.categoryId) {
                 <div>
                   <div class="flex justify-between gap-3">
@@ -276,49 +276,83 @@
             }
           </div></gd-card
         ><gd-card
-          ><h2 class="text-lg font-semibold text-text-primary">Indicadores do relatório</h2>
-          <dl class="mt-4 space-y-3 text-sm">
-            <div>
-              <dt>Período analisado</dt>
-              <dd>{{ report.indicators.analyzedMonthCount }} meses</dd>
-            </div>
-            <div>
-              <dt>Maior receita</dt>
-              <dd>
-                {{ report.indicators.highestIncomePeriod?.label ?? '—' }} —
-                {{ formatCurrency(report.indicators.highestIncomePeriod?.amount ?? 0) }}
-              </dd>
-            </div>
-            <div>
-              <dt>Maior despesa</dt>
-              <dd>
-                {{ report.indicators.highestExpensePeriod?.label ?? '—' }} —
-                {{ formatCurrency(report.indicators.highestExpensePeriod?.amount ?? 0) }}
-              </dd>
-            </div>
-            <div>
-              <dt>Melhor resultado</dt>
-              <dd>
-                {{ report.indicators.bestBalancePeriod?.label ?? '—' }} —
-                {{ formatCurrency(report.indicators.bestBalancePeriod?.amount ?? 0) }}
-              </dd>
-            </div>
-            <div>
-              <dt>Mês crítico</dt>
-              <dd>
-                {{ report.indicators.criticalPeriod?.label ?? '—' }} —
-                {{ formatCurrency(report.indicators.criticalPeriod?.amount ?? 0) }}
-              </dd>
-            </div>
-            <div>
-              <dt>Categoria com maior despesa</dt>
-              <dd>{{ report.indicators.highestExpenseCategory?.categoryName ?? '—' }}</dd>
-            </div>
-            <div>
-              <dt>Safra mais lucrativa</dt>
-              <dd>{{ report.indicators.mostProfitableHarvest?.harvestSeasonName ?? '—' }}</dd>
-            </div>
-          </dl></gd-card
+          ><section aria-labelledby="report-indicators-title">
+            <h2 id="report-indicators-title" class="text-lg font-semibold text-text-primary">
+              Indicadores do relatório
+            </h2>
+            <dl class="mt-4 text-sm">
+              <div
+                class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <dt class="text-text-muted">Período analisado</dt>
+                <dd class="font-semibold text-text-primary sm:text-right">
+                  {{ report.indicators.analyzedMonthCount }} meses
+                </dd>
+              </div>
+
+              <div class="mt-4 border-t border-border pt-4">
+                <div class="space-y-3">
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Maior receita</dt>
+                    <dd class="font-semibold text-success sm:text-right">
+                      {{ report.indicators.highestIncomePeriod?.label ?? '—' }} ·
+                      {{ formatCurrency(report.indicators.highestIncomePeriod?.amount ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Maior despesa</dt>
+                    <dd class="font-semibold text-danger sm:text-right">
+                      {{ report.indicators.highestExpensePeriod?.label ?? '—' }} ·
+                      {{ formatCurrency(report.indicators.highestExpensePeriod?.amount ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Melhor resultado</dt>
+                    <dd class="font-semibold text-success sm:text-right">
+                      {{ report.indicators.bestBalancePeriod?.label ?? '—' }} ·
+                      {{ formatCurrency(report.indicators.bestBalancePeriod?.amount ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Mês crítico</dt>
+                    <dd class="font-semibold text-danger sm:text-right">
+                      {{ report.indicators.criticalPeriod?.label ?? '—' }} ·
+                      {{ formatCurrency(report.indicators.criticalPeriod?.amount ?? 0) }}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 border-t border-border pt-4">
+                <div class="space-y-3">
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Categoria com maior despesa</dt>
+                    <dd class="font-semibold text-text-primary sm:text-right">
+                      {{ report.indicators.highestExpenseCategory?.categoryName ?? '—' }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <dt class="text-text-muted">Safra mais lucrativa</dt>
+                    <dd class="font-semibold text-success sm:text-right">
+                      {{ report.indicators.mostProfitableHarvest?.harvestSeasonName ?? '—' }}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+            </dl>
+          </section></gd-card
         >
       </div>
       <gd-card
