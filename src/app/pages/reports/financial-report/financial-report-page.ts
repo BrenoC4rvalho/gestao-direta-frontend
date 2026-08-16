@@ -25,6 +25,7 @@ import { FarmAccessStore } from '../../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../../core/stores/selected-farm.store';
 import { SessionStore } from '../../../core/stores/session.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../../shared/forms';
+import { BrCurrencyPipe } from '../../../shared/pipes/br-currency.pipe';
 import {
   Badge,
   BadgeVariant,
@@ -52,7 +53,6 @@ const DEFAULT_FILTERS: AppliedReportFilters = {
   harvestSeasonId: null,
   categoryId: null,
 };
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const percentageFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
@@ -87,6 +87,13 @@ export class FinancialReportPage {
   protected readonly sessionStore = inject(SessionStore);
   private currentFarmId: number | null = null;
   private readonly reload = signal(0);
+  private readonly currencyPipe = new BrCurrencyPipe();
+  private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
+  private readonly periodFormatter = new Intl.DateTimeFormat('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
@@ -111,6 +118,13 @@ export class FinancialReportPage {
     { label: 'Regime de caixa', value: 'CASH' },
     { label: 'Regime de competência', value: 'ACCRUAL' },
   ];
+  protected readonly basisTooltip = [
+    'Regime de caixa:',
+    'Para itens pagos, considera a data de pagamento ou recebimento; para pendentes e vencidos, a data de vencimento.',
+    '',
+    'Regime de competência:',
+    'Considera a data em que a movimentação foi registrada.',
+  ].join('\n');
   private readonly appliedFilters = signal(DEFAULT_FILTERS);
   protected readonly canViewReport = computed(
     () =>
@@ -129,11 +143,10 @@ export class FinancialReportPage {
         report.unallocated.transactionCount > 0)
     );
   });
-  protected readonly movementsTitle = computed(() =>
-    this.selectedPeriod()
-      ? `Movimentações de ${this.selectedPeriod()!.label}`
-      : 'Movimentações do período',
-  );
+  protected readonly movementsPeriod = computed(() => {
+    const period = this.selectedPeriod();
+    return period ? this.periodFormatter.format(this.utcDate(period.periodStart)) : null;
+  });
 
   constructor() {
     effect((onCleanup) => {
@@ -232,7 +245,13 @@ export class FinancialReportPage {
     return this.filterForm.controls[name];
   }
   protected formatCurrency(value: number): string {
-    return currencyFormatter.format(value);
+    return this.currencyPipe.transform(value);
+  }
+  protected formatDate(value: string): string {
+    return this.dateFormatter.format(this.utcDate(value));
+  }
+  protected transactionCountLabel(count: number): string {
+    return count === 1 ? '1 movimentação encontrada' : count + ' movimentações encontradas';
   }
   protected formatPercentage(value: number): string {
     return `${percentageFormatter.format(value)}%`;
@@ -304,5 +323,8 @@ export class FinancialReportPage {
   }
   private stringValue(value: GdFormValue, fallback: string): string {
     return typeof value === 'string' && value ? value : fallback;
+  }
+  private utcDate(value: string): Date {
+    return new Date(value + 'T00:00:00Z');
   }
 }

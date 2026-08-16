@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { FieldError } from '../field-error/field-error';
 import { GdFormControl, GdSelectOption } from '../forms.types';
+import { Tooltip } from '../../ui';
 
 @Component({
   selector: 'gd-select',
-  imports: [FieldError, ReactiveFormsModule],
+  imports: [FieldError, LucideDynamicIcon, ReactiveFormsModule, Tooltip],
   templateUrl: './select.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -20,6 +22,8 @@ export class Select {
   readonly disabled = input(false);
   readonly hint = input<string | null>(null);
   readonly errorMessage = input<string | null>(null);
+  readonly labelTooltip = input<string | null>(null);
+  readonly labelTooltipAriaLabel = input<string | null>(null);
 
   protected hintId(): string {
     return `${this.id()}-hint`;

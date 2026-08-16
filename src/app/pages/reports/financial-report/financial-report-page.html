@@ -22,59 +22,77 @@
     </div>
     @if (reportLoading()) {
       <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
-        @for (item of [1, 2, 3, 4]; track item) {
-          <gd-card class="h-full"
-            ><gd-skeleton width="45%" height="1rem" /><gd-skeleton
-              class="mt-4 block"
-              width="70%"
-              height="2rem"
-          /></gd-card>
+        @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) {
+          <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
+            <gd-skeleton width="45%" height="0.875rem" />
+            <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
+            <gd-skeleton class="mt-4 block" width="60%" height="0.75rem" />
+          </div>
         }
       </div>
     } @else if (report(); as report) {
       <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         <gd-summary-card
           class="h-full"
-          density="compact"
           title="Receitas totais"
           [value]="formatCurrency(report.summary.totalIncome)"
-          [meta]="
-            'Realizado: ' +
-            formatCurrency(report.summary.realizedIncome) +
-            '\nProjetado: ' +
-            formatCurrency(report.summary.projectedIncome)
-          "
+          description="Soma das receitas realizadas e projetadas incluídas no período pelo regime selecionado."
           icon="trending-up"
           tone="success"
-        /><gd-summary-card
+        />
+        <gd-summary-card
           class="h-full"
-          density="compact"
+          title="Receitas realizadas"
+          [value]="formatCurrency(report.summary.realizedIncome)"
+          description="Receitas com status pago incluídas no período pelo regime selecionado."
+          icon="circle-check"
+          tone="success"
+        />
+        <gd-summary-card
+          class="h-full"
+          title="Receitas projetadas"
+          [value]="formatCurrency(report.summary.projectedIncome)"
+          description="Receitas pendentes ou vencidas incluídas no período pelo regime selecionado."
+          icon="clock"
+          tone="success"
+        />
+        <gd-summary-card
+          class="h-full"
           title="Despesas totais"
           [value]="formatCurrency(report.summary.totalExpense)"
-          [meta]="
-            'Realizado: ' +
-            formatCurrency(report.summary.realizedExpense) +
-            '\nProjetado: ' +
-            formatCurrency(report.summary.projectedExpense)
-          "
+          description="Soma das despesas realizadas e projetadas incluídas no período pelo regime selecionado."
           icon="trending-down"
           tone="danger"
-        /><gd-summary-card
+        />
+        <gd-summary-card
           class="h-full"
-          density="compact"
+          title="Despesas realizadas"
+          [value]="formatCurrency(report.summary.realizedExpense)"
+          description="Despesas com status pago incluídas no período pelo regime selecionado."
+          icon="circle-check"
+          tone="danger"
+        />
+        <gd-summary-card
+          class="h-full"
+          title="Despesas projetadas"
+          [value]="formatCurrency(report.summary.projectedExpense)"
+          description="Despesas pendentes ou vencidas incluídas no período pelo regime selecionado."
+          icon="clock"
+          tone="danger"
+        />
+        <gd-summary-card
+          class="h-full"
           title="Saldo líquido"
           [value]="formatCurrency(report.summary.netBalance)"
-          [meta]="report.summary.netBalance >= 0 ? 'Resultado positivo' : 'Resultado negativo'"
+          description="Diferença entre as receitas e as despesas incluídas no período analisado."
           icon="wallet"
           [tone]="report.summary.netBalance >= 0 ? 'success' : 'danger'"
-        /><gd-summary-card
+        />
+        <gd-summary-card
           class="h-full"
-          density="compact"
           title="Margem"
           [value]="formatPercentage(report.summary.marginPercentage)"
-          [meta]="
-            report.summary.marginPercentage >= 0 ? 'Resultado positivo' : 'Resultado negativo'
-          "
+          description="Percentual do saldo líquido em relação às receitas incluídas no período."
           icon="chart-no-axes-combined"
           [tone]="report.summary.marginPercentage >= 0 ? 'info' : 'danger'"
         />
@@ -115,6 +133,8 @@
           /><gd-select
             id="financial-report-basis"
             label="Regime"
+            labelTooltipAriaLabel="Entenda o regime financeiro"
+            [labelTooltip]="basisTooltip"
             [control]="control('basis')"
             [options]="basisOptions"
           /><gd-select
@@ -191,7 +211,7 @@
             <h2 id="category-summary-title" class="text-lg font-semibold text-text-primary">
               Resumo por categoria
             </h2>
-            <div class="mt-5 space-y-4">
+            <div class="mt-5 max-h-[28rem] space-y-4 overflow-y-auto pr-1">
               @for (category of report.categories; track category.categoryId) {
                 <div>
                   <div class="flex justify-between gap-3">
@@ -303,9 +323,14 @@
       </div>
       <gd-card
         ><section aria-labelledby="period-transactions-title">
-          <h2 id="period-transactions-title" class="text-lg font-semibold text-text-primary">
-            {{ movementsTitle() }}
-          </h2>
+          <div>
+            <h2 id="period-transactions-title" class="text-lg font-semibold text-text-primary">
+              Movimentações do período
+            </h2>
+            @if (movementsPeriod(); as period) {
+              <p class="mt-1 text-sm text-text-muted">{{ period }}</p>
+            }
+          </div>
           @if (transactionsLoading()) {
             <div class="mt-5 space-y-3">
               @for (item of [1, 2, 3]; track item) {
@@ -319,56 +344,83 @@
             />
           } @else {
             <p class="mt-1 text-sm text-text-muted">
-              {{ transactionPage()?.totalElements ?? 0 }} movimentação(ões) encontrada(s).
+              {{ transactionCountLabel(transactionPage()?.totalElements ?? 0) }}
             </p>
-            <div class="mt-5 grid gap-3 md:hidden">
-              @for (transaction of transactions(); track transaction.id) {
-                <article class="rounded-app border border-border p-4">
-                  <p class="font-semibold">{{ transaction.description }}</p>
-                  <p class="mt-1 text-sm text-text-muted">
-                    {{ transaction.referenceDate }} · {{ transaction.categoryName }}
-                  </p>
-                  <p [class]="valueClasses(transaction.type)">
-                    {{ transaction.type === 'INCOME' ? '+' : '-' }}
-                    {{ formatCurrency(transaction.amount) }}
-                  </p>
-                </article>
-              } @empty {
-                <p class="text-sm text-text-muted">Nenhuma movimentação no período.</p>
-              }
-            </div>
-            <div class="mt-5 hidden overflow-x-auto md:block">
-              <table class="w-full min-w-[42rem] text-left text-sm">
-                <thead>
-                  <tr>
-                    <th>Descrição</th>
-                    <th>Safra</th>
-                    <th>Categoria</th>
-                    <th>Data</th>
-                    <th>Status</th>
-                    <th>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (transaction of transactions(); track transaction.id) {
-                    <tr>
-                      <td>{{ transaction.description }}</td>
-                      <td>{{ transaction.harvestSeasonName ?? 'Sem safra' }}</td>
-                      <td>{{ transaction.categoryName }}</td>
-                      <td>{{ transaction.referenceDate }}</td>
-                      <td>
-                        <gd-badge [variant]="statusVariant(transaction.paymentStatus)" size="sm">{{
-                          statusLabel(transaction.paymentStatus)
-                        }}</gd-badge>
-                      </td>
-                      <td [class]="valueClasses(transaction.type)">
-                        {{ formatCurrency(transaction.amount) }}
-                      </td>
+            @if (transactions().length > 0) {
+              <div class="mt-5 grid gap-4 md:hidden">
+                @for (transaction of transactions(); track transaction.id) {
+                  <article class="rounded-app border border-border bg-surface p-4 shadow-soft">
+                    <p class="font-semibold">{{ transaction.description }}</p>
+                    <p class="mt-1 text-sm text-text-muted">
+                      {{ transaction.harvestSeasonName ?? 'Sem safra' }} ·
+                      {{ formatDate(transaction.referenceDate) }} · {{ transaction.categoryName }}
+                    </p>
+                    <p [class]="valueClasses(transaction.type)">
+                      {{ transaction.type === 'INCOME' ? '+' : '-'
+                      }}{{ formatCurrency(transaction.amount) }}
+                    </p>
+                  </article>
+                }
+              </div>
+              <div
+                class="mt-5 hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+              >
+                <table class="w-full border-collapse text-left text-sm">
+                  <caption class="sr-only">
+                    Movimentações financeiras do período selecionado
+                  </caption>
+                  <thead class="border-b border-border bg-primary text-white">
+                    <tr class="text-xs font-semibold uppercase tracking-wide">
+                      <th class="px-5 py-4" scope="col">Descrição</th>
+                      <th class="px-5 py-4" scope="col">Safra</th>
+                      <th class="px-5 py-4" scope="col">Categoria</th>
+                      <th class="px-5 py-4" scope="col">Data</th>
+                      <th class="px-5 py-4" scope="col">Status</th>
+                      <th class="px-5 py-4 text-right" scope="col">Valor</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody class="divide-y divide-border">
+                    @for (transaction of transactions(); track transaction.id) {
+                      <tr class="transition-colors duration-200 hover:bg-background/60">
+                        <td class="max-w-[16rem] px-5 py-4 font-semibold text-text-primary">
+                          {{ transaction.description }}
+                        </td>
+                        <td class="max-w-[12rem] px-5 py-4 text-text-muted">
+                          {{ transaction.harvestSeasonName ?? 'Sem safra' }}
+                        </td>
+                        <td class="px-5 py-4 text-text-muted">{{ transaction.categoryName }}</td>
+                        <td class="whitespace-nowrap px-5 py-4 text-text-muted">
+                          {{ formatDate(transaction.referenceDate) }}
+                        </td>
+                        <td class="px-5 py-4">
+                          <gd-badge
+                            [variant]="statusVariant(transaction.paymentStatus)"
+                            size="sm"
+                            >{{ statusLabel(transaction.paymentStatus) }}</gd-badge
+                          >
+                        </td>
+                        <td
+                          [class]="
+                            'whitespace-nowrap px-5 py-4 text-right ' +
+                            valueClasses(transaction.type)
+                          "
+                        >
+                          {{ transaction.type === 'INCOME' ? '+' : '-'
+                          }}{{ formatCurrency(transaction.amount) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <gd-empty-state
+                class="mt-5 block"
+                title="Nenhuma movimentação encontrada"
+                description="Não existem movimentações para o período e filtros selecionados."
+                icon="receipt-text"
+              />
+            }
             @if (transactionPage() && transactionPage()!.totalPages > 1) {
               <div class="mt-5 flex gap-2">
                 <gd-button
