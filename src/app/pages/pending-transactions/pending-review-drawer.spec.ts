@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { FormControl } from '@angular/forms';
@@ -101,6 +101,21 @@ describe('PendingReviewDrawer', () => {
     expect(confirmation.variant()).toBe('success');
     expect(confirmation.confirmLabel()).toBe('Aprovar');
     expect(confirmation.description()).toBe('A movimentação será incluída no controle financeiro.');
+  });
+
+  it('closes the approval confirmation from its close button', () => {
+    const drawer = fixture.debugElement.query(By.directive(PendingReviewDrawer))
+      .componentInstance as unknown as { approveConfirm: WritableSignal<boolean> };
+    drawer.approveConfirm.set(true);
+    fixture.detectChanges();
+
+    const closeButton = fixture.nativeElement.querySelector(
+      'gd-confirm-dialog button[aria-label="Fechar confirmação"]',
+    ) as HTMLButtonElement;
+    closeButton.click();
+    fixture.detectChanges();
+
+    expect(drawer.approveConfirm()).toBe(false);
   });
 
   it('shows source data before the review form and enters rejection mode without a second dialog', () => {
