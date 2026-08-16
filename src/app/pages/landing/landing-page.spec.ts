@@ -67,10 +67,25 @@ describe('LandingPage', () => {
     expect(link?.getAttribute('target')).toBe('_blank');
   });
 
-  it('should render lading.png without the financial overlay', () => {
+  it('should render the prioritized hero image at its intrinsic 3:2 ratio', () => {
     const image = query<HTMLImageElement>('img[alt="Visão da plataforma Gestão Direta"]');
+    const imageContainer = image?.parentElement;
 
     expect(image?.getAttribute('src')).toContain('/assets/img/lading.png');
+    expect(image?.getAttribute('width')).toBe('1536');
+    expect(image?.getAttribute('height')).toBe('1024');
+    expect(image?.getAttribute('fetchpriority')).toBe('high');
+    expect(image?.classList.contains('h-full')).toBe(true);
+    expect(image?.classList.contains('w-full')).toBe(true);
+    expect(image?.classList.contains('object-cover')).toBe(true);
+    expect(imageContainer?.classList.contains('aspect-[3/2]')).toBe(true);
+    expect(imageContainer?.classList.contains('overflow-hidden')).toBe(true);
+    expect(image?.parentElement?.parentElement?.classList.contains('xl:h-full')).toBe(true);
+    expect(image?.parentElement?.parentElement?.classList.contains('xl:w-full')).toBe(true);
+    expect(image?.parentElement?.parentElement?.classList.contains('xl:aspect-[3/2]')).toBe(true);
+    expect(image?.classList.contains('h-64')).toBe(false);
+    expect(image?.classList.contains('sm:h-80')).toBe(false);
+    expect(image?.classList.contains('lg:h-[28rem]')).toBe(false);
     expect(textContent()).not.toContain('Saldo projetado');
     expect(textContent()).not.toContain('R$ 84.320');
     expect(textContent()).not.toContain('R$ 126.800');
