@@ -25,14 +25,14 @@ import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
-import { Button, Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
+import { Card, EmptyState, ErrorState, Skeleton, StatusActionSection } from '../../shared/ui';
 import { CategoryCard } from './components/category-card/category-card';
 import { CategoryForm, CategoryFormPayload } from './components/category-form/category-form';
+import { RegistrationsTabs } from '../registrations/components/registrations-tabs/registrations-tabs';
 
 @Component({
   selector: 'gd-categories-page',
   imports: [
-    Button,
     Card,
     CategoryCard,
     CategoryForm,
@@ -40,6 +40,7 @@ import { CategoryForm, CategoryFormPayload } from './components/category-form/ca
     Drawer,
     EmptyState,
     ErrorState,
+    RegistrationsTabs,
     Skeleton,
     StatusActionSection,
   ],
@@ -345,7 +346,10 @@ export class CategoriesPage {
       });
   }
 
-  private updateCategory(category: FinancialCategory, payload: UpdateFinancialCategoryRequest): void {
+  private updateCategory(
+    category: FinancialCategory,
+    payload: UpdateFinancialCategoryRequest,
+  ): void {
     if (
       this.submitting() ||
       !this.canEditCategory(category) ||

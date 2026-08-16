@@ -40,6 +40,7 @@ import {
   Skeleton,
   StatusActionSection,
 } from '../../shared/ui';
+import { RegistrationsTabs } from '../registrations/components/registrations-tabs/registrations-tabs';
 
 type ProductionActivityStatusFilter = ProductionActivityStatus | null;
 type DrawerMode = 'create' | 'edit';
@@ -75,6 +76,7 @@ interface StatusConfirmation {
     ListFilters,
     LucideDynamicIcon,
     ReactiveFormsModule,
+    RegistrationsTabs,
     Skeleton,
     StatusActionSection,
     Textarea,
@@ -538,7 +540,10 @@ export class ProductionActivitiesPage {
   }
 
   private isAccessPending(): boolean {
-    return this.farmAccessStore.loading() || (!this.farmAccessStore.access() && !this.farmAccessStore.error());
+    return (
+      this.farmAccessStore.loading() ||
+      (!this.farmAccessStore.access() && !this.farmAccessStore.error())
+    );
   }
 
   private showPermissionError(): void {

@@ -1,0 +1,49 @@
+<div
+  data-testid="registrations-tabs-actions"
+  class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+>
+  <nav
+    aria-label="Seções de cadastro"
+    class="inline-flex items-center gap-5 border-b border-border"
+  >
+    <a
+      routerLink="/registrations/categories"
+      routerLinkActive="text-text-primary font-semibold"
+      #categoriesLinkActive="routerLinkActive"
+      [attr.aria-current]="categoriesLinkActive.isActive ? 'page' : null"
+      class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <svg lucideIcon="tags" class="size-4" aria-hidden="true"></svg>
+      <span>Categorias</span>
+      @if (categoriesLinkActive.isActive) {
+        <span
+          class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary"
+          aria-hidden="true"
+        ></span>
+      }
+    </a>
+
+    <a
+      routerLink="/registrations/production-activities"
+      routerLinkActive="text-text-primary font-semibold"
+      #activitiesLinkActive="routerLinkActive"
+      [attr.aria-current]="activitiesLinkActive.isActive ? 'page' : null"
+      class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <svg lucideIcon="sprout" class="size-4" aria-hidden="true"></svg>
+      <span>Atividades produtivas</span>
+      @if (activitiesLinkActive.isActive) {
+        <span
+          class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary"
+          aria-hidden="true"
+        ></span>
+      }
+    </a>
+  </nav>
+
+  @if (actionLabel(); as label) {
+    <div>
+      <gd-button type="button" (click)="emitAction()">{{ label }}</gd-button>
+    </div>
+  }
+</div>

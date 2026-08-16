@@ -1,9 +1,8 @@
 <section class="gd-fade-in-up space-y-6">
-  @if (canCreateCategory() && !accessDenied()) {
-    <div class="flex justify-end">
-      <gd-button type="button" (click)="openCreateDrawer()">Nova categoria</gd-button>
-    </div>
-  }
+  <gd-registrations-tabs
+    [actionLabel]="canCreateCategory() && !accessDenied() ? 'Nova categoria' : null"
+    (action)="openCreateDrawer()"
+  />
 
   @if (!selectedFarmStore.selectedFarmId()) {
     <gd-empty-state
@@ -13,10 +12,12 @@
     />
   } @else if (
     !sessionStore.isAdmin() &&
-    (farmAccessStore.loading() ||
-      (!farmAccessStore.access() && !farmAccessStore.error()))
+    (farmAccessStore.loading() || (!farmAccessStore.access() && !farmAccessStore.error()))
   ) {
-    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando permissões">
+    <div
+      class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      aria-label="Carregando permissões"
+    >
       @for (item of skeletons; track item) {
         <gd-card variant="elevated">
           <gd-skeleton width="65%" height="1.25rem" />
@@ -34,7 +35,10 @@
       description="Você não tem permissão para visualizar categorias financeiras."
     />
   } @else if (loading()) {
-    <div class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando categorias">
+    <div
+      class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      aria-label="Carregando categorias"
+    >
       @for (item of skeletons; track item) {
         <gd-card variant="elevated">
           <div class="flex items-start justify-between gap-4">

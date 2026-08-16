@@ -175,27 +175,48 @@ export const routes: Routes = [
       },
       {
         path: 'categories',
-        title: 'Categorias',
-        data: {
-          title: 'Categorias financeiras',
-          subtitle: 'Organize receitas e despesas por categorias da fazenda.',
-        },
-        loadComponent: () =>
-          import('../pages/categories/categories-page').then(
-            (component) => component.CategoriesPage,
-          ),
+        pathMatch: 'full',
+        redirectTo: 'registrations/categories',
       },
       {
         path: 'production-activities',
-        title: 'Atividades produtivas',
+        pathMatch: 'full',
+        redirectTo: 'registrations/production-activities',
+      },
+      {
+        path: 'registrations',
+        title: 'Cadastro',
         data: {
-          title: 'Atividades produtivas',
-          subtitle: 'Gerencie culturas e atividades usadas no planejamento das safras.',
+          title: 'Cadastro',
+          subtitle: 'Gerencie categorias financeiras e atividades produtivas da fazenda.',
         },
         loadComponent: () =>
-          import('../pages/production-activities/production-activities-page').then(
-            (component) => component.ProductionActivitiesPage,
+          import('../pages/registrations/registrations-page').then(
+            (component) => component.RegistrationsPage,
           ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'categories',
+          },
+          {
+            path: 'categories',
+            title: 'Categorias',
+            loadComponent: () =>
+              import('../pages/categories/categories-page').then(
+                (component) => component.CategoriesPage,
+              ),
+          },
+          {
+            path: 'production-activities',
+            title: 'Atividades produtivas',
+            loadComponent: () =>
+              import('../pages/production-activities/production-activities-page').then(
+                (component) => component.ProductionActivitiesPage,
+              ),
+          },
+        ],
       },
       {
         path: 'transactions',

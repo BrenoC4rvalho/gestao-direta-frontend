@@ -6,6 +6,7 @@ export type LayoutNavVisibility =
   | 'authenticated'
   | 'manageFarmUsers'
   | 'manageCategories'
+  | 'viewRegistrations'
   | 'viewFinancial'
   | 'admin';
 
@@ -40,12 +41,12 @@ export const MAIN_NAV_ITEMS: readonly LayoutNavItem[] = [
     visibility: 'manageFarmUsers',
     exact: false,
   },
-  { label: 'Categorias', route: '/categories', icon: 'tags', visibility: 'manageCategories' },
   {
-    label: 'Atividades produtivas',
-    route: '/production-activities',
-    icon: 'sprout',
-    visibility: 'admin',
+    label: 'Cadastro',
+    route: '/registrations',
+    icon: 'settings',
+    visibility: 'viewRegistrations',
+    exact: false,
   },
   {
     label: 'Movimentações',
@@ -87,10 +88,7 @@ export function getVisibleNavItems(
   return items.filter((item) => canShowNavItem(item, context));
 }
 
-export function canShowNavItem(
-  item: LayoutNavItem,
-  context: LayoutNavVisibilityContext,
-): boolean {
+export function canShowNavItem(item: LayoutNavItem, context: LayoutNavVisibilityContext): boolean {
   if (!context.userType) {
     return false;
   }
@@ -112,9 +110,10 @@ export function canShowNavItem(
       return context.permissions.canManageFarmUsers;
     case 'manageCategories':
       return (
-        context.permissions.canManageCategories ||
-        context.permissions.canManageGlobalCategories
+        context.permissions.canManageCategories || context.permissions.canManageGlobalCategories
       );
+    case 'viewRegistrations':
+      return context.role !== null && context.role !== 'INACTIVE';
     case 'viewFinancial':
       return context.permissions.canViewFinancial;
     case 'admin':

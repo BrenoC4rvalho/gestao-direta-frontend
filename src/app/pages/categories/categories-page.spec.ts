@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -115,6 +116,7 @@ describe('CategoriesPage', () => {
       imports: [CategoriesPage],
       providers: [
         provideGestaoDiretaIcons(),
+        provideRouter([]),
         { provide: FinancialCategoryService, useValue: categoryService },
       ],
     }).compileComponents();
@@ -142,7 +144,9 @@ describe('CategoriesPage', () => {
     createPage();
 
     expect(categoryService.listByFarm).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Selecione uma fazenda para visualizar as categorias.');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Selecione uma fazenda para visualizar as categorias.',
+    );
   });
 
   it('should load categories for selected farm with inactive categories included', () => {
@@ -246,7 +250,12 @@ describe('CategoriesPage', () => {
   }
 
   function findButton(label: string): HTMLButtonElement | undefined {
-    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
-    return Array.from(buttons).find((button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label);
+    const buttons = fixture.nativeElement.querySelectorAll(
+      'button',
+    ) as NodeListOf<HTMLButtonElement>;
+    return Array.from(buttons).find(
+      (button) =>
+        button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
+    );
   }
 });

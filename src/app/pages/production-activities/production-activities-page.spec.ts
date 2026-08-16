@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -132,6 +133,7 @@ describe('ProductionActivitiesPage', () => {
       imports: [ProductionActivitiesPage],
       providers: [
         provideGestaoDiretaIcons(),
+        provideRouter([]),
         { provide: ProductionActivityService, useValue: service },
       ],
     }).compileComponents();
@@ -187,7 +189,9 @@ describe('ProductionActivitiesPage', () => {
     expect(editButton?.getAttribute('title')).toBe('Editar atividade produtiva');
     expect(editButton?.querySelector('svg[lucideIcon="pencil"]')).toBeTruthy();
     expect(editButton?.textContent?.trim()).toBe('');
-    expect(fixture.nativeElement.querySelector('thead th:last-child .sr-only')?.textContent?.trim()).toBe('Ações');
+    expect(
+      fixture.nativeElement.querySelector('thead th:last-child .sr-only')?.textContent?.trim(),
+    ).toBe('Ações');
     expect(findButton('Inativar')).toBeUndefined();
     expect(findButton('Ativar')).toBeUndefined();
   });
@@ -281,7 +285,6 @@ describe('ProductionActivitiesPage', () => {
       'Nenhuma atividade produtiva encontrada para os filtros informados.',
     );
   });
-
 
   it('should clear stale data and reload when the selected farm changes', () => {
     const secondFarmActivity: ProductionActivity = {
@@ -549,7 +552,10 @@ describe('ProductionActivitiesPage', () => {
 
   function clickButtonIn(container: HTMLElement, label: string): void {
     Array.from(container.querySelectorAll('button'))
-      .find((button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
+      .find(
+        (button) =>
+          button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
+      )
       ?.click();
     fixture.detectChanges();
   }
@@ -558,7 +564,8 @@ describe('ProductionActivitiesPage', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     return Array.from(element.querySelectorAll('button')).find(
-      (button) => button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
+      (button) =>
+        button.getAttribute('aria-label') === label || button.textContent?.trim() === label,
     );
   }
 

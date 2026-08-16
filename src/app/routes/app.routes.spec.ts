@@ -11,6 +11,7 @@ import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { LandingPage } from '../pages/landing/landing-page';
 import { ServerErrorPage } from '../pages/server-error/server-error-page';
 import { PeopleManagementPage } from '../pages/people-management/people-management-page';
+import { RegistrationsPage } from '../pages/registrations/registrations-page';
 
 import { routes } from './app.routes';
 
@@ -28,14 +29,18 @@ describe('routes', () => {
 
   it('should keep /server-error public and outside AppLayout', async () => {
     const serverErrorRoute = routes.find((route) => route.path === 'server-error');
-    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+    const appLayoutRoute = routes.find(
+      (route) => route.path === '' && Array.isArray(route.children),
+    );
 
     expect(serverErrorRoute?.canActivate).toBeUndefined();
     expect(serverErrorRoute?.children).toBeUndefined();
     expect(appLayoutRoute?.children?.some((route) => route.path === 'server-error')).toBe(false);
     expect(serverErrorRoute?.loadComponent).toBeTypeOf('function');
 
-    const serverErrorComponent = await (serverErrorRoute?.loadComponent as () => Promise<unknown>)();
+    const serverErrorComponent = await (
+      serverErrorRoute?.loadComponent as () => Promise<unknown>
+    )();
     expect(serverErrorComponent).toBe(ServerErrorPage);
   });
 
@@ -51,7 +56,9 @@ describe('routes', () => {
   });
 
   it('should protect private routes with API availability before auth', async () => {
-    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+    const appLayoutRoute = routes.find(
+      (route) => route.path === '' && Array.isArray(route.children),
+    );
 
     expect(appLayoutRoute?.canActivate).toEqual([apiAvailableGuard, authGuard]);
     expect(appLayoutRoute?.loadComponent).toBeTypeOf('function');
@@ -61,7 +68,9 @@ describe('routes', () => {
   });
 
   it('should keep /dashboard under the auth-protected app route', async () => {
-    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+    const appLayoutRoute = routes.find(
+      (route) => route.path === '' && Array.isArray(route.children),
+    );
     const dashboardRoute = appLayoutRoute?.children?.find((route) => route.path === 'dashboard');
 
     expect(appLayoutRoute?.canActivate).toContain(authGuard);
@@ -75,13 +84,17 @@ describe('routes', () => {
 
 describe('people management routes', () => {
   it('should group users and farm links under /people and preserve legacy redirects', async () => {
-    const appLayoutRoute = routes.find((route) => route.path === '' && Array.isArray(route.children));
+    const appLayoutRoute = routes.find(
+      (route) => route.path === '' && Array.isArray(route.children),
+    );
     const peopleRoute = appLayoutRoute?.children?.find((route) => route.path === 'people');
     const usersRoute = peopleRoute?.children?.find((route) => route.path === 'users');
     const farmUsersRoute = peopleRoute?.children?.find((route) => route.path === 'farm-users');
     const defaultRoute = peopleRoute?.children?.find((route) => route.path === '');
     const legacyUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'users');
-    const legacyFarmUsersRoute = appLayoutRoute?.children?.find((route) => route.path === 'farm-users');
+    const legacyFarmUsersRoute = appLayoutRoute?.children?.find(
+      (route) => route.path === 'farm-users',
+    );
 
     expect(peopleRoute?.data).toEqual({
       title: 'Usuários e vínculos',
@@ -95,5 +108,42 @@ describe('people management routes', () => {
 
     const component = await (peopleRoute?.loadComponent as () => Promise<unknown>)();
     expect(component).toBe(PeopleManagementPage);
+  });
+});
+
+describe('registrations routes', () => {
+  it('should group categories and production activities under /registrations and preserve legacy redirects', async () => {
+    const appLayoutRoute = routes.find(
+      (route) => route.path === '' && Array.isArray(route.children),
+    );
+    const registrationsRoute = appLayoutRoute?.children?.find(
+      (route) => route.path === 'registrations',
+    );
+    const categoriesRoute = registrationsRoute?.children?.find(
+      (route) => route.path === 'categories',
+    );
+    const activitiesRoute = registrationsRoute?.children?.find(
+      (route) => route.path === 'production-activities',
+    );
+    const defaultRoute = registrationsRoute?.children?.find((route) => route.path === '');
+    const legacyCategoriesRoute = appLayoutRoute?.children?.find(
+      (route) => route.path === 'categories',
+    );
+    const legacyActivitiesRoute = appLayoutRoute?.children?.find(
+      (route) => route.path === 'production-activities',
+    );
+
+    expect(registrationsRoute?.data).toEqual({
+      title: 'Cadastro',
+      subtitle: 'Gerencie categorias financeiras e atividades produtivas da fazenda.',
+    });
+    expect(defaultRoute?.redirectTo).toBe('categories');
+    expect(categoriesRoute?.loadComponent).toBeTypeOf('function');
+    expect(activitiesRoute?.loadComponent).toBeTypeOf('function');
+    expect(legacyCategoriesRoute?.redirectTo).toBe('registrations/categories');
+    expect(legacyActivitiesRoute?.redirectTo).toBe('registrations/production-activities');
+
+    const component = await (registrationsRoute?.loadComponent as () => Promise<unknown>)();
+    expect(component).toBe(RegistrationsPage);
   });
 });
