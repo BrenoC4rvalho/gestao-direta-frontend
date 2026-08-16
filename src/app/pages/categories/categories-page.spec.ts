@@ -154,6 +154,14 @@ describe('CategoriesPage', () => {
     toastStore.clear();
   });
 
+  it('should use the users page tab spacing structure', () => {
+    createPage();
+
+    const tabs = fixture.nativeElement.querySelector('gd-registrations-tabs') as HTMLElement;
+
+    expect(tabs.classList.contains('block')).toBe(true);
+  });
+
   it('should not load categories without selected farm', () => {
     createPage();
 

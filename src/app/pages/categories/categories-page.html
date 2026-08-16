@@ -1,5 +1,6 @@
 <section class="gd-fade-in-up space-y-6">
   <gd-registrations-tabs
+    class="block"
     [actionLabel]="canCreateCategory() && !accessDenied() ? 'Nova categoria' : null"
     (action)="openCreateDrawer()"
   />

@@ -159,6 +159,14 @@ describe('ProductionActivitiesPage', () => {
     document.body.classList.remove('gd-overlay-open');
   });
 
+  it('should use the users page tab spacing structure', () => {
+    createPage();
+
+    const tabs = fixture.nativeElement.querySelector('gd-registrations-tabs') as HTMLElement;
+
+    expect(tabs.classList.contains('block')).toBe(true);
+  });
+
   it('should render title content, load service, show activities, and avoid direct status actions', () => {
     createPage();
 
