@@ -1,7 +1,12 @@
 <main class="min-h-dvh bg-background text-text-primary">
   <header class="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur">
-    <div class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-      <a href="#inicio" class="inline-flex items-center gap-3 rounded-control focus-visible:outline-primary">
+    <div
+      class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
+    >
+      <a
+        href="#inicio"
+        class="inline-flex items-center gap-3 rounded-control focus-visible:outline-primary"
+      >
         <img
           ngSrc="/assets/brand/logo_horizontal.svg"
           width="990"
@@ -21,11 +26,35 @@
         <span class="text-base font-semibold text-primary sm:hidden">Gestão Direta</span>
       </a>
 
-      <nav class="hidden items-center gap-7 text-sm font-medium text-text-muted lg:flex" aria-label="Navegação principal">
-        <a href="#problema" class="transition-colors hover:text-primary focus-visible:outline-primary">Problema</a>
-        <a href="#solucao" class="transition-colors hover:text-primary focus-visible:outline-primary">Solução</a>
-        <a href="#beneficios" class="transition-colors hover:text-primary focus-visible:outline-primary">Benefícios</a>
-        <a href="#em-breve" class="transition-colors hover:text-primary focus-visible:outline-primary">Em breve</a>
+      <nav
+        class="hidden items-center gap-7 text-sm font-medium text-text-muted lg:flex"
+        aria-label="Navegação principal"
+      >
+        <a
+          href="#problema"
+          class="transition-colors hover:text-primary focus-visible:outline-primary"
+          >Problema</a
+        >
+        <a
+          href="#solucao"
+          class="transition-colors hover:text-primary focus-visible:outline-primary"
+          >Solução</a
+        >
+        <a
+          href="#mensagens"
+          class="transition-colors hover:text-primary focus-visible:outline-primary"
+          >Mensagens</a
+        >
+        <a
+          href="#beneficios"
+          class="transition-colors hover:text-primary focus-visible:outline-primary"
+          >Benefícios</a
+        >
+        <a
+          href="#em-breve"
+          class="transition-colors hover:text-primary focus-visible:outline-primary"
+          >Em breve</a
+        >
       </nav>
 
       <a
@@ -36,21 +65,53 @@
         Entrar
       </a>
     </div>
+
+    <nav
+      class="flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-border/80 px-4 py-2 text-xs font-medium text-text-muted lg:hidden"
+      aria-label="Navegação principal mobile"
+    >
+      <a href="#problema" class="transition-colors hover:text-primary focus-visible:outline-primary"
+        >Problema</a
+      >
+      <a href="#solucao" class="transition-colors hover:text-primary focus-visible:outline-primary"
+        >Solução</a
+      >
+      <a
+        href="#mensagens"
+        class="transition-colors hover:text-primary focus-visible:outline-primary"
+        >Mensagens</a
+      >
+      <a
+        href="#beneficios"
+        class="transition-colors hover:text-primary focus-visible:outline-primary"
+        >Benefícios</a
+      >
+      <a href="#em-breve" class="transition-colors hover:text-primary focus-visible:outline-primary"
+        >Em breve</a
+      >
+    </nav>
   </header>
 
-  <section id="inicio" class="bg-primary text-white">
-    <div class="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-18 lg:grid-cols-[1fr_0.92fr] lg:items-center lg:px-8 lg:py-20">
+  <section id="inicio" class="scroll-mt-32 bg-primary text-white">
+    <div
+      class="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-18 lg:grid-cols-[1fr_0.92fr] lg:items-center lg:px-8 lg:py-20"
+    >
       <div class="max-w-3xl">
-        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-green-100">Gestão financeira rural</p>
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-green-100">
+          Gestão financeira rural
+        </p>
         <h1 class="mt-5 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
           Controle financeiro simples para quem produz o Brasil
         </h1>
         <p class="mt-5 max-w-2xl text-base leading-8 text-green-50 sm:text-lg">
-          Organize suas finanças por safra, visualize seu lucro real e tome decisões com mais segurança.
+          Organize receitas e despesas por fazenda e safra, acompanhe seus resultados e tome
+          decisões com mais clareza.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <a
-            routerLink="/login"
+            href="https://wa.me/5524988276875"
+            target="_blank"
+            rel="noopener noreferrer"
             data-testid="landing-start-link"
             class="inline-flex min-h-12 items-center justify-center rounded-control bg-white px-6 text-base font-semibold text-primary shadow-soft transition-colors hover:bg-green-50 focus-visible:outline-white"
           >
@@ -76,10 +137,14 @@
             class="h-64 w-full object-cover object-center sm:h-80 lg:h-[30rem]"
           />
         </div>
-        <div class="mx-auto -mt-16 w-[92%] rounded-2xl border border-white/20 bg-surface p-4 text-text-primary shadow-soft sm:w-4/5">
+        <div
+          class="mx-auto -mt-16 w-[92%] rounded-2xl border border-white/20 bg-surface p-4 text-text-primary shadow-soft sm:w-4/5"
+        >
           <div class="flex items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">Saldo projetado</p>
+              <p class="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
+                Saldo projetado
+              </p>
               <p class="mt-1 text-2xl font-semibold text-primary">R$ 84.320</p>
             </div>
             <svg lucideIcon="wallet" class="size-8 text-primary" aria-hidden="true"></svg>
@@ -99,7 +164,7 @@
     </div>
   </section>
 
-  <section id="problema" class="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+  <section id="problema" class="scroll-mt-32 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
     <div class="mx-auto max-w-7xl">
       <div class="mx-auto max-w-3xl text-center">
         <h2 class="text-3xl font-semibold leading-tight text-text-primary sm:text-4xl">
@@ -113,7 +178,9 @@
       <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @for (card of problemCards; track card.title) {
           <article class="rounded-2xl border border-border bg-surface p-5 shadow-soft">
-            <div class="flex size-11 items-center justify-center rounded-xl bg-highlight-soft text-primary">
+            <div
+              class="flex size-11 items-center justify-center rounded-xl bg-highlight-soft text-primary"
+            >
               <svg [lucideIcon]="card.icon" class="size-5" aria-hidden="true"></svg>
             </div>
             <h3 class="mt-5 text-lg font-semibold text-text-primary">{{ card.title }}</h3>
@@ -124,16 +191,22 @@
     </div>
   </section>
 
-  <section id="solucao" class="bg-background-secondary px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+  <section
+    id="solucao"
+    class="scroll-mt-32 bg-background-secondary px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
+  >
     <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
       <div class="rounded-3xl border border-border bg-surface p-5 shadow-soft">
         <div class="rounded-2xl bg-background p-4">
           <div class="flex items-center justify-between gap-4">
             <div>
               <p class="text-sm font-medium text-text-muted">Safra Soja 2025/26</p>
-              <p class="mt-1 text-2xl font-semibold text-text-primary">Lucro estimado</p>
+              <p class="mt-1 text-2xl font-semibold text-text-primary">Resumo financeiro</p>
             </div>
-            <span class="rounded-full bg-highlight-soft px-3 py-1 text-sm font-semibold text-primary">+18%</span>
+            <span
+              class="rounded-full bg-highlight-soft px-3 py-1 text-sm font-semibold text-primary"
+              >Por safra</span
+            >
           </div>
           <div class="mt-6 space-y-3">
             <div class="h-3 rounded-full bg-border">
@@ -156,8 +229,8 @@
               <p class="mt-1 font-semibold text-danger">R$ 58 mil</p>
             </div>
             <div class="rounded-xl border border-border bg-surface p-4">
-              <p class="text-xs text-text-muted">Margem</p>
-              <p class="mt-1 font-semibold text-primary">37%</p>
+              <p class="text-xs text-text-muted">Saldo</p>
+              <p class="mt-1 font-semibold text-primary">R$ 34 mil</p>
             </div>
           </div>
         </div>
@@ -171,7 +244,9 @@
         <div class="mt-8 space-y-5">
           @for (item of solutionItems; track item.title) {
             <div class="flex gap-4">
-              <div class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+              <div
+                class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white"
+              >
                 <svg lucideIcon="check" class="size-4" aria-hidden="true"></svg>
               </div>
               <div>
@@ -185,57 +260,116 @@
     </div>
   </section>
 
-  <section class="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-    <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-      <div>
-        <div class="inline-flex items-center gap-2 rounded-full bg-highlight-soft px-4 py-2 text-sm font-semibold text-primary">
-          <svg lucideIcon="message-circle" class="size-4" aria-hidden="true"></svg>
-          WhatsApp
+  <section id="mensagens" class="scroll-mt-32 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+    <div class="mx-auto max-w-7xl">
+      <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div>
+          <div
+            class="inline-flex items-center gap-2 rounded-full bg-highlight-soft px-4 py-2 text-sm font-semibold text-primary"
+          >
+            <svg lucideIcon="message-circle" class="size-4" aria-hidden="true"></svg>
+            Gestão por mensagem
+          </div>
+          <h2 class="mt-5 text-3xl font-semibold leading-tight text-text-primary sm:text-4xl">
+            Sua gestão financeira começa com uma mensagem
+          </h2>
+          <p class="mt-4 text-base leading-7 text-text-muted">
+            Envie uma mensagem descrevendo uma receita ou despesa. A IA organiza o que identificar,
+            e você revisa antes de incluir no controle financeiro.
+          </p>
+
+          <div class="mt-7 rounded-2xl border border-border bg-background p-4">
+            <p class="text-sm font-semibold text-text-primary">Canais disponíveis</p>
+            <dl class="mt-4 space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-4">
+                <dt class="font-medium text-text-primary">Telegram</dt>
+                <dd><gd-badge variant="success" size="sm">Disponível</gd-badge></dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="font-medium text-text-primary">WhatsApp</dt>
+                <dd><gd-badge variant="neutral" size="sm">Em breve</gd-badge></dd>
+              </div>
+            </dl>
+          </div>
+
+          <ul class="mt-7 space-y-3 text-sm leading-6 text-text-muted">
+            <li class="flex gap-3">
+              <svg
+                lucideIcon="check"
+                class="mt-0.5 size-5 shrink-0 text-primary"
+                aria-hidden="true"
+              ></svg
+              >Envie receitas e despesas em linguagem natural.
+            </li>
+            <li class="flex gap-3">
+              <svg
+                lucideIcon="check"
+                class="mt-0.5 size-5 shrink-0 text-primary"
+                aria-hidden="true"
+              ></svg
+              >A IA identifica as informações financeiras disponíveis na mensagem.
+            </li>
+            <li class="flex gap-3">
+              <svg
+                lucideIcon="check"
+                class="mt-0.5 size-5 shrink-0 text-primary"
+                aria-hidden="true"
+              ></svg
+              >Revise os dados antes de incluí-los no controle financeiro.
+            </li>
+          </ul>
         </div>
-        <h2 class="mt-5 text-3xl font-semibold leading-tight text-text-primary sm:text-4xl">
-          Controle financeiro direto pelo WhatsApp
-        </h2>
-        <p class="mt-4 text-base leading-7 text-text-muted">
-          Não precisa aprender sistemas complicados. Mande uma mensagem e registre movimentações de forma simples.
-        </p>
-        <ul class="mt-7 space-y-3 text-sm leading-6 text-text-muted">
-          <li class="flex gap-3"><svg lucideIcon="check" class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true"></svg>Registre gastos e receitas em segundos.</li>
-          <li class="flex gap-3"><svg lucideIcon="check" class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true"></svg>Consulte saldo e relatórios por mensagem.</li>
-          <li class="flex gap-3"><svg lucideIcon="check" class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true"></svg>Use uma interface que você já conhece no dia a dia.</li>
-        </ul>
+
+        <div class="rounded-3xl border border-border bg-surface p-4 shadow-soft sm:p-6">
+          <div class="flex items-center gap-3 border-b border-border pb-4">
+            <div
+              class="flex size-11 items-center justify-center rounded-full bg-primary text-white"
+            >
+              <svg lucideIcon="bot" class="size-5" aria-hidden="true"></svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-text-primary">Gestão Direta</h3>
+              <p class="text-sm text-text-muted">Assistente financeiro</p>
+            </div>
+          </div>
+          <div class="mt-5 space-y-4">
+            @for (message of chatMessages; track message.text) {
+              <div class="flex" [class.justify-end]="message.own">
+                <div
+                  class="max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-6"
+                  [class.bg-primary]="message.own"
+                  [class.text-white]="message.own"
+                  [class.bg-background]="!message.own"
+                  [class.text-text-primary]="!message.own"
+                >
+                  <p class="mb-1 text-xs font-semibold opacity-75">{{ message.sender }}</p>
+                  {{ message.text }}
+                </div>
+              </div>
+            }
+          </div>
+        </div>
       </div>
 
-      <div class="rounded-3xl border border-border bg-surface p-4 shadow-soft sm:p-6">
-        <div class="flex items-center gap-3 border-b border-border pb-4">
-          <div class="flex size-11 items-center justify-center rounded-full bg-primary text-white">
-            <svg lucideIcon="bot" class="size-5" aria-hidden="true"></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold text-text-primary">Gestão Direta</h3>
-            <p class="text-sm text-text-muted">Assistente financeiro</p>
-          </div>
-        </div>
-        <div class="mt-5 space-y-4">
-          @for (message of chatMessages; track message.text) {
-            <div class="flex" [class.justify-end]="message.own">
-              <div
-                class="max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-6"
-                [class.bg-primary]="message.own"
-                [class.text-white]="message.own"
-                [class.bg-background]="!message.own"
-                [class.text-text-primary]="!message.own"
-              >
-                <p class="mb-1 text-xs font-semibold opacity-75">{{ message.sender }}</p>
-                {{ message.text }}
-              </div>
-            </div>
-          }
-        </div>
+      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @for (step of messageSteps; track step.number) {
+          <article class="rounded-2xl border border-border bg-surface p-5 shadow-soft">
+            <span
+              class="inline-flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white"
+              >{{ step.number }}</span
+            >
+            <h3 class="mt-4 text-lg font-semibold text-text-primary">{{ step.title }}</h3>
+            <p class="mt-2 text-sm leading-6 text-text-muted">{{ step.description }}</p>
+          </article>
+        }
       </div>
     </div>
   </section>
 
-  <section id="beneficios" class="bg-background-secondary px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+  <section
+    id="beneficios"
+    class="scroll-mt-32 bg-background-secondary px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
+  >
     <div class="mx-auto max-w-7xl">
       <div class="max-w-3xl">
         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Benefícios</p>
@@ -246,7 +380,9 @@
       <div class="mt-10 grid gap-4 md:grid-cols-2">
         @for (benefit of benefits; track benefit.title) {
           <article class="flex gap-4 rounded-2xl border border-border bg-surface p-5 shadow-soft">
-            <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-highlight-soft text-primary">
+            <div
+              class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-highlight-soft text-primary"
+            >
               <svg [lucideIcon]="benefit.icon" class="size-5" aria-hidden="true"></svg>
             </div>
             <div>
@@ -259,10 +395,13 @@
     </div>
   </section>
 
-  <section id="em-breve" class="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+  <section id="em-breve" class="scroll-mt-32 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
     <div class="mx-auto max-w-7xl">
       <div class="mx-auto max-w-3xl text-center">
-        <span class="inline-flex rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-muted">Em breve</span>
+        <span
+          class="inline-flex rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-muted"
+          >Em breve</span
+        >
         <h2 class="mt-5 text-3xl font-semibold leading-tight text-text-primary sm:text-4xl">
           Evoluindo com você
         </h2>
@@ -285,24 +424,25 @@
         Pare de adivinhar. Comece a decidir com dados.
       </h2>
       <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-green-50">
-        Junte-se aos produtores que estão transformando sua gestão financeira.
+        Tenha suas informações financeiras organizadas para tomar decisões com mais clareza.
       </p>
       <a
-        routerLink="/login"
+        href="https://wa.me/5524988276875"
+        target="_blank"
+        rel="noopener noreferrer"
         class="mt-8 inline-flex min-h-12 items-center justify-center rounded-control bg-white px-6 text-base font-semibold text-primary shadow-soft transition-colors hover:bg-green-50 focus-visible:outline-white"
       >
-        Quero usar o Gestão Direta
+        Entrar em contato
       </a>
-      <p class="mt-5 text-sm text-green-50">Grátis para começar • Sem cartão de crédito • Suporte em português</p>
+      <p class="mt-5 text-sm font-semibold uppercase tracking-[0.12em] text-green-50">
+        Fale com nossa equipe · Tire suas dúvidas · Conheça o Gestão Direta
+      </p>
     </div>
   </section>
 
   <footer class="border-t border-border bg-background px-4 py-8 sm:px-6 lg:px-8">
-    <div class="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-text-muted sm:flex-row sm:items-center sm:justify-between">
+    <div class="mx-auto max-w-7xl text-center text-sm text-text-muted">
       <p>© 2026 Gestão Direta - Finanças simplificadas para a Agricultura</p>
-      <a routerLink="/login" class="font-medium text-primary hover:text-primary-hover focus-visible:outline-primary">
-        Entrar
-      </a>
     </div>
   </footer>
 </main>

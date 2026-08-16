@@ -19,7 +19,10 @@ describe('LandingPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [LandingPage],
-      providers: [provideGestaoDiretaIcons(), provideRouter([{ path: 'login', component: LoginStub }])],
+      providers: [
+        provideGestaoDiretaIcons(),
+        provideRouter([{ path: 'login', component: LoginStub }]),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LandingPage);
@@ -37,7 +40,7 @@ describe('LandingPage', () => {
 
   it('should set the SEO page title', () => {
     expect(TestBed.inject(Title).getTitle()).toBe(
-      'Gestão Direta — Finanças simplificadas para a Agricultura',
+      'Gestão Direta — Gestão financeira para produtores rurais',
     );
   });
 
@@ -57,31 +60,45 @@ describe('LandingPage', () => {
     expect(router.url).toBe('/login');
   });
 
-  it('should navigate to login when Começar agora is clicked', async () => {
-    query<HTMLAnchorElement>('[data-testid="landing-start-link"]')?.click();
-    await fixture.whenStable();
+  it('should link Começar agora to WhatsApp', () => {
+    const link = query<HTMLAnchorElement>('[data-testid="landing-start-link"]');
 
-    expect(router.url).toBe('/login');
+    expect(link?.getAttribute('href')).toBe('https://wa.me/5524988276875');
+    expect(link?.getAttribute('target')).toBe('_blank');
   });
 
   it('should render the Problema section', () => {
     expect(textContent()).toContain('O problema no campo não é produzir. É gerenciar.');
-    expect(textContent()).toContain('Mistura de contas pessoais e da fazenda dificulta controle.');
+    expect(textContent()).toContain(
+      'Informações em cadernos, conversas e planilhas dificultam encontrar o que aconteceu.',
+    );
   });
 
   it('should render the Solução section', () => {
     expect(textContent()).toContain('Uma solução simples para uma realidade complexa');
-    expect(textContent()).toContain('Controle de fluxo de caixa');
+    expect(textContent()).toContain('Receitas e despesas organizadas');
   });
 
-  it('should render the WhatsApp section', () => {
-    expect(textContent()).toContain('Controle financeiro direto pelo WhatsApp');
-    expect(textContent()).toContain('Gastei 200 reais de diesel hoje na safra soja');
+  it('should communicate message-based registration with Telegram available and WhatsApp coming soon', () => {
+    const text = textContent();
+
+    expect(text).toContain('Sua gestão financeira começa com uma mensagem');
+    expect(text).toContain('Telegram');
+    expect(text).toContain('Disponível');
+    expect(text).toContain('WhatsApp');
+    expect(text).toContain('Em breve');
+    expect(text).toContain(
+      'A movimentação foi enviada para revisão antes de entrar no seu controle financeiro.',
+    );
+    expect(text).toContain('A IA organiza');
+    expect(text).not.toContain('Controle financeiro direto pelo WhatsApp');
+    expect(text).not.toContain('Consulte saldo e relatórios por mensagem.');
+    expect(text).not.toContain('Registrado!');
   });
 
   it('should render the Benefícios section', () => {
     expect(textContent()).toContain('Por que usar o Gestão Direta?');
-    expect(textContent()).toContain('Melhor tomada de decisão');
+    expect(textContent()).toContain('Mais clareza para decidir');
   });
 
   it('should render the Em breve section', () => {
@@ -89,9 +106,18 @@ describe('LandingPage', () => {
     expect(textContent()).toContain('IA para compra de insumos');
   });
 
+  it('should expose responsive anchors for the landing sections', () => {
+    expect(query<HTMLAnchorElement>('a[href="\#mensagens"]'))?.toBeTruthy();
+    expect(query<HTMLElement>('#mensagens'))?.toBeTruthy();
+    expect(query<HTMLElement>('#mensagens')?.classList.contains('scroll-mt-32')).toBe(true);
+  });
+
   it('should render the final CTA section', () => {
     expect(textContent()).toContain('Pare de adivinhar. Comece a decidir com dados.');
-    expect(textContent()).toContain('Quero usar o Gestão Direta');
+    expect(textContent()).toContain('Entrar em contato');
+    expect(
+      query<HTMLAnchorElement>('a[href="https://wa.me/5524988276875"]')?.getAttribute('target'),
+    ).toBe('_blank');
   });
 
   it('should not render the authenticated app layout chrome', () => {

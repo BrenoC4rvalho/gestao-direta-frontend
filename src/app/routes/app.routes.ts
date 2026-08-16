@@ -12,7 +12,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    title: 'Gestão Direta — Finanças simplificadas para a Agricultura',
+    title: 'Gestão Direta — Gestão financeira para produtores rurais',
     loadComponent: () =>
       import('../pages/landing/landing-page').then((component) => component.LandingPage),
   },

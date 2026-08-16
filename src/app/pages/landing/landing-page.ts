@@ -4,6 +4,8 @@ import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 
+import { Badge } from '../../shared/ui';
+
 interface LandingCard {
   readonly icon: string;
   readonly title: string;
@@ -16,14 +18,20 @@ interface SolutionItem {
 }
 
 interface ChatMessage {
-  readonly sender: 'Usuário' | 'Gestão Direta';
+  readonly sender: 'Você' | 'Gestão Direta';
   readonly text: string;
   readonly own?: boolean;
 }
 
+interface MessageStep {
+  readonly number: string;
+  readonly title: string;
+  readonly description: string;
+}
+
 @Component({
   selector: 'gd-landing-page',
-  imports: [LucideDynamicIcon, NgOptimizedImage, RouterLink],
+  imports: [Badge, LucideDynamicIcon, NgOptimizedImage, RouterLink],
   templateUrl: './landing-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -32,93 +40,107 @@ export class LandingPage {
 
   protected readonly problemCards: readonly LandingCard[] = [
     {
-      icon: 'alert-triangle',
-      title: 'Contas misturadas',
-      description: 'Mistura de contas pessoais e da fazenda dificulta controle.',
+      icon: 'inbox',
+      title: 'Anotações espalhadas',
+      description:
+        'Informações em cadernos, conversas e planilhas dificultam encontrar o que aconteceu.',
     },
     {
-      icon: 'trending-down',
-      title: 'Lucro pouco claro',
-      description: 'Falta de visão do lucro real por cultura, safra ou atividade.',
+      icon: 'receipt-text',
+      title: 'Receitas e despesas sem organização',
+      description:
+        'Registrar cada movimentação depois consome tempo e aumenta a chance de esquecer detalhes.',
     },
     {
-      icon: 'credit-card',
-      title: 'Crédito mais difícil',
-      description: 'Dificuldade de acesso a crédito por falta de documentação organizada.',
+      icon: 'sprout',
+      title: 'Visão por safra difícil',
+      description:
+        'Sem separar os lançamentos, acompanhar os resultados de cada ciclo fica mais trabalhoso.',
     },
     {
       icon: 'calendar-days',
-      title: 'Pouca previsibilidade',
-      description: 'Falta de previsibilidade financeira entre safras.',
+      title: 'Informações descentralizadas',
+      description:
+        'Decisões importantes ficam mais difíceis quando os dados financeiros não estão no mesmo lugar.',
     },
   ];
 
   protected readonly solutionItems: readonly SolutionItem[] = [
     {
-      title: 'Controle de fluxo de caixa',
-      description: 'Registre entradas e saídas de forma simples e organizada.',
+      title: 'Receitas e despesas organizadas',
+      description: 'Registre movimentações e acompanhe o financeiro da fazenda em um só lugar.',
     },
     {
-      title: 'Organização por safra/lote',
-      description: 'Separe custos e receitas por cultura para saber o que realmente dá lucro.',
+      title: 'Fazendas, safras e categorias',
+      description:
+        'Relacione os lançamentos ao contexto da produção para manter a gestão organizada.',
     },
     {
-      title: 'Projeções automáticas',
-      description: 'Veja seu saldo futuro e planeje investimentos com confiança.',
+      title: 'Indicadores e relatórios financeiros',
+      description: 'Acompanhe receitas, despesas, saldo e resultados com os dados já cadastrados.',
+    },
+    {
+      title: 'Movimentações por mensagem com revisão',
+      description:
+        'Envie uma descrição, revise os dados identificados e confirme antes de incluir no financeiro.',
     },
   ];
 
   protected readonly chatMessages: readonly ChatMessage[] = [
     {
-      sender: 'Usuário',
-      text: 'Gastei 200 reais de diesel hoje na safra soja',
+      sender: 'Você',
+      text: 'Gastei R$ 200 de diesel hoje na safra de soja.',
       own: true,
     },
     {
       sender: 'Gestão Direta',
-      text: 'Registrado! R$ 200,00 em Diesel para Safra Soja 2025/26.',
+      text: 'Identifiquei uma despesa:\n\nR$ 200,00\nCombustível\nSafra de soja\n\nA movimentação foi enviada para revisão antes de entrar no seu controle financeiro.',
+    },
+  ];
+
+  protected readonly messageSteps: readonly MessageStep[] = [
+    {
+      number: '1',
+      title: 'Envie',
+      description: 'Descreva a movimentação como você falaria normalmente.',
     },
     {
-      sender: 'Usuário',
-      text: 'Quanto gastei esse mês?',
-      own: true,
+      number: '2',
+      title: 'A IA organiza',
+      description: 'Valor, tipo, data e outras informações são identificados quando disponíveis.',
     },
     {
-      sender: 'Gestão Direta',
-      text: 'Gastos de Abril/2026: R$ 8.450,00\nInsumos: R$ 4.200,00\nCombustível: R$ 1.850,00\nManutenção: R$ 2.400,00',
+      number: '3',
+      title: 'Revise',
+      description: 'Confira os dados e complete o que estiver faltando.',
+    },
+    {
+      number: '4',
+      title: 'Confirme',
+      description: 'A movimentação entra no seu controle financeiro.',
     },
   ];
 
   protected readonly benefits: readonly LandingCard[] = [
     {
       icon: 'chart-spline',
-      title: 'Melhor tomada de decisão',
-      description: 'Tome decisões baseadas em dados reais, não em estimativas.',
-    },
-    {
-      icon: 'shield-check',
-      title: 'Redução de riscos financeiros',
-      description: 'Identifique problemas antes que eles se tornem críticos.',
-    },
-    {
-      icon: 'landmark',
-      title: 'Acesso facilitado a crédito',
-      description: 'Apresente sua situação financeira de forma clara aos bancos.',
-    },
-    {
-      icon: 'circle-dollar-sign',
-      title: 'Visão clara da lucratividade',
-      description: 'Saiba exatamente quais culturas e atividades dão mais retorno.',
+      title: 'Mais clareza para decidir',
+      description: 'Consulte receitas, despesas e saldo com as informações organizadas.',
     },
     {
       icon: 'list-checks',
-      title: 'Menos dependência de "achismo"',
-      description: 'Substitua intuição por informação precisa.',
+      title: 'Rotina financeira mais simples',
+      description: 'Mantenha os lançamentos, categorias e pendências no mesmo sistema.',
     },
     {
       icon: 'sprout',
-      title: 'Crescimento sustentável',
-      description: 'Planeje expansões e investimentos com segurança.',
+      title: 'Acompanhamento por fazenda e safra',
+      description: 'Organize os dados conforme a realidade da sua produção.',
+    },
+    {
+      icon: 'receipt-text',
+      title: 'Revisão antes da aprovação',
+      description: 'Ajuste as movimentações identificadas por mensagem antes de confirmar.',
     },
   ];
 
@@ -156,6 +178,6 @@ export class LandingPage {
   ];
 
   constructor() {
-    this.title.setTitle('Gestão Direta — Finanças simplificadas para a Agricultura');
+    this.title.setTitle('Gestão Direta — Gestão financeira para produtores rurais');
   }
 }
