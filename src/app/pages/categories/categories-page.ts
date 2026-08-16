@@ -16,6 +16,8 @@ import {
   CreateFinancialCategoryRequest,
   FinancialCategory,
   FinancialCategoryFormType,
+  FinancialCategoryStatus,
+  FinancialCategoryType,
   UpdateFinancialCategoryRequest,
 } from '../../core/models/financial-category.models';
 import { PageResponse } from '../../core/models/page-response.model';
@@ -24,9 +26,12 @@ import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { GdSelectOption } from '../../shared/forms';
 import { ConfirmDialog, Drawer } from '../../shared/overlays';
 import {
+  Badge,
+  BadgeVariant,
   Button,
   Card,
   EmptyState,
@@ -37,22 +42,22 @@ import {
   Skeleton,
   StatusActionSection,
 } from '../../shared/ui';
-import { CategoryCard } from './components/category-card/category-card';
 import { CategoryForm, CategoryFormPayload } from './components/category-form/category-form';
 import { RegistrationsTabs } from '../registrations/components/registrations-tabs/registrations-tabs';
 
 @Component({
   selector: 'gd-categories-page',
   imports: [
+    Badge,
     Button,
     Card,
-    CategoryCard,
     CategoryForm,
     ConfirmDialog,
     Drawer,
     EmptyState,
     ErrorState,
     ListFilters,
+    LucideDynamicIcon,
     RegistrationsTabs,
     Skeleton,
     StatusActionSection,
@@ -110,9 +115,6 @@ export class CategoriesPage {
     () => this.searchTerm() !== null || this.selectedStatus() !== null,
   );
 
-  protected readonly selectedFarmName = computed(
-    () => this.selectedFarmStore.selectedFarm()?.name ?? null,
-  );
   protected readonly drawerTitle = computed(() =>
     this.editingCategory() ? 'Editar categoria' : 'Nova categoria',
   );
@@ -356,6 +358,27 @@ export class CategoriesPage {
 
   protected canEditCategory(_category: FinancialCategory): boolean {
     return this.canManageSelectedFarmCategory();
+  }
+
+  protected typeLabel(type: FinancialCategoryType): string {
+    const labels: Record<FinancialCategoryType, string> = {
+      INCOME: 'Receita',
+      EXPENSE: 'Despesa',
+    };
+
+    return labels[type];
+  }
+
+  protected typeVariant(type: FinancialCategoryType): BadgeVariant {
+    return type === 'INCOME' ? 'success' : 'danger';
+  }
+
+  protected statusLabel(status: FinancialCategoryStatus): string {
+    return status === 'ACTIVE' ? 'Ativa' : 'Inativa';
+  }
+
+  protected statusVariant(status: FinancialCategoryStatus): BadgeVariant {
+    return status === 'ACTIVE' ? 'success' : 'danger';
   }
 
   protected canDeleteCategory(category: FinancialCategory): boolean {

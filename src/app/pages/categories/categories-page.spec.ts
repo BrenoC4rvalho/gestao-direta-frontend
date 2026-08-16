@@ -188,6 +188,21 @@ describe('CategoriesPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Categorias globais');
   });
 
+  it('should render categories with the production activities table structure', () => {
+    selectFarm(farm);
+    createPage();
+
+    const table = fixture.nativeElement.querySelector('table') as HTMLTableElement;
+
+    expect(table.classList.contains('w-full')).toBe(true);
+    expect(table.querySelector('thead')?.classList.contains('bg-primary')).toBe(true);
+    expect(table.textContent).toContain('Categoria');
+    expect(table.textContent).toContain('Tipo');
+    expect(table.textContent).toContain('Status');
+    expect(fixture.nativeElement.textContent).not.toContain('Categorias da fazenda');
+    expect(fixture.nativeElement.textContent).not.toContain('Categorias disponíveis para');
+  });
+
   it('should create category with selected farmId', () => {
     selectFarm(farm);
     createPage();

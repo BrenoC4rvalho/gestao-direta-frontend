@@ -70,38 +70,104 @@
       [quickFiltersApplyOnChange]="true"
       (filtersChange)="changeFilters($event)"
     />
-    <section class="gd-fade-in-up space-y-4" aria-labelledby="categories-title">
-      <div>
-        <h2 id="categories-title" class="text-lg font-semibold text-text-primary">
-          Categorias da fazenda
-        </h2>
-        <p class="mt-1 text-sm text-text-muted">
-          Categorias disponíveis para {{ selectedFarmName() }}.
-        </p>
+    @if (categories().length === 0) {
+      <gd-empty-state
+        title="Nenhuma categoria encontrada"
+        description="Crie categorias para organizar receitas e despesas desta fazenda."
+        icon="tags"
+      />
+    } @else {
+      <div class="gd-fade-in-up grid gap-4 md:hidden" aria-label="Lista mobile de categorias">
+        @for (category of categories(); track category.id) {
+          <article
+            class="rounded-app border border-border bg-surface p-5 shadow-soft transition-all duration-200 ease-out sm:hover:border-primary/25 sm:hover:shadow-sm"
+            [attr.aria-label]="'Categoria ' + category.name"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <h2 class="min-w-0 text-lg font-semibold text-text-primary">{{ category.name }}</h2>
+              <gd-badge [variant]="statusVariant(category.status)" size="sm">
+                {{ statusLabel(category.status) }}
+              </gd-badge>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between gap-3 text-sm">
+              <span class="font-medium text-text-muted">Tipo</span>
+              <gd-badge [variant]="typeVariant(category.type)" size="sm">
+                {{ typeLabel(category.type) }}
+              </gd-badge>
+            </div>
+
+            @if (canEditCategory(category)) {
+              <div class="mt-5 flex justify-end border-t border-border pt-4">
+                <gd-button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  [iconOnly]="true"
+                  ariaLabel="Editar categoria"
+                  title="Editar categoria"
+                  (click)="openEditDrawer(category)"
+                >
+                  <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                </gd-button>
+              </div>
+            }
+          </article>
+        }
       </div>
 
-      @if (categories().length === 0) {
-        <gd-empty-state
-          title="Nenhuma categoria encontrada"
-          description="Crie categorias para organizar receitas e despesas desta fazenda."
-          icon="tags"
-        />
-      } @else {
-        <div
-          class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
-          role="list"
-        >
-          @for (category of categories(); track category.id) {
-            <gd-category-card
-              [category]="category"
-              [canEdit]="canEditCategory(category)"
-              (editRequested)="openEditDrawer($event)"
-              role="listitem"
-            />
-          }
-        </div>
-      }
-    </section>
+      <div
+        class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+      >
+        <table class="w-full border-collapse text-left">
+          <caption class="sr-only">Categorias cadastradas na fazenda</caption>
+          <thead class="border-b border-border bg-primary text-white">
+            <tr class="text-xs font-semibold uppercase tracking-wide text-white">
+              <th class="px-5 py-4" scope="col">Categoria</th>
+              <th class="px-5 py-4" scope="col">Tipo</th>
+              <th class="px-5 py-4" scope="col">Status</th>
+              <th class="px-5 py-4" scope="col"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (category of categories(); track category.id) {
+              <tr class="transition-colors duration-200 hover:bg-background/60">
+                <td class="px-5 py-4 font-semibold text-text-primary">{{ category.name }}</td>
+                <td class="px-5 py-4">
+                  <gd-badge [variant]="typeVariant(category.type)" size="sm">
+                    {{ typeLabel(category.type) }}
+                  </gd-badge>
+                </td>
+                <td class="px-5 py-4">
+                  <gd-badge [variant]="statusVariant(category.status)" size="sm">
+                    {{ statusLabel(category.status) }}
+                  </gd-badge>
+                </td>
+                <td class="px-5 py-4">
+                  @if (canEditCategory(category)) {
+                    <div class="flex flex-wrap gap-2">
+                      <gd-button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        [iconOnly]="true"
+                        ariaLabel="Editar categoria"
+                        title="Editar categoria"
+                        (click)="openEditDrawer(category)"
+                      >
+                        <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                      </gd-button>
+                    </div>
+                  } @else {
+                    <span class="text-sm text-text-muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
     @if (response(); as page) {
       @if (page.totalPages > 1) {
         <nav
