@@ -67,6 +67,16 @@ describe('LandingPage', () => {
     expect(link?.getAttribute('target')).toBe('_blank');
   });
 
+  it('should render lading.png without the financial overlay', () => {
+    const image = query<HTMLImageElement>('img[alt="Visão da plataforma Gestão Direta"]');
+
+    expect(image?.getAttribute('src')).toContain('/assets/img/lading.png');
+    expect(textContent()).not.toContain('Saldo projetado');
+    expect(textContent()).not.toContain('R$ 84.320');
+    expect(textContent()).not.toContain('R$ 126.800');
+    expect(textContent()).not.toContain('R$ 42.480');
+  });
+
   it('should render the Problema section', () => {
     expect(textContent()).toContain('O problema no campo não é produzir. É gerenciar.');
     expect(textContent()).toContain(
