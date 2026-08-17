@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "demo:video": "node demo/run-video.mjs"
   },
   "prettier": {
     "printWidth": 100,
@@ -48,6 +49,7 @@
     "@angular/build": "^21.0.5",
     "@angular/cli": "^21.0.5",
     "@angular/compiler-cli": "^21.0.0",
+    "@playwright/test": "^1.62.1",
     "eslint": "^9.39.5",
     "jsdom": "^27.1.0",
     "typescript": "~5.9.2",
