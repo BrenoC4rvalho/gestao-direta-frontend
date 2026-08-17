@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { FieldError } from '../field-error/field-error';
 import { GdFormControl, GdSelectOption } from '../forms.types';
-import { Tooltip } from '../../ui';
+import { Tooltip } from '../../ui/tooltip/tooltip';
 
 @Component({
   selector: 'gd-select',
