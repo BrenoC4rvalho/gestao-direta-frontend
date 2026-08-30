@@ -18,7 +18,6 @@ import { Tooltip } from '../../../../../shared/ui';
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const MONTH_WIDTH = 72;
 const QUARTER_WIDTH = 96;
-const Y_AXIS_WIDTH = 68;
 
 interface ChartThemeColors {
   muted: string;
@@ -53,7 +52,6 @@ export class FinancialEvolutionChart {
   private readonly chartDirective = viewChild(BaseChartDirective);
 
   protected readonly chartType = 'bar' as const;
-  protected readonly axisWidth = Y_AXIS_WIDTH;
   protected readonly stateLegendTooltip =
     'Sólido: realizado. Translúcido: projetado. Tom mais intenso: vencido.';
   protected readonly chartWidth = computed(() => {

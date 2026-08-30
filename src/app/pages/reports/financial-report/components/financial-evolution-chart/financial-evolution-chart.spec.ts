@@ -196,6 +196,41 @@ describe('FinancialEvolutionChart', () => {
     expect(grid?.color?.({ tick: { value: 0 } })).not.toBe(grid?.color?.({ tick: { value: 1 } }));
   });
 
+  it('reserves the fixed y-axis width from the complete formatted tick labels', async () => {
+    const fixture = await createComponent();
+    fixture.componentRef.setInput(
+      'points',
+      points.map((point, index) =>
+        index === 0
+          ? {
+              ...point,
+              realizedIncome: 1_500_000,
+              realizedExpense: 1_500_000,
+              realizedResult: -1_500_000,
+            }
+          : point,
+      ),
+    );
+    fixture.detectChanges();
+    const axis = fixture.nativeElement.querySelector(
+      '[data-testid="financial-evolution-y-axis"]',
+    ) as HTMLDivElement;
+    const visibleLabels = Array.from(axis.querySelectorAll('span.absolute'));
+    const measurementLabels = Array.from(axis.querySelectorAll('div.invisible span'));
+
+    expect(axis.classList).toContain('w-max');
+    expect(axis.classList).toContain('shrink-0');
+    expect(axis.classList).toContain('pl-1');
+    expect(axis.classList).toContain('pr-3');
+    expect(visibleLabels).toHaveLength(measurementLabels.length);
+    expect(measurementLabels.map((label) => label.textContent?.trim())).toEqual(
+      visibleLabels.map((label) => label.textContent?.trim()),
+    );
+    expect(measurementLabels.some((label) => label.textContent?.includes('-R$'))).toBe(true);
+    expect(measurementLabels.some((label) => label.textContent?.includes('1.000.000'))).toBe(true);
+    expect(visibleLabels.every((label) => label.classList.contains('whitespace-nowrap'))).toBe(true);
+  });
+
   it('colors only the current period x-axis label in blue', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const color = component.chartOptions().scales?.x?.ticks?.color;

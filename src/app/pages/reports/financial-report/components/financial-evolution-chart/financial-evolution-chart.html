@@ -1,8 +1,19 @@
 <div class="flex h-72 w-full overflow-hidden lg:h-80">
-  <div class="relative shrink-0 pb-8" [style.width.px]="axisWidth" aria-hidden="true">
+  <div
+    class="relative w-max shrink-0 pb-8 pl-1 pr-3"
+    data-testid="financial-evolution-y-axis"
+    aria-hidden="true"
+  >
+    <div class="invisible flex w-max flex-col items-end text-right text-xs">
+      @for (tick of scale().ticks; track tick) {
+        <span class="whitespace-nowrap" [class.font-medium]="tick === 0">
+          {{ formatCurrency(tick) }}
+        </span>
+      }
+    </div>
     @for (tick of scale().ticks; track tick) {
       <span
-        class="absolute right-2 -translate-y-1/2 text-right text-xs text-text-muted"
+        class="absolute right-3 -translate-y-1/2 whitespace-nowrap text-right text-xs text-text-muted"
         [class.font-medium]="tick === 0"
         [style.top.%]="axisPosition(tick)"
       >
