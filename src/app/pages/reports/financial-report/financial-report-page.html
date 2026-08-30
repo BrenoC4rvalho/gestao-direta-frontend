@@ -31,72 +31,25 @@
         }
       </div>
     } @else if (report(); as report) {
-      <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <gd-summary-card
-          class="h-full"
-          title="Receitas totais"
-          [value]="formatCurrency(report.summary.totalIncome)"
-          description="Soma das receitas realizadas e projetadas incluídas no período pelo regime selecionado."
-          icon="trending-up"
-          tone="success"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Receitas realizadas"
-          [value]="formatCurrency(report.summary.realizedIncome)"
-          description="Receitas com status pago incluídas no período pelo regime selecionado."
-          icon="circle-check"
-          tone="success"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Receitas projetadas"
-          [value]="formatCurrency(report.summary.projectedIncome)"
-          description="Receitas pendentes ou vencidas incluídas no período pelo regime selecionado."
-          icon="clock"
-          tone="success"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Despesas totais"
-          [value]="formatCurrency(report.summary.totalExpense)"
-          description="Soma das despesas realizadas e projetadas incluídas no período pelo regime selecionado."
-          icon="trending-down"
-          tone="danger"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Despesas realizadas"
-          [value]="formatCurrency(report.summary.realizedExpense)"
-          description="Despesas com status pago incluídas no período pelo regime selecionado."
-          icon="circle-check"
-          tone="danger"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Despesas projetadas"
-          [value]="formatCurrency(report.summary.projectedExpense)"
-          description="Despesas pendentes ou vencidas incluídas no período pelo regime selecionado."
-          icon="clock"
-          tone="danger"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Saldo líquido"
-          [value]="formatCurrency(report.summary.netBalance)"
-          description="Diferença entre as receitas e as despesas incluídas no período analisado."
-          icon="wallet"
-          [tone]="report.summary.netBalance >= 0 ? 'success' : 'danger'"
-        />
-        <gd-summary-card
-          class="h-full"
-          title="Margem"
-          [value]="formatPercentage(report.summary.marginPercentage)"
-          description="Percentual do saldo líquido em relação às receitas incluídas no período."
-          icon="chart-no-axes-combined"
-          [tone]="report.summary.marginPercentage >= 0 ? 'info' : 'danger'"
-        />
-      </div>
+      <section class="space-y-6" aria-label="Indicadores financeiros">
+        @for (group of financialSummaryGroups(); track group.title) {
+          <section [attr.aria-label]="group.title">
+            <h2 class="mb-3 text-sm font-semibold text-text-primary">{{ group.title }}</h2>
+            <div [class]="group.gridClasses">
+              @for (card of group.cards; track card.title) {
+                <gd-summary-card
+                  class="h-full"
+                  [title]="card.title"
+                  [value]="card.value"
+                  [description]="card.description"
+                  [icon]="card.icon"
+                  [tone]="card.tone"
+                />
+              }
+            </div>
+          </section>
+        }
+      </section>
     }
     <gd-card class="block"
       ><form

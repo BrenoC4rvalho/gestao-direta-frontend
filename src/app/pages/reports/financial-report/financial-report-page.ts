@@ -46,6 +46,20 @@ interface AppliedReportFilters {
   categoryId: number | null;
 }
 
+interface FinancialSummaryCard {
+  title: string;
+  value: string;
+  description: string;
+  icon: string;
+  tone: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+}
+
+interface FinancialSummaryGroup {
+  title: string;
+  gridClasses: string;
+  cards: readonly FinancialSummaryCard[];
+}
+
 const DEFAULT_FILTERS: AppliedReportFilters = {
   startDate: '2026-01-01',
   endDate: '2026-12-31',
@@ -146,6 +160,117 @@ export class FinancialReportPage {
   protected readonly movementsPeriod = computed(() => {
     const period = this.selectedPeriod();
     return period ? this.periodFormatter.format(this.utcDate(period.periodStart)) : null;
+  });
+  protected readonly financialSummaryGroups = computed<readonly FinancialSummaryGroup[]>(() => {
+    const summary = this.report()?.summary;
+
+    if (!summary) {
+      return [];
+    }
+
+    const realizedResult = summary.realizedIncome - summary.realizedExpense;
+    const projectedResult = summary.projectedIncome - summary.projectedExpense;
+
+    return [
+      {
+        title: 'Visão consolidada',
+        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+        cards: [
+          {
+            title: 'Receitas totais',
+            value: this.formatCurrency(summary.totalIncome),
+            description:
+              'Soma das receitas realizadas e projetadas incluídas no período pelo regime selecionado.',
+            icon: 'trending-up',
+            tone: 'success',
+          },
+          {
+            title: 'Despesas totais',
+            value: this.formatCurrency(summary.totalExpense),
+            description:
+              'Soma das despesas realizadas e projetadas incluídas no período pelo regime selecionado.',
+            icon: 'trending-down',
+            tone: 'danger',
+          },
+          {
+            title: 'Saldo líquido',
+            value: this.formatCurrency(summary.netBalance),
+            description:
+              'Diferença entre as receitas e as despesas incluídas no período analisado.',
+            icon: 'wallet',
+            tone: this.signedValueTone(summary.netBalance),
+          },
+          {
+            title: 'Margem',
+            value: this.formatPercentage(summary.marginPercentage),
+            description:
+              'Percentual do saldo líquido em relação às receitas incluídas no período.',
+            icon: 'chart-no-axes-combined',
+            tone: summary.marginPercentage >= 0 ? 'info' : 'danger',
+          },
+        ],
+      },
+      {
+        title: 'Realizado',
+        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
+        cards: [
+          {
+            title: 'Receitas realizadas',
+            value: this.formatCurrency(summary.realizedIncome),
+            description:
+              'Receitas com status pago incluídas no período pelo regime selecionado.',
+            icon: 'circle-check',
+            tone: 'success',
+          },
+          {
+            title: 'Despesas realizadas',
+            value: this.formatCurrency(summary.realizedExpense),
+            description:
+              'Despesas com status pago incluídas no período pelo regime selecionado.',
+            icon: 'circle-check',
+            tone: 'danger',
+          },
+          {
+            title: 'Resultado realizado',
+            value: this.formatCurrency(realizedResult),
+            description:
+              'Receitas realizadas menos despesas realizadas no período selecionado.',
+            icon: 'chart-no-axes-combined',
+            tone: this.signedValueTone(realizedResult),
+          },
+        ],
+      },
+      {
+        title: 'Projetado',
+        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
+        cards: [
+          {
+            title: 'Receitas projetadas',
+            value: this.formatCurrency(summary.projectedIncome),
+            description:
+              'Receitas pendentes ou vencidas incluídas no período pelo regime selecionado.',
+            icon: 'clock',
+            tone: 'success',
+          },
+          {
+            title: 'Despesas projetadas',
+            value: this.formatCurrency(summary.projectedExpense),
+            description:
+              'Despesas pendentes ou vencidas incluídas no período pelo regime selecionado.',
+            icon: 'clock',
+            tone: 'danger',
+          },
+          {
+            title: 'Resultado projetado',
+            value: this.formatCurrency(projectedResult),
+            description:
+              'Receitas projetadas menos despesas projetadas no período selecionado.',
+            icon: 'chart-no-axes-combined',
+            tone: this.signedValueTone(projectedResult),
+          },
+        ],
+      },
+    ];
   });
 
   constructor() {
@@ -267,6 +392,17 @@ export class FinancialReportPage {
   }
   protected profitClasses(value: number): string {
     return value >= 0 ? 'text-success' : 'text-danger';
+  }
+  private signedValueTone(value: number): FinancialSummaryCard['tone'] {
+    if (value > 0) {
+      return 'success';
+    }
+
+    if (value < 0) {
+      return 'danger';
+    }
+
+    return 'neutral';
   }
   private request(farmId: number) {
     const filters = this.appliedFilters();
