@@ -213,6 +213,11 @@ describe('FinancialReportPage', () => {
     expect(consolidatedSection.textContent).toContain('Saldo líquido');
     expect(consolidatedSection.textContent).toContain('Margem');
     expect(consolidatedSection.querySelectorAll('gd-summary-card').length).toBe(4);
+    expect(
+      Array.from(consolidatedSection.querySelectorAll('gd-summary-card')).every((card) =>
+        card.querySelector('article')?.classList.contains('h-[176px]'),
+      ),
+    ).toBe(true);
     expect(fixture.nativeElement.textContent).not.toContain('Receitas realizadas');
     expect(fixture.nativeElement.textContent).not.toContain('Compromissos financeiros');
     expect(fixture.nativeElement.textContent).not.toContain('Próximos 30 dias');
@@ -232,7 +237,13 @@ describe('FinancialReportPage', () => {
     expect(dialog.textContent).toContain('Compromissos financeiros');
     expect(dialog.textContent).toContain('Próximos 30 dias');
     expect(dialog.querySelectorAll('gd-summary-card').length).toBe(18);
+    expect(
+      Array.from(dialog.querySelectorAll('gd-summary-card')).every((card) =>
+        card.querySelector('article')?.classList.contains('h-[176px]'),
+      ),
+    ).toBe(true);
     expect(dialog.classList.contains('max-h-[85dvh]')).toBe(true);
+    expect(fixture.nativeElement.querySelector('.gd-fade-in-up gd-drawer')).toBeNull();
 
     const scrollViewport = dialog.querySelector('.overflow-y-auto') as HTMLElement;
     const scrollContent = scrollViewport.firstElementChild as HTMLElement;

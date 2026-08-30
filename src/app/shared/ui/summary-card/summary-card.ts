@@ -3,6 +3,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
 
 export type SummaryCardTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 export type SummaryCardDensity = 'default' | 'compact';
+export type SummaryCardLayout = 'default' | 'metric';
 
 let nextTooltipId = 0;
 
@@ -24,12 +25,20 @@ export class SummaryCard {
   readonly icon = input.required<string>();
   readonly tone = input<SummaryCardTone>('neutral');
   readonly density = input<SummaryCardDensity>('default');
+  readonly layout = input<SummaryCardLayout>('default');
 
   protected readonly tooltipOpen = signal(false);
   protected readonly tooltipId = `gd-summary-card-tooltip-${nextTooltipId++}`;
   protected readonly hasDescription = computed(() => Boolean(this.description()));
+  protected readonly metricLayout = computed(() => this.layout() === 'metric');
 
   protected articleClasses(): string {
+    if (this.metricLayout()) {
+      return [
+        'relative z-0 flex h-[176px] flex-col overflow-visible rounded-app border border-border bg-surface p-6 text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+      ].join(' ');
+    }
+
     const densityClasses =
       this.density() === 'compact'
         ? 'min-h-[100px] gap-4 p-4'
@@ -42,6 +51,20 @@ export class SummaryCard {
       contentAlignment,
       densityClasses,
     ].join(' ');
+  }
+
+  protected headerClasses(): string {
+    return this.metricLayout()
+      ? 'flex h-11 items-center justify-between gap-3'
+      : 'flex items-center justify-between gap-3';
+  }
+
+  protected valueContainerClasses(): string {
+    return this.metricLayout() ? 'mt-5 flex min-h-0 flex-1 flex-col' : '';
+  }
+
+  protected metaSlotClasses(): string {
+    return 'mt-auto min-h-5';
   }
 
   protected iconClasses(): string {

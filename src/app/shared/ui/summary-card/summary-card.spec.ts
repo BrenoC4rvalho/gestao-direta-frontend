@@ -125,6 +125,25 @@ describe('SummaryCard', () => {
     expect(article?.className).toContain('gap-5');
   });
 
+  it('should align metric values while reserving space for optional metadata', async () => {
+    const fixture = await createComponent(detail, null);
+    fixture.componentRef.setInput('layout', 'metric');
+    fixture.detectChanges();
+
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const header = article.firstElementChild as HTMLElement;
+    const valueContainer = article.lastElementChild as HTMLElement;
+    const metaSlot = valueContainer.lastElementChild as HTMLElement;
+
+    expect(article.classList.contains('h-[176px]')).toBe(true);
+    expect(header.classList.contains('h-11')).toBe(true);
+    expect(valueContainer.classList.contains('mt-5')).toBe(true);
+    expect(valueContainer.classList.contains('flex-1')).toBe(true);
+    expect(metaSlot.classList.contains('mt-auto')).toBe(true);
+    expect(metaSlot.classList.contains('min-h-5')).toBe(true);
+    expect(metaSlot.textContent?.trim()).toBe('');
+  });
+
   it('should render compact density with reduced spacing and typography', async () => {
     const fixture = await createComponent(detail, '2 contas', 'compact');
 

@@ -45,20 +45,6 @@
         />
       </section>
     }
-    <gd-drawer
-      [open]="indicatorsDrawerOpen()"
-      title="Indicadores financeiros"
-      description="Visão detalhada dos resultados e compromissos financeiros da fazenda."
-      position="center"
-      size="xl"
-      [reserveScrollbarGutter]="true"
-      (closed)="closeIndicatorsDrawer()"
-    >
-      <ng-container
-        [ngTemplateOutlet]="indicatorGroups"
-        [ngTemplateOutletContext]="{ $implicit: financialSummaryGroups(), headings: true }"
-      />
-    </gd-drawer>
     <gd-card class="block"
       ><form
         class="space-y-5"
@@ -440,6 +426,21 @@
   }
 </section>
 
+<gd-drawer
+  [open]="indicatorsDrawerOpen()"
+  title="Indicadores financeiros"
+  description="Visão detalhada dos resultados e compromissos financeiros da fazenda."
+  position="center"
+  size="xl"
+  [reserveScrollbarGutter]="true"
+  (closed)="closeIndicatorsDrawer()"
+>
+  <ng-container
+    [ngTemplateOutlet]="indicatorGroups"
+    [ngTemplateOutletContext]="{ $implicit: financialSummaryGroups(), headings: true }"
+  />
+</gd-drawer>
+
 <ng-template #indicatorGroups let-groups let-headings="headings">
   <div [class]="headings ? 'space-y-5' : ''">
     @for (group of groups; track group.title) {
@@ -457,6 +458,7 @@
               [meta]="card.meta ?? null"
               [icon]="card.icon"
               [tone]="card.tone"
+              layout="metric"
             />
           }
         </div>

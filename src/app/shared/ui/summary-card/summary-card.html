@@ -1,5 +1,5 @@
 <article [class]="articleClasses()">
-  <div class="flex items-center justify-between gap-3">
+  <div [class]="headerClasses()">
     <div class="flex min-w-0 items-center gap-3">
       <div [class]="'flex shrink-0 items-center justify-center rounded-full ' + iconClasses() + ' ' + toneClasses()">
         <svg [lucideIcon]="icon()" [class]="iconSvgClasses()" aria-hidden="true"></svg>
@@ -33,9 +33,15 @@
     }
   </div>
 
-  <div>
+  <div [class]="valueContainerClasses()">
     <p [class]="valueClasses()">{{ value() }}</p>
-    @if (meta(); as metaText) {
+    @if (metricLayout()) {
+      <div [class]="metaSlotClasses()">
+        @if (meta(); as metaText) {
+          <p [class]="metaClasses()">{{ metaText }}</p>
+        }
+      </div>
+    } @else if (meta(); as metaText) {
       <p [class]="metaClasses()">{{ metaText }}</p>
     }
   </div>
