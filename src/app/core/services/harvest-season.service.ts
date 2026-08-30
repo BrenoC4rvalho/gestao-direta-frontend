@@ -207,8 +207,6 @@ export class HarvestSeasonService {
     params: HttpParams,
     statuses: readonly HarvestSeasonStatus[] | null | undefined,
   ): HttpParams {
-    if (!statuses || statuses.length === 0) return params;
-    if (statuses.length === 1) return appendQueryParam(params, 'status', statuses[0]);
     return this.appendCommaSeparatedParam(params, 'statuses', statuses);
   }
 

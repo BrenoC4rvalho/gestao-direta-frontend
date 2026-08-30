@@ -194,7 +194,6 @@ describe('HarvestSeasonService', () => {
       .listSummary({
         farmId: 10,
         search: ' soja ',
-        status: 'IN_PROGRESS',
         statuses: ['PLANNED', 'IN_PROGRESS'],
         productionActivityIds: [2, 3],
         startDate: '2026-01-01',
@@ -227,7 +226,6 @@ describe('HarvestSeasonService', () => {
       .listSummary({
         farmId: 10,
         search: ' ',
-        status: null,
         statuses: [],
         productionActivityIds: [],
         startDate: '',
@@ -253,6 +251,21 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.has('sort')).toBe(false);
     expect(request.request.params.has('direction')).toBe(false);
     expect(request.request.withCredentials).toBe(true);
+    request.flush(summaryListResponse);
+  });
+
+  it('should send a single summary-list status using statuses', () => {
+    service
+      .listSummary({
+        farmId: 10,
+        statuses: ['INACTIVE'],
+        page: 0,
+      })
+      .subscribe((result) => expect(result).toEqual(summaryListResponse));
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/summary-list`);
+    expect(request.request.params.get('statuses')).toBe('INACTIVE');
+    expect(request.request.params.has('status')).toBe(false);
     request.flush(summaryListResponse);
   });
 
@@ -312,11 +325,11 @@ describe('HarvestSeasonService', () => {
     request.flush(financialSummary);
   });
 
-  it('should send a single selected status as status', () => {
+  it('should send a single selected status as statuses', () => {
     service.getFinancialSummary({ farmId: 10, statuses: ['IN_PROGRESS'] }).subscribe();
     const request = http.expectOne((req) => req.url === apiUrl + '/summary');
-    expect(request.request.params.get('status')).toBe('IN_PROGRESS');
-    expect(request.request.params.has('statuses')).toBe(false);
+    expect(request.request.params.get('statuses')).toBe('IN_PROGRESS');
+    expect(request.request.params.has('status')).toBe(false);
     request.flush(financialSummary);
   });
 

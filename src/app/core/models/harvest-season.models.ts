@@ -103,7 +103,6 @@ export interface HarvestSeasonListParams extends PageRequest {
 export interface HarvestSeasonSummaryListParams extends PageRequest {
   farmId: number;
   search?: string | null;
-  status?: HarvestSeasonStatus | null;
   statuses?: HarvestSeasonStatus[] | null;
   productionActivityId?: number | null;
   productionActivityIds?: number[] | null;
