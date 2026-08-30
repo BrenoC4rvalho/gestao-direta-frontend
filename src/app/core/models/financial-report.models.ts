@@ -30,8 +30,9 @@ export interface FinancialReportCommitments {
   overdueReceivableCount: number;
   overduePayableAmount: number;
   overduePayableCount: number;
-  next30DaysReceivable: number;
-  next30DaysPayable: number;
+  next30DaysAvailable: boolean;
+  next30DaysReceivable: number | null;
+  next30DaysPayable: number | null;
 }
 export interface FinancialEvolutionPoint {
   period: string;

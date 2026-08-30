@@ -285,22 +285,94 @@ export class FinancialReportPage {
               title: 'Compromissos financeiros',
               gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
               cards: [
-                { title: 'Contas a receber', value: this.formatCurrency(commitments.accountsReceivable), description: 'Valores de receitas ainda pendentes de recebimento.', icon: 'circle-dollar-sign', tone: 'success' as const },
-                { title: 'Contas a pagar', value: this.formatCurrency(commitments.accountsPayable), description: 'Valores de despesas ainda pendentes de pagamento.', icon: 'receipt-text', tone: 'danger' as const },
-                { title: 'Vencido a receber', value: this.formatCurrency(commitments.overdueReceivableAmount), meta: this.overdueMeta(commitments.overdueReceivableCount), description: 'Receitas em aberto vencidas.', icon: 'triangle-alert', tone: commitments.overdueReceivableAmount > 0 ? 'warning' as const : 'neutral' as const },
-                { title: 'Vencido a pagar', value: this.formatCurrency(commitments.overduePayableAmount), meta: this.overdueMeta(commitments.overduePayableCount), description: 'Despesas em aberto vencidas.', icon: 'triangle-alert', tone: commitments.overduePayableAmount > 0 ? 'danger' as const : 'neutral' as const },
+                {
+                  title: 'Contas a receber',
+                  value: this.formatCurrency(commitments.accountsReceivable),
+                  description: 'Receitas em aberto na data final do período selecionado.',
+                  icon: 'circle-dollar-sign',
+                  tone: 'success' as const,
+                },
+                {
+                  title: 'Contas a pagar',
+                  value: this.formatCurrency(commitments.accountsPayable),
+                  description: 'Despesas em aberto na data final do período selecionado.',
+                  icon: 'receipt-text',
+                  tone: 'danger' as const,
+                },
+                {
+                  title: 'Vencido a receber',
+                  value: this.formatCurrency(commitments.overdueReceivableAmount),
+                  meta: this.overdueMeta(commitments.overdueReceivableCount),
+                  description: 'Receitas em aberto vencidas antes da data final do período.',
+                  icon: 'triangle-alert',
+                  tone:
+                    commitments.overdueReceivableAmount > 0
+                      ? ('warning' as const)
+                      : ('neutral' as const),
+                },
+                {
+                  title: 'Vencido a pagar',
+                  value: this.formatCurrency(commitments.overduePayableAmount),
+                  meta: this.overdueMeta(commitments.overduePayableCount),
+                  description: 'Despesas em aberto vencidas antes da data final do período.',
+                  icon: 'triangle-alert',
+                  tone:
+                    commitments.overduePayableAmount > 0
+                      ? ('danger' as const)
+                      : ('neutral' as const),
+                },
               ],
             },
-            {
-              title: 'Próximos 30 dias',
-              gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
-              cards: [
-                { title: 'Recebimentos previstos', value: this.formatCurrency(commitments.next30DaysReceivable), description: 'Receitas previstas para os próximos 30 dias.', icon: 'trending-up', tone: 'success' as const },
-                { title: 'Pagamentos previstos', value: this.formatCurrency(commitments.next30DaysPayable), description: 'Despesas previstas para os próximos 30 dias.', icon: 'trending-down', tone: 'danger' as const },
-                { title: 'Fluxo líquido previsto', value: this.formatCurrency(commitments.next30DaysReceivable - commitments.next30DaysPayable), description: 'Recebimentos previstos menos pagamentos previstos para os próximos 30 dias.', icon: 'wallet', tone: this.signedValueTone(commitments.next30DaysReceivable - commitments.next30DaysPayable) },
-                { title: 'Cobertura financeira', value: this.coverageValue(commitments.next30DaysReceivable, commitments.next30DaysPayable), description: 'Relação entre os recebimentos e pagamentos previstos para os próximos 30 dias.', icon: 'shield-check', tone: 'info' as const },
-              ],
-            },
+            ...(commitments.next30DaysAvailable
+              ? [
+                  {
+                    title: 'Próximos 30 dias',
+                    gridClasses:
+                      'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+                    cards: [
+                      {
+                        title: 'Recebimentos previstos',
+                        value: this.formatCurrency(commitments.next30DaysReceivable ?? 0),
+                        description: 'Receitas previstas entre hoje e os próximos 30 dias.',
+                        icon: 'trending-up',
+                        tone: 'success' as const,
+                      },
+                      {
+                        title: 'Pagamentos previstos',
+                        value: this.formatCurrency(commitments.next30DaysPayable ?? 0),
+                        description: 'Despesas previstas entre hoje e os próximos 30 dias.',
+                        icon: 'trending-down',
+                        tone: 'danger' as const,
+                      },
+                      {
+                        title: 'Fluxo líquido previsto',
+                        value: this.formatCurrency(
+                          (commitments.next30DaysReceivable ?? 0) -
+                            (commitments.next30DaysPayable ?? 0),
+                        ),
+                        description:
+                          'Recebimentos menos pagamentos previstos entre hoje e os próximos 30 dias.',
+                        icon: 'wallet',
+                        tone: this.signedValueTone(
+                          (commitments.next30DaysReceivable ?? 0) -
+                            (commitments.next30DaysPayable ?? 0),
+                        ),
+                      },
+                      {
+                        title: 'Cobertura financeira',
+                        value: this.coverageValue(
+                          commitments.next30DaysReceivable ?? 0,
+                          commitments.next30DaysPayable ?? 0,
+                        ),
+                        description:
+                          'Relação entre recebimentos e pagamentos previstos entre hoje e os próximos 30 dias.',
+                        icon: 'shield-check',
+                        tone: 'info' as const,
+                      },
+                    ],
+                  },
+                ]
+              : []),
           ]
         : []),
     ];

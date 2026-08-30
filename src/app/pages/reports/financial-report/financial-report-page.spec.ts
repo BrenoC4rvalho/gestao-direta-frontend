@@ -71,6 +71,7 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       overdueReceivableCount: 0,
       overduePayableAmount: 0,
       overduePayableCount: 0,
+      next30DaysAvailable: true,
       next30DaysReceivable: 65000,
       next30DaysPayable: 42000,
     },
@@ -294,6 +295,39 @@ describe('FinancialReportPage', () => {
       commitments: { ...value.commitments, next30DaysReceivable: 0, next30DaysPayable: 0 },
     });
     expect(card('Cobertura financeira').value).toBe('—');
+  });
+
+  it('should omit the next thirty days group when it is unavailable', () => {
+    const value = report();
+    value.commitments.next30DaysAvailable = false;
+    value.commitments.next30DaysReceivable = null;
+    value.commitments.next30DaysPayable = null;
+    setReport(value);
+
+    expect(summaryGroups().map((group) => group.title)).not.toContain('Próximos 30 dias');
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).not.toContain(
+      'Próximos 30 dias',
+    );
+  });
+
+  it('should restore the next thirty days group when the filtered report changes', () => {
+    setReport({
+      ...report(),
+      commitments: {
+        ...report().commitments,
+        next30DaysAvailable: false,
+        next30DaysReceivable: null,
+        next30DaysPayable: null,
+      },
+    });
+    expect(summaryGroups().map((group) => group.title)).not.toContain('Próximos 30 dias');
+
+    setReport(report());
+
+    expect(summaryGroups().map((group) => group.title)).toContain('Próximos 30 dias');
   });
 
   it('should calculate positive realized and projected results', () => {
