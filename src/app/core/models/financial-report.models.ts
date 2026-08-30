@@ -23,6 +23,16 @@ export interface FinancialReportSummary {
   projectedIncome: number;
   projectedExpense: number;
 }
+export interface FinancialReportCommitments {
+  accountsReceivable: number;
+  accountsPayable: number;
+  overdueReceivableAmount: number;
+  overdueReceivableCount: number;
+  overduePayableAmount: number;
+  overduePayableCount: number;
+  next30DaysReceivable: number;
+  next30DaysPayable: number;
+}
 export interface FinancialEvolutionPoint {
   period: string;
   label: string;
@@ -85,6 +95,7 @@ export interface FinancialReportResponse {
   endDate: string;
   basis: FinancialReportBasis;
   summary: FinancialReportSummary;
+  commitments: FinancialReportCommitments;
   evolution: readonly FinancialEvolutionPoint[];
   categories: readonly FinancialCategorySummary[];
   harvests: readonly FinancialHarvestSummary[];

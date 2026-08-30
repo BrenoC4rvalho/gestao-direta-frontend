@@ -63,6 +63,16 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       projectedExpense: 89700,
       ...overrides,
     },
+    commitments: {
+      accountsReceivable: 179500,
+      accountsPayable: 89700,
+      overdueReceivableAmount: 0,
+      overdueReceivableCount: 0,
+      overduePayableAmount: 0,
+      overduePayableCount: 0,
+      next30DaysReceivable: 65000,
+      next30DaysPayable: 42000,
+    },
     evolution: [],
     categories: [],
     harvests: [],
@@ -132,6 +142,8 @@ describe('FinancialReportPage', () => {
       'Visão consolidada',
       'Realizado',
       'Projetado',
+      'Compromissos financeiros',
+      'Próximos 30 dias',
     ]);
     expect(summaryGroups()[0].cards.map((card) => card.title)).toEqual([
       'Receitas totais',
@@ -149,6 +161,40 @@ describe('FinancialReportPage', () => {
       'Despesas projetadas',
       'Resultado projetado',
     ]);
+    expect(summaryGroups()[3].cards.map((card) => card.title)).toEqual([
+      'Contas a receber',
+      'Contas a pagar',
+      'Vencido a receber',
+      'Vencido a pagar',
+    ]);
+    expect(summaryGroups()[4].cards.map((card) => card.title)).toEqual([
+      'Recebimentos previstos',
+      'Pagamentos previstos',
+      'Fluxo líquido previsto',
+      'Cobertura financeira',
+    ]);
+  });
+
+  it('should derive short-term flow and coverage without division by zero', () => {
+    const value = report();
+    value.commitments.next30DaysReceivable = 65000;
+    value.commitments.next30DaysPayable = 42000;
+    setReport(value);
+
+    expect(card('Fluxo líquido previsto')).toMatchObject({ value: currency(23000), tone: 'success' });
+    expect(card('Cobertura financeira').value).toBe('1,55x');
+
+    setReport({
+      ...value,
+      commitments: { ...value.commitments, next30DaysPayable: 0 },
+    });
+    expect(card('Cobertura financeira').value).toBe('Sem compromissos');
+
+    setReport({
+      ...value,
+      commitments: { ...value.commitments, next30DaysReceivable: 0, next30DaysPayable: 0 },
+    });
+    expect(card('Cobertura financeira').value).toBe('—');
   });
 
   it('should calculate positive realized and projected results', () => {

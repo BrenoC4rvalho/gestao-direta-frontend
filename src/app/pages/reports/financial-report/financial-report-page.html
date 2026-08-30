@@ -22,7 +22,7 @@
     </div>
     @if (reportLoading()) {
       <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
-        @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) {
+        @for (item of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]; track item) {
           <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
             <gd-skeleton width="45%" height="0.875rem" />
             <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
@@ -42,6 +42,7 @@
                   [title]="card.title"
                   [value]="card.value"
                   [description]="card.description"
+                  [meta]="card.meta ?? null"
                   [icon]="card.icon"
                   [tone]="card.tone"
                 />

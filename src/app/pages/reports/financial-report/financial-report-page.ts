@@ -51,6 +51,7 @@ interface FinancialSummaryCard {
   value: string;
   description: string;
   icon: string;
+  meta?: string;
   tone: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 }
 
@@ -170,6 +171,7 @@ export class FinancialReportPage {
 
     const realizedResult = summary.realizedIncome - summary.realizedExpense;
     const projectedResult = summary.projectedIncome - summary.projectedExpense;
+    const commitments = this.report()?.commitments;
 
     return [
       {
@@ -221,6 +223,7 @@ export class FinancialReportPage {
               'Receitas com status pago incluídas no período pelo regime selecionado.',
             icon: 'circle-check',
             tone: 'success',
+            meta: `${this.realizedPercentage(summary.realizedIncome, summary.totalIncome)} do total`,
           },
           {
             title: 'Despesas realizadas',
@@ -229,6 +232,7 @@ export class FinancialReportPage {
               'Despesas com status pago incluídas no período pelo regime selecionado.',
             icon: 'circle-check',
             tone: 'danger',
+            meta: `${this.realizedPercentage(summary.realizedExpense, summary.totalExpense)} do total`,
           },
           {
             title: 'Resultado realizado',
@@ -270,6 +274,30 @@ export class FinancialReportPage {
           },
         ],
       },
+      ...(commitments
+        ? [
+            {
+              title: 'Compromissos financeiros',
+              gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+              cards: [
+                { title: 'Contas a receber', value: this.formatCurrency(commitments.accountsReceivable), description: 'Valores de receitas ainda pendentes de recebimento.', icon: 'circle-dollar-sign', tone: 'success' as const },
+                { title: 'Contas a pagar', value: this.formatCurrency(commitments.accountsPayable), description: 'Valores de despesas ainda pendentes de pagamento.', icon: 'receipt-text', tone: 'danger' as const },
+                { title: 'Vencido a receber', value: this.formatCurrency(commitments.overdueReceivableAmount), meta: this.overdueMeta(commitments.overdueReceivableCount), description: 'Receitas em aberto vencidas.', icon: 'triangle-alert', tone: commitments.overdueReceivableAmount > 0 ? 'warning' as const : 'neutral' as const },
+                { title: 'Vencido a pagar', value: this.formatCurrency(commitments.overduePayableAmount), meta: this.overdueMeta(commitments.overduePayableCount), description: 'Despesas em aberto vencidas.', icon: 'triangle-alert', tone: commitments.overduePayableAmount > 0 ? 'danger' as const : 'neutral' as const },
+              ],
+            },
+            {
+              title: 'Próximos 30 dias',
+              gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+              cards: [
+                { title: 'Recebimentos previstos', value: this.formatCurrency(commitments.next30DaysReceivable), description: 'Receitas previstas para os próximos 30 dias.', icon: 'trending-up', tone: 'success' as const },
+                { title: 'Pagamentos previstos', value: this.formatCurrency(commitments.next30DaysPayable), description: 'Despesas previstas para os próximos 30 dias.', icon: 'trending-down', tone: 'danger' as const },
+                { title: 'Fluxo líquido previsto', value: this.formatCurrency(commitments.next30DaysReceivable - commitments.next30DaysPayable), description: 'Recebimentos previstos menos pagamentos previstos para os próximos 30 dias.', icon: 'wallet', tone: this.signedValueTone(commitments.next30DaysReceivable - commitments.next30DaysPayable) },
+                { title: 'Cobertura financeira', value: this.coverageValue(commitments.next30DaysReceivable, commitments.next30DaysPayable), description: 'Relação entre os recebimentos e pagamentos previstos para os próximos 30 dias.', icon: 'shield-check', tone: 'info' as const },
+              ],
+            },
+          ]
+        : []),
     ];
   });
 
@@ -380,6 +408,23 @@ export class FinancialReportPage {
   }
   protected formatPercentage(value: number): string {
     return `${percentageFormatter.format(value)}%`;
+  }
+  private realizedPercentage(realized: number, total: number): string {
+    return this.formatPercentage(total === 0 ? 0 : (realized / total) * 100);
+  }
+  private overdueMeta(count: number): string {
+    if (count === 0) {
+      return 'Nenhum valor vencido';
+    }
+
+    return `${count} movimentação${count === 1 ? '' : 'ões'} vencida${count === 1 ? '' : 's'}`;
+  }
+  private coverageValue(receivable: number, payable: number): string {
+    if (payable === 0) {
+      return receivable > 0 ? 'Sem compromissos' : '—';
+    }
+
+    return `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(receivable / payable)}x`;
   }
   protected statusVariant(status: FinancialReportTransaction['paymentStatus']): BadgeVariant {
     return status === 'PAID' ? 'success' : status === 'OVERDUE' ? 'danger' : 'warning';
