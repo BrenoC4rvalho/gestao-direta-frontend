@@ -8,6 +8,7 @@ import { PageResponse } from '../../../core/models/page-response.model';
 import { FinancialCategoryService } from '../../../core/services/financial-category.service';
 import { FinancialService } from '../../../core/services/financial.service';
 import { HarvestSeasonService } from '../../../core/services/harvest-season.service';
+import { FarmAccessStore } from '../../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../../core/stores/selected-farm.store';
 import { SessionStore } from '../../../core/stores/session.store';
 import { FinancialReportPage } from './financial-report-page';
@@ -120,8 +121,10 @@ describe('FinancialReportPage', () => {
     }).compileComponents();
 
     const selectedFarmStore = TestBed.inject(SelectedFarmStore);
+    const farmAccessStore = TestBed.inject(FarmAccessStore);
     const sessionStore = TestBed.inject(SessionStore);
     selectedFarmStore.clear();
+    farmAccessStore.clear();
     sessionStore.clear();
     selectedFarmStore.setFarms([farm]);
     sessionStore.setUser({
@@ -132,8 +135,30 @@ describe('FinancialReportPage', () => {
       userType: 'ADMIN',
       status: 'ACTIVE',
     });
+    farmAccessStore.setLoading(false);
+    farmAccessStore.setAccess({
+      farmId: farm.id,
+      farmName: farm.name,
+      userId: 1,
+      userType: 'ADMIN',
+      role: null,
+      permissions: {
+        canViewFarm: true,
+        canEditFarm: true,
+        canChangeFarmStatus: true,
+        canManageFarmUsers: true,
+        canViewFinancial: true,
+        canManageTransactions: true,
+        canManageCategories: true,
+        canManageGlobalCategories: true,
+        canCreateFarm: true,
+      },
+    });
 
     fixture = TestBed.createComponent(FinancialReportPage);
+    fixture.detectChanges();
+    fixture.componentInstance.report.set(report());
+    fixture.componentInstance.reportLoading.set(false);
     fixture.detectChanges();
   });
 
@@ -173,6 +198,69 @@ describe('FinancialReportPage', () => {
       'Fluxo líquido previsto',
       'Cobertura financeira',
     ]);
+  });
+
+  it('should show only consolidated indicators on the main page', () => {
+    expect((fixture.componentInstance as unknown as { canViewReport: () => boolean }).canViewReport()).toBe(true);
+    expect(fixture.componentInstance.report()).not.toBeNull();
+    expect(fixture.componentInstance.reportLoading()).toBe(false);
+    const consolidatedSection = fixture.nativeElement.querySelector(
+      'section[aria-label="Visão consolidada"]',
+    ) as HTMLElement;
+
+    expect(consolidatedSection.textContent).toContain('Receitas totais');
+    expect(consolidatedSection.textContent).toContain('Despesas totais');
+    expect(consolidatedSection.textContent).toContain('Saldo líquido');
+    expect(consolidatedSection.textContent).toContain('Margem');
+    expect(consolidatedSection.querySelectorAll('gd-summary-card').length).toBe(4);
+    expect(fixture.nativeElement.textContent).not.toContain('Receitas realizadas');
+    expect(fixture.nativeElement.textContent).not.toContain('Compromissos financeiros');
+    expect(fixture.nativeElement.textContent).not.toContain('Próximos 30 dias');
+  });
+
+  it('should open the detailed indicators dialog with every summary group', () => {
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+
+    expect(dialog).not.toBeNull();
+    expect(dialog.textContent).toContain('Indicadores financeiros');
+    expect(dialog.textContent).toContain('Visão consolidada');
+    expect(dialog.textContent).toContain('Realizado');
+    expect(dialog.textContent).toContain('Projetado');
+    expect(dialog.textContent).toContain('Compromissos financeiros');
+    expect(dialog.textContent).toContain('Próximos 30 dias');
+    expect(dialog.querySelectorAll('gd-summary-card').length).toBe(18);
+    expect(dialog.classList.contains('max-h-[85dvh]')).toBe(true);
+
+    const scrollViewport = dialog.querySelector('.overflow-y-auto') as HTMLElement;
+    const scrollContent = scrollViewport.firstElementChild as HTMLElement;
+    expect(scrollViewport.classList.contains('[scrollbar-gutter:stable]')).toBe(true);
+    expect(scrollViewport.classList.contains('min-h-0')).toBe(true);
+    expect(scrollContent.classList.contains('overflow-y-auto')).toBe(false);
+    expect(scrollContent.classList.contains('px-4')).toBe(true);
+    expect(scrollContent.classList.contains('sm:px-5')).toBe(true);
+    expect(scrollContent.classList.contains('pb-6')).toBe(true);
+  });
+
+  it('should close the detailed indicators dialog from its close button and Escape', async () => {
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+
+    closeButton().click();
+    fixture.detectChanges();
+    await waitForDrawerClose();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    await waitForDrawerClose();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('should derive short-term flow and coverage without division by zero', () => {
@@ -226,6 +314,11 @@ describe('FinancialReportPage', () => {
     setReport(report({ realizedIncome: 10, realizedExpense: 70, projectedIncome: 40, projectedExpense: 100 }));
     expect(card('Resultado realizado')).toMatchObject({ value: currency(-60), tone: 'danger' });
     expect(card('Resultado projetado')).toMatchObject({ value: currency(-60), tone: 'danger' });
+
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain(currency(-60));
   });
 
   function setReport(value: FinancialReportResponse): void {
@@ -249,6 +342,23 @@ describe('FinancialReportPage', () => {
     }
 
     return result;
+  }
+
+  function button(label: string): HTMLButtonElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+    ).find(
+      (element: HTMLButtonElement) => element.textContent?.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function closeButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('button[aria-label="Fechar drawer"]') as HTMLButtonElement;
+  }
+
+  async function waitForDrawerClose(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    fixture.detectChanges();
   }
 
   function currency(value: number): string {

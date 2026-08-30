@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -36,6 +37,7 @@ import {
   Skeleton,
   SummaryCard,
 } from '../../../shared/ui';
+import { Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 
 interface AppliedReportFilters {
@@ -81,10 +83,12 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
     Card,
     EmptyState,
     ErrorState,
+    Drawer,
     FinancialEvolutionChart,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
+    NgTemplateOutlet,
     Select,
     Skeleton,
     SummaryCard,
@@ -112,6 +116,7 @@ export class FinancialReportPage {
 
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
+  protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
   readonly selectedPeriod = signal<FinancialEvolutionPoint | null>(null);
   readonly transactions = signal<readonly FinancialReportTransaction[]>([]);
@@ -300,6 +305,9 @@ export class FinancialReportPage {
         : []),
     ];
   });
+  protected readonly consolidatedSummaryGroups = computed(() =>
+    this.financialSummaryGroups().filter((group) => group.title === 'Visão consolidada'),
+  );
 
   constructor() {
     effect((onCleanup) => {
@@ -377,6 +385,12 @@ export class FinancialReportPage {
   }
   protected retry(): void {
     this.reload.update((value) => value + 1);
+  }
+  protected openIndicatorsDrawer(): void {
+    this.indicatorsDrawerOpen.set(true);
+  }
+  protected closeIndicatorsDrawer(): void {
+    this.indicatorsDrawerOpen.set(false);
   }
   protected selectEvolutionPeriod(point: FinancialEvolutionPoint): void {
     this.selectedPeriod.set(point);

@@ -120,7 +120,7 @@ describe('SummaryCard', () => {
     expect(value?.className).toContain('break-words');
     expect(value?.className).not.toContain('truncate');
     expect(article?.className).toContain('h-full');
-    expect(article?.className).toContain('min-h-[128px]');
+    expect(article?.className).toContain('min-h-[144px]');
     expect(article?.className).toContain('p-6');
     expect(article?.className).toContain('gap-5');
   });

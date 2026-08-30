@@ -33,7 +33,7 @@ export class SummaryCard {
     const densityClasses =
       this.density() === 'compact'
         ? 'min-h-[100px] gap-4 p-4'
-        : 'min-h-[128px] gap-5 p-6';
+        : 'min-h-[144px] gap-5 p-6';
 
     const contentAlignment = this.density() === 'compact' ? 'justify-start' : 'justify-between';
 
