@@ -36,6 +36,9 @@ interface AxisScale {
   ticks: readonly number[];
 }
 
+type FinancialState = 'REALIZED' | 'PROJECTED' | 'OVERDUE';
+type FinancialDirection = 'INCOME' | 'EXPENSE';
+
 @Component({
   selector: 'gd-financial-evolution-chart',
   imports: [BaseChartDirective, Tooltip],
@@ -52,7 +55,7 @@ export class FinancialEvolutionChart {
   protected readonly chartType = 'bar' as const;
   protected readonly axisWidth = Y_AXIS_WIDTH;
   protected readonly stateLegendTooltip =
-    'Sólido: realizado. Translúcido: projetado. Contorno tracejado: vencido.';
+    'Sólido: realizado. Translúcido: projetado. Tom mais intenso: vencido.';
   protected readonly chartWidth = computed(() => {
     const width = this.points().some((point) => point.period.includes('Q'))
       ? QUARTER_WIDTH
@@ -63,23 +66,47 @@ export class FinancialEvolutionChart {
   protected readonly chartData = computed<ChartConfiguration<'bar' | 'line'>['data']>(() => ({
     labels: this.points().map((point) => point.label),
     datasets: [
-      this.barDataset('Receitas realizadas', (point) => point.realizedIncome, '#22C55E'),
-      this.barDataset('Receitas projetadas', (point) => point.projectedIncome, 'rgba(34, 197, 94, 0.28)'),
+      this.barDataset(
+        'Receitas realizadas',
+        (point) => point.realizedIncome,
+        '#22C55E',
+        'INCOME',
+        'REALIZED',
+      ),
+      this.barDataset(
+        'Receitas projetadas',
+        (point) => point.projectedIncome,
+        'rgba(34, 197, 94, 0.28)',
+        'INCOME',
+        'PROJECTED',
+      ),
       this.barDataset(
         'Receitas vencidas',
         (point) => point.overdueIncome,
-        'rgba(34, 197, 94, 0.08)',
-        true,
-        '#22C55E',
+        'rgba(34, 197, 94, 0.52)',
+        'INCOME',
+        'OVERDUE',
       ),
-      this.barDataset('Despesas realizadas', (point) => -point.realizedExpense, '#DC2626'),
-      this.barDataset('Despesas projetadas', (point) => -point.projectedExpense, 'rgba(220, 38, 38, 0.28)'),
+      this.barDataset(
+        'Despesas realizadas',
+        (point) => -point.realizedExpense,
+        '#DC2626',
+        'EXPENSE',
+        'REALIZED',
+      ),
+      this.barDataset(
+        'Despesas projetadas',
+        (point) => -point.projectedExpense,
+        'rgba(220, 38, 38, 0.28)',
+        'EXPENSE',
+        'PROJECTED',
+      ),
       this.barDataset(
         'Despesas vencidas',
         (point) => -point.overdueExpense,
-        'rgba(220, 38, 38, 0.08)',
-        true,
-        '#DC2626',
+        'rgba(220, 38, 38, 0.52)',
+        'EXPENSE',
+        'OVERDUE',
       ),
       {
         type: 'line',
@@ -178,24 +205,69 @@ export class FinancialEvolutionChart {
     label: string,
     value: (point: FinancialEvolutionPoint) => number,
     backgroundColor: string,
-    overdue = false,
-    overdueBorderColor = backgroundColor,
+    direction: FinancialDirection,
+    state: FinancialState,
   ) {
     return {
       type: 'bar' as const,
       label,
       data: this.points().map(value),
       backgroundColor,
-      borderColor: overdue ? overdueBorderColor : backgroundColor,
-      borderWidth: overdue ? 1.5 : 0,
-      borderDash: overdue ? [4, 3] : undefined,
+      borderWidth: 0,
       order: 1,
       stack: 'financial',
       categoryPercentage: 0.7,
       barPercentage: 0.78,
-      borderRadius: 3,
+      borderRadius: this.points().map((point) => this.segmentRadius(point, direction, state)),
       borderSkipped: false,
+      inflateAmount: 0,
     };
+  }
+
+  private segmentRadius(
+    point: FinancialEvolutionPoint,
+    direction: FinancialDirection,
+    state: FinancialState,
+  ) {
+    if (!this.isOuterSegment(point, direction, state)) {
+      return 0;
+    }
+
+    return direction === 'INCOME'
+      ? { topLeft: 3, topRight: 3, bottomLeft: 0, bottomRight: 0 }
+      : { topLeft: 0, topRight: 0, bottomLeft: 3, bottomRight: 3 };
+  }
+
+  private isOuterSegment(
+    point: FinancialEvolutionPoint,
+    direction: FinancialDirection,
+    state: FinancialState,
+  ): boolean {
+    if (direction === 'INCOME') {
+      if (state === 'OVERDUE') {
+        return point.overdueIncome > 0;
+      }
+
+      if (state === 'PROJECTED') {
+        return point.projectedIncome > 0 && point.overdueIncome === 0;
+      }
+
+      return (
+        point.realizedIncome > 0 && point.projectedIncome === 0 && point.overdueIncome === 0
+      );
+    }
+
+    if (state === 'OVERDUE') {
+      return point.overdueExpense > 0;
+    }
+
+    if (state === 'PROJECTED') {
+      return point.projectedExpense > 0 && point.overdueExpense === 0;
+    }
+
+    return (
+      point.realizedExpense > 0 && point.projectedExpense === 0 && point.overdueExpense === 0
+    );
   }
 
   private tooltipTitle(index: number): string {

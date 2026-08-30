@@ -55,6 +55,8 @@ interface TestApi {
       pointHoverRadius?: number;
       borderDash?: number[];
       borderSkipped?: boolean;
+      borderRadius?: unknown;
+      inflateAmount?: number;
     }[];
   };
   chartOptions: () => {
@@ -130,12 +132,18 @@ describe('FinancialEvolutionChart', () => {
     expect(chartData.datasets[0].backgroundColor).toBe('#22C55E');
     expect(chartData.datasets[3].backgroundColor).toBe('#DC2626');
     expect(chartData.datasets[1].backgroundColor).toBe('rgba(34, 197, 94, 0.28)');
+    expect(chartData.datasets[2].backgroundColor).toBe('rgba(34, 197, 94, 0.52)');
     expect(chartData.datasets[4].backgroundColor).toBe('rgba(220, 38, 38, 0.28)');
+    expect(chartData.datasets[5].backgroundColor).toBe('rgba(220, 38, 38, 0.52)');
     expect(chartData.datasets[0].order).toBe(1);
     expect(chartData.datasets[1].order).toBe(1);
     expect(chartData.datasets[6].order).toBe(0);
-    expect(chartData.datasets[2].borderDash).toEqual([4, 3]);
-    expect(chartData.datasets[5].borderDash).toEqual([4, 3]);
+    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.borderWidth)).toEqual(
+      Array(6).fill(0),
+    );
+    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.inflateAmount)).toEqual(
+      Array(6).fill(0),
+    );
     expect(chartData.datasets[6]).toMatchObject({
       borderColor: '#2563EB',
       backgroundColor: '#2563EB',
@@ -146,6 +154,30 @@ describe('FinancialEvolutionChart', () => {
       pointHoverRadius: 5,
     });
     expect(points[1].expense).toBe(3000);
+  });
+
+  it('rounds only the outer ends of continuous stacked bars', async () => {
+    const component = (await createComponent()).componentInstance as unknown as TestApi;
+    const datasets = component.chartData().datasets;
+    const overdueIncomeRadius = datasets[2].borderRadius as readonly unknown[];
+    const projectedExpenseRadius = datasets[4].borderRadius as readonly unknown[];
+
+    expect(datasets.slice(0, 6).map((dataset) => dataset.borderSkipped)).toEqual(
+      Array(6).fill(false),
+    );
+    expect(overdueIncomeRadius[1]).toEqual({
+      topLeft: 3,
+      topRight: 3,
+      bottomLeft: 0,
+      bottomRight: 0,
+    });
+    expect(projectedExpenseRadius[0]).toEqual({
+      topLeft: 0,
+      topRight: 0,
+      bottomLeft: 3,
+      bottomRight: 3,
+    });
+    expect((datasets[0].borderRadius as readonly unknown[])[1]).toBe(0);
   });
 
   it('uses a shared fixed scale with an emphasized zero grid line', async () => {
