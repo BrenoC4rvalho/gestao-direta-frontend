@@ -24,6 +24,16 @@ const points: readonly FinancialEvolutionPoint[] = labels.map((label, index) => 
   expense: (index + 2) * 1000,
   netBalance: index === 1 ? -2000 : (index + 3) * 1000,
   transactionCount: index + 1,
+  realizedIncome: (index + 3) * 1000,
+  projectedIncome: 1000,
+  overdueIncome: index === 1 ? 500 : 0,
+  overdueIncomeCount: index === 1 ? 1 : 0,
+  realizedExpense: (index + 1) * 1000,
+  projectedExpense: 500,
+  overdueExpense: 0,
+  overdueExpenseCount: 0,
+  realizedResult: (index + 2) * 1000,
+  currentPeriod: index === 7,
 }));
 
 interface TestApi {
@@ -43,6 +53,8 @@ interface TestApi {
       fill?: boolean;
       pointRadius?: number;
       pointHoverRadius?: number;
+      borderDash?: number[];
+      borderSkipped?: boolean;
     }[];
   };
   chartOptions: () => {
@@ -59,7 +71,10 @@ interface TestApi {
       };
     };
     scales?: {
-      x?: { stacked?: boolean };
+      x?: {
+        stacked?: boolean;
+        ticks?: { color?: (context: { index: number }) => string };
+      };
       y?: {
         stacked?: boolean;
         min?: number;
@@ -67,7 +82,7 @@ interface TestApi {
           color?: (context: { tick: { value: number } }) => string;
           lineWidth?: (context: { tick: { value: number } }) => number;
         };
-        ticks?: { callback?: (value: number) => string | string[] };
+        ticks?: { callback?: (value: number) => string | string[]; stepSize?: number };
       };
     };
   };
@@ -91,28 +106,37 @@ async function createComponent(): Promise<ComponentFixture<FinancialEvolutionCha
 describe('FinancialEvolutionChart', () => {
   afterEach(() => TestBed.resetTestingModule());
 
-  it('maps Jan–Dez into stacked income and expense bars with a blue net balance line', async () => {
+  it('maps Jan–Dez into one segmented financial column with a blue realized result line', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const chartData = component.chartData();
 
     expect(component.chartType).toBe('bar');
     expect(chartData.labels).toEqual(labels);
     expect(chartData.datasets.map(({ type, label }) => ({ type, label }))).toEqual([
-      { type: 'bar', label: 'Receitas' },
-      { type: 'bar', label: 'Despesas' },
-      { type: 'line', label: 'Saldo líquido' },
+      { type: 'bar', label: 'Receitas realizadas' },
+      { type: 'bar', label: 'Receitas projetadas' },
+      { type: 'bar', label: 'Receitas vencidas' },
+      { type: 'bar', label: 'Despesas realizadas' },
+      { type: 'bar', label: 'Despesas projetadas' },
+      { type: 'bar', label: 'Despesas vencidas' },
+      { type: 'line', label: 'Resultado realizado' },
     ]);
-    expect(chartData.datasets[0].data).toEqual(points.map((point) => point.income));
-    expect(chartData.datasets[1].data).toEqual(points.map((point) => -Math.abs(point.expense)));
-    expect(chartData.datasets[2].data).toEqual(points.map((point) => point.netBalance));
-    expect(chartData.datasets[0].stack).toBe('financial');
-    expect(chartData.datasets[1].stack).toBe('financial');
+    expect(chartData.datasets[0].data).toEqual(points.map((point) => point.realizedIncome));
+    expect(chartData.datasets[3].data).toEqual(points.map((point) => -point.realizedExpense));
+    expect(chartData.datasets[6].data).toEqual(points.map((point) => point.realizedResult));
+    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.stack)).toEqual(
+      Array(6).fill('financial'),
+    );
     expect(chartData.datasets[0].backgroundColor).toBe('#22C55E');
-    expect(chartData.datasets[1].backgroundColor).toBe('#DC2626');
+    expect(chartData.datasets[3].backgroundColor).toBe('#DC2626');
+    expect(chartData.datasets[1].backgroundColor).toBe('rgba(34, 197, 94, 0.28)');
+    expect(chartData.datasets[4].backgroundColor).toBe('rgba(220, 38, 38, 0.28)');
     expect(chartData.datasets[0].order).toBe(1);
     expect(chartData.datasets[1].order).toBe(1);
-    expect(chartData.datasets[2].order).toBe(0);
-    expect(chartData.datasets[2]).toMatchObject({
+    expect(chartData.datasets[6].order).toBe(0);
+    expect(chartData.datasets[2].borderDash).toEqual([4, 3]);
+    expect(chartData.datasets[5].borderDash).toEqual([4, 3]);
+    expect(chartData.datasets[6]).toMatchObject({
       borderColor: '#2563EB',
       backgroundColor: '#2563EB',
       borderWidth: 2,
@@ -124,7 +148,7 @@ describe('FinancialEvolutionChart', () => {
     expect(points[1].expense).toBe(3000);
   });
 
-  it('uses a bottom legend and automatic scale with an emphasized zero grid line', async () => {
+  it('uses a shared fixed scale with an emphasized zero grid line', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const options = component.chartOptions();
     const grid = options.scales?.y?.grid;
@@ -132,27 +156,39 @@ describe('FinancialEvolutionChart', () => {
     expect(options.plugins?.legend?.display).toBe(false);
     expect(options.scales?.x?.stacked).toBe(true);
     expect(options.scales?.y?.stacked).toBe(true);
-    expect(options.scales?.y?.min).toBeUndefined();
+    expect(options.scales?.y?.min).toBeDefined();
+    expect(options.scales?.y?.ticks?.stepSize).toBeGreaterThan(0);
     expect(grid?.lineWidth?.({ tick: { value: 0 } })).toBeGreaterThan(
       grid?.lineWidth?.({ tick: { value: 1 } }) ?? 0,
     );
     expect(grid?.color?.({ tick: { value: 0 } })).not.toBe(grid?.color?.({ tick: { value: 1 } }));
   });
 
-  it('renders an accessible HTML legend in the dataset order', async () => {
+  it('colors only the current period x-axis label in blue', async () => {
+    const component = (await createComponent()).componentInstance as unknown as TestApi;
+    const color = component.chartOptions().scales?.x?.ticks?.color;
+
+    expect(color?.({ index: 7 })).toBe('#2563EB');
+    expect(color?.({ index: 6 })).toBe('#6B7280');
+  });
+
+  it('renders an accessible compact legend with a state information tooltip', async () => {
     const fixture = await createComponent();
     const legend = fixture.nativeElement.querySelector(
       '[aria-label="Legenda do gráfico de evolução financeira"]',
-    ) as HTMLUListElement;
+    ) as HTMLDivElement;
 
-    expect(Array.from(legend.querySelectorAll('li')).map((item) => item.textContent?.trim())).toEqual([
-      'Receitas',
-      'Despesas',
-      'Saldo líquido',
-    ]);
-    expect(Array.from(legend.querySelectorAll('li > span')).map((marker) => marker.className)).toEqual(
-      expect.arrayContaining(['size-2.5 rounded-full bg-[#22C55E]', 'size-2.5 rounded-full bg-[#DC2626]', 'size-2.5 rounded-full bg-[#2563EB]']),
-    );
+    expect(legend.textContent).toContain('Receitas');
+    expect(legend.textContent).toContain('Despesas');
+    expect(legend.textContent).toContain('Resultado realizado');
+    expect(legend.querySelectorAll(':scope > span')).toHaveLength(3);
+    expect(legend.querySelector('gd-tooltip')).not.toBeNull();
+  });
+
+  it('does not render a current-period background plugin', async () => {
+    const component = (await createComponent()).componentInstance;
+
+    expect('currentPeriodPlugin' in component).toBe(false);
   });
 
   it('updates chart colors for light and dark themes', async () => {
@@ -166,17 +202,13 @@ describe('FinancialEvolutionChart', () => {
     expect(component.chartOptions().plugins?.tooltip?.backgroundColor).toBe('#16231D');
   });
 
-  it('formats expenses as positive values and preserves negative balances in tooltips', async () => {
+  it('shows overdue counts and realized result in the detailed tooltip', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
-    const tooltip = component.chartOptions().plugins?.tooltip?.callbacks?.label;
+    const rows = (component as unknown as { tooltipRows: (index: number) => string[] }).tooltipRows(1);
 
-    expect(tooltip?.({ dataset: { label: 'Despesas' }, parsed: { y: -20000 } })).toContain(
-      'R$ 20.000,00',
-    );
-    expect(tooltip?.({ dataset: { label: 'Saldo líquido' }, parsed: { y: -2000 } })).toContain(
-      '-R$ 2.000,00',
-    );
-    expect(component.chartOptions().scales?.y?.ticks?.callback?.(-20000)).toBe('-R$ 20 mil');
+    expect(rows.join('\n')).toContain('Receitas vencidas');
+    expect(rows.join('\n')).toContain('1 movimentação');
+    expect(rows.join('\n')).toContain('Resultado realizado');
   });
 
   it('emits the original period for clicks on every dataset index', async () => {

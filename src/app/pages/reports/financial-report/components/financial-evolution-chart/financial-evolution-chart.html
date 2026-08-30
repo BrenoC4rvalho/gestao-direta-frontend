@@ -1,35 +1,55 @@
-<div class="relative h-72 w-full lg:h-80">
-  <canvas
-    baseChart
-    [type]="chartType"
-    [data]="chartData()"
-    [options]="chartOptions()"
-    role="img"
-    aria-label="Gráfico de evolução financeira mensal com receitas, despesas e saldo"
-    (chartClick)="selectPeriod($event)"
-  ></canvas>
+<div class="flex h-72 w-full overflow-hidden lg:h-80">
+  <div class="relative shrink-0 pb-8" [style.width.px]="axisWidth" aria-hidden="true">
+    @for (tick of scale().ticks; track tick) {
+      <span
+        class="absolute right-2 -translate-y-1/2 text-right text-xs text-text-muted"
+        [class.font-medium]="tick === 0"
+        [style.top.%]="axisPosition(tick)"
+      >
+        {{ formatCurrency(tick) }}
+      </span>
+    }
+  </div>
+  <div class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain">
+    <div class="h-full" [style.width.px]="chartWidth()">
+      <canvas
+        baseChart
+        [type]="chartType"
+        [data]="chartData()"
+        [options]="chartOptions()"
+        role="img"
+        aria-label="Gráfico de evolução financeira com receitas, despesas e resultado realizado"
+        (chartClick)="selectPeriod($event)"
+      ></canvas>
+    </div>
+  </div>
 </div>
 
-<ul
-  class="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
+<div
+  class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
   aria-label="Legenda do gráfico de evolução financeira"
 >
-  <li class="inline-flex items-center gap-2">
-    <span class="size-2.5 rounded-full bg-[#22C55E]" aria-hidden="true"></span>
-    <span>Receitas</span>
-  </li>
-  <li class="inline-flex items-center gap-2">
-    <span class="size-2.5 rounded-full bg-[#DC2626]" aria-hidden="true"></span>
-    <span>Despesas</span>
-  </li>
-  <li class="inline-flex items-center gap-2">
-    <span class="size-2.5 rounded-full bg-[#2563EB]" aria-hidden="true"></span>
-    <span>Saldo líquido</span>
-  </li>
-</ul>
+  <span class="inline-flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#22C55E]"></span>Receitas</span>
+  <span class="inline-flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#DC2626]"></span>Despesas</span>
+  <span class="inline-flex items-center gap-2"><span class="h-0.5 w-4 bg-[#2563EB]"></span>Resultado realizado</span>
+  <gd-tooltip
+    class="cursor-help text-text-muted transition-colors hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    ariaLabel="Entenda os estilos de realizado, projetado e vencido"
+    [content]="stateLegendTooltip"
+  >
+    <span
+      class="flex size-4 items-center justify-center rounded-full border border-current text-[10px] font-semibold"
+      aria-hidden="true"
+    >
+      i
+    </span>
+  </gd-tooltip>
+</div>
 
-<ul class="sr-only" aria-label="Dados mensais da evolução financeira">
+<ul class="sr-only" aria-label="Dados da evolução financeira">
   @for (point of points(); track point.period) {
-    <li>{{ point.label }}: receitas {{ formatCurrency(point.income) }}, despesas {{ formatCurrency(point.expense) }}, saldo {{ formatCurrency(point.netBalance) }}</li>
+    <li>
+      {{ point.label }}{{ point.currentPeriod ? ', período atual' : '' }}: receitas realizadas {{ formatCurrency(point.realizedIncome) }}, receitas projetadas {{ formatCurrency(point.projectedIncome) }}, receitas vencidas {{ formatCurrency(point.overdueIncome) }}, despesas realizadas {{ formatCurrency(point.realizedExpense) }}, despesas projetadas {{ formatCurrency(point.projectedExpense) }}, despesas vencidas {{ formatCurrency(point.overdueExpense) }}, resultado realizado {{ formatCurrency(point.realizedResult) }}
+    </li>
   }
 </ul>

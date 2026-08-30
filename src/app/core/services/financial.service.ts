@@ -93,7 +93,8 @@ export class FinancialService {
       .set('farmId', filters.farmId)
       .set('startDate', filters.startDate)
       .set('endDate', filters.endDate)
-      .set('basis', filters.basis);
+      .set('basis', filters.basis)
+      .set('granularity', filters.granularity ?? 'MONTHLY');
     if (filters.harvestSeasonIds.length)
       params = params.set('harvestSeasonIds', filters.harvestSeasonIds.join(','));
     if (filters.categoryIds.length)

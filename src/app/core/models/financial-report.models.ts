@@ -1,6 +1,7 @@
 import { PageRequest } from './page-response.model';
 
 export type FinancialReportBasis = 'CASH' | 'ACCRUAL';
+export type FinancialReportGranularity = 'MONTHLY' | 'QUARTERLY';
 export interface FinancialReportRequest {
   farmId: number;
   startDate: string;
@@ -8,6 +9,7 @@ export interface FinancialReportRequest {
   basis: FinancialReportBasis;
   harvestSeasonIds: readonly number[];
   categoryIds: readonly number[];
+  granularity?: FinancialReportGranularity;
 }
 export interface FinancialReportTransactionsRequest
   extends
@@ -43,6 +45,16 @@ export interface FinancialEvolutionPoint {
   expense: number;
   netBalance: number;
   transactionCount: number;
+  realizedIncome: number;
+  projectedIncome: number;
+  overdueIncome: number;
+  overdueIncomeCount: number;
+  realizedExpense: number;
+  projectedExpense: number;
+  overdueExpense: number;
+  overdueExpenseCount: number;
+  realizedResult: number;
+  currentPeriod: boolean;
 }
 export interface FinancialCategorySummary {
   categoryId: number;

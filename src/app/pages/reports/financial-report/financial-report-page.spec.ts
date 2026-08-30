@@ -224,6 +224,20 @@ describe('FinancialReportPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Próximos 30 dias');
   });
 
+  it('should switch evolution granularity without reloading the page', () => {
+    const monthlyButton = button('Mensal');
+    const quarterlyButton = button('Trimestral');
+
+    expect(monthlyButton.getAttribute('aria-pressed')).toBe('true');
+    expect(quarterlyButton.getAttribute('aria-pressed')).toBe('false');
+
+    quarterlyButton.click();
+    fixture.detectChanges();
+
+    expect(monthlyButton.getAttribute('aria-pressed')).toBe('false');
+    expect(quarterlyButton.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('should open the detailed indicators dialog with every summary group', () => {
     button('Ver todos os indicadores').click();
     fixture.detectChanges();

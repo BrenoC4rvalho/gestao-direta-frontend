@@ -14,6 +14,7 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import {
   FinancialReportBasis,
+  FinancialReportGranularity,
   FinancialReportResponse,
   FinancialReportTransaction,
   FinancialEvolutionPoint,
@@ -119,6 +120,7 @@ export class FinancialReportPage {
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
   readonly selectedPeriod = signal<FinancialEvolutionPoint | null>(null);
+  protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
   readonly transactions = signal<readonly FinancialReportTransaction[]>([]);
   readonly transactionsLoading = signal(false);
   readonly transactionsError = signal<string | null>(null);
@@ -468,6 +470,14 @@ export class FinancialReportPage {
     this.selectedPeriod.set(point);
     this.loadTransactions(point, 0);
   }
+  protected selectEvolutionGranularity(granularity: FinancialReportGranularity): void {
+    if (this.evolutionGranularity() === granularity) return;
+    this.evolutionGranularity.set(granularity);
+    this.selectedPeriod.set(null);
+    this.transactions.set([]);
+    this.transactionPage.set(null);
+    this.reload.update((value) => value + 1);
+  }
   protected previousTransactionsPage(): void {
     const page = this.transactionPage();
     const period = this.selectedPeriod();
@@ -544,6 +554,7 @@ export class FinancialReportPage {
       basis: filters.basis,
       harvestSeasonIds: filters.harvestSeasonId === null ? [] : [filters.harvestSeasonId],
       categoryIds: filters.categoryId === null ? [] : [filters.categoryId],
+      granularity: this.evolutionGranularity(),
     };
   }
   private loadTransactions(period: FinancialEvolutionPoint, page: number): void {

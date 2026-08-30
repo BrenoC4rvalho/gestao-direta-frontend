@@ -141,12 +141,43 @@
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <gd-card class="min-w-0 xl:col-span-2"
           ><section aria-labelledby="financial-evolution-title">
-            <h2 id="financial-evolution-title" class="text-lg font-semibold text-text-primary">
-              Evolução financeira
-            </h2>
-            <p class="mt-1 text-sm text-text-muted">
-              Receitas, despesas e saldo mensal no regime aplicado.
-            </p>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="financial-evolution-title" class="text-lg font-semibold text-text-primary">
+                  Evolução financeira
+                </h2>
+                <p class="mt-1 text-sm text-text-muted">
+                  Receitas, despesas e resultado realizado no regime aplicado.
+                </p>
+              </div>
+              <div
+                class="inline-flex rounded-lg border border-border bg-background p-1"
+                aria-label="Granularidade da evolução financeira"
+              >
+                <button
+                  type="button"
+                  class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                  [class.bg-surface]="evolutionGranularity() === 'MONTHLY'"
+                  [class.text-primary]="evolutionGranularity() === 'MONTHLY'"
+                  [class.text-text-muted]="evolutionGranularity() !== 'MONTHLY'"
+                  [attr.aria-pressed]="evolutionGranularity() === 'MONTHLY'"
+                  (click)="selectEvolutionGranularity('MONTHLY')"
+                >
+                  Mensal
+                </button>
+                <button
+                  type="button"
+                  class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                  [class.bg-surface]="evolutionGranularity() === 'QUARTERLY'"
+                  [class.text-primary]="evolutionGranularity() === 'QUARTERLY'"
+                  [class.text-text-muted]="evolutionGranularity() !== 'QUARTERLY'"
+                  [attr.aria-pressed]="evolutionGranularity() === 'QUARTERLY'"
+                  (click)="selectEvolutionGranularity('QUARTERLY')"
+                >
+                  Trimestral
+                </button>
+              </div>
+            </div>
             <div class="mt-5">
               <gd-financial-evolution-chart
                 [points]="report.evolution"
