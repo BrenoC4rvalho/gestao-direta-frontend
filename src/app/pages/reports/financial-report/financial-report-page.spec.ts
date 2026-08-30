@@ -76,7 +76,46 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       next30DaysPayable: 42000,
     },
     evolution: [],
-    categories: [],
+    categories: [
+      {
+        type: 'EXPENSE',
+        totalAmount: 194300,
+        totalTransactionCount: 13,
+        items: [
+          {
+            categoryId: 1,
+            categoryName: 'Insumos',
+            type: 'EXPENSE',
+            amount: 40150,
+            percentage: 20.66,
+            transactionCount: 8,
+          },
+          {
+            categoryId: 2,
+            categoryName: 'Sementes',
+            type: 'EXPENSE',
+            amount: 34900,
+            percentage: 17.96,
+            transactionCount: 5,
+          },
+        ],
+      },
+      {
+        type: 'INCOME',
+        totalAmount: 220000,
+        totalTransactionCount: 14,
+        items: [
+          {
+            categoryId: 3,
+            categoryName: 'Venda de produção',
+            type: 'INCOME',
+            amount: 211500,
+            percentage: 96.14,
+            transactionCount: 14,
+          },
+        ],
+      },
+    ],
     harvests: [],
     indicators: {
       analyzedMonthCount: 0,
@@ -236,6 +275,59 @@ describe('FinancialReportPage', () => {
 
     expect(monthlyButton.getAttribute('aria-pressed')).toBe('false');
     expect(quarterlyButton.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('should show expense categories by default and switch to income without another request', () => {
+    const section = categorySummarySection();
+
+    expect(button('Despesas').getAttribute('aria-pressed')).toBe('true');
+    expect(button('Receitas').getAttribute('aria-pressed')).toBe('false');
+    expect(section.textContent).toContain('Despesas por categoria');
+    expect(section.textContent).toContain(currency(194300));
+    expect(section.textContent).toContain('13 movimentações');
+    expect(section.textContent).toContain('Insumos');
+    expect(section.textContent).not.toContain('Venda de produção');
+    expect(section.querySelector('.bg-danger')).not.toBeNull();
+    expect(section.querySelector('gd-tooltip')).not.toBeNull();
+
+    button('Receitas').click();
+    fixture.detectChanges();
+
+    expect(button('Despesas').getAttribute('aria-pressed')).toBe('false');
+    expect(button('Receitas').getAttribute('aria-pressed')).toBe('true');
+    expect(section.textContent).toContain('Receitas por categoria');
+    expect(section.textContent).toContain(currency(220000));
+    expect(section.textContent).toContain('Venda de produção');
+    expect(section.textContent).not.toContain('Insumos');
+    expect(section.querySelector('.bg-success')).not.toBeNull();
+  });
+
+  it('should show an accessible empty state for the selected category type', () => {
+    setReport({
+      ...report(),
+      categories: [
+        { type: 'EXPENSE', totalAmount: 0, totalTransactionCount: 0, items: [] },
+        ...report().categories.filter((category) => category.type === 'INCOME'),
+      ],
+    });
+
+    const section = categorySummarySection();
+    const emptyState = section.querySelector('gd-empty-state') as HTMLElement;
+
+    expect(emptyState).not.toBeNull();
+    expect(emptyState.textContent).toContain('Nenhuma despesa encontrada para os filtros selecionados.');
+  });
+
+  it('should keep category items in a padded internal scroll viewport', () => {
+    const viewport = fixture.nativeElement.querySelector(
+      '[data-testid="category-summary-scroll"]',
+    ) as HTMLElement;
+
+    expect(viewport.classList.contains('max-h-[26rem]')).toBe(true);
+    expect(viewport.classList.contains('overflow-x-hidden')).toBe(true);
+    expect(viewport.classList.contains('overflow-y-auto')).toBe(true);
+    expect(viewport.classList.contains('pr-3')).toBe(true);
+    expect(viewport.classList.contains('[scrollbar-gutter:stable]')).toBe(true);
   });
 
   it('should open the detailed indicators dialog with every summary group', () => {
@@ -409,6 +501,12 @@ describe('FinancialReportPage', () => {
     ).find(
       (element: HTMLButtonElement) => element.textContent?.trim() === label,
     ) as HTMLButtonElement;
+  }
+
+  function categorySummarySection(): HTMLElement {
+    return fixture.nativeElement.querySelector(
+      'section[aria-labelledby="category-summary-title"]',
+    ) as HTMLElement;
   }
 
   function closeButton(): HTMLButtonElement {

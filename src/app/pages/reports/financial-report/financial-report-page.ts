@@ -14,6 +14,7 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import {
   FinancialReportBasis,
+  FinancialCategorySummaryGroup,
   FinancialReportGranularity,
   FinancialReportResponse,
   FinancialReportTransaction,
@@ -37,6 +38,7 @@ import {
   ErrorState,
   Skeleton,
   SummaryCard,
+  Tooltip,
 } from '../../../shared/ui';
 import { Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
@@ -93,6 +95,7 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
     Select,
     Skeleton,
     SummaryCard,
+    Tooltip,
   ],
   templateUrl: './financial-report-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -121,6 +124,7 @@ export class FinancialReportPage {
   readonly reportError = signal<string | null>(null);
   readonly selectedPeriod = signal<FinancialEvolutionPoint | null>(null);
   protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
+  protected readonly categorySummaryType = signal<'EXPENSE' | 'INCOME'>('EXPENSE');
   readonly transactions = signal<readonly FinancialReportTransaction[]>([]);
   readonly transactionsLoading = signal(false);
   readonly transactionsError = signal<string | null>(null);
@@ -169,6 +173,9 @@ export class FinancialReportPage {
     const period = this.selectedPeriod();
     return period ? this.periodFormatter.format(this.utcDate(period.periodStart)) : null;
   });
+  protected readonly selectedCategorySummary = computed<FinancialCategorySummaryGroup | null>(() =>
+    this.report()?.categories.find((group) => group.type === this.categorySummaryType()) ?? null,
+  );
   protected readonly financialSummaryGroups = computed<readonly FinancialSummaryGroup[]>(() => {
     const summary = this.report()?.summary;
 
@@ -478,6 +485,9 @@ export class FinancialReportPage {
     this.transactionPage.set(null);
     this.reload.update((value) => value + 1);
   }
+  protected selectCategorySummaryType(type: 'EXPENSE' | 'INCOME'): void {
+    this.categorySummaryType.set(type);
+  }
   protected previousTransactionsPage(): void {
     const page = this.transactionPage();
     const period = this.selectedPeriod();
@@ -504,6 +514,28 @@ export class FinancialReportPage {
   }
   protected formatPercentage(value: number): string {
     return `${percentageFormatter.format(value)}%`;
+  }
+  protected categorySummaryTitle(): string {
+    return this.categorySummaryType() === 'EXPENSE' ? 'Despesas por categoria' : 'Receitas por categoria';
+  }
+  protected categorySummaryEmptyDescription(): string {
+    return this.categorySummaryType() === 'EXPENSE'
+      ? 'Nenhuma despesa encontrada para os filtros selecionados.'
+      : 'Nenhuma receita encontrada para os filtros selecionados.';
+  }
+  protected categoryPercentageTooltip(): string {
+    return this.categorySummaryType() === 'EXPENSE'
+      ? 'Participação desta categoria no total de despesas do período selecionado.'
+      : 'Participação desta categoria no total de receitas do período selecionado.';
+  }
+  protected categorySummaryBarClasses(): string {
+    return this.categorySummaryType() === 'EXPENSE' ? 'bg-danger' : 'bg-success';
+  }
+  protected categoryPercentageWidth(percentage: number): number {
+    return Math.min(Math.max(percentage, 0), 100);
+  }
+  protected categoryTransactionCountLabel(count: number): string {
+    return `${count} ${count === 1 ? 'movimentação' : 'movimentações'}`;
   }
   private realizedPercentage(realized: number, total: number): string {
     return this.formatPercentage(total === 0 ? 0 : (realized / total) * 100);

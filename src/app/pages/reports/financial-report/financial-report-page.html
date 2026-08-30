@@ -186,35 +186,97 @@
             </div></section></gd-card
         ><gd-card
           ><section aria-labelledby="category-summary-title">
-            <h2 id="category-summary-title" class="text-lg font-semibold text-text-primary">
-              Resumo por categoria
-            </h2>
-            <div class="mt-5 max-h-[28rem] space-y-4 overflow-y-auto pr-3">
-              @for (category of report.categories; track category.categoryId) {
-                <div>
-                  <div class="flex justify-between gap-3">
-                    <p class="truncate text-sm font-medium text-text-primary">
-                      {{ category.categoryName }}
-                    </p>
-                    <span class="text-xs text-text-muted">{{
-                      formatPercentage(category.percentage)
-                    }}</span>
-                  </div>
-                  <div class="mt-2 h-2 overflow-hidden rounded-full bg-background">
-                    <div
-                      class="h-full rounded-full bg-primary"
-                      [style.width.%]="category.percentage"
-                    ></div>
-                  </div>
-                  <div class="mt-1 flex justify-between text-xs text-text-muted">
-                    <span>{{ category.transactionCount }} movimentação(ões)</span
-                    ><span>{{ formatCurrency(category.amount) }}</span>
-                  </div>
-                </div>
-              } @empty {
-                <p class="text-sm text-text-muted">Nenhuma categoria encontrada.</p>
-              }
+            <div class="flex items-center justify-between gap-3">
+              <h2 id="category-summary-title" class="min-w-0 truncate text-lg font-semibold text-text-primary">
+                Resumo por categoria
+              </h2>
+              <div
+                class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1"
+                aria-label="Tipo do resumo por categoria"
+              >
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md transition-colors"
+                  aria-label="Despesas"
+                  title="Despesas"
+                  [class.bg-surface]="categorySummaryType() === 'EXPENSE'"
+                  [class.text-danger]="categorySummaryType() === 'EXPENSE'"
+                  [class.text-text-muted]="categorySummaryType() !== 'EXPENSE'"
+                  [attr.aria-pressed]="categorySummaryType() === 'EXPENSE'"
+                  (click)="selectCategorySummaryType('EXPENSE')"
+                >
+                  <svg lucideIcon="circle-dollar-sign" class="size-4" aria-hidden="true"></svg>
+                  <span class="sr-only">Despesas</span>
+                </button>
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md transition-colors"
+                  aria-label="Receitas"
+                  title="Receitas"
+                  [class.bg-surface]="categorySummaryType() === 'INCOME'"
+                  [class.text-success]="categorySummaryType() === 'INCOME'"
+                  [class.text-text-muted]="categorySummaryType() !== 'INCOME'"
+                  [attr.aria-pressed]="categorySummaryType() === 'INCOME'"
+                  (click)="selectCategorySummaryType('INCOME')"
+                >
+                  <svg lucideIcon="circle-dollar-sign" class="size-4" aria-hidden="true"></svg>
+                  <span class="sr-only">Receitas</span>
+                </button>
+              </div>
             </div>
+            @if (selectedCategorySummary(); as categorySummary) {
+              <div class="mt-3">
+                <p class="text-sm text-text-muted">{{ categorySummaryTitle() }}</p>
+                <p class="mt-1 text-xs text-text-muted">
+                  {{ formatCurrency(categorySummary.totalAmount) }} ·
+                  {{ categoryTransactionCountLabel(categorySummary.totalTransactionCount) }}
+                </p>
+              </div>
+              @if (categorySummary.items.length > 0) {
+                <div
+                  class="mt-4 max-h-[26rem] space-y-4 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
+                  data-testid="category-summary-scroll"
+                >
+                  @for (category of categorySummary.items; track category.categoryId) {
+                    <div>
+                      <p class="truncate text-sm font-medium text-text-primary">
+                        {{ category.categoryName }}
+                      </p>
+                      <div class="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <span class="text-sm font-semibold text-text-primary">
+                          {{ formatCurrency(category.amount) }}
+                        </span>
+                        <gd-tooltip
+                          [ariaLabel]="categoryPercentageTooltip()"
+                          [content]="categoryPercentageTooltip()"
+                        >
+                          <span class="text-xs text-text-muted">
+                            {{ formatPercentage(category.percentage) }}
+                          </span>
+                        </gd-tooltip>
+                      </div>
+                      <div class="mt-2 h-2 overflow-hidden rounded-full bg-background">
+                        <div
+                          class="h-full rounded-full"
+                          [class]="categorySummaryBarClasses()"
+                          [style.width.%]="categoryPercentageWidth(category.percentage)"
+                        ></div>
+                      </div>
+                      <p class="mt-1 text-xs text-text-muted">
+                        {{ categoryTransactionCountLabel(category.transactionCount) }}
+                      </p>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <gd-empty-state
+                  class="mt-4 block"
+                  title="Nenhuma categoria encontrada"
+                  [description]="categorySummaryEmptyDescription()"
+                  icon="receipt-text"
+                />
+              }
+            }
           </section></gd-card
         >
       </div>

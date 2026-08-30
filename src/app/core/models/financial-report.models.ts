@@ -64,6 +64,12 @@ export interface FinancialCategorySummary {
   percentage: number;
   transactionCount: number;
 }
+export interface FinancialCategorySummaryGroup {
+  type: 'INCOME' | 'EXPENSE';
+  totalAmount: number;
+  totalTransactionCount: number;
+  items: readonly FinancialCategorySummary[];
+}
 export interface FinancialHarvestSummary {
   harvestSeasonId: number | null;
   harvestSeasonName: string;
@@ -110,7 +116,7 @@ export interface FinancialReportResponse {
   summary: FinancialReportSummary;
   commitments: FinancialReportCommitments;
   evolution: readonly FinancialEvolutionPoint[];
-  categories: readonly FinancialCategorySummary[];
+  categories: readonly FinancialCategorySummaryGroup[];
   harvests: readonly FinancialHarvestSummary[];
   indicators: FinancialReportIndicators;
   unallocated: FinancialReportUnallocated;
