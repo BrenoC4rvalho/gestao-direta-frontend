@@ -76,6 +76,11 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       next30DaysPayable: 42000,
     },
     evolution: [],
+    cashFlow: {
+      openingExpectedBalance: 0,
+      openingProjectedBalance: 0,
+      points: [],
+    },
     categories: [
       {
         type: 'EXPENSE',

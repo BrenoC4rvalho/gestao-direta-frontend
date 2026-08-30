@@ -56,6 +56,26 @@ export interface FinancialEvolutionPoint {
   realizedResult: number;
   currentPeriod: boolean;
 }
+export interface FinancialCashFlowPoint {
+  period: string;
+  label: string;
+  periodStart: string;
+  periodEnd: string;
+  realizedIncome: number;
+  realizedExpense: number;
+  projectedIncome: number;
+  projectedExpense: number;
+  overdueIncome: number;
+  overdueExpense: number;
+  expectedBalance: number;
+  projectedBalance: number;
+  currentPeriod: boolean;
+}
+export interface FinancialCashFlow {
+  openingExpectedBalance: number;
+  openingProjectedBalance: number;
+  points: readonly FinancialCashFlowPoint[];
+}
 export interface FinancialCategorySummary {
   categoryId: number;
   categoryName: string;
@@ -116,6 +136,7 @@ export interface FinancialReportResponse {
   summary: FinancialReportSummary;
   commitments: FinancialReportCommitments;
   evolution: readonly FinancialEvolutionPoint[];
+  cashFlow: FinancialCashFlow;
   categories: readonly FinancialCategorySummaryGroup[];
   harvests: readonly FinancialHarvestSummary[];
   indicators: FinancialReportIndicators;

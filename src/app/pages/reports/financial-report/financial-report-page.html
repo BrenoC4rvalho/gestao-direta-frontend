@@ -280,6 +280,29 @@
           </section></gd-card
         >
       </div>
+      <gd-card class="mb-6 block">
+        <section aria-labelledby="financial-cash-flow-title">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 id="financial-cash-flow-title" class="text-lg font-semibold text-text-primary">Fluxo de caixa acumulado</h2>
+                <gd-tooltip
+                  ariaLabel="Entenda as séries do fluxo de caixa acumulado"
+                  content="Saldo previsto considera movimentações realizadas e compromissos futuros cadastrados. Saldo projetado com atrasos inclui também contas vencidas que ainda precisam ser recebidas ou pagas."
+                >
+                  <svg lucideIcon="info" class="size-4 text-text-muted" aria-hidden="true"></svg>
+                </gd-tooltip>
+              </div>
+              <p class="mt-1 text-sm text-text-muted">Evolução acumulada do caixa, incluindo compromissos futuros e valores em atraso.</p>
+            </div>
+            <div class="inline-flex rounded-lg border border-border bg-background p-1" aria-label="Granularidade do fluxo de caixa acumulado">
+              <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors" [class.bg-surface]="evolutionGranularity() === 'MONTHLY'" [class.text-primary]="evolutionGranularity() === 'MONTHLY'" [class.text-text-muted]="evolutionGranularity() !== 'MONTHLY'" [attr.aria-pressed]="evolutionGranularity() === 'MONTHLY'" (click)="selectEvolutionGranularity('MONTHLY')">Mensal</button>
+              <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors" [class.bg-surface]="evolutionGranularity() === 'QUARTERLY'" [class.text-primary]="evolutionGranularity() === 'QUARTERLY'" [class.text-text-muted]="evolutionGranularity() !== 'QUARTERLY'" [attr.aria-pressed]="evolutionGranularity() === 'QUARTERLY'" (click)="selectEvolutionGranularity('QUARTERLY')">Trimestral</button>
+            </div>
+          </div>
+          <div class="mt-5"><gd-financial-cash-flow-chart [points]="report.cashFlow.points" /></div>
+        </section>
+      </gd-card>
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <gd-card
           ><h2 class="text-lg font-semibold text-text-primary">Resumo por safra</h2>
