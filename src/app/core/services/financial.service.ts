@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -60,6 +60,14 @@ export class FinancialService {
   getFinancialReport(filters: FinancialReportRequest): Observable<FinancialReportResponse> {
     return this.http.get<FinancialReportResponse>(`${this.apiUrl}/financial/reports`, {
       params: this.buildReportParams(filters),
+    });
+  }
+
+  exportFinancialReportPdf(filters: FinancialReportRequest): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/financial/reports/export/pdf`, {
+      params: this.buildReportParams(filters),
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 

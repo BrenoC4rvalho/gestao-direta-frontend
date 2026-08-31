@@ -7,6 +7,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpResponse } from '@angular/common/http';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
@@ -27,6 +29,7 @@ import { HarvestSeasonService } from '../../../core/services/harvest-season.serv
 import { FarmAccessStore } from '../../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../../core/stores/selected-farm.store';
 import { SessionStore } from '../../../core/stores/session.store';
+import { ToastStore } from '../../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../../shared/forms';
 import { BrCurrencyPipe } from '../../../shared/pipes/br-currency.pipe';
 import {
@@ -110,6 +113,7 @@ export class FinancialReportPage {
   protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
+  private readonly toastStore = inject(ToastStore);
   private currentFarmId: number | null = null;
   private readonly reload = signal(0);
   private readonly currencyPipe = new BrCurrencyPipe();
@@ -122,6 +126,7 @@ export class FinancialReportPage {
 
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
+  protected readonly exportingPdf = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
   readonly selectedPeriod = signal<FinancialEvolutionPoint | null>(null);
@@ -171,6 +176,14 @@ export class FinancialReportPage {
         report.unallocated.transactionCount > 0)
     );
   });
+  protected readonly canExportPdf = computed(
+    () =>
+      this.selectedFarmStore.selectedFarmId() !== null &&
+      this.canViewReport() &&
+      !this.reportLoading() &&
+      !this.exportingPdf() &&
+      !this.reportError(),
+  );
   protected readonly movementsPeriod = computed(() => {
     const period = this.selectedPeriod();
     return period ? this.periodFormatter.format(this.utcDate(period.periodStart)) : null;
@@ -469,6 +482,28 @@ export class FinancialReportPage {
   protected retry(): void {
     this.reload.update((value) => value + 1);
   }
+  protected exportPdf(): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (!farmId || !this.canExportPdf()) {
+      return;
+    }
+
+    const pdfWindow = window.open('', '_blank');
+    this.exportingPdf.set(true);
+    this.financialService
+      .exportFinancialReportPdf(this.request(farmId))
+      .pipe(
+        finalize(() => this.exportingPdf.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => this.openPdf(response, pdfWindow),
+        error: () => {
+          pdfWindow?.close();
+          this.toastStore.error('Não foi possível gerar o relatório em PDF.');
+        },
+      });
+  }
   protected openIndicatorsDrawer(): void {
     this.indicatorsDrawerOpen.set(true);
   }
@@ -590,6 +625,31 @@ export class FinancialReportPage {
       categoryIds: filters.categoryId === null ? [] : [filters.categoryId],
       granularity: this.evolutionGranularity(),
     };
+  }
+  private openPdf(response: HttpResponse<Blob>, pdfWindow: Window | null): void {
+    if (!response.body) {
+      pdfWindow?.close();
+      this.toastStore.error('Não foi possível gerar o relatório em PDF.');
+      return;
+    }
+
+    const url = URL.createObjectURL(response.body);
+    if (pdfWindow) {
+      pdfWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.pdfFilename(response);
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  private pdfFilename(response: HttpResponse<Blob>): string {
+    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(contentDisposition);
+    return match?.[1] ?? 'relatorio-financeiro.pdf';
   }
   private loadTransactions(period: FinancialEvolutionPoint, page: number): void {
     const farmId = this.selectedFarmStore.selectedFarmId();

@@ -17,7 +17,16 @@
     />
   } @else {
     <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-      <gd-button variant="outline" [disabled]="true">Exportar PDF</gd-button
+      <gd-button
+        type="button"
+        variant="outline"
+        [loading]="exportingPdf()"
+        [disabled]="!canExportPdf()"
+        (click)="exportPdf()"
+      >
+        <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
+        Exportar PDF
+      </gd-button
       ><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button>
     </div>
     @if (reportLoading()) {

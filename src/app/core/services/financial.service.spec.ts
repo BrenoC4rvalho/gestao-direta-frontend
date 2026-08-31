@@ -167,4 +167,27 @@ describe('FinancialService report endpoints', () => {
       last: true,
     });
   });
+
+  it('exports the financial report PDF with the applied report filters', () => {
+    service
+      .exportFinancialReportPdf({
+        farmId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-03-31',
+        basis: 'ACCRUAL',
+        harvestSeasonIds: [25],
+        categoryIds: [4],
+        granularity: 'QUARTERLY',
+      })
+      .subscribe();
+
+    const request = http.expectOne((item) => item.url === `${apiUrl}/financial/reports/export/pdf`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    expect(request.request.params.get('farmId')).toBe('8');
+    expect(request.request.params.get('harvestSeasonIds')).toBe('25');
+    expect(request.request.params.get('categoryIds')).toBe('4');
+    expect(request.request.params.get('granularity')).toBe('QUARTERLY');
+    request.flush(new Blob(['%PDF']));
+  });
 });

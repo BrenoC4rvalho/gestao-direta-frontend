@@ -268,6 +268,13 @@ describe('FinancialReportPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Próximos 30 dias');
   });
 
+  it('should show the PDF export action when the report is available', () => {
+    const exportButton = button('Exportar PDF');
+
+    expect(exportButton.disabled).toBe(false);
+    expect(exportButton.textContent).toContain('Exportar PDF');
+  });
+
   it('should switch evolution granularity without reloading the page', () => {
     const monthlyButton = button('Mensal');
     const quarterlyButton = button('Trimestral');
