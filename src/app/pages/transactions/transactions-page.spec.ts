@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 
@@ -217,6 +217,8 @@ describe('TransactionsPage', () => {
   let fixture: ComponentFixture<TransactionsPage>;
   let transactionService: {
     listByFarm: ReturnType<typeof vi.fn>;
+    exportXlsx: ReturnType<typeof vi.fn>;
+    exportPdf: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -242,6 +244,12 @@ describe('TransactionsPage', () => {
   beforeEach(async () => {
     transactionService = {
       listByFarm: vi.fn().mockReturnValue(of(pageResponse([transaction]))),
+      exportXlsx: vi.fn().mockReturnValue(
+        of(new HttpResponse({ body: new Blob(['xlsx']), headers: new HttpHeaders({ 'content-disposition': 'attachment; filename="movimentacoes.xlsx"' }) })),
+      ),
+      exportPdf: vi.fn().mockReturnValue(
+        of(new HttpResponse({ body: new Blob(['pdf']), headers: new HttpHeaders({ 'content-disposition': 'attachment; filename="movimentacoes.pdf"' }) })),
+      ),
       getById: vi.fn().mockReturnValue(of(transaction)),
       create: vi.fn().mockReturnValue(of({ ...transaction, id: 2 })),
       update: vi.fn().mockReturnValue(of({ ...transaction, description: 'Atualizada' })),
@@ -356,6 +364,20 @@ describe('TransactionsPage', () => {
     });
     expect(fixture.nativeElement.textContent).toContain('Compra de sementes');
     expect(fixture.nativeElement.textContent).toContain('R$');
+  });
+
+  it('should export with the applied filters without page or size', () => {
+    transactionService.exportXlsx.mockReturnValueOnce(of(new HttpResponse({ body: null })));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    const exportButton = findButton(fixture.nativeElement, 'Exportar Excel');
+    exportButton?.click();
+
+    expect(exportButton).toBeTruthy();
+    expect(transactionService.exportXlsx).toHaveBeenCalledWith({ farmId: 1 });
+    expect(transactionService.exportXlsx.mock.calls[0]?.[0]).not.toHaveProperty('page');
+    expect(transactionService.exportXlsx.mock.calls[0]?.[0]).not.toHaveProperty('size');
   });
 
   it('should show empty and error states', () => {

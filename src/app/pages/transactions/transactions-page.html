@@ -1,7 +1,17 @@
 <section class="gd-fade-in-up space-y-6">
-  @if (canCreateTransaction() && !accessDenied()) {
-    <div class="flex justify-end">
-      <gd-button type="button" (click)="openCreateDrawer()">Nova movimentação</gd-button>
+  @if (canViewTransactions() && !accessDenied()) {
+    <div class="flex flex-wrap justify-end gap-2">
+      <gd-button type="button" variant="outline" [loading]="exportingExcel()" [disabled]="!canExportTransactions()" (click)="exportExcel()">
+        <svg lucideIcon="file-spreadsheet" class="size-4" aria-hidden="true"></svg>
+        Exportar Excel
+      </gd-button>
+      <gd-button type="button" variant="outline" [loading]="exportingPdf()" [disabled]="!canExportTransactions()" (click)="exportPdf()">
+        <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
+        Imprimir PDF
+      </gd-button>
+      @if (canCreateTransaction()) {
+        <gd-button type="button" (click)="openCreateDrawer()">Nova movimentação</gd-button>
+      }
     </div>
   }
 

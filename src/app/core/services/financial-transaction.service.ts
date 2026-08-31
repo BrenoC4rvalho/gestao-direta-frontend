@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   CreateFinancialTransactionRequest,
   FinancialTransaction,
+  FinancialTransactionExportParams,
   FinancialTransactionListParams,
   FinancialTransactionPage,
   MarkFinancialTransactionAsPaidRequest,
@@ -23,6 +24,22 @@ export class FinancialTransactionService {
   listByFarm(params: FinancialTransactionListParams): Observable<FinancialTransactionPage> {
     return this.http.get<FinancialTransactionPage>(`${this.apiUrl}/financial/transactions`, {
       params: this.buildListParams(params),
+    });
+  }
+
+  exportXlsx(params: FinancialTransactionExportParams): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/financial/transactions/export/xlsx`, {
+      params: this.buildExportParams(params),
+      observe: 'response',
+      responseType: 'blob',
+    });
+  }
+
+  exportPdf(params: FinancialTransactionExportParams): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/financial/transactions/export/pdf`, {
+      params: this.buildExportParams(params),
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 
@@ -76,6 +93,17 @@ export class FinancialTransactionService {
       .set('sort', params.sort ?? 'transactionDate')
       .set('direction', params.direction ?? 'DESC');
 
+    return this.appendFilterParams(httpParams, params);
+  }
+
+  private buildExportParams(params: FinancialTransactionExportParams): HttpParams {
+    return this.appendFilterParams(new HttpParams().set('farmId', params.farmId), params);
+  }
+
+  private appendFilterParams(
+    httpParams: HttpParams,
+    params: FinancialTransactionExportParams,
+  ): HttpParams {
     const optionalParams = {
       transactionDateStart: params.transactionDateStart,
       transactionDateEnd: params.transactionDateEnd,

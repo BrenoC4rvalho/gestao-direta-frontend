@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,6 +20,7 @@ import {
   CreateFinancialTransactionRequest,
   FinancialRecordStatus,
   FinancialTransaction,
+  FinancialTransactionExportParams,
   FinancialTransactionListParams,
   PaymentMethod,
   PaymentStatus,
@@ -149,6 +150,8 @@ export class TransactionsPage {
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
   protected readonly loading = signal(false);
+  protected readonly exportingExcel = signal(false);
+  protected readonly exportingPdf = signal(false);
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
@@ -223,6 +226,9 @@ export class TransactionsPage {
     );
   });
   protected readonly filteredTransactions = computed(() => this.transactions());
+  protected readonly canExportTransactions = computed(
+    () => this.canViewTransactions() && this.pageInfo().totalElements > 0,
+  );
   protected readonly summary = computed(() => {
     const totals = this.filteredTransactions().reduce(
       (current, transaction) => {
@@ -540,6 +546,48 @@ export class TransactionsPage {
     this.drawerOpen.set(true);
   }
 
+  protected exportExcel(): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (!farmId || !this.canExportTransactions() || this.exportingExcel()) {
+      return;
+    }
+
+    this.exportingExcel.set(true);
+    this.transactionService
+      .exportXlsx(this.exportParams(farmId))
+      .pipe(
+        finalize(() => this.exportingExcel.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => this.downloadFile(response.body, this.exportFilename(response, 'xlsx')),
+        error: () => this.toastStore.error('Não foi possível gerar o arquivo Excel. Tente novamente.'),
+      });
+  }
+
+  protected exportPdf(): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (!farmId || !this.canExportTransactions() || this.exportingPdf()) {
+      return;
+    }
+
+    const pdfWindow = window.open('', '_blank');
+    this.exportingPdf.set(true);
+    this.transactionService
+      .exportPdf(this.exportParams(farmId))
+      .pipe(
+        finalize(() => this.exportingPdf.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => this.openPdf(response.body, pdfWindow, this.exportFilename(response, 'pdf')),
+        error: () => {
+          pdfWindow?.close();
+          this.toastStore.error('Não foi possível gerar o PDF. Tente novamente.');
+        },
+      });
+  }
+
   protected openEditDrawer(transaction: FinancialTransaction): void {
     if (!this.canEditTransaction(transaction)) {
       this.showPermissionError();
@@ -848,6 +896,47 @@ export class TransactionsPage {
         .listByFarm(farmId, { status: 'ACTIVE' })
         .pipe(catchError(() => of([]))),
     });
+  }
+
+  private exportParams(farmId: number): FinancialTransactionExportParams {
+    return { farmId, ...this.appliedFilters() };
+  }
+
+  private downloadFile(blob: Blob | null, filename: string): void {
+    if (!blob) {
+      this.toastStore.error('Não foi possível gerar o arquivo Excel. Tente novamente.');
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private openPdf(blob: Blob | null, pdfWindow: Window | null, filename: string): void {
+    if (!blob) {
+      pdfWindow?.close();
+      this.toastStore.error('Não foi possível gerar o PDF. Tente novamente.');
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    if (pdfWindow) {
+      pdfWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    this.downloadFile(blob, filename);
+  }
+
+  private exportFilename(response: HttpResponse<Blob>, extension: string): string {
+    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(contentDisposition);
+    return match?.[1] ?? `movimentacoes.${extension}`;
   }
 
   private buildAppliedFilters(): AppliedTransactionFilters {

@@ -68,6 +68,11 @@ export interface FinancialTransactionListParams {
   direction?: 'ASC' | 'DESC';
 }
 
+export type FinancialTransactionExportParams = Omit<
+  FinancialTransactionListParams,
+  'page' | 'size' | 'sort' | 'direction'
+>;
+
 export interface CreateFinancialTransactionRequest {
   description: string;
   amount: number;
