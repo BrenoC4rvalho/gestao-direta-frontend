@@ -12,6 +12,7 @@ Esta SPA Angular consome a API do Gestão Direta. Ela possui uma landing page p�
 - Dashboard, fazendas, usuários, vínculos de fazenda e perfil.
 - Cadastro unificado de categorias financeiras e atividades produtivas.
 - Movimentações, agenda, alertas, relatórios financeiros, safras e atividades produtivas.
+- Exportação das movimentações filtradas em Excel e PDF para impressão.
 - Vínculo Telegram e revisão de movimentações identificadas por mensagem.
 
 ## Tecnologias
@@ -52,7 +53,7 @@ public/
 ## Pré-requisitos e instalação
 
 - Node.js e npm. O repositório não fixa versão mínima de Node em `package.json`, `.nvmrc` ou `.node-version`.
-- npm `11.6.2`, informado em `packageManager`. A validação atual usou Node `24.12.0` e npm `11.6.2`.
+- npm `11.6.2`, informado em `packageManager`.
 - Backend disponível para utilizar as telas integradas.
 
 O projeto usa npm e `package-lock.json`. Em um clone novo, instale as dependências travadas com:
@@ -73,6 +74,18 @@ src/environments/environment.development.ts
 ```
 
 Atualmente ambos usam `http://localhost:8080/api`. Para outra instância, altere `apiUrl` no ambiente apropriado. Nunca inclua segredos, tokens ou credenciais no bundle.
+
+## Movimentações e exportação
+
+A tela de Movimentações oferece filtros, paginação, criação, edição, pagamento e cancelamento conforme as permissões da fazenda selecionada. Os botões **Exportar Excel** e **Imprimir PDF** solicitam arquivos ao backend usando os filtros já aplicados na listagem.
+
+O Excel é baixado como arquivo `.xlsx`. O PDF é aberto em uma nova aba quando possível, permitindo impressão ou download pelo visualizador do navegador. As exportações consideram todos os resultados filtrados e não apenas a página atual da tabela.
+
+## Relatórios financeiros
+
+O Relatório Financeiro reúne indicadores e movimentações do período com filtros de fazenda, datas, regime, safra e categoria. A tela apresenta evolução financeira em granularidade mensal ou trimestral, ranking separado de receitas e despesas por categoria e fluxo de caixa acumulado.
+
+O fluxo acumulado diferencia o saldo previsto — movimentações realizadas e compromissos futuros cadastrados — do cenário projetado que também considera contas vencidas ainda abertas. Os cálculos financeiros são fornecidos pela API; o frontend apenas os apresenta em gráficos e tabelas.
 
 ## Executando localmente
 
