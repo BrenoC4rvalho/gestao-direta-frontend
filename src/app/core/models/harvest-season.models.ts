@@ -235,6 +235,15 @@ export interface HarvestSeasonDetailSummary {
   projection: HarvestSeasonProjectionSummary;
   comparison: HarvestSeasonComparisonSummary;
   openAmounts: HarvestSeasonOpenAmountsSummary;
+  plannedCostPerHectare: number | null;
+  plannedRevenuePerHectare: number | null;
+  plannedResultPerHectare: number | null;
+  projectedCostPerHectare: number | null;
+  projectedRevenuePerHectare: number | null;
+  projectedProfitPerHectare: number | null;
+  realizedCostPerHectare: number | null;
+  realizedRevenuePerHectare: number | null;
+  realizedProfitPerHectare: number | null;
   transactionCount: number;
   incomeCount: number;
   expenseCount: number;

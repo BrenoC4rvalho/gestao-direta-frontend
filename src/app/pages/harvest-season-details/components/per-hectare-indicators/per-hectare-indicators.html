@@ -1,0 +1,39 @@
+<section aria-labelledby="per-hectare-indicators-heading">
+  <div class="flex items-center gap-2">
+    <h2 id="per-hectare-indicators-heading" class="text-lg font-semibold text-text-primary">
+      Indicadores por hectare
+    </h2>
+    <gd-tooltip
+      [ariaLabel]="tooltip"
+      [content]="tooltip"
+      class="focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      <svg lucideIcon="info" class="size-4 text-text-muted" aria-hidden="true"></svg>
+    </gd-tooltip>
+  </div>
+  <p class="mt-1 text-sm text-text-muted">
+    Valores financeiros da Safra normalizados pela área cultivada.
+  </p>
+
+  @if (indicators().length === 0) {
+    <gd-empty-state
+      class="mt-4"
+      title="Área da Safra não informada"
+      description="Informe a área da Safra para visualizar os indicadores por hectare."
+      icon="tractor"
+    />
+  } @else {
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      @for (indicator of indicators(); track indicator.title) {
+        <gd-summary-card
+          [title]="indicator.title"
+          [value]="(indicator.value | brCurrency) + '/ha'"
+          [description]="null"
+          [icon]="indicator.icon"
+          [tone]="indicator.tone"
+          density="compact"
+        />
+      }
+    </div>
+  }
+</section>

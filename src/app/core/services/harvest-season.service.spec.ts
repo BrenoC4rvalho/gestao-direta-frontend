@@ -64,6 +64,15 @@ const summary: HarvestSeasonDetailSummary = {
     pending: { payableAmount: 29200, receivableAmount: 58000 },
     overdue: { payableAmount: 0, receivableAmount: 0 },
   },
+  plannedCostPerHectare: 2666.67,
+  plannedRevenuePerHectare: 4062.5,
+  plannedResultPerHectare: 1395.83,
+  projectedCostPerHectare: 608.33,
+  projectedRevenuePerHectare: 1208.33,
+  projectedProfitPerHectare: 600,
+  realizedCostPerHectare: 0,
+  realizedRevenuePerHectare: 0,
+  realizedProfitPerHectare: 0,
   transactionCount: 3,
   incomeCount: 1,
   expenseCount: 2,
@@ -401,6 +410,7 @@ describe('HarvestSeasonService', () => {
 
     const invalidSummary = structuredClone(summary) as unknown as Record<string, unknown>;
     delete (invalidSummary['planning'] as Record<string, unknown>)['plannedMargin'];
+    delete invalidSummary['plannedCostPerHectare'];
     delete (invalidSummary['openAmounts'] as Record<string, unknown>)['payableAmount'];
 
     http.expectOne(apiUrl + '/1/summary').flush(invalidSummary);

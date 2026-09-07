@@ -80,6 +80,7 @@ import {
   numberToBrazilianMoney,
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
+import { PerHectareIndicators } from './components/per-hectare-indicators/per-hectare-indicators';
 
 interface HarvestFormControls {
   productionActivityId: GdFormControl;
@@ -153,6 +154,7 @@ interface StatusTarget {
     EmptyState,
     ErrorState,
     NgTemplateOutlet,
+    PerHectareIndicators,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,

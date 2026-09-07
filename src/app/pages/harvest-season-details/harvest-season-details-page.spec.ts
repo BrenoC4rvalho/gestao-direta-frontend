@@ -69,6 +69,15 @@ const summary: HarvestSeasonDetailSummary = {
     pending: { payableAmount: 29200, receivableAmount: 58000 },
     overdue: { payableAmount: 0, receivableAmount: 0 },
   },
+  plannedCostPerHectare: 2666.67,
+  plannedRevenuePerHectare: 4062.5,
+  plannedResultPerHectare: 1395.83,
+  projectedCostPerHectare: 608.33,
+  projectedRevenuePerHectare: 1208.33,
+  projectedProfitPerHectare: 600,
+  realizedCostPerHectare: 0,
+  realizedRevenuePerHectare: 0,
+  realizedProfitPerHectare: 0,
   transactionCount: 3,
   incomeCount: 1,
   expenseCount: 2,
@@ -228,13 +237,16 @@ describe('HarvestSeasonDetailsPage', () => {
       'Receita projetada',
       'Lucro projetado',
       'Desvio de custo',
+      'Custo projetado/ha',
+      'Receita projetada/ha',
+      'Lucro projetado/ha',
     ]);
     expect(text()).toContain('29.200,00');
     expect(text()).not.toContain('Custo planejado');
     clickButton('Ver todos os indicadores');
     expect(text()).toContain('98.800,00');
     expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
-    expect(text()).not.toContain('Indicadores por hectare');
+    expect(text()).toContain('Indicadores por hectare');
     expect(text()).toContain('Lucro projetado');
     expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');

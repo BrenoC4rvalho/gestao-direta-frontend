@@ -83,6 +83,10 @@
           }
         </section>
 
+        @if (!summaryLoading() && !summaryError() && summary(); as currentSummary) {
+          <gd-per-hectare-indicators [status]="harvest.status" [summary]="currentSummary" />
+        }
+
         <div class="grid gap-6 xl:grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)]">
           <section aria-labelledby="harvest-info-heading">
             <gd-card class="h-full">

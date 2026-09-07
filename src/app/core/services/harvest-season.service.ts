@@ -136,6 +136,17 @@ export class HarvestSeasonService {
       this.isComparisonSummary(value['comparison']) &&
       this.hasDetailMetadata(value) &&
       this.isOpenAmountsSummary(value['openAmounts']) &&
+      this.hasNullableNumericFields(value, [
+        'plannedCostPerHectare',
+        'plannedRevenuePerHectare',
+        'plannedResultPerHectare',
+        'projectedCostPerHectare',
+        'projectedRevenuePerHectare',
+        'projectedProfitPerHectare',
+        'realizedCostPerHectare',
+        'realizedRevenuePerHectare',
+        'realizedProfitPerHectare',
+      ]) &&
       typeof value['transactionCount'] === 'number' &&
       typeof value['incomeCount'] === 'number' &&
       typeof value['expenseCount'] === 'number'
@@ -213,6 +224,13 @@ export class HarvestSeasonService {
 
   private hasNumericFields(value: unknown, fields: readonly string[]): boolean {
     return this.isRecord(value) && fields.every((field) => typeof value[field] === 'number');
+  }
+
+  private hasNullableNumericFields(value: unknown, fields: readonly string[]): boolean {
+    return (
+      this.isRecord(value) &&
+      fields.every((field) => typeof value[field] === 'number' || value[field] === null)
+    );
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
