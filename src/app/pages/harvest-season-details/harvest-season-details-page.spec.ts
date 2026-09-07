@@ -213,7 +213,7 @@ describe('HarvestSeasonDetailsPage', () => {
     });
   });
 
-  it('should render the detail summary, harvest information and transactions in order', () => {
+  it('should render the overview as the initial tab without planning content', () => {
     setupUser('PRODUCER');
     createComponent();
 
@@ -221,16 +221,16 @@ describe('HarvestSeasonDetailsPage', () => {
       'Custo planejado',
       'Receita planejada',
       'Lucro planejado',
+      'Desempenho do lucro',
       'Custo realizado',
       'Receita realizada',
       'Lucro realizado',
+      'A pagar',
+      'A receber',
       'Custo projetado',
       'Receita projetada',
       'Lucro projetado',
-      'Desempenho do lucro',
       'Desvio de custo',
-      'A pagar',
-      'A receber',
       'Vencidas a pagar',
       'Vencidas a receber',
     ]);
@@ -240,13 +240,9 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Lucro planejado');
     expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');
-    expect(sectionHeadingTexts()).toEqual([
-      'Resumo financeiro',
-      'Planejamento financeiro',
-      'Nenhum item planejado ainda.',
-      'Informações da safra',
-      'Movimentações vinculadas · 3',
-    ]);
+    expect(text()).not.toContain('Organize as receitas e despesas previstas para esta Safra.');
+    expect(text()).toContain('Informações da safra');
+    expect(text()).toContain('Movimentações vinculadas');
   });
 
   it('should render harvest information with name and description', () => {
@@ -363,7 +359,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Ver em movimentações');
+    clickButton('Ver todas');
 
     expect(router.navigate).toHaveBeenCalledWith(['/transactions'], {
       queryParams: { harvestSeasonId: 1 },
@@ -389,11 +385,11 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Safra não encontrada.');
   });
 
-  it('should navigate back to harvests when clicking Voltar', () => {
+  it('should navigate back to harvests when clicking Safras', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Voltar');
+    clickButton('Safras');
 
     expect(router.navigate).toHaveBeenCalledWith(['/harvests']);
   });
@@ -425,7 +421,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
 
     expect(text()).toContain('Status da safra');
     expect(text()).toContain('Em andamento');
@@ -438,7 +434,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
 
     expect(text()).toContain('Status da safra');
     expect(text()).toContain('Inativa');
@@ -449,7 +445,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
     clickButton('Inativar safra');
     clickLastButton('Inativar safra');
 
@@ -463,7 +459,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
     clickButton('Reativar safra');
     clickLastButton('Reativar safra');
 
@@ -477,7 +473,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
     clickButton('Iniciar safra');
 
     expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
@@ -487,7 +483,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
     clickButton('Finalizar safra');
     clickLastButton('Finalizar safra');
 
@@ -499,7 +495,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Editar');
+    clickButton('Editar safra');
     clickButton('Reabrir safra');
     clickLastButton('Reabrir safra');
 
@@ -565,8 +561,89 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
+    clickButton('Planejamento financeiro');
+
     expect(text()).not.toContain('Adicionar despesa');
     expect(text()).not.toContain('Remover');
+    expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
+  });
+
+  it('should switch to the planning tab and render planned totals and legacy groups', () => {
+    harvestService.getBudgetItems.mockReturnValue(
+      of({
+        ...budget,
+        plannedExpense: 128000,
+        plannedRevenue: 195000,
+        plannedResult: 67000,
+        plannedMargin: 34.36,
+        expenses: [
+          {
+            categoryId: null,
+            categoryName: 'Sem categoria',
+            type: 'EXPENSE',
+            itemCount: 1,
+            plannedAmount: 128000,
+            items: [
+              {
+                id: 9,
+                harvestSeasonId: 1,
+                categoryId: null,
+                categoryName: 'Sem categoria',
+                type: 'EXPENSE',
+                description: 'Planejamento anterior',
+                plannedAmount: 128000,
+              },
+            ],
+          },
+        ],
+        incomes: [],
+      }),
+    );
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+
+    expect(text()).toContain('Despesas planejadas');
+    expect(text()).toContain('Receitas planejadas');
+    expect(text()).toContain('Resultado planejado');
+    expect(text()).toContain('Margem planejada');
+    expect(text()).toContain('Sem categoria');
+    expect(text()).toContain('Planejamento anterior');
+    expect(text()).toContain('Editar');
+    expect(text()).toContain('Remover');
+    expect(text()).not.toContain('Movimentações vinculadas');
+  });
+
+  it('should show planning create actions only to users that can manage the harvest', () => {
+    setupUser('PRODUCER');
+    createComponent();
+    clickButton('Planejamento financeiro');
+
+    expect(text()).toContain('Adicionar despesa');
+    expect(text()).toContain('Adicionar receita');
+  });
+
+  it('should render the planning empty state with actions for an authorized user', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+
+    expect(text()).toContain('Nenhum item planejado ainda.');
+    expect(text()).toContain('Adicione receitas e despesas previstas para acompanhar o planejamento');
+    expect(text()).toContain('Adicionar despesa');
+    expect(text()).toContain('Adicionar receita');
+  });
+
+  it('should keep planning read-only for an employee', () => {
+    setupUser('EMPLOYEE');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+
+    expect(text()).not.toContain('Adicionar despesa');
+    expect(text()).not.toContain('Adicionar receita');
     expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
   });
 

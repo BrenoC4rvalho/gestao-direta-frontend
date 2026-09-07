@@ -25,6 +25,7 @@ import { finalize, Observable } from 'rxjs';
 import {
   HarvestSeason,
   HarvestSeasonBudget,
+  HarvestSeasonBudgetCategory,
   HarvestSeasonBudgetItem,
   HarvestSeasonBudgetItemRequest,
   HarvestSeasonStatus,
@@ -98,6 +99,15 @@ interface DetailSummaryCard {
   detail?: string;
   icon: string;
   tone: SummaryCardTone;
+}
+
+type HarvestDetailTab = 'overview' | 'planning';
+
+interface BudgetSection {
+  title: string;
+  total: number;
+  groups: readonly HarvestSeasonBudgetCategory[];
+  type: 'INCOME' | 'EXPENSE';
 }
 
 interface InfoItem {
@@ -178,6 +188,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly statusTarget = signal<StatusTarget | null>(null);
   protected readonly statusSubmitting = signal(false);
+  protected readonly activeTab = signal<HarvestDetailTab>('overview');
   protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
 
   private readonly harvestId = signal<number | null>(null);
@@ -365,6 +376,91 @@ export class HarvestSeasonDetailsPage implements OnInit {
       ),
     ];
   });
+  protected readonly primarySummaryCards = computed(() =>
+    this.summaryCards().filter((card) =>
+      ['Custo planejado', 'Receita planejada', 'Lucro planejado', 'Desempenho do lucro'].includes(
+        card.title,
+      ),
+    ),
+  );
+  protected readonly operationalSummaryCards = computed(() =>
+    this.summaryCards().filter((card) =>
+      ['Custo realizado', 'Receita realizada', 'Lucro realizado', 'A pagar', 'A receber'].includes(
+        card.title,
+      ),
+    ),
+  );
+  protected readonly complementarySummaryCards = computed(() =>
+    this.summaryCards().filter((card) =>
+      [
+        'Custo projetado',
+        'Receita projetada',
+        'Lucro projetado',
+        'Desvio de custo',
+        'Vencidas a pagar',
+        'Vencidas a receber',
+      ].includes(card.title),
+    ),
+  );
+  protected readonly planningCards = computed<readonly DetailSummaryCard[]>(() => {
+    const budget = this.budget();
+
+    if (!budget) {
+      return [];
+    }
+
+    return [
+      this.currencyCard(
+        'Despesas planejadas',
+        budget.plannedExpense,
+        'Total de despesas previstas para a safra.',
+        'briefcase-business',
+        'warning',
+      ),
+      this.currencyCard(
+        'Receitas planejadas',
+        budget.plannedRevenue,
+        'Total de receitas previstas para a safra.',
+        'trending-up',
+        'success',
+      ),
+      this.profitCard(
+        'Resultado planejado',
+        budget.plannedResult,
+        'Resultado entre receitas e despesas previstas.',
+        'chart-no-axes-combined',
+      ),
+      {
+        title: 'Margem planejada',
+        value: this.percentageLabel(budget.plannedMargin),
+        description: 'Margem do resultado planejado sobre as receitas previstas.',
+        icon: 'chart-no-axes-column-increasing',
+        tone: this.profitTone(budget.plannedMargin),
+      },
+    ];
+  });
+  protected readonly budgetSections = computed<readonly BudgetSection[]>(() => {
+    const budget = this.budget();
+
+    if (!budget) {
+      return [];
+    }
+
+    return [
+      {
+        title: 'Despesas planejadas',
+        total: budget.plannedExpense,
+        groups: budget.expenses,
+        type: 'EXPENSE',
+      },
+      {
+        title: 'Receitas planejadas',
+        total: budget.plannedRevenue,
+        groups: budget.incomes,
+        type: 'INCOME',
+      },
+    ];
+  });
   protected readonly infoItems = computed<readonly InfoItem[]>(() => {
     const harvest = this.harvest();
 
@@ -451,6 +547,10 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
   protected goBack(): void {
     void this.router.navigate(['/harvests']);
+  }
+
+  protected selectTab(tab: HarvestDetailTab): void {
+    this.activeTab.set(tab);
   }
 
   protected goToTransactions(): void {

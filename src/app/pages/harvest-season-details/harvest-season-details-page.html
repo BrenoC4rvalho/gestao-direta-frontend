@@ -21,168 +21,133 @@
       />
     </gd-card>
   } @else if (harvest(); as harvest) {
-    <div>
+    <header class="rounded-app border border-border bg-surface p-5 sm:p-6">
       <button
         type="button"
         class="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
         (click)="goBack()"
       >
         <svg lucideIcon="arrow-left" class="size-4" aria-hidden="true"></svg>
-        Voltar
+        Safras
       </button>
-    </div>
-
-    <section class="space-y-4" aria-labelledby="summary-heading">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 id="summary-heading" class="text-lg font-semibold text-text-primary">
-            Resumo financeiro
-          </h2>
-          <p class="mt-1 text-sm text-text-muted">
-            Valores consolidados das movimentações vinculadas à safra.
+      <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 class="break-words text-2xl font-semibold text-text-primary sm:text-3xl">
+              {{ harvest.name }}
+            </h1>
+            <gd-badge [variant]="statusVariant(harvest.status)">{{ statusLabel(harvest.status) }}</gd-badge>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-text-muted">
+            {{ harvest.farmName ?? ('Fazenda #' + harvest.farmId) }}
+            <span aria-hidden="true"> • </span>
+            {{ harvest.productionActivityName }}
+            <span aria-hidden="true"> • </span>
+            {{ periodLabel(harvest) }}
+            <span aria-hidden="true"> • </span>
+            {{ hectareLabel(harvest.areaHectares) }}
           </p>
         </div>
-        @if (summaryError()) {
-          <gd-button type="button" variant="outline" size="sm" (click)="retrySummary()">
-            Tentar novamente
+        @if (canManageHarvests()) {
+          <gd-button type="button" variant="outline" (click)="openEditDrawer()">
+            Editar safra
           </gd-button>
         }
       </div>
+    </header>
 
-      @if (summaryLoading()) {
-        <div
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6"
-          aria-label="Carregando resumo financeiro"
-        >
-          @for (item of skeletons; track item) {
-            <gd-skeleton height="6.25rem" />
-          }
-        </div>
-      } @else if (summaryError()) {
-        <gd-error-state
-          [title]="summaryError()!"
-          description="As demais informações da safra continuam disponíveis."
-        />
-      } @else {
-        <div
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6"
-        >
-          @for (card of summaryCards(); track card.title) {
-            <gd-summary-card
-              [title]="card.title"
-              [value]="card.value"
-              [description]="card.description"
-              [detail]="card.detail ?? null"
-              [icon]="card.icon"
-              [tone]="card.tone"
-              density="compact"
-            />
-          }
-        </div>
-      }
-    </section>
+    <nav
+      role="tablist"
+      aria-label="Seções da safra"
+      class="inline-flex max-w-full items-center gap-5 overflow-x-auto border-b border-border"
+    >
+      <button
+        type="button"
+        role="tab"
+        id="harvest-overview-tab"
+        aria-controls="harvest-overview-panel"
+        [attr.aria-selected]="activeTab() === 'overview'"
+        [class]="'relative inline-flex min-h-10 shrink-0 cursor-pointer items-center px-1 pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeTab() === 'overview' ? 'font-semibold text-text-primary' : 'text-text-muted hover:text-text-primary')"
+        (click)="selectTab('overview')"
+      >
+        Visão geral
+        @if (activeTab() === 'overview') {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="harvest-planning-tab"
+        aria-controls="harvest-planning-panel"
+        [attr.aria-selected]="activeTab() === 'planning'"
+        [class]="'relative inline-flex min-h-10 shrink-0 cursor-pointer items-center px-1 pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeTab() === 'planning' ? 'font-semibold text-text-primary' : 'text-text-muted hover:text-text-primary')"
+        (click)="selectTab('planning')"
+      >
+        Planejamento financeiro
+        @if (activeTab() === 'planning') {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </button>
+    </nav>
 
-    <section aria-labelledby="harvest-budget-heading">
-      <gd-card>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 id="harvest-budget-heading" class="text-lg font-semibold text-text-primary">
-              Planejamento financeiro
-            </h2>
-            <p class="mt-1 text-sm leading-6 text-text-muted">
-              Receitas e despesas previstas, agrupadas por categoria.
-            </p>
-          </div>
-          @if (canManageBudget()) {
-            <div class="flex flex-wrap gap-2">
-              <gd-button type="button" variant="outline" size="sm" (click)="openCreateBudgetItem('EXPENSE')">
-                Adicionar despesa
-              </gd-button>
-              <gd-button type="button" size="sm" (click)="openCreateBudgetItem('INCOME')">
-                Adicionar receita
-              </gd-button>
+    @if (activeTab() === 'overview') {
+      <div id="harvest-overview-panel" role="tabpanel" aria-labelledby="harvest-overview-tab" class="space-y-6">
+        <section class="space-y-4" aria-labelledby="summary-heading">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 id="summary-heading" class="text-lg font-semibold text-text-primary">Resumo financeiro</h2>
+              <p class="mt-1 text-sm text-text-muted">Valores consolidados das movimentações vinculadas à safra.</p>
             </div>
-          } @else if (budgetError()) {
-            <gd-button type="button" variant="outline" size="sm" (click)="retryBudget()">
-              Tentar novamente
-            </gd-button>
-          }
-        </div>
-
-        @if (budgetLoading()) {
-          <div class="mt-6 grid gap-3 sm:grid-cols-2">
-            <gd-skeleton height="5rem" />
-            <gd-skeleton height="5rem" />
+            @if (summaryError()) {
+              <gd-button type="button" variant="outline" size="sm" (click)="retrySummary()">Tentar novamente</gd-button>
+            }
           </div>
-        } @else if (budgetError()) {
-          <gd-error-state [title]="budgetError()!" description="Tente carregar esta seção novamente." />
-        } @else if (budget(); as currentBudget) {
-          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-control border border-border p-3"><p class="text-xs text-text-muted">Receita planejada</p><p class="mt-1 font-semibold text-success">{{ currentBudget.plannedRevenue | brCurrency }}</p></div>
-            <div class="rounded-control border border-border p-3"><p class="text-xs text-text-muted">Despesa planejada</p><p class="mt-1 font-semibold text-danger">{{ currentBudget.plannedExpense | brCurrency }}</p></div>
-            <div class="rounded-control border border-border p-3"><p class="text-xs text-text-muted">Resultado planejado</p><p class="mt-1 font-semibold text-text-primary">{{ currentBudget.plannedResult | brCurrency }}</p></div>
-            <div class="rounded-control border border-border p-3"><p class="text-xs text-text-muted">Margem planejada</p><p class="mt-1 font-semibold text-text-primary">{{ currentBudget.plannedMargin }}%</p></div>
-          </div>
-
-          @if (currentBudget.expenses.length === 0 && currentBudget.incomes.length === 0) {
-            <gd-empty-state class="mt-6" title="Nenhum item planejado ainda." description="Adicione receitas e despesas previstas para acompanhar o planejamento desta Safra." icon="wallet" />
+          @if (summaryLoading()) {
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando resumo financeiro">
+              @for (item of skeletons; track item) { <gd-skeleton height="6.25rem" /> }
+            </div>
+          } @else if (summaryError()) {
+            <gd-error-state [title]="summaryError()!" description="As demais informações da safra continuam disponíveis." />
           } @else {
-            @for (section of [{ title: 'Despesas planejadas', groups: currentBudget.expenses }, { title: 'Receitas planejadas', groups: currentBudget.incomes }]; track section.title) {
-              <div class="mt-6">
-                <h3 class="font-semibold text-text-primary">{{ section.title }}</h3>
-                @for (group of section.groups; track group.categoryId ?? group.categoryName) {
-                  <article class="mt-3 rounded-control border border-border p-4">
-                    <div class="flex items-center justify-between gap-3"><div><p class="font-semibold text-text-primary">{{ group.categoryName }}</p><p class="text-sm text-text-muted">{{ group.itemCount }} item(ns)</p></div><p class="font-semibold text-text-primary">{{ group.plannedAmount | brCurrency }}</p></div>
-                    @for (item of group.items; track item.id) {
-                      <div class="mt-3 flex flex-col gap-2 border-t border-border pt-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                        <span class="text-text-muted">{{ item.description }}</span>
-                        <div class="flex items-center gap-2 self-end sm:self-auto">
-                          <span class="font-medium text-text-primary">{{ item.plannedAmount | brCurrency }}</span>
-                          @if (canManageBudget()) {
-                            <div data-testid="budget-item-actions" class="flex gap-1">
-                              <gd-button type="button" variant="ghost" size="sm" (click)="openEditBudgetItem(item)">Editar</gd-button>
-                              <gd-button type="button" variant="ghost" size="sm" (click)="requestDeleteBudgetItem(item)">Remover</gd-button>
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    }
-                  </article>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              @for (card of primarySummaryCards(); track card.title) {
+                <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
+              }
+            </div>
+            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              @for (card of operationalSummaryCards(); track card.title) {
+                <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
+              }
+            </div>
+            <div class="mt-4 rounded-app border border-border bg-background/40 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Indicadores complementares</p>
+              <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                @for (card of complementarySummaryCards(); track card.title) {
+                  <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
                 }
               </div>
-            }
-          }
-        }
-      </gd-card>
-    </section>
-
-    <section aria-labelledby="harvest-info-heading">
-      <gd-card>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <h2 id="harvest-info-heading" class="text-lg font-semibold text-text-primary">
-            Informações da safra
-          </h2>
-          @if (canManageHarvests()) {
-            <gd-button type="button" variant="outline" size="sm" (click)="openEditDrawer()">
-              Editar
-            </gd-button>
-          }
-        </div>
-        <dl class="mt-5 grid gap-3">
-          @for (item of infoItems(); track item.label) {
-            <div class="rounded-control border border-border bg-background/55 p-3">
-              <dt class="text-xs font-medium text-text-muted">{{ item.label }}</dt>
-              <dd class="mt-1 break-words text-sm font-semibold text-text-primary">
-                {{ item.value }}
-              </dd>
             </div>
           }
-        </dl>
-      </gd-card>
-    </section>
+        </section>
 
-    <section aria-labelledby="harvest-transactions-heading">
-      <gd-card>
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)]">
+          <section aria-labelledby="harvest-info-heading">
+            <gd-card class="h-full">
+              <h2 id="harvest-info-heading" class="text-lg font-semibold text-text-primary">Informações da safra</h2>
+              <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+                @for (item of infoItems(); track item.label) {
+                  <div class="min-w-0 rounded-control border border-border bg-background/55 p-3">
+                    <dt class="text-xs font-medium text-text-muted">{{ item.label }}</dt>
+                    <dd class="mt-1 break-words text-sm font-semibold text-text-primary">{{ item.value }}</dd>
+                  </div>
+                }
+              </dl>
+            </gd-card>
+          </section>
+
+          <section aria-labelledby="harvest-transactions-heading">
+            <gd-card class="h-full">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 id="harvest-transactions-heading" class="text-lg font-semibold text-text-primary">
@@ -195,9 +160,7 @@
               Receitas e despesas registradas nesta safra.
             </p>
           </div>
-          <gd-button type="button" variant="outline" size="sm" (click)="goToTransactions()">
-            Ver em movimentações
-          </gd-button>
+          <gd-button type="button" variant="outline" size="sm" (click)="goToTransactions()">Ver todas</gd-button>
         </div>
 
         @if (transactionsLoading()) {
@@ -330,8 +293,98 @@
             </div>
           </div>
         }
-      </gd-card>
-    </section>
+            </gd-card>
+          </section>
+        </div>
+      </div>
+    } @else {
+      <div id="harvest-planning-panel" role="tabpanel" aria-labelledby="harvest-planning-tab" class="space-y-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-text-primary">Planejamento financeiro</h2>
+            <p class="mt-1 text-sm leading-6 text-text-muted">Organize as receitas e despesas previstas para esta Safra.</p>
+          </div>
+          @if (canManageBudget()) {
+            <div class="flex flex-wrap gap-2">
+              <gd-button type="button" variant="outline" size="sm" (click)="openCreateBudgetItem('EXPENSE')">Adicionar despesa</gd-button>
+              <gd-button type="button" size="sm" (click)="openCreateBudgetItem('INCOME')">Adicionar receita</gd-button>
+            </div>
+          } @else if (budgetError()) {
+            <gd-button type="button" variant="outline" size="sm" (click)="retryBudget()">Tentar novamente</gd-button>
+          }
+        </div>
+        @if (budgetLoading()) {
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando planejamento financeiro">
+            @for (item of skeletons; track item) { <gd-skeleton height="6.25rem" /> }
+          </div>
+        } @else if (budgetError()) {
+          <gd-error-state [title]="budgetError()!" description="Tente carregar esta seção novamente." />
+        } @else if (budget(); as currentBudget) {
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @for (card of planningCards(); track card.title) {
+              <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [icon]="card.icon" [tone]="card.tone" density="compact" />
+            }
+          </div>
+
+          @if (currentBudget.expenses.length === 0 && currentBudget.incomes.length === 0) {
+            <gd-empty-state class="mt-6" title="Nenhum item planejado ainda." description="Adicione receitas e despesas previstas para acompanhar o planejamento desta Safra." icon="wallet" />
+            @if (canManageBudget()) {
+              <div class="mt-4 flex flex-wrap gap-2">
+                <gd-button type="button" variant="outline" (click)="openCreateBudgetItem('EXPENSE')">Adicionar despesa</gd-button>
+                <gd-button type="button" (click)="openCreateBudgetItem('INCOME')">Adicionar receita</gd-button>
+              </div>
+            }
+          } @else {
+            <div class="mt-6 grid gap-6 xl:grid-cols-2">
+              @for (section of budgetSections(); track section.type) {
+                <gd-card padding="sm">
+                  <div class="flex items-start justify-between gap-3 border-b border-border px-1 pb-4">
+                    <div>
+                      <h3 class="font-semibold text-text-primary">{{ section.title }}</h3>
+                      <p class="mt-1 text-sm font-semibold" [class.text-success]="section.type === 'INCOME'" [class.text-danger]="section.type === 'EXPENSE'">{{ section.total | brCurrency }}</p>
+                    </div>
+                    @if (canManageBudget()) {
+                      <gd-button type="button" variant="ghost" size="sm" (click)="openCreateBudgetItem(section.type)">Adicionar</gd-button>
+                    }
+                  </div>
+                  @if (section.groups.length === 0) {
+                    <p class="px-1 py-5 text-sm text-text-muted">Nenhum item nesta seção.</p>
+                  } @else {
+                    @for (group of section.groups; track group.categoryId ?? group.categoryName) {
+                      <article [class]="'px-1 py-4' + (!$last ? ' border-b border-border' : '')">
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="min-w-0"><p class="font-semibold text-text-primary">{{ group.categoryName }}</p><p class="text-xs text-text-muted">{{ group.itemCount }} item(ns)</p></div>
+                          <p class="shrink-0 font-semibold text-text-primary">{{ group.plannedAmount | brCurrency }}</p>
+                        </div>
+                        <div class="mt-3 divide-y divide-border border-t border-border">
+                          @for (item of group.items; track item.id) {
+                            <div class="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                              <span class="min-w-0 break-words text-text-muted">{{ item.description }}</span>
+                              <div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                                <span class="font-medium text-text-primary">{{ item.plannedAmount | brCurrency }}</span>
+                                @if (canManageBudget()) {
+                                  <div data-testid="budget-item-actions" class="flex gap-1">
+                                    <gd-button type="button" variant="ghost" size="sm" (click)="openEditBudgetItem(item)">Editar</gd-button>
+                                    <gd-button type="button" variant="ghost" size="sm" (click)="requestDeleteBudgetItem(item)">Remover</gd-button>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </article>
+                    }
+                  }
+                </gd-card>
+              }
+            </div>
+          }
+          <div class="rounded-control border border-info/25 bg-info/10 px-4 py-3 text-sm leading-6 text-text-muted">
+            O planejamento financeiro pode ser ajustado enquanto a Safra estiver Planejada ou Em andamento.
+          </div>
+        }
+      </div>
+    }
   }
 </section>
 
