@@ -13,6 +13,7 @@ import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
 import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { PageHeaderStore } from '../../core/stores/page-header.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
@@ -72,6 +73,7 @@ describe('AppLayout', () => {
   let farmAccessService: { getAccess: ReturnType<typeof vi.fn> };
   let farmService: { list: ReturnType<typeof vi.fn> };
   let farmAccessStore: FarmAccessStore;
+  let pageHeaderStore: PageHeaderStore;
   let dashboardAiTransactionAction: DashboardAiTransactionActionService;
   let router: Router;
   let selectedFarmStore: SelectedFarmStore;
@@ -107,6 +109,11 @@ describe('AppLayout', () => {
               subtitle: 'Gerencie as propriedades disponíveis para acompanhamento financeiro.',
             },
           },
+          {
+            path: 'harvests/1',
+            component: DashboardStub,
+            data: { dynamicHeader: 'harvest-details' },
+          },
         ]),
         { provide: AuthService, useValue: { logout: vi.fn().mockReturnValue(of(undefined)) } },
         { provide: FarmAccessService, useValue: farmAccessService },
@@ -115,6 +122,7 @@ describe('AppLayout', () => {
     }).compileComponents();
 
     farmAccessStore = TestBed.inject(FarmAccessStore);
+    pageHeaderStore = TestBed.inject(PageHeaderStore);
     dashboardAiTransactionAction = TestBed.inject(DashboardAiTransactionActionService);
     router = TestBed.inject(Router);
     selectedFarmStore = TestBed.inject(SelectedFarmStore);
@@ -124,6 +132,7 @@ describe('AppLayout', () => {
     selectedFarmStore.clear();
     sessionStore.clear();
     toastStore.clear();
+    pageHeaderStore.hideHarvestHeader();
   });
 
   afterEach(() => {
@@ -131,6 +140,7 @@ describe('AppLayout', () => {
     selectedFarmStore.clear();
     sessionStore.clear();
     toastStore.clear();
+    pageHeaderStore.hideHarvestHeader();
   });
 
   it('should render navigation layout and router outlet', () => {
@@ -163,6 +173,30 @@ describe('AppLayout', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Olá, Maria Silva');
     expect(text).toContain('Aqui está o resumo financeiro da sua fazenda hoje.');
+  });
+
+  it('should render the dynamic harvest header without changing the global farm selector', async () => {
+    const fixture = TestBed.createComponent(AppLayout);
+    fixture.detectChanges();
+    pageHeaderStore.setHarvestHeader({
+      title: 'Café 2026/2027',
+      statusLabel: 'Planejada',
+      statusVariant: 'warning',
+      metadata: 'Fazenda Boa Sorte • Café • 13/10/2026 a 08/10/2027 • 48 ha',
+    });
+
+    await router.navigateByUrl('/harvests/1');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const header = element.querySelector('[data-testid="harvest-page-header"]');
+
+    expect(header?.textContent).toContain('Café 2026/2027');
+    expect(header?.textContent).toContain('Planejada');
+    expect(header?.textContent).toContain('Fazenda Boa Sorte • Café');
+    expect(element.querySelector('#global-farm-select')).toBeTruthy();
+    expect(element.textContent).not.toContain('Detalhes da safra');
+    expect(element.textContent).not.toContain('Acompanhe resultado, indicadores e movimentacoes vinculadas.');
   });
 
   it('should render the FAB only on dashboard, with safe-area positioning and its accessible tooltip', async () => {

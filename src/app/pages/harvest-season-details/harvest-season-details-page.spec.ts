@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -21,6 +21,7 @@ import {
 } from '../../core/services/harvest-season.service';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { PageHeaderStore } from '../../core/stores/page-header.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { HarvestSeasonDetailsPage } from './harvest-season-details-page';
@@ -150,6 +151,7 @@ describe('HarvestSeasonDetailsPage', () => {
   let router: { navigate: Mock };
   let sessionStore: SessionStore;
   let farmAccessStore: FarmAccessStore;
+  let pageHeaderStore: PageHeaderStore;
 
   beforeEach(async () => {
     harvestService = {
@@ -192,11 +194,13 @@ describe('HarvestSeasonDetailsPage', () => {
 
     sessionStore = TestBed.inject(SessionStore);
     farmAccessStore = TestBed.inject(FarmAccessStore);
+    pageHeaderStore = TestBed.inject(PageHeaderStore);
   });
 
   afterEach(() => {
     TestBed.resetTestingModule();
     document.body.classList.remove('gd-overlay-open');
+    pageHeaderStore.hideHarvestHeader();
   });
 
   it('should read the route id and load harvest, summary and linked transactions', () => {
@@ -247,6 +251,29 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Safra Soja 2026');
     expect(text()).toContain('Descrição');
     expect(text()).toContain('Safra de verao');
+  });
+
+  it('should publish the harvest name, status and metadata to the page header', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(pageHeaderStore.harvestHeader()).toEqual({
+      state: 'ready',
+      header: {
+        title: 'Safra Soja 2026',
+        statusLabel: 'Em andamento',
+        statusVariant: 'success',
+        metadata: 'Fazenda Boa Safra • Soja • 01/01/2026 a 30/06/2026 • 120.5 ha',
+      },
+    });
+  });
+
+  it('should keep the page header in a loading state until the harvest is available', () => {
+    harvestService.getById.mockReturnValue(new Subject<HarvestSeason>());
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(pageHeaderStore.harvestHeader()).toEqual({ state: 'loading' });
   });
 
   it('should render transaction type in the desktop table', () => {
@@ -446,13 +473,17 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Safra não encontrada.');
   });
 
-  it('should navigate back to harvests when clicking Safras', () => {
+  it('should remove the former harvest card header and back button', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Safras');
-
-    expect(router.navigate).toHaveBeenCalledWith(['/harvests']);
+    expect(
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
+        (button) => button.textContent?.trim() === 'Safras',
+      ),
+    ).toBeUndefined();
+    expect(text()).not.toContain('Detalhes da safra');
+    expect(text()).not.toContain('Acompanhe resultado, indicadores e movimentacoes vinculadas.');
   });
 
   it('should hide edit and status section for employees', () => {

@@ -16,46 +16,11 @@
       <gd-error-state
         [title]="harvestError() ?? 'Não foi possível carregar a safra.'"
         description="Verifique a safra selecionada e tente novamente."
-        actionLabel="Voltar"
-        (action)="goBack()"
+        actionLabel="Tentar novamente"
+        (action)="retryHarvest()"
       />
     </gd-card>
   } @else if (harvest(); as harvest) {
-    <header class="rounded-app border border-border bg-surface p-5 sm:p-6">
-      <button
-        type="button"
-        class="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-control text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        (click)="goBack()"
-      >
-        <svg lucideIcon="arrow-left" class="size-4" aria-hidden="true"></svg>
-        Safras
-      </button>
-      <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-3">
-            <h1 class="break-words text-2xl font-semibold text-text-primary sm:text-3xl">
-              {{ harvest.name }}
-            </h1>
-            <gd-badge [variant]="statusVariant(harvest.status)">{{ statusLabel(harvest.status) }}</gd-badge>
-          </div>
-          <p class="mt-3 text-sm leading-6 text-text-muted">
-            {{ harvest.farmName ?? ('Fazenda #' + harvest.farmId) }}
-            <span aria-hidden="true"> • </span>
-            {{ harvest.productionActivityName }}
-            <span aria-hidden="true"> • </span>
-            {{ periodLabel(harvest) }}
-            <span aria-hidden="true"> • </span>
-            {{ hectareLabel(harvest.areaHectares) }}
-          </p>
-        </div>
-        @if (canManageHarvests()) {
-          <gd-button type="button" variant="outline" (click)="openEditDrawer()">
-            Editar safra
-          </gd-button>
-        }
-      </div>
-    </header>
-
     <nav aria-label="Seções da safra" class="inline-flex items-center gap-5 border-b border-border">
       <button
         type="button"
@@ -121,7 +86,16 @@
         <div class="grid gap-6 xl:grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)]">
           <section aria-labelledby="harvest-info-heading">
             <gd-card class="h-full">
-              <h2 id="harvest-info-heading" class="text-lg font-semibold text-text-primary">Informações da safra</h2>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 id="harvest-info-heading" class="text-lg font-semibold text-text-primary">
+                  Informações da safra
+                </h2>
+                @if (canManageHarvests()) {
+                  <gd-button type="button" variant="outline" size="sm" (click)="openEditDrawer()">
+                    Editar safra
+                  </gd-button>
+                }
+              </div>
               <dl class="mt-5 grid gap-3 sm:grid-cols-2">
                 @for (item of infoItems(); track item.label) {
                   <div class="min-w-0 rounded-control border border-border bg-background/55 p-3">

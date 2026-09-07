@@ -16,11 +16,12 @@ import { DashboardAiTransactionActionService } from '../../core/services/dashboa
 import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { PageHeaderStore } from '../../core/stores/page-header.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { PendingFinancialTransactionsStore } from '../../core/stores/pending-financial-transactions.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import { FloatingActionButton } from '../../shared/ui';
+import { Badge, FloatingActionButton, Skeleton } from '../../shared/ui';
 import { DesktopSidebar } from '../desktop-sidebar/desktop-sidebar';
 import { FarmContextSelector } from '../farm-context-selector/farm-context-selector';
 import { MobileHeader } from '../mobile-header/mobile-header';
@@ -28,6 +29,7 @@ import { MobileHeader } from '../mobile-header/mobile-header';
 interface PageHeaderData {
   title: string;
   subtitle: string;
+  dynamicHeader: string | null;
 }
 
 @Component({
@@ -38,6 +40,8 @@ interface PageHeaderData {
     FloatingActionButton,
     MobileHeader,
     RouterOutlet,
+    Badge,
+    Skeleton,
   ],
   templateUrl: './app-layout.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +51,7 @@ export class AppLayout implements OnInit {
   private readonly farmAccessService = inject(FarmAccessService);
   private readonly farmService = inject(FarmService);
   private readonly farmAccessStore = inject(FarmAccessStore);
+  private readonly pageHeaderStore = inject(PageHeaderStore);
   private readonly router = inject(Router);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
   private readonly sessionStore = inject(SessionStore);
@@ -55,6 +60,7 @@ export class AppLayout implements OnInit {
   private readonly pageHeaderData = signal<PageHeaderData>({
     title: '',
     subtitle: '',
+    dynamicHeader: null,
   });
 
   protected readonly pageTitle = computed(() => {
@@ -67,6 +73,15 @@ export class AppLayout implements OnInit {
     return title;
   });
   protected readonly pageSubtitle = computed(() => this.pageHeaderData().subtitle);
+  protected readonly isHarvestDetailsHeader = computed(
+    () => this.pageHeaderData().dynamicHeader === 'harvest-details',
+  );
+  protected readonly harvestHeader = computed(() => this.pageHeaderStore.harvestHeader());
+  protected readonly mainClasses = computed(() =>
+    this.isHarvestDetailsHeader()
+      ? 'px-4 py-4 sm:px-6 lg:px-8 lg:py-4'
+      : 'px-4 py-5 sm:px-6 lg:px-8 lg:py-6',
+  );
   protected readonly isDashboardRoute = computed(
     () => this.pageHeaderData().title === 'Dashboard',
   );
@@ -169,10 +184,12 @@ export class AppLayout implements OnInit {
     let route: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
     let title = '';
     let subtitle = '';
+    let dynamicHeader: string | null = null;
 
     while (route) {
       const routeTitle = route.data['title'];
       const routeSubtitle = route.data['subtitle'];
+      const routeDynamicHeader = route.data['dynamicHeader'];
 
       if (typeof routeTitle === 'string') {
         title = routeTitle;
@@ -182,9 +199,13 @@ export class AppLayout implements OnInit {
         subtitle = routeSubtitle;
       }
 
+      if (typeof routeDynamicHeader === 'string') {
+        dynamicHeader = routeDynamicHeader;
+      }
+
       route = route.firstChild;
     }
 
-    this.pageHeaderData.set({ title, subtitle });
+    this.pageHeaderData.set({ title, subtitle, dynamicHeader });
   }
 }

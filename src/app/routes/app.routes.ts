@@ -269,8 +269,7 @@ export const routes: Routes = [
         path: 'harvests/:id',
         title: 'Detalhes da safra',
         data: {
-          title: 'Detalhes da safra',
-          subtitle: 'Acompanhe resultado, indicadores e movimentacoes vinculadas.',
+          dynamicHeader: 'harvest-details',
         },
         loadComponent: () =>
           import('../pages/harvest-season-details/harvest-season-details-page').then(

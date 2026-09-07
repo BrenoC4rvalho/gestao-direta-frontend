@@ -7,9 +7,36 @@
     <header class="border-b border-border bg-background px-4 py-4 sm:px-6 lg:px-8">
       <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="min-w-0">
-          <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">{{ pageTitle() }}</h1>
-          @if (pageSubtitle()) {
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">{{ pageSubtitle() }}</p>
+          @if (isHarvestDetailsHeader()) {
+            @let headerState = harvestHeader();
+            @switch (headerState.state) {
+              @case ('loading') {
+                <div aria-label="Carregando cabeçalho da safra">
+                  <gd-skeleton width="16rem" height="2rem" />
+                  <gd-skeleton class="mt-3 block" width="min(100%, 34rem)" height="1rem" />
+                </div>
+              }
+              @case ('ready') {
+                <div data-testid="harvest-page-header">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="break-words text-2xl font-semibold text-text-primary sm:text-3xl">
+                      {{ headerState.header.title }}
+                    </h1>
+                    <gd-badge [variant]="headerState.header.statusVariant">
+                      {{ headerState.header.statusLabel }}
+                    </gd-badge>
+                  </div>
+                  <p class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
+                    {{ headerState.header.metadata }}
+                  </p>
+                </div>
+              }
+            }
+          } @else {
+            <h1 class="text-2xl font-semibold text-text-primary sm:text-3xl">{{ pageTitle() }}</h1>
+            @if (pageSubtitle()) {
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-text-muted">{{ pageSubtitle() }}</p>
+            }
           }
         </div>
 
@@ -19,7 +46,7 @@
       </div>
     </header>
 
-    <main class="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+    <main [class]="mainClasses()">
       <div class="mx-auto w-full max-w-7xl">
         <router-outlet />
       </div>

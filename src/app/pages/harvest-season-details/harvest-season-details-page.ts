@@ -5,6 +5,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  OnDestroy,
   computed,
   inject,
   signal,
@@ -48,6 +49,7 @@ import {
 } from '../../core/services/harvest-season.service';
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
+import { PageHeaderStore } from '../../core/stores/page-header.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import {
@@ -159,7 +161,7 @@ interface StatusTarget {
   templateUrl: './harvest-season-details-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HarvestSeasonDetailsPage implements OnInit {
+export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly harvestService = inject(HarvestSeasonService);
@@ -168,6 +170,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   private readonly productionActivityService = inject(ProductionActivityService);
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly pageHeaderStore = inject(PageHeaderStore);
 
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
@@ -586,22 +589,23 @@ export class HarvestSeasonDetailsPage implements OnInit {
   });
 
   ngOnInit(): void {
-
     this.bindMoneySanitizer(this.budgetForm.controls.plannedAmount);
 
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!Number.isInteger(id) || id <= 0) {
       this.harvestError.set('Safra não encontrada.');
+      this.pageHeaderStore.hideHarvestHeader();
       return;
     }
 
+    this.pageHeaderStore.setHarvestLoading();
     this.harvestId.set(id);
     this.loadDetails(id);
   }
 
-  protected goBack(): void {
-    void this.router.navigate(['/harvests']);
+  ngOnDestroy(): void {
+    this.pageHeaderStore.hideHarvestHeader();
   }
 
   protected selectTab(tab: HarvestDetailTab): void {
@@ -628,6 +632,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
     const id = this.harvestId();
 
     if (id) {
+      this.pageHeaderStore.setHarvestLoading();
       this.loadDetails(id);
     }
   }
@@ -1236,6 +1241,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   private loadDetails(id: number): void {
+    this.pageHeaderStore.setHarvestLoading();
     this.loadingHarvest.set(true);
     this.harvestError.set(null);
     this.harvest.set(null);
@@ -1254,6 +1260,17 @@ export class HarvestSeasonDetailsPage implements OnInit {
       .subscribe({
         next: (harvest) => {
           this.harvest.set(harvest);
+          this.pageHeaderStore.setHarvestHeader({
+            title: harvest.name,
+            statusLabel: this.statusLabel(harvest.status),
+            statusVariant: this.statusVariant(harvest.status),
+            metadata: [
+              harvest.farmName ?? `Fazenda #${harvest.farmId}`,
+              harvest.productionActivityName,
+              this.periodLabel(harvest),
+              this.hectareLabel(harvest.areaHectares),
+            ].join(' • '),
+          });
           this.loadFormOptions(harvest.farmId);
           this.loadTransactions(0);
         },
@@ -1390,6 +1407,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   private handleHarvestError(error: unknown): void {
     this.harvest.set(null);
     this.transactionsPage.set(null);
+    this.pageHeaderStore.hideHarvestHeader();
 
     if (error instanceof HttpErrorResponse && error.status === 404) {
       this.harvestError.set('Safra não encontrada.');
