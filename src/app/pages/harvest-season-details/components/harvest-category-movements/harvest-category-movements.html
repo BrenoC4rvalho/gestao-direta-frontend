@@ -1,10 +1,50 @@
 <gd-card>
   <section aria-labelledby="harvest-category-movements-heading">
-    <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-wrap items-start justify-between gap-2">
       <div class="min-w-0">
-        <h2 id="harvest-category-movements-heading" class="text-lg font-semibold text-text-primary">
-          {{ title() }}
-        </h2>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2
+            id="harvest-category-movements-heading"
+            class="text-lg font-semibold text-text-primary"
+          >
+            {{ title() }}
+          </h2>
+          <div
+            class="inline-flex shrink-0"
+            aria-label="Tipo de movimentação"
+          >
+            <gd-tooltip ariaLabel="Despesas" content="Despesas">
+              <button
+                type="button"
+                class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Despesas"
+                [class.bg-surface]="selectedType() === 'EXPENSE'"
+                [class.text-danger]="selectedType() === 'EXPENSE'"
+                [class.text-text-muted]="selectedType() !== 'EXPENSE'"
+                [attr.aria-pressed]="selectedType() === 'EXPENSE'"
+                (click)="selectType('EXPENSE')"
+              >
+                <svg lucideIcon="trending-down" class="size-4" aria-hidden="true"></svg>
+                <span class="sr-only">Despesas</span>
+              </button>
+            </gd-tooltip>
+            <gd-tooltip ariaLabel="Receitas" content="Receitas">
+              <button
+                type="button"
+                class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Receitas"
+                [class.bg-surface]="selectedType() === 'INCOME'"
+                [class.text-success]="selectedType() === 'INCOME'"
+                [class.text-text-muted]="selectedType() !== 'INCOME'"
+                [attr.aria-pressed]="selectedType() === 'INCOME'"
+                (click)="selectType('INCOME')"
+              >
+                <svg lucideIcon="trending-up" class="size-4" aria-hidden="true"></svg>
+                <span class="sr-only">Receitas</span>
+              </button>
+            </gd-tooltip>
+          </div>
+        </div>
         <p class="mt-1 text-sm text-text-muted">Acompanhe os valores realizados por categoria.</p>
       </div>
       <div
@@ -13,7 +53,7 @@
       >
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           [class.bg-surface]="viewMode() === 'chart'"
           [class.text-primary]="viewMode() === 'chart'"
           [class.text-text-muted]="viewMode() !== 'chart'"
@@ -25,7 +65,7 @@
         </button>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           [class.bg-surface]="viewMode() === 'list'"
           [class.text-primary]="viewMode() === 'list'"
           [class.text-text-muted]="viewMode() !== 'list'"
@@ -38,60 +78,15 @@
       </div>
     </div>
 
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-      <div
-        class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1"
-        aria-label="Tipo de movimentação"
-      >
-        <button
-          type="button"
-          class="flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          aria-label="Despesas"
-          title="Despesas"
-          [class.bg-surface]="selectedType() === 'EXPENSE'"
-          [class.text-danger]="selectedType() === 'EXPENSE'"
-          [class.text-text-muted]="selectedType() !== 'EXPENSE'"
-          [attr.aria-pressed]="selectedType() === 'EXPENSE'"
-          (click)="selectType('EXPENSE')"
-        >
-          <svg lucideIcon="trending-down" class="size-4" aria-hidden="true"></svg>
-          <span class="sr-only">Despesas</span>
-        </button>
-        <button
-          type="button"
-          class="flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          aria-label="Receitas"
-          title="Receitas"
-          [class.bg-surface]="selectedType() === 'INCOME'"
-          [class.text-success]="selectedType() === 'INCOME'"
-          [class.text-text-muted]="selectedType() !== 'INCOME'"
-          [attr.aria-pressed]="selectedType() === 'INCOME'"
-          (click)="selectType('INCOME')"
-        >
-          <svg lucideIcon="trending-up" class="size-4" aria-hidden="true"></svg>
-          <span class="sr-only">Receitas</span>
-        </button>
-      </div>
-
-      <div class="min-w-0 sm:text-right">
-        <p class="text-sm text-text-muted">{{ totalLabel() }}</p>
-        @if (!loading() && !error() && activeBreakdown(); as currentBreakdown) {
-          <p class="mt-1 text-xl font-semibold text-text-primary">
-            {{ currentBreakdown.total | brCurrency }}
-          </p>
-        }
-      </div>
-    </div>
-
     @if (loading()) {
-      <div class="mt-5 space-y-3" aria-label="Carregando movimentações por categoria">
+      <div class="mt-4 space-y-3" aria-label="Carregando movimentações por categoria">
         <gd-skeleton height="2.5rem" />
         <gd-skeleton height="2.5rem" />
         <gd-skeleton height="2.5rem" />
       </div>
     } @else if (error()) {
       <gd-error-state
-        class="mt-5"
+        class="mt-4"
         [title]="error()!"
         description="Tente carregar esta seção novamente."
         actionLabel="Tentar novamente"
@@ -99,7 +94,7 @@
       />
     } @else if (isEmpty()) {
       <gd-empty-state
-        class="mt-5"
+        class="mt-4"
         [title]="
           selectedType() === 'EXPENSE' ? 'Nenhuma despesa realizada.' : 'Nenhuma receita realizada.'
         "
@@ -113,7 +108,7 @@
     } @else {
       @if (viewMode() === 'chart') {
         <div
-          class="relative mt-5"
+          class="relative mt-4"
           [style.height]="chartHeight()"
           role="img"
           [attr.aria-label]="title()"
@@ -127,7 +122,7 @@
           ></canvas>
         </div>
       } @else {
-        <div class="mt-5">
+        <div class="mt-4">
           <div
             class="hidden grid-cols-[minmax(0,1fr)_auto_auto] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted sm:grid"
             aria-hidden="true"
@@ -152,6 +147,15 @@
               </li>
             }
           </ul>
+        </div>
+      }
+
+      @if (activeBreakdown(); as currentBreakdown) {
+        <div class="mt-4 border-t border-border pt-4 text-right">
+          <p class="text-sm text-text-muted">{{ totalLabel() }}</p>
+          <p class="mt-1 text-xl font-semibold text-text-primary">
+            {{ currentBreakdown.total | brCurrency }}
+          </p>
         </div>
       }
     }

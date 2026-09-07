@@ -22,7 +22,7 @@ import {
 import { HarvestSeasonService } from '../../../../core/services/harvest-season.service';
 import { ThemeStore } from '../../../../core/stores/theme.store';
 import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
-import { Card, EmptyState, ErrorState, Skeleton } from '../../../../shared/ui';
+import { Card, EmptyState, ErrorState, Skeleton, Tooltip } from '../../../../shared/ui';
 
 type CategoryMovementType = 'EXPENSE' | 'INCOME';
 type CategoryMovementViewMode = 'chart' | 'list';
@@ -56,6 +56,7 @@ const compactNumberFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionD
     ErrorState,
     LucideDynamicIcon,
     Skeleton,
+    Tooltip,
   ],
   templateUrl: './harvest-category-movements.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

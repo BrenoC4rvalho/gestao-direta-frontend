@@ -51,6 +51,11 @@ describe('HarvestCategoryMovements', () => {
 
     expect(service.getCategoryBreakdown).toHaveBeenCalledWith(25);
     expect(text(fixture)).toContain('Movimentações por categoria');
+    expect(button(fixture, 'Despesas')).not.toBeNull();
+    expect(button(fixture, 'Receitas')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('gd-tooltip')?.textContent).toContain('Despesas');
+    expect(fixture.nativeElement.querySelectorAll('gd-tooltip')[1]?.textContent).toContain('Receitas');
+    expect(text(fixture)).toContain('Total de despesas realizadas');
     expect(text(fixture)).toContain('R$ 1.250,00');
     expect(component.chartType).toBe('bar');
     expect(component.chartOptions().indexAxis).toBe('y');
@@ -96,6 +101,7 @@ describe('HarvestCategoryMovements', () => {
     fixture.detectChanges();
 
     expect(service.getCategoryBreakdown).toHaveBeenCalledOnce();
+    expect(text(fixture)).toContain('Total de receitas realizadas');
     expect(text(fixture)).toContain('R$ 2.200,00');
     expect(text(fixture)).toContain('Venda de soja');
     expect(button(fixture, 'Receitas').getAttribute('aria-pressed')).toBe('true');
