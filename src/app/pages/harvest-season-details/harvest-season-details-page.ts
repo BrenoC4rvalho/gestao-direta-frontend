@@ -101,7 +101,12 @@ interface StatusConfirmation {
   description: string;
   confirmLabel: string;
   variant: ConfirmDialogVariant;
-  action: 'activate' | 'inactivate';
+  action: 'activate' | 'finish' | 'inactivate' | 'reopen';
+}
+
+interface StatusTarget {
+  harvest: HarvestSeason;
+  action: StatusConfirmation['action'];
 }
 
 @Component({
@@ -151,7 +156,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly transactionsError = signal<string | null>(null);
   protected readonly drawerOpen = signal(false);
   protected readonly submitting = signal(false);
-  protected readonly statusTarget = signal<HarvestSeason | null>(null);
+  protected readonly statusTarget = signal<StatusTarget | null>(null);
   protected readonly statusSubmitting = signal(false);
   protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
 
@@ -161,7 +166,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
     {
       productionActivityId: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       name: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
-      description: new FormControl<GdFormValue>(''),
+      description: new FormControl<GdFormValue>('', { validators: [Validators.maxLength(500)] }),
       startDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       endDate: new FormControl<GdFormValue>(''),
       expectedCost: new FormControl<GdFormValue>(''),
@@ -352,25 +357,46 @@ export class HarvestSeasonDetailsPage implements OnInit {
     ];
   });
   protected readonly statusConfirmation = computed<StatusConfirmation>(() => {
-    const activating = this.statusTarget()?.status === 'INACTIVE';
+    const action = this.statusTarget()?.action;
 
-    return activating
-      ? {
-          title: 'Ativar safra?',
-          description:
-            'Esta safra voltará a ficar disponível para acompanhamento e novas operações.',
-          confirmLabel: 'Ativar',
-          variant: 'info',
-          action: 'activate',
-        }
-      : {
-          title: 'Inativar safra?',
-          description:
-            'Esta safra deixará de ficar disponível para novas operações, mas os registros existentes serão preservados.',
-          confirmLabel: 'Inativar',
-          variant: 'warning',
-          action: 'inactivate',
-        };
+    if (action === 'finish') {
+      return {
+        title: 'Finalizar safra?',
+        description: 'Tem certeza que deseja finalizar esta safra?',
+        confirmLabel: 'Finalizar safra',
+        variant: 'warning',
+        action,
+      };
+    }
+
+    if (action === 'reopen') {
+      return {
+        title: 'Reabrir safra?',
+        description: 'Esta safra voltará para o status Em andamento.',
+        confirmLabel: 'Reabrir safra',
+        variant: 'info',
+        action,
+      };
+    }
+
+    if (action === 'activate') {
+      return {
+        title: 'Reativar safra?',
+        description: 'Esta safra voltará para o status Planejada.',
+        confirmLabel: 'Reativar safra',
+        variant: 'info',
+        action,
+      };
+    }
+
+    return {
+      title: 'Inativar safra?',
+      description:
+        'Esta safra deixará de ficar disponível para novas operações, mas os registros existentes serão preservados.',
+      confirmLabel: 'Inativar safra',
+      variant: 'warning',
+      action: 'inactivate',
+    };
   });
 
   ngOnInit(): void {
@@ -393,7 +419,11 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   protected goToTransactions(): void {
-    void this.router.navigate(['/transactions']);
+    const harvest = this.harvest();
+
+    if (harvest) {
+      void this.router.navigate(['/transactions'], { queryParams: { harvestSeasonId: harvest.id } });
+    }
   }
 
   protected retryHarvest(): void {
@@ -511,7 +541,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
       });
   }
 
-  protected requestStatusChange(): void {
+  protected requestLifecycleChange(): void {
     const harvest = this.harvest();
 
     if (!harvest) {
@@ -523,7 +553,33 @@ export class HarvestSeasonDetailsPage implements OnInit {
       return;
     }
 
-    this.statusTarget.set(harvest);
+    if (harvest.status === 'PLANNED') {
+      this.changeStatus(harvest, 'IN_PROGRESS', 'Safra iniciada com sucesso.');
+      return;
+    }
+
+    const action: StatusConfirmation['action'] =
+      harvest.status === 'IN_PROGRESS'
+        ? 'finish'
+        : harvest.status === 'FINISHED'
+          ? 'reopen'
+          : 'activate';
+    this.statusTarget.set({ harvest, action });
+  }
+
+  protected requestInactivation(): void {
+    const harvest = this.harvest();
+
+    if (!harvest) {
+      return;
+    }
+
+    if (!this.canManageHarvests()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.statusTarget.set({ harvest, action: 'inactivate' });
   }
 
   protected closeStatusConfirmation(): void {
@@ -533,17 +589,23 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   protected confirmStatusChange(): void {
-    const harvest = this.statusTarget();
+    const target = this.statusTarget();
 
-    if (!harvest || this.statusSubmitting()) {
+    if (!target || this.statusSubmitting()) {
       return;
     }
 
     const confirmation = this.statusConfirmation();
+    const { harvest } = target;
     const request$: Observable<unknown> =
       confirmation.action === 'activate'
         ? this.harvestService.activate(harvest.id)
-        : this.harvestService.inactivate(harvest.id);
+        : confirmation.action === 'inactivate'
+          ? this.harvestService.inactivate(harvest.id)
+          : this.harvestService.updateStatus(
+              harvest.id,
+              confirmation.action === 'finish' ? 'FINISHED' : 'IN_PROGRESS',
+            );
 
     this.statusSubmitting.set(true);
 
@@ -557,9 +619,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
           this.statusTarget.set(null);
           this.drawerOpen.set(false);
           this.toastStore.success(
-            confirmation.action === 'activate'
-              ? 'Safra ativada com sucesso.'
-              : 'Safra inativada com sucesso.',
+            this.statusSuccessMessage(confirmation.action),
           );
           this.loadDetails(harvest.id);
         },
@@ -568,20 +628,32 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   protected statusActionDescription(status: HarvestSeasonStatus): string {
-    return status === 'INACTIVE'
-      ? 'Esta safra está inativa e não fica disponível para novas operações.'
-      : 'Esta safra está disponível para acompanhamento e novas operações.';
+    const descriptions: Record<HarvestSeasonStatus, string> = {
+      PLANNED: 'Inicie a safra quando as atividades produtivas começarem.',
+      IN_PROGRESS: 'Finalize a safra quando o ciclo produtivo for concluído.',
+      FINISHED: 'Reabra a safra caso o ciclo produtivo precise continuar.',
+      INACTIVE: 'Reative a safra para retorná-la ao status Planejada.',
+    };
+
+    return descriptions[status];
   }
 
   protected statusActionLabel(status: HarvestSeasonStatus): string {
-    return status === 'INACTIVE' ? 'Ativar' : 'Inativar';
+    const labels: Record<HarvestSeasonStatus, string> = {
+      PLANNED: 'Iniciar safra',
+      IN_PROGRESS: 'Finalizar safra',
+      FINISHED: 'Reabrir safra',
+      INACTIVE: 'Reativar safra',
+    };
+
+    return labels[status];
   }
 
   protected statusLabel(status: HarvestSeasonStatus): string {
     const labels: Record<HarvestSeasonStatus, string> = {
       PLANNED: 'Planejada',
       IN_PROGRESS: 'Em andamento',
-      FINISHED: 'Encerrada',
+      FINISHED: 'Finalizada',
       INACTIVE: 'Inativa',
     };
 
@@ -597,6 +669,40 @@ export class HarvestSeasonDetailsPage implements OnInit {
     };
 
     return variants[status];
+  }
+
+  private changeStatus(
+    harvest: HarvestSeason,
+    status: HarvestSeasonStatus,
+    successMessage: string,
+  ): void {
+    this.statusSubmitting.set(true);
+
+    this.harvestService
+      .updateStatus(harvest.id, status)
+      .pipe(
+        finalize(() => this.statusSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.drawerOpen.set(false);
+          this.toastStore.success(successMessage);
+          this.loadDetails(harvest.id);
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
+  }
+
+  private statusSuccessMessage(action: StatusConfirmation['action']): string {
+    const messages: Record<StatusConfirmation['action'], string> = {
+      activate: 'Safra reativada com sucesso.',
+      finish: 'Safra finalizada com sucesso.',
+      inactivate: 'Safra inativada com sucesso.',
+      reopen: 'Safra reaberta com sucesso.',
+    };
+
+    return messages[action];
   }
 
   private currencyCard(

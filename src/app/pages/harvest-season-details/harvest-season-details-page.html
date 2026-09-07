@@ -299,7 +299,7 @@
       placeholder="Observacoes sobre a safra"
       [disabled]="submitting()"
       [rows]="3"
-      [maxlength]="240"
+      [maxlength]="500"
     />
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -364,11 +364,22 @@
         [badgeLabel]="statusLabel(currentHarvest.status)"
         [badgeVariant]="statusVariant(currentHarvest.status)"
         [actionLabel]="statusActionLabel(currentHarvest.status)"
-        [actionVariant]="currentHarvest.status === 'INACTIVE' ? 'primary' : 'danger'"
+        actionVariant="primary"
         [actionDisabled]="submitting() || statusSubmitting()"
         [actionLoading]="statusSubmitting()"
-        (action)="requestStatusChange()"
+        (action)="requestLifecycleChange()"
       />
+      @if (currentHarvest.status !== 'INACTIVE') {
+        <gd-button
+          type="button"
+          variant="outline"
+          [fullWidth]="true"
+          [disabled]="submitting() || statusSubmitting()"
+          (click)="requestInactivation()"
+        >
+          Inativar safra
+        </gd-button>
+      }
     }
 
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">

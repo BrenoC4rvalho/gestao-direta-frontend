@@ -199,8 +199,8 @@ export class HarvestSeasonService {
       'productionActivityIds',
       filters.productionActivityIds,
     );
-    result = appendQueryParam(result, 'startDate', filters.startDate);
-    return appendQueryParam(result, 'endDate', filters.endDate);
+    result = appendQueryParam(result, 'periodStart', filters.periodStart);
+    return appendQueryParam(result, 'periodEnd', filters.periodEnd);
   }
 
   private appendStatuses(

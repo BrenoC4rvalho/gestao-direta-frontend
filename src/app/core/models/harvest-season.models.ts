@@ -106,8 +106,8 @@ export interface HarvestSeasonSummaryListParams extends PageRequest {
   statuses?: HarvestSeasonStatus[] | null;
   productionActivityId?: number | null;
   productionActivityIds?: number[] | null;
-  startDate?: string | null;
-  endDate?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
 }
 
 export interface HarvestSeasonFilters {
@@ -115,8 +115,8 @@ export interface HarvestSeasonFilters {
   search?: string | null;
   statuses?: HarvestSeasonStatus[] | null;
   productionActivityIds?: number[] | null;
-  startDate?: string | null;
-  endDate?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
 }
 
 export interface HarvestSeasonPlanningSummary {

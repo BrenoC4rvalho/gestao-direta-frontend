@@ -331,22 +331,24 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Não foi possível carregar as movimentações da safra.');
   });
 
-  it('should navigate to transactions without query params', () => {
+  it('should navigate to transactions preserving the harvest filter', () => {
     setupUser('PRODUCER');
     createComponent();
 
     clickButton('Ver em movimentações');
 
-    expect(router.navigate).toHaveBeenCalledWith(['/transactions']);
+    expect(router.navigate).toHaveBeenCalledWith(['/transactions'], {
+      queryParams: { harvestSeasonId: 1 },
+    });
   });
 
-  it('should not show direct activate or inactivate actions in the main details screen', () => {
+  it('should not show status actions before opening the edit drawer', () => {
     setupUser('PRODUCER');
     createComponent();
 
     expect(text()).toContain('Editar');
     expect(text()).not.toContain('Inativar');
-    expect(text()).not.toContain('Ativar');
+    expect(text()).not.toContain('Reativar');
   });
 
   it('should show not found message for 404 errors', () => {
@@ -399,10 +401,11 @@ describe('HarvestSeasonDetailsPage', () => {
 
     expect(text()).toContain('Status da safra');
     expect(text()).toContain('Em andamento');
+    expect(text()).toContain('Finalizar safra');
     expect(text()).toContain('Inativar');
   });
 
-  it('should show activate action in the drawer for inactive harvests', () => {
+  it('should show reactivate action in the drawer for inactive harvests', () => {
     harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
     setupUser('PRODUCER');
     createComponent();
@@ -411,7 +414,7 @@ describe('HarvestSeasonDetailsPage', () => {
 
     expect(text()).toContain('Status da safra');
     expect(text()).toContain('Inativa');
-    expect(text()).toContain('Ativar');
+    expect(text()).toContain('Reativar safra');
   });
 
   it('should inactivate a harvest from the edit drawer after confirmation', () => {
@@ -419,26 +422,60 @@ describe('HarvestSeasonDetailsPage', () => {
     createComponent();
 
     clickButton('Editar');
-    clickButton('Inativar');
-    clickLastButton('Inativar');
+    clickButton('Inativar safra');
+    clickLastButton('Inativar safra');
 
     expect(harvestService.inactivate).toHaveBeenCalledWith(1);
     expect(harvestService.activate).not.toHaveBeenCalled();
     expect(harvestService.getById).toHaveBeenCalledTimes(2);
   });
 
-  it('should activate an inactive harvest from the edit drawer after confirmation', () => {
+  it('should reactivate an inactive harvest from the edit drawer after confirmation', () => {
     harvestService.getById.mockReturnValue(of({ ...harvest, status: 'INACTIVE' }));
     setupUser('PRODUCER');
     createComponent();
 
     clickButton('Editar');
-    clickButton('Ativar');
-    clickLastButton('Ativar');
+    clickButton('Reativar safra');
+    clickLastButton('Reativar safra');
 
     expect(harvestService.activate).toHaveBeenCalledWith(1);
     expect(harvestService.inactivate).not.toHaveBeenCalled();
     expect(harvestService.getById).toHaveBeenCalledTimes(2);
+  });
+
+  it('should start a planned harvest using the status endpoint', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'PLANNED' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+    clickButton('Iniciar safra');
+
+    expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
+  });
+
+  it('should finish an in-progress harvest after confirmation', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+    clickButton('Finalizar safra');
+    clickLastButton('Finalizar safra');
+
+    expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'FINISHED');
+  });
+
+  it('should reopen a finished harvest after confirmation', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'FINISHED' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Editar');
+    clickButton('Reabrir safra');
+    clickLastButton('Reabrir safra');
+
+    expect(harvestService.updateStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
   });
 
   it('should save harvest edits without changing status', () => {

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, forkJoin, Observable, of } from 'rxjs';
 
@@ -134,6 +135,7 @@ export class TransactionsPage {
   private readonly categoryService = inject(FinancialCategoryService);
   private readonly harvestSeasonService = inject(HarvestSeasonService);
   private readonly farmUserService = inject(FarmUserService);
+  private readonly route = inject(ActivatedRoute);
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -170,6 +172,10 @@ export class TransactionsPage {
   protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
   protected readonly selectedPaymentMethods = signal<readonly PaymentMethod[]>([]);
   private readonly appliedFilters = signal<AppliedTransactionFilters>({});
+  private readonly initialHarvestSeasonId = this.queryParamNumber(
+    this.route.snapshot.queryParamMap.get('harvestSeasonId'),
+  );
+  private initialHarvestSeasonApplied = false;
 
   protected readonly filterForm = new FormGroup<TransactionFiltersControls>({
     transactionDateStart: new FormControl<GdFormValue>(''),
@@ -369,6 +375,7 @@ export class TransactionsPage {
         this.resetCategoryFilterState();
         this.resetCreatedByUserFilterState();
         this.resetHarvestSeasonFilterState();
+        this.applyInitialHarvestSeasonFilter(farmId);
         this.createdByUsers.set([]);
       });
 
@@ -1077,6 +1084,32 @@ export class TransactionsPage {
     if (this.hasFilterValue(this.appliedFilters().harvestSeasonId)) {
       this.appliedFilters.update(({ harvestSeasonId: _harvestSeasonId, ...filters }) => filters);
     }
+  }
+
+  private applyInitialHarvestSeasonFilter(farmId: number | null): void {
+    if (this.initialHarvestSeasonApplied || !farmId || this.initialHarvestSeasonId === null) {
+      return;
+    }
+
+    this.filterForm.controls.harvestSeasonId.setValue(this.initialHarvestSeasonId, {
+      emitEvent: false,
+    });
+    this.showAdvancedFilters.set(true);
+    this.appliedFilters.update((filters) => ({
+      ...filters,
+      harvestSeasonId: this.initialHarvestSeasonId ?? undefined,
+    }));
+    this.initialHarvestSeasonApplied = true;
+  }
+
+  private queryParamNumber(value: string | null): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const number = Number(value);
+
+    return Number.isInteger(number) && number > 0 ? number : null;
   }
 
   private handleFilterCategoriesError(_error: unknown): void {

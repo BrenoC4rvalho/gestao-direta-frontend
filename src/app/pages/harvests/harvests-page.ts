@@ -71,7 +71,6 @@ interface HarvestFormControls {
   expectedCost: GdFormControl;
   expectedRevenue: GdFormControl;
   areaHectares: GdFormControl;
-  status: GdFormControl;
 }
 
 interface HarvestSummaryCard {
@@ -183,24 +182,16 @@ export class HarvestsPage {
       },
     ],
   }));
-  protected readonly statusOptions: readonly GdSelectOption[] = [
-    { label: 'Planejada', value: 'PLANNED' },
-    { label: 'Em andamento', value: 'IN_PROGRESS' },
-    { label: 'Encerrada', value: 'FINISHED' },
-    { label: 'Inativa', value: 'INACTIVE' },
-  ];
-
   protected readonly form = new FormGroup<HarvestFormControls>(
     {
       productionActivityId: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       name: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
-      description: new FormControl<GdFormValue>(''),
+      description: new FormControl<GdFormValue>('', { validators: [Validators.maxLength(500)] }),
       startDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       endDate: new FormControl<GdFormValue>(''),
       expectedCost: new FormControl<GdFormValue>(''),
       expectedRevenue: new FormControl<GdFormValue>(''),
       areaHectares: new FormControl<GdFormValue>(''),
-      status: new FormControl<GdFormValue>('PLANNED', { validators: [Validators.required] }),
     },
     { validators: [this.dateRangeValidator()] },
   );
@@ -422,7 +413,6 @@ export class HarvestsPage {
       expectedCost: '',
       expectedRevenue: '',
       areaHectares: '',
-      status: 'PLANNED',
     });
     this.drawerOpen.set(true);
   }
@@ -569,7 +559,14 @@ export class HarvestsPage {
   }
 
   private currentFilters(farmId: number): HarvestSeasonFilters {
-    return { farmId, search: this.searchTerm(), statuses: this.selectedStatuses(), productionActivityIds: this.selectedProductionActivityIds(), startDate: this.periodStart(), endDate: this.periodEnd() };
+    return {
+      farmId,
+      search: this.searchTerm(),
+      statuses: this.selectedStatuses(),
+      productionActivityIds: this.selectedProductionActivityIds(),
+      periodStart: this.periodStart(),
+      periodEnd: this.periodEnd(),
+    };
   }
 
   private loadSummary(farmId: number): void {

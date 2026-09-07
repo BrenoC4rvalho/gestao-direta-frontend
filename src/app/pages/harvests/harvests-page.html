@@ -322,7 +322,7 @@
       placeholder="Observacoes sobre a safra"
       [disabled]="submitting()"
       [rows]="3"
-      [maxlength]="240"
+      [maxlength]="500"
     />
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -380,15 +380,7 @@
         [disabled]="submitting()"
         [errorMessage]="fieldError('areaHectares')"
       />
-      <gd-select
-        id="harvest-status"
-        label="Status"
-        [control]="form.controls.status"
-        [options]="statusOptions"
-        [required]="true"
-        [disabled]="submitting()"
-        [errorMessage]="fieldError('status')"
-      />
+      <p class="self-end pb-2 text-sm text-text-muted">Status inicial: Planejada</p>
     </div>
 
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">

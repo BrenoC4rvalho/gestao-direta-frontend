@@ -1,5 +1,6 @@
 import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -240,6 +241,7 @@ describe('TransactionsPage', () => {
   let farmAccessStore: FarmAccessStore;
   let sessionStore: SessionStore;
   let toastStore: ToastStore;
+  let route: { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } };
 
   beforeEach(async () => {
     transactionService = {
@@ -277,6 +279,7 @@ describe('TransactionsPage', () => {
     farmUserService = {
       listUserOptions: vi.fn().mockReturnValue(of(createdByUserOptions)),
     };
+    route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
     await TestBed.configureTestingModule({
       imports: [TransactionsPage],
@@ -286,6 +289,7 @@ describe('TransactionsPage', () => {
         { provide: FinancialCategoryService, useValue: categoryService },
         { provide: HarvestSeasonService, useValue: harvestSeasonService },
         { provide: FarmUserService, useValue: farmUserService },
+        { provide: ActivatedRoute, useValue: route },
       ],
     }).compileComponents();
 
@@ -322,6 +326,20 @@ describe('TransactionsPage', () => {
     expect(farmUserService.listUserOptions).not.toHaveBeenCalled();
     expect(harvestSeasonService.list).not.toHaveBeenCalled();
     expect((fixture.componentInstance as unknown as { createdByUserSelectDisabled: () => boolean }).createdByUserSelectDisabled()).toBe(true);
+  });
+
+  it('should apply harvestSeasonId from the URL as the visible initial filter', () => {
+    route.snapshot.queryParamMap = convertToParamMap({ harvestSeasonId: '10' });
+    selectedFarmStore.setFarms([farm]);
+
+    createPage();
+
+    expect(lastListParams()).toEqual(
+      expect.objectContaining({ farmId: 1, harvestSeasonId: 10 }),
+    );
+    expect(
+      findSelect('#transaction-filter-harvest-season').selectedOptions[0].textContent?.trim(),
+    ).toBe('Safra Soja 2025/26');
   });
 
   it('should show access denied and avoid API without view permission', () => {

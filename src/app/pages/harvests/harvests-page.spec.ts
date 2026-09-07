@@ -257,8 +257,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -405,8 +405,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -428,8 +428,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['IN_PROGRESS', 'PLANNED'],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -443,8 +443,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['PLANNED'],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -458,8 +458,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -478,8 +478,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [2, 3],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -498,8 +498,8 @@ describe('HarvestsPage', () => {
       search: 'soja',
       statuses: [],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -522,8 +522,8 @@ describe('HarvestsPage', () => {
       search: 'soja',
       statuses: ['IN_PROGRESS'],
       productionActivityIds: [2],
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
+      periodStart: '2026-01-01',
+      periodEnd: '2026-12-31',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -559,8 +559,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: [],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 0,
       size: 10,
       sort: 'startDate',
@@ -580,8 +580,8 @@ describe('HarvestsPage', () => {
       search: '',
       statuses: ['IN_PROGRESS'],
       productionActivityIds: [],
-      startDate: '',
-      endDate: '',
+      periodStart: '',
+      periodEnd: '',
       page: 1,
       size: 10,
       sort: 'startDate',
@@ -671,7 +671,6 @@ describe('HarvestsPage', () => {
       expectedCost: '10.000,50',
       expectedRevenue: '20.000,75',
       areaHectares: 30,
-      status: 'PLANNED',
     });
     const initialCalls = harvestService.listSummary.mock.calls.length;
     component.saveHarvest();
@@ -692,6 +691,25 @@ describe('HarvestsPage', () => {
     expect(harvestService.activate).not.toHaveBeenCalled();
     expect(harvestService.inactivate).not.toHaveBeenCalled();
     expect(harvestService.listSummary).toHaveBeenCalledTimes(initialCalls + 1);
+  });
+
+  it('should show the planned initial status as information instead of an editable field', () => {
+    setupSelectedFarm('PRODUCER');
+    clickButton('Nova safra');
+
+    expect(fixture.nativeElement.querySelector('#harvest-status')).toBeNull();
+    expect(text()).toContain('Status inicial: Planejada');
+  });
+
+  it('should allow a description with up to 500 characters', () => {
+    setupSelectedFarm('PRODUCER');
+    const component = fixture.componentInstance as unknown as HarvestsPage & { form: any };
+
+    component.form.controls.description.setValue('a'.repeat(500));
+    expect(component.form.controls.description.valid).toBe(true);
+
+    component.form.controls.description.setValue('a'.repeat(501));
+    expect(component.form.controls.description.valid).toBe(false);
   });
 
 
