@@ -96,16 +96,6 @@
       </button>
     </div>
 
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-      @if (analysisMode() === 'comparison' && activeComparison(); as currentComparison) {
-        <div class="flex flex-wrap gap-x-5 gap-y-1 text-right text-sm">
-          <p><span class="text-text-muted">Planejado</span> <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.plannedTotal | brCurrency }}</span></p>
-          <p><span class="text-text-muted">Realizado</span> <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.realizedTotal | brCurrency }}</span></p>
-          <p><span class="text-text-muted">Diferença</span> <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.difference | brCurrency }}</span></p>
-        </div>
-      }
-    </div>
-
     @if (loading()) {
       <div class="mt-4 space-y-3" [attr.aria-label]="analysisMode() === 'comparison' ? 'Carregando comparativo por categoria' : 'Carregando movimentações por categoria'">
         <gd-skeleton height="2.5rem" />
@@ -143,17 +133,17 @@
         </div>
       } @else {
         <div class="mt-4">
-          <div class="hidden grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted lg:grid" aria-hidden="true">
-            <span>Categoria</span><span>Planejado</span><span>Realizado</span><span>Diferença</span><span>Situação</span>
+          <div class="hidden grid-cols-[minmax(0,1fr)_8rem_8rem_9rem_10rem] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted lg:grid" aria-hidden="true">
+            <span>Categoria</span><span class="text-center">Planejado</span><span class="text-center">Realizado</span><span class="text-center">Diferença</span><span class="text-center">Situação</span>
           </div>
           <ul class="divide-y divide-border" aria-label="Lista de planejado x realizado por categoria">
             @for (category of comparisonCategories(); track category.categoryId ?? category.categoryName) {
-              <li class="grid gap-2 px-3 py-4 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] lg:items-center lg:gap-4">
+              <li class="grid gap-2 px-3 py-4 lg:grid-cols-[minmax(0,1fr)_8rem_8rem_9rem_10rem] lg:items-center lg:gap-4">
                 <span class="min-w-0 truncate text-sm font-medium text-text-primary">{{ category.categoryName }}</span>
-                <p class="flex justify-between gap-3 text-sm lg:block lg:text-right"><span class="text-text-muted lg:hidden">Planejado</span><span class="font-medium text-text-primary">{{ category.planned ? (category.plannedAmount! | brCurrency) : 'Não planejado' }}</span></p>
-                <p class="flex justify-between gap-3 text-sm lg:block lg:text-right"><span class="text-text-muted lg:hidden">Realizado</span><span class="font-medium text-text-primary">{{ category.realizedAmount | brCurrency }}</span></p>
-                <p class="flex justify-between gap-3 text-sm lg:block lg:text-right"><span class="text-text-muted lg:hidden">Diferença</span><span class="font-medium text-text-primary">{{ differenceText(category) }}</span></p>
-                <span class="justify-self-start rounded-full px-2 py-1 text-xs font-semibold lg:justify-self-end" [class]="semanticClass(category.semantic)">{{ statusLabel(category.status) }}</span>
+                <p class="flex justify-between gap-3 text-sm lg:block lg:text-center"><span class="text-text-muted lg:hidden">Planejado</span><span class="font-medium text-text-primary">{{ category.planned ? (category.plannedAmount! | brCurrency) : 'Não planejado' }}</span></p>
+                <p class="flex justify-between gap-3 text-sm lg:block lg:text-center"><span class="text-text-muted lg:hidden">Realizado</span><span class="font-medium text-text-primary">{{ category.realizedAmount | brCurrency }}</span></p>
+                <p class="flex justify-between gap-3 text-sm lg:block lg:text-center"><span class="text-text-muted lg:hidden">Diferença</span><span class="font-medium text-text-primary">{{ differenceText(category) }}</span></p>
+                <span class="justify-self-start rounded-full px-2 py-1 text-xs font-semibold lg:justify-self-center" [class]="semanticClass(category.semantic)">{{ statusLabel(category.status) }}</span>
               </li>
             }
           </ul>
@@ -162,8 +152,16 @@
 
       @if (analysisMode() === 'movements' && activeBreakdown(); as currentBreakdown) {
         <div class="mt-4 border-t border-border pt-4 text-right">
-          <p class="text-sm text-text-muted">{{ selectedType() === 'EXPENSE' ? 'Total de despesas realizadas' : 'Total de receitas realizadas' }}</p>
+          <p class="text-sm text-text-muted">{{ selectedType() === 'EXPENSE' ? 'Total de despesas realizadas:' : 'Total de receitas realizadas:' }}</p>
           <p class="mt-1 text-xl font-semibold text-text-primary">{{ currentBreakdown.total | brCurrency }}</p>
+        </div>
+      } @else if (analysisMode() === 'comparison' && activeComparison(); as currentComparison) {
+        <div class="mt-4 border-t border-border pt-4">
+          <div class="flex flex-wrap justify-end gap-x-6 gap-y-3 text-right">
+            <p class="text-sm text-text-muted">Planejado: <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.plannedTotal | brCurrency }}</span></p>
+            <p class="text-sm text-text-muted">Realizado: <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.realizedTotal | brCurrency }}</span></p>
+            <p class="text-sm text-text-muted">Diferença: <span class="ml-1 font-semibold text-text-primary">{{ currentComparison.difference | brCurrency }}</span></p>
+          </div>
         </div>
       }
     }
