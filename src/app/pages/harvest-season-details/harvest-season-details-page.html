@@ -179,7 +179,7 @@
                   </div>
                   <p
                     [class]="
-                      'shrink-0 text-sm font-semibold ' + transactionAmountClasses(transaction)
+                      'shrink-0 whitespace-nowrap text-sm font-semibold ' + transactionAmountClasses(transaction)
                     "
                   >
                     {{ transactionAmountPrefix(transaction) }}{{ transaction.amount | brCurrency }}
@@ -222,7 +222,7 @@
                     </td>
                     <td
                       [class]="
-                        'px-5 py-4 text-right font-semibold ' +
+                        'whitespace-nowrap px-5 py-4 text-right font-semibold ' +
                         transactionAmountClasses(transaction)
                       "
                     >
