@@ -51,9 +51,9 @@ const summary: HarvestSeasonDetailSummary = {
   farmId: 8,
   farmName: 'Fazenda Boa Sorte',
   areaHectares: 48,
-  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000 },
-  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0 },
-  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800 },
+  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000, plannedMargin: 34.36 },
+  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0, realizedMargin: 0 },
+  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800, projectedMargin: 49.66 },
   comparison: {
     profitPerformanceAmount: -38200,
     profitPerformancePercentage: -57.01,
@@ -63,6 +63,8 @@ const summary: HarvestSeasonDetailSummary = {
     costVarianceStatus: 'BELOW_PLANNED',
   },
   openAmounts: {
+    payableAmount: 29200,
+    receivableAmount: 58000,
     pending: { payableAmount: 29200, receivableAmount: 58000 },
     overdue: { payableAmount: 0, receivableAmount: 0 },
   },
@@ -221,7 +223,7 @@ describe('HarvestSeasonDetailsPage', () => {
       'Custo projetado',
       'Receita projetada',
       'Lucro projetado',
-      'Desempenho do lucro',
+      'Desvio de custo',
     ]);
     expect(text()).toContain('29.200,00');
     expect(text()).not.toContain('Custo planejado');
@@ -283,6 +285,41 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(component.summaryCards()).toEqual([]);
   });
 
+  it.each([
+    ['PLANNED', ['Custo planejado', 'Receita planejada', 'Lucro planejado', 'Margem planejada']],
+    ['IN_PROGRESS', ['Custo projetado', 'Receita projetada', 'Lucro projetado', 'Desvio de custo']],
+    ['FINISHED', ['Custo realizado', 'Receita realizada', 'Lucro realizado', 'Margem realizada']],
+    ['INACTIVE', ['Custo realizado', 'Receita realizada', 'Lucro realizado', 'Margem realizada']],
+  ] as const)('should select the correct primary cards for %s harvests', (status, titles) => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const component = fixture.componentInstance as unknown as HarvestSeasonDetailsPage & {
+      harvest: { set(value: HarvestSeason | null): void };
+      mainSummaryCards(): readonly { title: string; description: string }[];
+    };
+    component.harvest.set({ ...harvest, status });
+
+    expect(component.mainSummaryCards().map((card) => card.title)).toEqual(titles);
+  });
+
+  it('should explain projection and cost variance using open commitments and the budget', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    const component = fixture.componentInstance as unknown as HarvestSeasonDetailsPage & {
+      summaryCards(): readonly { title: string; description: string }[];
+    };
+    const cards = component.summaryCards();
+
+    expect(cards.find((card) => card.title === 'Lucro projetado')?.description).toContain(
+      'realizado e compromissos em aberto',
+    );
+    expect(cards.find((card) => card.title === 'Desvio de custo')?.description).toContain(
+      'orçamento da safra',
+    );
+  });
+
   it('should keep harvest details and transactions available when the summary fails without a fallback count', () => {
     harvestService.getSummary.mockReturnValue(throwError(() => new Error('summary')));
     setupUser('PRODUCER');
@@ -338,12 +375,12 @@ describe('HarvestSeasonDetailsPage', () => {
 
     expect(drawer).not.toBeNull();
     expect(drawer.textContent).toContain('Indicadores financeiros');
-    expect(drawer.textContent).toContain('Visão consolidada');
-    expect(drawer.textContent).toContain('Planejado');
+    expect(drawer.textContent).toContain('Planejamento');
     expect(drawer.textContent).toContain('Realizado');
-    expect(drawer.textContent).toContain('Comparação com planejamento');
-    expect(drawer.textContent).toContain('Compromissos financeiros');
-    expect(drawer.querySelectorAll('gd-summary-card').length).toBe(15);
+    expect(drawer.textContent).toContain('Projeção');
+    expect(drawer.textContent).toContain('Comparação');
+    expect(drawer.textContent).toContain('Compromissos');
+    expect(drawer.querySelectorAll('gd-summary-card').length).toBe(18);
   });
 
   it('should close the detailed indicators drawer from its close button', async () => {

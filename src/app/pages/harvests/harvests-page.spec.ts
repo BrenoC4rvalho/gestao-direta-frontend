@@ -158,10 +158,16 @@ const response: PageResponse<HarvestSeasonSummaryListItem> = {
 const financialSummary: HarvestSeasonFinancialSummary = {
   farmId: 10,
   activeHarvestCount: 2,
-  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000 },
-  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500 },
-  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500 },
+  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000, plannedMargin: 43.48 },
+  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500, realizedMargin: 52.33 },
+  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500, projectedMargin: 49.19 },
   comparison: { profitPerformancePercentage: 12.5, profitPerformanceStatus: 'ABOVE_PLANNED', costVarianceAmount: -27500, costVariancePercentage: -21.15, costVarianceStatus: 'BELOW_PLANNED' },
+  openAmounts: {
+    payableAmount: 23000,
+    receivableAmount: 32000,
+    pending: { payableAmount: 23000, receivableAmount: 32000 },
+    overdue: { payableAmount: 0, receivableAmount: 0 },
+  },
 };
 
 const emptyResponse: PageResponse<HarvestSeasonSummaryListItem> = {

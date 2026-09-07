@@ -155,15 +155,30 @@ export class HarvestSeasonService {
   }
 
   private isPlanningSummary(value: unknown): boolean {
-    return this.hasNumericFields(value, ['plannedCost', 'plannedRevenue', 'plannedProfit']);
+    return this.hasNumericFields(value, [
+      'plannedCost',
+      'plannedRevenue',
+      'plannedProfit',
+      'plannedMargin',
+    ]);
   }
 
   private isRealizedSummary(value: unknown): boolean {
-    return this.hasNumericFields(value, ['realizedCost', 'realizedRevenue', 'realizedProfit']);
+    return this.hasNumericFields(value, [
+      'realizedCost',
+      'realizedRevenue',
+      'realizedProfit',
+      'realizedMargin',
+    ]);
   }
 
   private isProjectionSummary(value: unknown): boolean {
-    return this.hasNumericFields(value, ['projectedCost', 'projectedRevenue', 'projectedProfit']);
+    return this.hasNumericFields(value, [
+      'projectedCost',
+      'projectedRevenue',
+      'projectedProfit',
+      'projectedMargin',
+    ]);
   }
 
   private isComparisonSummary(value: unknown): boolean {
@@ -189,6 +204,8 @@ export class HarvestSeasonService {
     }
 
     return (
+      typeof value['payableAmount'] === 'number' &&
+      typeof value['receivableAmount'] === 'number' &&
       this.hasNumericFields(value['pending'], ['payableAmount', 'receivableAmount']) &&
       this.hasNumericFields(value['overdue'], ['payableAmount', 'receivableAmount'])
     );

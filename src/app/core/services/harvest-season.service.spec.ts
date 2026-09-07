@@ -47,9 +47,9 @@ const summary: HarvestSeasonDetailSummary = {
   farmId: 8,
   farmName: 'Fazenda Boa Sorte',
   areaHectares: 48,
-  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000 },
-  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0 },
-  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800 },
+  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000, plannedMargin: 34.36 },
+  realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0, realizedMargin: 0 },
+  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800, projectedMargin: 49.66 },
   comparison: {
     profitPerformanceAmount: -38200,
     profitPerformancePercentage: -57.01,
@@ -59,6 +59,8 @@ const summary: HarvestSeasonDetailSummary = {
     costVarianceStatus: 'BELOW_PLANNED',
   },
   openAmounts: {
+    payableAmount: 29200,
+    receivableAmount: 58000,
     pending: { payableAmount: 29200, receivableAmount: 58000 },
     overdue: { payableAmount: 0, receivableAmount: 0 },
   },
@@ -70,15 +72,21 @@ const summary: HarvestSeasonDetailSummary = {
 const financialSummary: HarvestSeasonFinancialSummary = {
   farmId: 10,
   activeHarvestCount: 2,
-  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000 },
-  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500 },
-  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500 },
+  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000, plannedMargin: 43.48 },
+  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500, realizedMargin: 52.33 },
+  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500, projectedMargin: 49.19 },
   comparison: {
     profitPerformancePercentage: 12.5,
     profitPerformanceStatus: 'ABOVE_PLANNED',
     costVarianceAmount: -27500,
     costVariancePercentage: -21.15,
     costVarianceStatus: 'BELOW_PLANNED',
+  },
+  openAmounts: {
+    payableAmount: 23000,
+    receivableAmount: 32000,
+    pending: { payableAmount: 23000, receivableAmount: 32000 },
+    overdue: { payableAmount: 0, receivableAmount: 0 },
   },
 };
 
@@ -380,6 +388,22 @@ describe('HarvestSeasonService', () => {
     });
 
     http.expectOne(apiUrl + '/1/summary').flush({ planning: {} });
+  });
+
+  it('should reject a detail summary without the calculated margin and open total fields', () => {
+    service.getSummary(1).subscribe({
+      next: () => {
+        throw new Error('Expected the invalid summary to be rejected.');
+      },
+      error: (error: unknown) =>
+        expect(error).toBeInstanceOf(InvalidHarvestSeasonDetailSummaryError),
+    });
+
+    const invalidSummary = structuredClone(summary) as unknown as Record<string, unknown>;
+    delete (invalidSummary['planning'] as Record<string, unknown>)['plannedMargin'];
+    delete (invalidSummary['openAmounts'] as Record<string, unknown>)['payableAmount'];
+
+    http.expectOne(apiUrl + '/1/summary').flush(invalidSummary);
   });
 
   it('should call the budget item endpoints scoped by harvest season', () => {

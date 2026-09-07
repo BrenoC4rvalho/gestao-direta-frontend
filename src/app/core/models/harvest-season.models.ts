@@ -155,18 +155,21 @@ export interface HarvestSeasonPlanningSummary {
   plannedCost: number;
   plannedRevenue: number;
   plannedProfit: number;
+  plannedMargin: number;
 }
 
 export interface HarvestSeasonRealizedSummary {
   realizedCost: number;
   realizedRevenue: number;
   realizedProfit: number;
+  realizedMargin: number;
 }
 
 export interface HarvestSeasonProjectionSummary {
   projectedCost: number;
   projectedRevenue: number;
   projectedProfit: number;
+  projectedMargin: number;
 }
 
 export type HarvestComparisonStatus =
@@ -199,6 +202,7 @@ export interface HarvestSeasonFinancialSummary {
   realized: HarvestRealizedSummary;
   projection: HarvestProjectionSummary;
   comparison: HarvestComparisonSummary;
+  openAmounts: HarvestSeasonOpenAmountsSummary;
 }
 
 export interface HarvestSeasonPendingAmountsSummary {
@@ -212,6 +216,8 @@ export interface HarvestSeasonOverdueAmountsSummary {
 }
 
 export interface HarvestSeasonOpenAmountsSummary {
+  payableAmount: number;
+  receivableAmount: number;
   pending: HarvestSeasonPendingAmountsSummary;
   overdue: HarvestSeasonOverdueAmountsSummary;
 }

@@ -272,9 +272,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       return [];
     }
 
-    const payableAmount = pending.payableAmount + overdue.payableAmount;
-    const receivableAmount = pending.receivableAmount + overdue.receivableAmount;
-
     return [
       this.currencyCard(
         'Custo planejado',
@@ -296,6 +293,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
         'Resultado planejado da safra.',
         'chart-no-axes-combined',
       ),
+      this.marginCard('Margem planejada', planning.plannedMargin, 'Percentual do resultado sobre a receita planejada.'),
       this.currencyCard(
         'Custo realizado',
         realized.realizedCost,
@@ -316,6 +314,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
         'Resultado realizado da safra.',
         'wallet',
       ),
+      this.marginCard('Margem realizada', realized.realizedMargin, 'Percentual do resultado sobre a receita realizada.'),
       this.currencyCard(
         'Custo projetado',
         projection.projectedCost,
@@ -333,13 +332,14 @@ export class HarvestSeasonDetailsPage implements OnInit {
       this.profitCard(
         'Lucro projetado',
         projection.projectedProfit,
-        'Resultado estimado ao final da safra.',
+        'Resultado estimado ao final da safra, considerando realizado e compromissos em aberto.',
         'chart-no-axes-combined',
       ),
+      this.marginCard('Margem projetada', projection.projectedMargin, 'Percentual do resultado projetado sobre a receita projetada.'),
       {
         title: 'Desempenho do lucro',
         value: this.percentageLabel(comparison.profitPerformancePercentage),
-        description: 'Comparação do lucro projetado com o planejado.',
+        description: 'Compara o lucro projetado, com realizado e compromissos em aberto, ao orçamento da safra.',
         detail: this.comparisonStatusLabel(comparison.profitPerformanceStatus),
         icon: 'chart-no-axes-column-increasing',
         tone: this.profitPerformanceTone(comparison.profitPerformanceStatus),
@@ -347,7 +347,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
       {
         title: 'Desvio de custo',
         value: this.currencyLabel(comparison.costVarianceAmount),
-        description: 'Diferença entre o custo projetado e o custo planejado.',
+        description: 'Diferença entre o custo projetado, com realizado e compromissos em aberto, e o orçamento da safra.',
         detail: this.comparisonStatusLabel(
           comparison.costVarianceStatus,
           comparison.costVariancePercentage,
@@ -357,14 +357,14 @@ export class HarvestSeasonDetailsPage implements OnInit {
       },
       this.moneyCard(
         'A pagar',
-        payableAmount,
+        openAmounts.payableAmount,
         'Total de contas em aberto a pagar.',
         'calendar-clock',
         'warning',
       ),
       this.moneyCard(
         'A receber',
-        receivableAmount,
+        openAmounts.receivableAmount,
         'Total de contas em aberto a receber.',
         'calendar-clock',
         'success',
@@ -390,31 +390,31 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
     return [
       this.summaryGroup(
-        'Visão consolidada',
+        'Planejamento',
         'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
         cards,
-        ['Custo projetado', 'Receita projetada', 'Lucro projetado', 'Desempenho do lucro'],
-      ),
-      this.summaryGroup(
-        'Planejado',
-        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
-        cards,
-        ['Custo planejado', 'Receita planejada', 'Lucro planejado'],
+        ['Custo planejado', 'Receita planejada', 'Lucro planejado', 'Margem planejada'],
       ),
       this.summaryGroup(
         'Realizado',
-        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4',
         cards,
-        ['Custo realizado', 'Receita realizada', 'Lucro realizado'],
+        ['Custo realizado', 'Receita realizada', 'Lucro realizado', 'Margem realizada'],
       ),
       this.summaryGroup(
-        'Comparação com planejamento',
-        'grid grid-cols-1 items-stretch gap-3',
+        'Projeção',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4',
         cards,
-        ['Desvio de custo'],
+        ['Custo projetado', 'Receita projetada', 'Lucro projetado', 'Margem projetada'],
       ),
       this.summaryGroup(
-        'Compromissos financeiros',
+        'Comparação',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2',
+        cards,
+        ['Desempenho do lucro', 'Desvio de custo'],
+      ),
+      this.summaryGroup(
+        'Compromissos',
         'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
         cards,
         ['A pagar', 'A receber', 'Vencidas a pagar', 'Vencidas a receber'],
@@ -422,8 +422,41 @@ export class HarvestSeasonDetailsPage implements OnInit {
     ];
   });
   protected readonly consolidatedSummaryGroups = computed(() =>
-    this.financialSummaryGroups().filter((group) => group.title === 'Visão consolidada'),
+    [{
+      title: 'Resumo financeiro',
+      gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+      cards: this.mainSummaryCards(),
+    }],
   );
+  protected readonly mainSummaryCards = computed<readonly DetailSummaryCard[]>(() => {
+    const cards = this.summaryCards();
+    const status = this.harvest()?.status;
+
+    if (status === 'PLANNED') {
+      return this.cardsByTitle(cards, [
+        'Custo planejado',
+        'Receita planejada',
+        'Lucro planejado',
+        'Margem planejada',
+      ]);
+    }
+
+    if (status === 'IN_PROGRESS') {
+      return this.cardsByTitle(cards, [
+        'Custo projetado',
+        'Receita projetada',
+        'Lucro projetado',
+        'Desvio de custo',
+      ]);
+    }
+
+    return this.cardsByTitle(cards, [
+      'Custo realizado',
+      'Receita realizada',
+      'Lucro realizado',
+      'Margem realizada',
+    ]);
+  });
   protected readonly planningCards = computed<readonly DetailSummaryCard[]>(() => {
     const budget = this.budget();
 
@@ -1025,6 +1058,16 @@ export class HarvestSeasonDetailsPage implements OnInit {
     return this.currencyCard(title, amount, description, icon, this.profitTone(amount));
   }
 
+  private marginCard(title: string, margin: number, description: string): DetailSummaryCard {
+    return {
+      title,
+      value: this.percentageLabel(margin),
+      description,
+      icon: 'chart-no-axes-combined',
+      tone: this.profitTone(margin),
+    };
+  }
+
   private moneyCard(
     title: string,
     amount: number,
@@ -1046,6 +1089,13 @@ export class HarvestSeasonDetailsPage implements OnInit {
       gridClasses,
       cards: cards.filter((card) => titles.includes(card.title)),
     };
+  }
+
+  private cardsByTitle(
+    cards: readonly DetailSummaryCard[],
+    titles: readonly string[],
+  ): readonly DetailSummaryCard[] {
+    return cards.filter((card) => titles.includes(card.title));
   }
 
   private profitTone(value: number): SummaryCardTone {
