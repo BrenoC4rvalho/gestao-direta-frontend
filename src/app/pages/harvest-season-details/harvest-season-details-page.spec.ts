@@ -694,6 +694,21 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
   });
 
+  it('should use the planning tooltip instead of the informational banner', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+
+    const tooltip = fixture.nativeElement.querySelector('gd-tooltip [role="tooltip"]') as HTMLElement;
+
+    expect(tooltip.className).toContain('w-64');
+    expect(tooltip.className).toContain('z-[1000]');
+    expect(tooltip.textContent).toContain(
+      'O planejamento financeiro pode ser ajustado enquanto a Safra estiver Planejada ou Em andamento.',
+    );
+  });
+
   it('should render compact planning sections, summary item counts and accessible item actions', () => {
     harvestService.getBudgetItems.mockReturnValue(
       of({

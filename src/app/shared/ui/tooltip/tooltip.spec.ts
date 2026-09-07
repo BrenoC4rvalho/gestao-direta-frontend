@@ -6,7 +6,7 @@ import { Tooltip } from './tooltip';
 @Component({
   imports: [Tooltip],
   template: `
-    <gd-tooltip ariaLabel="Detalhes financeiros" content="Linha um\nLinha dois">
+    <gd-tooltip ariaLabel="Detalhes financeiros" content="Linha um\nLinha dois" width="narrow">
       <span>Indicador</span>
     </gd-tooltip>
   `,
@@ -33,11 +33,16 @@ describe('Tooltip', () => {
     expect(tooltip.textContent).toContain('Linha dois');
   });
 
-  it('should expose the tooltip on hover and keyboard focus with a high stacking order', () => {
+  it('should expose the tooltip on hover and keyboard focus above navigation layers', () => {
+    const trigger = fixture.nativeElement.querySelector('gd-tooltip') as HTMLElement;
     const tooltip = fixture.nativeElement.querySelector('[role="tooltip"]') as HTMLElement;
 
     expect(tooltip.className).toContain('group-hover:visible');
     expect(tooltip.className).toContain('group-focus-within:visible');
-    expect(tooltip.className).toContain('z-[999]');
+    expect(tooltip.className).toContain('z-[1000]');
+    expect(trigger.className).toContain('hover:z-[1000]');
+    expect(trigger.className).toContain('focus-within:z-[1000]');
+    expect(tooltip.className).toContain('w-64');
+    expect(tooltip.className).toContain('whitespace-normal');
   });
 });

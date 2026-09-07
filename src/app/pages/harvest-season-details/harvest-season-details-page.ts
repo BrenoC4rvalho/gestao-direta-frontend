@@ -211,7 +211,7 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
   protected readonly expandedBudgetGroupKeys = signal<ReadonlySet<string>>(new Set());
   protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
   protected readonly planningTooltip =
-    'Valores previstos para a Safra. O resultado planejado é a diferença entre receitas e despesas, e a margem representa o resultado em relação às receitas.';
+    'O planejamento financeiro pode ser ajustado enquanto a Safra estiver Planejada ou Em andamento.';
 
   private readonly harvestId = signal<number | null>(null);
 
