@@ -68,8 +68,6 @@ interface HarvestFormControls {
   description: GdFormControl;
   startDate: GdFormControl;
   endDate: GdFormControl;
-  expectedCost: GdFormControl;
-  expectedRevenue: GdFormControl;
   areaHectares: GdFormControl;
 }
 
@@ -189,8 +187,6 @@ export class HarvestsPage {
       description: new FormControl<GdFormValue>('', { validators: [Validators.maxLength(500)] }),
       startDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       endDate: new FormControl<GdFormValue>(''),
-      expectedCost: new FormControl<GdFormValue>(''),
-      expectedRevenue: new FormControl<GdFormValue>(''),
       areaHectares: new FormControl<GdFormValue>(''),
     },
     { validators: [this.dateRangeValidator()] },
@@ -270,9 +266,6 @@ export class HarvestsPage {
   protected readonly drawerDescription = 'Cadastre uma safra vinculada à fazenda selecionada.';
 
   constructor() {
-    this.bindMoneySanitizer(this.form.controls.expectedCost);
-    this.bindMoneySanitizer(this.form.controls.expectedRevenue);
-
     effect((onCleanup) => {
       const farmId = this.selectedFarmStore.selectedFarmId();
       const isAdmin = this.sessionStore.isAdmin();
@@ -410,8 +403,6 @@ export class HarvestsPage {
       description: '',
       startDate: '',
       endDate: '',
-      expectedCost: '',
-      expectedRevenue: '',
       areaHectares: '',
     });
     this.drawerOpen.set(true);
@@ -616,8 +607,6 @@ export class HarvestsPage {
       description: this.stringValue(this.form.controls.description.value) || null,
       startDate,
       endDate: this.stringValue(this.form.controls.endDate.value) || null,
-      expectedCost: this.moneyValue(this.form.controls.expectedCost.value),
-      expectedRevenue: this.moneyValue(this.form.controls.expectedRevenue.value),
       areaHectares: this.numberValue(this.form.controls.areaHectares.value),
     };
   }
@@ -714,8 +703,6 @@ export class HarvestsPage {
   }
 
   private applyNumericValidation(): void {
-    this.validateNonNegativeMoney(this.form.controls.expectedCost);
-    this.validateNonNegativeMoney(this.form.controls.expectedRevenue);
     this.validateNonNegativeNumber(this.form.controls.areaHectares);
   }
 

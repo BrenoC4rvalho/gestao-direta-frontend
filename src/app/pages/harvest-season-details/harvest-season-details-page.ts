@@ -24,6 +24,9 @@ import { finalize, Observable } from 'rxjs';
 
 import {
   HarvestSeason,
+  HarvestSeasonBudget,
+  HarvestSeasonBudgetItem,
+  HarvestSeasonBudgetItemRequest,
   HarvestSeasonStatus,
   HarvestSeasonDetailSummary,
   UpdateHarvestSeasonRequest,
@@ -35,6 +38,8 @@ import {
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
+import { FinancialCategoryService } from '../../core/services/financial-category.service';
+import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
   HarvestSeasonService,
   InvalidHarvestSeasonDetailSummaryError,
@@ -77,9 +82,13 @@ interface HarvestFormControls {
   description: GdFormControl;
   startDate: GdFormControl;
   endDate: GdFormControl;
-  expectedCost: GdFormControl;
-  expectedRevenue: GdFormControl;
   areaHectares: GdFormControl;
+}
+
+interface BudgetItemFormControls {
+  categoryId: GdFormControl;
+  description: GdFormControl;
+  plannedAmount: GdFormControl;
 }
 
 interface DetailSummaryCard {
@@ -137,6 +146,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   private readonly router = inject(Router);
   private readonly harvestService = inject(HarvestSeasonService);
   private readonly transactionService = inject(FinancialTransactionService);
+  private readonly categoryService = inject(FinancialCategoryService);
   private readonly productionActivityService = inject(ProductionActivityService);
   private readonly toastStore = inject(ToastStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -146,12 +156,22 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
   protected readonly harvest = signal<HarvestSeason | null>(null);
   protected readonly summary = signal<HarvestSeasonDetailSummary | null>(null);
+  protected readonly budget = signal<HarvestSeasonBudget | null>(null);
   protected readonly transactionsPage = signal<PageResponse<FinancialTransaction> | null>(null);
   protected readonly productionActivities = signal<ProductionActivity[]>([]);
   protected readonly loadingHarvest = signal(false);
   protected readonly harvestError = signal<string | null>(null);
   protected readonly summaryLoading = signal(false);
   protected readonly summaryError = signal<string | null>(null);
+  protected readonly budgetLoading = signal(false);
+  protected readonly budgetError = signal<string | null>(null);
+  protected readonly budgetDrawerOpen = signal(false);
+  protected readonly editingBudgetItem = signal<HarvestSeasonBudgetItem | null>(null);
+  protected readonly budgetItemType = signal<'INCOME' | 'EXPENSE'>('EXPENSE');
+  protected readonly budgetCategories = signal<FinancialCategory[]>([]);
+  protected readonly budgetSubmitting = signal(false);
+  protected readonly budgetDeleteTarget = signal<HarvestSeasonBudgetItem | null>(null);
+  protected readonly budgetDeleting = signal(false);
   protected readonly transactionsLoading = signal(false);
   protected readonly transactionsError = signal<string | null>(null);
   protected readonly drawerOpen = signal(false);
@@ -169,12 +189,18 @@ export class HarvestSeasonDetailsPage implements OnInit {
       description: new FormControl<GdFormValue>('', { validators: [Validators.maxLength(500)] }),
       startDate: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
       endDate: new FormControl<GdFormValue>(''),
-      expectedCost: new FormControl<GdFormValue>(''),
-      expectedRevenue: new FormControl<GdFormValue>(''),
       areaHectares: new FormControl<GdFormValue>(''),
     },
     { validators: [this.dateRangeValidator()] },
   );
+
+  protected readonly budgetForm = new FormGroup<BudgetItemFormControls>({
+    categoryId: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
+    description: new FormControl<GdFormValue>('', {
+      validators: [Validators.required, Validators.maxLength(500)],
+    }),
+    plannedAmount: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
+  });
 
   protected readonly activityOptions = computed<readonly GdSelectOption[]>(() => {
     const currentActivityId = this.harvest()?.productionActivityId ?? null;
@@ -195,6 +221,20 @@ export class HarvestSeasonDetailsPage implements OnInit {
       this.farmAccessStore.access()?.farmId === harvest.farmId &&
       this.farmAccessStore.role() === 'PRODUCER'
     );
+  });
+  protected readonly canManageBudget = computed(() => {
+    const status = this.harvest()?.status;
+    return this.canManageHarvests() && (status === 'PLANNED' || status === 'IN_PROGRESS');
+  });
+  protected readonly budgetCategoryOptions = computed<readonly GdSelectOption[]>(() =>
+    this.budgetCategories()
+      .filter((category) => category.status === 'ACTIVE')
+      .map((category) => ({ label: category.name, value: category.id })),
+  );
+  protected readonly budgetDrawerTitle = computed(() => {
+    const action = this.editingBudgetItem() ? 'Editar' : 'Adicionar';
+    const type = this.budgetItemType() === 'EXPENSE' ? 'despesa' : 'receita';
+    return `${action} ${type} planejada`;
   });
   protected readonly summaryCards = computed<readonly DetailSummaryCard[]>(() => {
     const summary = this.summary();
@@ -344,11 +384,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
       { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
       { label: 'Área em hectares', value: this.hectareLabel(harvest.areaHectares) },
-      { label: 'Custo planejado', value: this.nullableCurrencyLabel(harvest.expectedCost ?? null) },
-      {
-        label: 'Receita planejada',
-        value: this.nullableCurrencyLabel(harvest.expectedRevenue ?? null),
-      },
       { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
       {
         label: 'Atualizado em',
@@ -400,8 +435,8 @@ export class HarvestSeasonDetailsPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.bindMoneySanitizer(this.form.controls.expectedCost);
-    this.bindMoneySanitizer(this.form.controls.expectedRevenue);
+
+    this.bindMoneySanitizer(this.budgetForm.controls.plannedAmount);
 
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -442,6 +477,144 @@ export class HarvestSeasonDetailsPage implements OnInit {
     }
   }
 
+  protected retryBudget(): void {
+    const id = this.harvestId();
+
+    if (id) {
+      this.loadBudget(id);
+    }
+  }
+
+  protected openCreateBudgetItem(type: 'INCOME' | 'EXPENSE'): void {
+    if (!this.canManageBudget()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.editingBudgetItem.set(null);
+    this.budgetItemType.set(type);
+    this.budgetForm.reset({ categoryId: '', description: '', plannedAmount: '' });
+    this.loadBudgetCategories(type);
+    this.budgetDrawerOpen.set(true);
+  }
+
+  protected openEditBudgetItem(item: HarvestSeasonBudgetItem): void {
+    if (!this.canManageBudget()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.editingBudgetItem.set(item);
+    this.budgetItemType.set(item.type);
+    this.budgetForm.reset({
+      categoryId: item.categoryId ?? '',
+      description: item.description,
+      plannedAmount: numberToBrazilianMoney(item.plannedAmount),
+    });
+    this.loadBudgetCategories(item.type);
+    this.budgetDrawerOpen.set(true);
+  }
+
+  protected closeBudgetDrawer(): void {
+    if (!this.budgetSubmitting()) {
+      this.budgetDrawerOpen.set(false);
+    }
+  }
+
+  protected saveBudgetItem(): void {
+    const harvest = this.harvest();
+
+    if (!harvest || !this.canManageBudget() || this.budgetSubmitting()) {
+      return;
+    }
+
+    this.validateBudgetAmount();
+
+    if (this.budgetForm.invalid) {
+      this.budgetForm.markAllAsTouched();
+      return;
+    }
+
+    const categoryId = this.numberValue(this.budgetForm.controls.categoryId.value);
+    const description = this.stringValue(this.budgetForm.controls.description.value);
+    const plannedAmount = this.moneyValue(this.budgetForm.controls.plannedAmount.value);
+
+    if (categoryId === null || !description || plannedAmount === null || plannedAmount <= 0) {
+      this.budgetForm.markAllAsTouched();
+      return;
+    }
+
+    const payload: HarvestSeasonBudgetItemRequest = {
+      categoryId,
+      type: this.budgetItemType(),
+      description,
+      plannedAmount,
+    };
+    const editingItem = this.editingBudgetItem();
+    const request$ = editingItem
+      ? this.harvestService.updateBudgetItem(harvest.id, editingItem.id, payload)
+      : this.harvestService.createBudgetItem(harvest.id, payload);
+
+    this.budgetSubmitting.set(true);
+    request$
+      .pipe(
+        finalize(() => this.budgetSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.budgetDrawerOpen.set(false);
+          this.toastStore.success(
+            editingItem
+              ? 'Item do planejamento atualizado com sucesso.'
+              : 'Item adicionado ao planejamento com sucesso.',
+          );
+          this.refreshBudget(harvest.id);
+        },
+        error: (error: unknown) => this.showBudgetOperationError(error),
+      });
+  }
+
+  protected requestDeleteBudgetItem(item: HarvestSeasonBudgetItem): void {
+    if (!this.canManageBudget()) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.budgetDeleteTarget.set(item);
+  }
+
+  protected closeBudgetDeleteConfirmation(): void {
+    if (!this.budgetDeleting()) {
+      this.budgetDeleteTarget.set(null);
+    }
+  }
+
+  protected confirmDeleteBudgetItem(): void {
+    const harvest = this.harvest();
+    const item = this.budgetDeleteTarget();
+
+    if (!harvest || !item || this.budgetDeleting()) {
+      return;
+    }
+
+    this.budgetDeleting.set(true);
+    this.harvestService
+      .deleteBudgetItem(harvest.id, item.id)
+      .pipe(
+        finalize(() => this.budgetDeleting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.budgetDeleteTarget.set(null);
+          this.toastStore.success('Item removido do planejamento com sucesso.');
+          this.refreshBudget(harvest.id);
+        },
+        error: (error: unknown) => this.showBudgetOperationError(error),
+      });
+  }
+
   protected retryTransactions(): void {
     this.loadTransactions(this.transactionsPage()?.page ?? 0);
   }
@@ -480,8 +653,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       description: harvest.description ?? '',
       startDate: harvest.startDate,
       endDate: harvest.endDate ?? '',
-      expectedCost: numberToBrazilianMoney(harvest.expectedCost),
-      expectedRevenue: numberToBrazilianMoney(harvest.expectedRevenue),
       areaHectares: harvest.areaHectares ?? '',
     });
     this.drawerOpen.set(true);
@@ -853,6 +1024,24 @@ export class HarvestSeasonDetailsPage implements OnInit {
     return null;
   }
 
+  protected budgetFieldError(controlName: keyof BudgetItemFormControls): string | null {
+    const control = this.budgetForm.controls[controlName];
+
+    if (control.hasError('required')) {
+      return 'Campo obrigatório.';
+    }
+
+    if (control.hasError('positive')) {
+      return 'Informe um valor maior que zero.';
+    }
+
+    if (control.hasError('maxlength')) {
+      return 'Informe no máximo 500 caracteres.';
+    }
+
+    return null;
+  }
+
   private loadDetails(id: number): void {
     this.loadingHarvest.set(true);
     this.harvestError.set(null);
@@ -861,6 +1050,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
     this.transactionsError.set(null);
 
     this.loadSummary(id);
+    this.loadBudget(id);
 
     this.harvestService
       .getById(id)
@@ -898,6 +1088,54 @@ export class HarvestSeasonDetailsPage implements OnInit {
               : 'Não foi possível carregar o resumo financeiro da safra.',
           );
         },
+      });
+  }
+
+  private loadBudget(id: number): void {
+    this.budgetLoading.set(true);
+    this.budgetError.set(null);
+
+    this.harvestService
+      .getBudgetItems(id)
+      .pipe(
+        finalize(() => this.budgetLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (budget) => this.budget.set(budget),
+        error: () => {
+          this.budget.set(null);
+          this.budgetError.set('Não foi possível carregar o planejamento financeiro.');
+        },
+      });
+  }
+
+  private refreshBudget(id: number): void {
+    this.loadBudget(id);
+    this.loadSummary(id);
+  }
+
+  private loadBudgetCategories(type: 'INCOME' | 'EXPENSE'): void {
+    const harvest = this.harvest();
+
+    if (!harvest) {
+      this.budgetCategories.set([]);
+      return;
+    }
+
+    this.categoryService
+      .listByFarm(harvest.farmId, {
+        includeInactive: false,
+        type,
+        page: 0,
+        size: 100,
+        sort: 'name',
+        direction: 'ASC',
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (categories) => this.budgetCategories.set(categories),
+        error: () => this.budgetCategories.set([]),
       });
   }
 
@@ -984,8 +1222,6 @@ export class HarvestSeasonDetailsPage implements OnInit {
       description: this.stringValue(this.form.controls.description.value) || null,
       startDate,
       endDate: this.stringValue(this.form.controls.endDate.value) || null,
-      expectedCost: this.moneyValue(this.form.controls.expectedCost.value),
-      expectedRevenue: this.moneyValue(this.form.controls.expectedRevenue.value),
       areaHectares: this.numberValue(this.form.controls.areaHectares.value),
     };
   }
@@ -1006,6 +1242,15 @@ export class HarvestSeasonDetailsPage implements OnInit {
     this.toastStore.error(messages[error.status] ?? 'Nao foi possivel concluir a operacao.');
   }
 
+  private showBudgetOperationError(error: unknown): void {
+    if (error instanceof HttpErrorResponse && error.status === 400) {
+      this.toastStore.error('Verifique categoria, descrição e valor planejado.');
+      return;
+    }
+
+    this.showOperationError(error);
+  }
+
   private showPermissionError(): void {
     this.toastStore.error('Voce nao tem permissao para gerenciar safras.');
   }
@@ -1021,9 +1266,16 @@ export class HarvestSeasonDetailsPage implements OnInit {
   }
 
   private applyNumericValidation(): void {
-    this.validateNonNegativeMoney(this.form.controls.expectedCost);
-    this.validateNonNegativeMoney(this.form.controls.expectedRevenue);
     this.validateNonNegativeNumber(this.form.controls.areaHectares);
+  }
+
+  private validateBudgetAmount(): void {
+    const amount = this.moneyValue(this.budgetForm.controls.plannedAmount.value);
+    this.setControlError(
+      this.budgetForm.controls.plannedAmount,
+      'positive',
+      amount === null || amount <= 0,
+    );
   }
 
   private validateNonNegativeMoney(control: GdFormControl): void {

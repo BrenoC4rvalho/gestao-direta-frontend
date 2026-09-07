@@ -382,6 +382,37 @@ describe('HarvestSeasonService', () => {
     http.expectOne(apiUrl + '/1/summary').flush({ planning: {} });
   });
 
+  it('should call the budget item endpoints scoped by harvest season', () => {
+    const payload = {
+      categoryId: 3,
+      type: 'EXPENSE' as const,
+      description: 'Adubação de cobertura',
+      plannedAmount: 12000,
+    };
+
+    service.getBudgetItems(1).subscribe();
+    const listRequest = http.expectOne(`${apiUrl}/1/budget-items`);
+    expect(listRequest.request.method).toBe('GET');
+    listRequest.flush({});
+
+    service.createBudgetItem(1, payload).subscribe();
+    const createRequest = http.expectOne(`${apiUrl}/1/budget-items`);
+    expect(createRequest.request.method).toBe('POST');
+    expect(createRequest.request.body).toEqual(payload);
+    createRequest.flush({});
+
+    service.updateBudgetItem(1, 9, payload).subscribe();
+    const updateRequest = http.expectOne(`${apiUrl}/1/budget-items/9`);
+    expect(updateRequest.request.method).toBe('PUT');
+    expect(updateRequest.request.body).toEqual(payload);
+    updateRequest.flush({});
+
+    service.deleteBudgetItem(1, 9).subscribe();
+    const deleteRequest = http.expectOne(`${apiUrl}/1/budget-items/9`);
+    expect(deleteRequest.request.method).toBe('DELETE');
+    deleteRequest.flush(null);
+  });
+
   it('should create a harvest season', () => {
     const payload: CreateHarvestSeasonRequest = {
       farmId: 10,
@@ -390,8 +421,6 @@ describe('HarvestSeasonService', () => {
       description: 'Safra de verao',
       startDate: '2026-01-01',
       endDate: '2026-06-30',
-      expectedRevenue: 150000,
-      expectedCost: 90000,
       areaHectares: 120.5,
     };
 
@@ -411,8 +440,6 @@ describe('HarvestSeasonService', () => {
       description: 'Safra atualizada',
       startDate: '2026-01-01',
       endDate: '2026-07-15',
-      expectedRevenue: 160000,
-      expectedCost: 95000,
       areaHectares: 120.5,
     };
 

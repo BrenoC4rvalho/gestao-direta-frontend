@@ -75,8 +75,6 @@ export interface CreateHarvestSeasonRequest {
   description?: string | null;
   startDate: string;
   endDate?: string | null;
-  expectedRevenue?: number | null;
-  expectedCost?: number | null;
   areaHectares?: number | null;
 }
 
@@ -86,9 +84,43 @@ export interface UpdateHarvestSeasonRequest {
   description?: string | null;
   startDate: string;
   endDate?: string | null;
-  expectedRevenue?: number | null;
-  expectedCost?: number | null;
   areaHectares?: number | null;
+}
+
+export interface HarvestSeasonBudgetItemRequest {
+  categoryId: number;
+  type: 'INCOME' | 'EXPENSE';
+  description: string;
+  plannedAmount: number;
+}
+
+export interface HarvestSeasonBudgetItem {
+  id: number;
+  harvestSeasonId: number;
+  categoryId: number | null;
+  categoryName: string;
+  type: 'INCOME' | 'EXPENSE';
+  description: string;
+  plannedAmount: number;
+}
+
+export interface HarvestSeasonBudgetCategory {
+  categoryId: number | null;
+  categoryName: string;
+  type: 'INCOME' | 'EXPENSE';
+  itemCount: number;
+  plannedAmount: number;
+  items: HarvestSeasonBudgetItem[];
+}
+
+export interface HarvestSeasonBudget {
+  harvestSeasonId: number;
+  plannedRevenue: number;
+  plannedExpense: number;
+  plannedResult: number;
+  plannedMargin: number;
+  expenses: HarvestSeasonBudgetCategory[];
+  incomes: HarvestSeasonBudgetCategory[];
 }
 
 export interface UpdateHarvestSeasonStatusRequest {

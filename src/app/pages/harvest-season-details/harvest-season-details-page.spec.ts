@@ -6,10 +6,15 @@ import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { FinancialTransaction } from '../../core/models/financial-transaction.models';
-import { HarvestSeason, HarvestSeasonDetailSummary } from '../../core/models/harvest-season.models';
+import {
+  HarvestSeason,
+  HarvestSeasonBudget,
+  HarvestSeasonDetailSummary,
+} from '../../core/models/harvest-season.models';
 import { PageResponse } from '../../core/models/page-response.model';
 import { ProductionActivity } from '../../core/models/production-activity.models';
 import { FinancialTransactionService } from '../../core/services/financial-transaction.service';
+import { FinancialCategoryService } from '../../core/services/financial-category.service';
 import {
   HarvestSeasonService,
   InvalidHarvestSeasonDetailSummaryError,
@@ -66,6 +71,16 @@ const summary: HarvestSeasonDetailSummary = {
   expenseCount: 2,
 };
 
+const budget: HarvestSeasonBudget = {
+  harvestSeasonId: 1,
+  plannedRevenue: 0,
+  plannedExpense: 0,
+  plannedResult: 0,
+  plannedMargin: 0,
+  expenses: [],
+  incomes: [],
+};
+
 const transaction: FinancialTransaction = {
   id: 5,
   description: 'Venda de soja',
@@ -118,6 +133,10 @@ describe('HarvestSeasonDetailsPage', () => {
   let harvestService: {
     getById: Mock;
     getSummary: Mock;
+    getBudgetItems: Mock;
+    createBudgetItem: Mock;
+    updateBudgetItem: Mock;
+    deleteBudgetItem: Mock;
     update: Mock;
     updateStatus: Mock;
     activate: Mock;
@@ -125,6 +144,7 @@ describe('HarvestSeasonDetailsPage', () => {
   };
   let transactionService: { listByFarm: Mock };
   let productionActivityService: { list: Mock };
+  let categoryService: { listByFarm: Mock };
   let router: { navigate: Mock };
   let sessionStore: SessionStore;
   let farmAccessStore: FarmAccessStore;
@@ -133,6 +153,10 @@ describe('HarvestSeasonDetailsPage', () => {
     harvestService = {
       getById: vi.fn(() => of(harvest)),
       getSummary: vi.fn(() => of(summary)),
+      getBudgetItems: vi.fn(() => of(budget)),
+      createBudgetItem: vi.fn(() => of({})),
+      updateBudgetItem: vi.fn(() => of({})),
+      deleteBudgetItem: vi.fn(() => of(undefined)),
       update: vi.fn(() => of(harvest)),
       updateStatus: vi.fn(() => of(harvest)),
       activate: vi.fn(() => of({ ...harvest, status: 'PLANNED' })),
@@ -144,6 +168,7 @@ describe('HarvestSeasonDetailsPage', () => {
     productionActivityService = {
       list: vi.fn(() => of(activitiesResponse)),
     };
+    categoryService = { listByFarm: vi.fn(() => of([])) };
     router = { navigate: vi.fn(() => Promise.resolve(true)) };
 
     await TestBed.configureTestingModule({
@@ -159,6 +184,7 @@ describe('HarvestSeasonDetailsPage', () => {
         { provide: HarvestSeasonService, useValue: harvestService },
         { provide: FinancialTransactionService, useValue: transactionService },
         { provide: ProductionActivityService, useValue: productionActivityService },
+        { provide: FinancialCategoryService, useValue: categoryService },
       ],
     }).compileComponents();
 
@@ -216,6 +242,8 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Venda de soja');
     expect(sectionHeadingTexts()).toEqual([
       'Resumo financeiro',
+      'Planejamento financeiro',
+      'Nenhum item planejado ainda.',
       'Informações da safra',
       'Movimentações vinculadas · 3',
     ]);
@@ -499,6 +527,47 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(harvestService.updateStatus).not.toHaveBeenCalled();
     expect(harvestService.activate).not.toHaveBeenCalled();
     expect(harvestService.inactivate).not.toHaveBeenCalled();
+  });
+
+  it('should create an expense budget item and refresh planning totals', () => {
+    setupUser('PRODUCER');
+    createComponent();
+    const component = fixture.componentInstance as unknown as {
+      openCreateBudgetItem(type: 'EXPENSE'): void;
+      budgetForm: any;
+      saveBudgetItem(): void;
+    };
+
+    component.openCreateBudgetItem('EXPENSE');
+    component.budgetForm.setValue({
+      categoryId: 3,
+      description: 'Adubação de cobertura',
+      plannedAmount: '12.000,00',
+    });
+    component.saveBudgetItem();
+
+    expect(categoryService.listByFarm).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({ type: 'EXPENSE', includeInactive: false }),
+    );
+    expect(harvestService.createBudgetItem).toHaveBeenCalledWith(1, {
+      categoryId: 3,
+      type: 'EXPENSE',
+      description: 'Adubação de cobertura',
+      plannedAmount: 12000,
+    });
+    expect(harvestService.getBudgetItems).toHaveBeenCalledTimes(2);
+    expect(harvestService.getSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it('should hide budget actions for a finished harvest season', () => {
+    harvestService.getById.mockReturnValue(of({ ...harvest, status: 'FINISHED' }));
+    setupUser('PRODUCER');
+    createComponent();
+
+    expect(text()).not.toContain('Adicionar despesa');
+    expect(text()).not.toContain('Remover');
+    expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
   });
 
   function createComponent(): void {

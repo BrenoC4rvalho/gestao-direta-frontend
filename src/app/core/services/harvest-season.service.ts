@@ -15,6 +15,9 @@ import {
   HarvestSeasonStatus,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
+  HarvestSeasonBudget,
+  HarvestSeasonBudgetItem,
+  HarvestSeasonBudgetItemRequest,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -69,6 +72,32 @@ export class HarvestSeasonService {
     return this.http
       .get<unknown>(this.apiUrl + '/' + id + '/summary')
       .pipe(map((response) => this.parseDetailSummary(response)));
+  }
+
+  getBudgetItems(id: number): Observable<HarvestSeasonBudget> {
+    return this.http.get<HarvestSeasonBudget>(`${this.apiUrl}/${id}/budget-items`);
+  }
+
+  createBudgetItem(
+    id: number,
+    payload: HarvestSeasonBudgetItemRequest,
+  ): Observable<HarvestSeasonBudgetItem> {
+    return this.http.post<HarvestSeasonBudgetItem>(`${this.apiUrl}/${id}/budget-items`, payload);
+  }
+
+  updateBudgetItem(
+    id: number,
+    itemId: number,
+    payload: HarvestSeasonBudgetItemRequest,
+  ): Observable<HarvestSeasonBudgetItem> {
+    return this.http.put<HarvestSeasonBudgetItem>(
+      `${this.apiUrl}/${id}/budget-items/${itemId}`,
+      payload,
+    );
+  }
+
+  deleteBudgetItem(id: number, itemId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}/budget-items/${itemId}`);
   }
 
   create(payload: CreateHarvestSeasonRequest): Observable<HarvestSeason> {

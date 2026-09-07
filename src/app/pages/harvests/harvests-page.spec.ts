@@ -668,8 +668,6 @@ describe('HarvestsPage', () => {
       description: 'Nova safra de soja',
       startDate: '2026-02-01',
       endDate: '2026-08-01',
-      expectedCost: '10.000,50',
-      expectedRevenue: '20.000,75',
       areaHectares: 30,
     });
     const initialCalls = harvestService.listSummary.mock.calls.length;
@@ -683,8 +681,6 @@ describe('HarvestsPage', () => {
       description: 'Nova safra de soja',
       startDate: '2026-02-01',
       endDate: '2026-08-01',
-      expectedCost: 10000.5,
-      expectedRevenue: 20000.75,
       areaHectares: 30,
     });
     expect(harvestService.update).not.toHaveBeenCalled();

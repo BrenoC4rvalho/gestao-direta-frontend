@@ -347,29 +347,6 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <gd-input
-        id="harvest-expected-cost"
-        label="Custo planejado"
-        [control]="form.controls.expectedCost"
-        placeholder="0,00"
-        inputmode="decimal"
-        prefix="R$"
-        [disabled]="submitting()"
-        [errorMessage]="fieldError('expectedCost')"
-      />
-      <gd-input
-        id="harvest-expected-revenue"
-        label="Receita planejada"
-        [control]="form.controls.expectedRevenue"
-        placeholder="0,00"
-        inputmode="decimal"
-        prefix="R$"
-        [disabled]="submitting()"
-        [errorMessage]="fieldError('expectedRevenue')"
-      />
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-2">
-      <gd-input
         id="harvest-area"
         label="Area em hectares"
         type="number"
