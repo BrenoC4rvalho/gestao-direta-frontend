@@ -222,6 +222,32 @@ export interface HarvestSeasonOpenAmountsSummary {
   overdue: HarvestSeasonOverdueAmountsSummary;
 }
 
+export type HarvestPlanningComparisonState =
+  'READY' | 'PLANNED' | 'MISSING_PLANNING' | 'MISSING_CURRENT_DATA';
+
+export type HarvestPlanningComparisonBasis = 'PROJECTED' | 'REALIZED';
+export type HarvestPlanningComparisonPosition = 'ABOVE_PLANNED' | 'BELOW_PLANNED' | 'ON_TARGET';
+export type HarvestPlanningComparisonDifferenceUnit = 'AMOUNT' | 'PERCENTAGE_POINTS';
+
+export interface HarvestPlanningComparisonMetric {
+  planned: number;
+  current: number;
+  difference: number;
+  percentageDifference: number | null;
+  position: HarvestPlanningComparisonPosition;
+  semantic: HarvestSeasonComparisonSemantic;
+  differenceUnit: HarvestPlanningComparisonDifferenceUnit;
+}
+
+export interface HarvestPlanningComparison {
+  state: HarvestPlanningComparisonState;
+  basis: HarvestPlanningComparisonBasis | null;
+  cost: HarvestPlanningComparisonMetric | null;
+  revenue: HarvestPlanningComparisonMetric | null;
+  profit: HarvestPlanningComparisonMetric | null;
+  margin: HarvestPlanningComparisonMetric | null;
+}
+
 export interface HarvestSeasonDetailSummary {
   harvestSeasonId: number;
   harvestSeasonName: string;
@@ -234,6 +260,7 @@ export interface HarvestSeasonDetailSummary {
   realized: HarvestSeasonRealizedSummary;
   projection: HarvestSeasonProjectionSummary;
   comparison: HarvestSeasonComparisonSummary;
+  planningComparison: HarvestPlanningComparison;
   openAmounts: HarvestSeasonOpenAmountsSummary;
   plannedCostPerHectare: number | null;
   plannedRevenuePerHectare: number | null;

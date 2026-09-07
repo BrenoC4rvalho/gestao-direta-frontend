@@ -12,9 +12,24 @@ const summary: HarvestSeasonDetailSummary = {
   farmId: 10,
   farmName: 'Fazenda Boa Safra',
   areaHectares: 50,
-  planning: { plannedCost: 100000, plannedRevenue: 150000, plannedProfit: 50000, plannedMargin: 33.33 },
-  realized: { realizedCost: 60000, realizedRevenue: 80000, realizedProfit: 20000, realizedMargin: 25 },
-  projection: { projectedCost: 120000, projectedRevenue: 180000, projectedProfit: 60000, projectedMargin: 33.33 },
+  planning: {
+    plannedCost: 100000,
+    plannedRevenue: 150000,
+    plannedProfit: 50000,
+    plannedMargin: 33.33,
+  },
+  realized: {
+    realizedCost: 60000,
+    realizedRevenue: 80000,
+    realizedProfit: 20000,
+    realizedMargin: 25,
+  },
+  projection: {
+    projectedCost: 120000,
+    projectedRevenue: 180000,
+    projectedProfit: 60000,
+    projectedMargin: 33.33,
+  },
   comparison: {
     profitPerformanceAmount: 10000,
     profitPerformancePercentage: 20,
@@ -22,6 +37,46 @@ const summary: HarvestSeasonDetailSummary = {
     costVarianceAmount: 20000,
     costVariancePercentage: 20,
     costVarianceStatus: 'ABOVE_PLANNED',
+  },
+  planningComparison: {
+    state: 'READY',
+    basis: 'PROJECTED',
+    cost: {
+      planned: 100000,
+      current: 120000,
+      difference: 20000,
+      percentageDifference: 20,
+      position: 'ABOVE_PLANNED',
+      semantic: 'WORSE',
+      differenceUnit: 'AMOUNT',
+    },
+    revenue: {
+      planned: 150000,
+      current: 180000,
+      difference: 30000,
+      percentageDifference: 20,
+      position: 'ABOVE_PLANNED',
+      semantic: 'BETTER',
+      differenceUnit: 'AMOUNT',
+    },
+    profit: {
+      planned: 50000,
+      current: 60000,
+      difference: 10000,
+      percentageDifference: 20,
+      position: 'ABOVE_PLANNED',
+      semantic: 'BETTER',
+      differenceUnit: 'AMOUNT',
+    },
+    margin: {
+      planned: 33.33,
+      current: 33.33,
+      difference: 0,
+      percentageDifference: null,
+      position: 'ON_TARGET',
+      semantic: 'NEUTRAL',
+      differenceUnit: 'PERCENTAGE_POINTS',
+    },
   },
   openAmounts: {
     payableAmount: 60000,
@@ -100,7 +155,9 @@ describe('PerHectareIndicators', () => {
       realizedProfitPerHectare: null,
     });
 
-    expect(text(fixture)).toContain('Informe a área da Safra para visualizar os indicadores por hectare.');
+    expect(text(fixture)).toContain(
+      'Informe a área da Safra para visualizar os indicadores por hectare.',
+    );
     expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(0);
   });
 

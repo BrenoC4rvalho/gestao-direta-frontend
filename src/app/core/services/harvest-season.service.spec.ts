@@ -47,9 +47,19 @@ const summary: HarvestSeasonDetailSummary = {
   farmId: 8,
   farmName: 'Fazenda Boa Sorte',
   areaHectares: 48,
-  planning: { plannedCost: 128000, plannedRevenue: 195000, plannedProfit: 67000, plannedMargin: 34.36 },
+  planning: {
+    plannedCost: 128000,
+    plannedRevenue: 195000,
+    plannedProfit: 67000,
+    plannedMargin: 34.36,
+  },
   realized: { realizedCost: 0, realizedRevenue: 0, realizedProfit: 0, realizedMargin: 0 },
-  projection: { projectedCost: 29200, projectedRevenue: 58000, projectedProfit: 28800, projectedMargin: 49.66 },
+  projection: {
+    projectedCost: 29200,
+    projectedRevenue: 58000,
+    projectedProfit: 28800,
+    projectedMargin: 49.66,
+  },
   comparison: {
     profitPerformanceAmount: -38200,
     profitPerformancePercentage: -57.01,
@@ -57,6 +67,46 @@ const summary: HarvestSeasonDetailSummary = {
     costVarianceAmount: -98800,
     costVariancePercentage: -77.19,
     costVarianceStatus: 'BELOW_PLANNED',
+  },
+  planningComparison: {
+    state: 'READY',
+    basis: 'PROJECTED',
+    cost: {
+      planned: 128000,
+      current: 29200,
+      difference: -98800,
+      percentageDifference: -77.19,
+      position: 'BELOW_PLANNED',
+      semantic: 'BETTER',
+      differenceUnit: 'AMOUNT',
+    },
+    revenue: {
+      planned: 195000,
+      current: 58000,
+      difference: -137000,
+      percentageDifference: -70.26,
+      position: 'BELOW_PLANNED',
+      semantic: 'WORSE',
+      differenceUnit: 'AMOUNT',
+    },
+    profit: {
+      planned: 67000,
+      current: 28800,
+      difference: -38200,
+      percentageDifference: -57.01,
+      position: 'BELOW_PLANNED',
+      semantic: 'WORSE',
+      differenceUnit: 'AMOUNT',
+    },
+    margin: {
+      planned: 34.36,
+      current: 49.66,
+      difference: 15.3,
+      percentageDifference: null,
+      position: 'ABOVE_PLANNED',
+      semantic: 'BETTER',
+      differenceUnit: 'PERCENTAGE_POINTS',
+    },
   },
   openAmounts: {
     payableAmount: 29200,
@@ -81,9 +131,24 @@ const summary: HarvestSeasonDetailSummary = {
 const financialSummary: HarvestSeasonFinancialSummary = {
   farmId: 10,
   activeHarvestCount: 2,
-  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000, plannedMargin: 43.48 },
-  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500, realizedMargin: 52.33 },
-  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500, projectedMargin: 49.19 },
+  planning: {
+    plannedCost: 130000,
+    plannedRevenue: 230000,
+    plannedProfit: 100000,
+    plannedMargin: 43.48,
+  },
+  realized: {
+    realizedCost: 102500,
+    realizedRevenue: 215000,
+    realizedProfit: 112500,
+    realizedMargin: 52.33,
+  },
+  projection: {
+    projectedCost: 125500,
+    projectedRevenue: 247000,
+    projectedProfit: 121500,
+    projectedMargin: 49.19,
+  },
   comparison: {
     profitPerformancePercentage: 12.5,
     profitPerformanceStatus: 'ABOVE_PLANNED',
@@ -193,16 +258,18 @@ describe('HarvestSeasonService', () => {
     request.flush(response);
   });
 
-  it("should call the dashboard endpoint with only farmId", () => {
-    service.getDashboardHarvests(8).subscribe((result) => expect(result).toEqual(dashboardHarvests));
+  it('should call the dashboard endpoint with only farmId', () => {
+    service
+      .getDashboardHarvests(8)
+      .subscribe((result) => expect(result).toEqual(dashboardHarvests));
 
     const request = http.expectOne((req) => req.url === `${apiUrl}/dashboard`);
-    expect(request.request.method).toBe("GET");
-    expect(request.request.params.get("farmId")).toBe("8");
-    expect(request.request.params.has("page")).toBe(false);
-    expect(request.request.params.has("size")).toBe(false);
-    expect(request.request.params.has("status")).toBe(false);
-    expect(request.request.params.has("statuses")).toBe(false);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('8');
+    expect(request.request.params.has('page')).toBe(false);
+    expect(request.request.params.has('size')).toBe(false);
+    expect(request.request.params.has('status')).toBe(false);
+    expect(request.request.params.has('statuses')).toBe(false);
     request.flush(dashboardHarvests);
   });
 
@@ -423,6 +490,21 @@ describe('HarvestSeasonService', () => {
     delete (invalidSummary['planning'] as Record<string, unknown>)['plannedMargin'];
     delete invalidSummary['plannedCostPerHectare'];
     delete (invalidSummary['openAmounts'] as Record<string, unknown>)['payableAmount'];
+
+    http.expectOne(apiUrl + '/1/summary').flush(invalidSummary);
+  });
+
+  it('should reject a detail summary without planning comparison', () => {
+    service.getSummary(1).subscribe({
+      next: () => {
+        throw new Error('Expected the invalid summary to be rejected.');
+      },
+      error: (error: unknown) =>
+        expect(error).toBeInstanceOf(InvalidHarvestSeasonDetailSummaryError),
+    });
+
+    const invalidSummary = structuredClone(summary) as unknown as Record<string, unknown>;
+    delete invalidSummary['planningComparison'];
 
     http.expectOne(apiUrl + '/1/summary').flush(invalidSummary);
   });

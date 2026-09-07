@@ -42,7 +42,7 @@ export class HarvestSeasonService {
 
   getDashboardHarvests(farmId: number): Observable<readonly DashboardHarvestSeason[]> {
     return this.http.get<readonly DashboardHarvestSeason[]>(`${this.apiUrl}/dashboard`, {
-      params: new HttpParams().set("farmId", farmId),
+      params: new HttpParams().set('farmId', farmId),
     });
   }
 
@@ -148,6 +148,7 @@ export class HarvestSeasonService {
       this.isRealizedSummary(value['realized']) &&
       this.isProjectionSummary(value['projection']) &&
       this.isComparisonSummary(value['comparison']) &&
+      this.isPlanningComparison(value['planningComparison']) &&
       this.hasDetailMetadata(value) &&
       this.isOpenAmountsSummary(value['openAmounts']) &&
       this.hasNullableNumericFields(value, [
@@ -236,6 +237,60 @@ export class HarvestSeasonService {
     );
   }
 
+  private isPlanningComparison(value: unknown): boolean {
+    if (!this.isRecord(value) || !this.isPlanningComparisonState(value['state'])) {
+      return false;
+    }
+
+    if (value['state'] !== 'READY') {
+      return (
+        this.isNullOrUndefined(value['basis']) &&
+        this.isNullOrUndefined(value['cost']) &&
+        this.isNullOrUndefined(value['revenue']) &&
+        this.isNullOrUndefined(value['profit']) &&
+        this.isNullOrUndefined(value['margin'])
+      );
+    }
+
+    return (
+      (value['basis'] === 'PROJECTED' || value['basis'] === 'REALIZED') &&
+      this.isPlanningComparisonMetric(value['cost']) &&
+      this.isPlanningComparisonMetric(value['revenue']) &&
+      this.isPlanningComparisonMetric(value['profit']) &&
+      this.isPlanningComparisonMetric(value['margin'])
+    );
+  }
+
+  private isPlanningComparisonState(value: unknown): boolean {
+    return (
+      value === 'READY' ||
+      value === 'PLANNED' ||
+      value === 'MISSING_PLANNING' ||
+      value === 'MISSING_CURRENT_DATA'
+    );
+  }
+
+  private isPlanningComparisonMetric(value: unknown): boolean {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+
+    return (
+      typeof value['planned'] === 'number' &&
+      typeof value['current'] === 'number' &&
+      typeof value['difference'] === 'number' &&
+      (typeof value['percentageDifference'] === 'number' ||
+        value['percentageDifference'] === null) &&
+      (value['position'] === 'ABOVE_PLANNED' ||
+        value['position'] === 'BELOW_PLANNED' ||
+        value['position'] === 'ON_TARGET') &&
+      (value['semantic'] === 'BETTER' ||
+        value['semantic'] === 'WORSE' ||
+        value['semantic'] === 'NEUTRAL') &&
+      (value['differenceUnit'] === 'AMOUNT' || value['differenceUnit'] === 'PERCENTAGE_POINTS')
+    );
+  }
+
   private hasNumericFields(value: unknown, fields: readonly string[]): boolean {
     return this.isRecord(value) && fields.every((field) => typeof value[field] === 'number');
   }
@@ -249,6 +304,10 @@ export class HarvestSeasonService {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private isNullOrUndefined(value: unknown): boolean {
+    return value === null || value === undefined;
   }
 
   private buildParams(params?: HarvestSeasonListParams): HttpParams {

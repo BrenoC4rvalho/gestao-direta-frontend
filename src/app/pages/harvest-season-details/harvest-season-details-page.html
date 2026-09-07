@@ -33,7 +33,10 @@
         <svg lucideIcon="layout-dashboard" class="size-4" aria-hidden="true"></svg>
         <span>Visão geral</span>
         @if (activeTab() === 'overview') {
-          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+          <span
+            class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary"
+            aria-hidden="true"
+          ></span>
         }
       </button>
       <button
@@ -47,7 +50,10 @@
         <svg lucideIcon="wallet" class="size-4" aria-hidden="true"></svg>
         <span>Planejamento financeiro</span>
         @if (activeTab() === 'planning') {
-          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+          <span
+            class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary"
+            aria-hidden="true"
+          ></span>
         }
       </button>
     </nav>
@@ -57,11 +63,17 @@
         <section class="space-y-4" aria-labelledby="summary-heading">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 id="summary-heading" class="text-lg font-semibold text-text-primary">Resumo financeiro</h2>
-              <p class="mt-1 text-sm text-text-muted">Valores consolidados das movimentações vinculadas à safra.</p>
+              <h2 id="summary-heading" class="text-lg font-semibold text-text-primary">
+                Resumo financeiro
+              </h2>
+              <p class="mt-1 text-sm text-text-muted">
+                Valores consolidados das movimentações vinculadas à safra.
+              </p>
             </div>
             @if (summaryError()) {
-              <gd-button type="button" variant="outline" size="sm" (click)="retrySummary()">Tentar novamente</gd-button>
+              <gd-button type="button" variant="outline" size="sm" (click)="retrySummary()"
+                >Tentar novamente</gd-button
+              >
             } @else if (!summaryLoading() && consolidatedSummaryGroups().length > 0) {
               <gd-button type="button" variant="outline" size="sm" (click)="openIndicatorsDrawer()">
                 <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
@@ -70,18 +82,36 @@
             }
           </div>
           @if (summaryLoading()) {
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando resumo financeiro">
-              @for (item of skeletons; track item) { <gd-skeleton height="6.25rem" /> }
+            <div
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+              aria-label="Carregando resumo financeiro"
+            >
+              @for (item of skeletons; track item) {
+                <gd-skeleton height="6.25rem" />
+              }
             </div>
           } @else if (summaryError()) {
-            <gd-error-state [title]="summaryError()!" description="As demais informações da safra continuam disponíveis." />
+            <gd-error-state
+              [title]="summaryError()!"
+              description="As demais informações da safra continuam disponíveis."
+            />
           } @else {
             <ng-container
               [ngTemplateOutlet]="indicatorGroups"
-              [ngTemplateOutletContext]="{ $implicit: consolidatedSummaryGroups(), headings: false }"
+              [ngTemplateOutletContext]="{
+                $implicit: consolidatedSummaryGroups(),
+                headings: false,
+              }"
             />
           }
         </section>
+
+        @if (summary(); as currentSummary) {
+          <gd-planning-current-comparison
+            [comparison]="currentSummary.planningComparison"
+            (viewPlanning)="selectTab('planning')"
+          />
+        }
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)]">
           <section aria-labelledby="harvest-info-heading">
@@ -123,147 +153,165 @@
 
           <section aria-labelledby="harvest-transactions-heading">
             <gd-card class="h-full">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 id="harvest-transactions-heading" class="text-lg font-semibold text-text-primary">
-              Movimentações vinculadas
-              @if (summary(); as currentSummary) {
-                · {{ currentSummary.transactionCount }}
-              }
-            </h2>
-            <p class="mt-1 text-sm leading-6 text-text-muted">
-              Receitas e despesas registradas nesta safra.
-            </p>
-          </div>
-          <gd-button type="button" variant="outline" size="sm" (click)="goToTransactions()">Ver todas</gd-button>
-        </div>
-
-        @if (transactionsLoading()) {
-          <div class="mt-6 grid gap-3" aria-label="Carregando movimentações vinculadas">
-            @for (item of skeletons; track item) {
-              <gd-skeleton height="4rem" />
-            }
-          </div>
-        } @else if (transactionsError()) {
-          <gd-error-state
-            [title]="transactionsError() ?? ''"
-            description="Tente carregar esta seção novamente."
-            actionLabel="Tentar novamente"
-            (action)="retryTransactions()"
-          />
-        } @else if ((transactionsPage()?.content?.length ?? 0) === 0) {
-          <gd-empty-state
-            title="Nenhuma movimentação vinculada a esta safra."
-            description="As receitas e despesas vinculadas a esta safra aparecerão aqui quando forem registradas."
-            icon="receipt-text"
-          />
-        } @else if (transactionsPage(); as page) {
-          <div class="mt-6 grid gap-3 md:hidden" aria-label="Movimentações vinculadas em lista">
-            @for (transaction of page.content; track transaction.id) {
-              <article class="rounded-control border border-border bg-background/55 p-4">
-                <div class="flex items-start justify-between gap-4">
-                  <div class="min-w-0">
-                    <h3 class="font-semibold text-text-primary">{{ transaction.description }}</h3>
-                    <p class="mt-1 text-sm text-text-muted">
-                      {{ transaction.categoryName ?? 'Sem categoria' }} ·
-                      {{ formatDate(transaction.transactionDate) }}
-                    </p>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                      <gd-badge [variant]="transactionStatusVariant(transaction.status)" size="sm">
-                        {{ transactionStatusLabel(transaction.status) }}
-                      </gd-badge>
-                      <gd-badge variant="neutral" size="sm">{{
-                        transactionTypeLabel(transaction.type)
-                      }}</gd-badge>
-                    </div>
-                  </div>
-                  <p
-                    [class]="
-                      'shrink-0 whitespace-nowrap text-sm font-semibold ' + transactionAmountClasses(transaction)
-                    "
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2
+                    id="harvest-transactions-heading"
+                    class="text-lg font-semibold text-text-primary"
                   >
-                    {{ transactionAmountPrefix(transaction) }}{{ transaction.amount | brCurrency }}
+                    Movimentações vinculadas
+                    @if (summary(); as currentSummary) {
+                      · {{ currentSummary.transactionCount }}
+                    }
+                  </h2>
+                  <p class="mt-1 text-sm leading-6 text-text-muted">
+                    Receitas e despesas registradas nesta safra.
                   </p>
                 </div>
-              </article>
-            }
-          </div>
+                <gd-button type="button" variant="outline" size="sm" (click)="goToTransactions()"
+                  >Ver todas</gd-button
+                >
+              </div>
 
-          <div class="mt-6 hidden overflow-hidden rounded-app border border-border md:block">
-            <table class="w-full border-collapse text-left text-sm">
-              <caption class="sr-only">
-                Movimentações vinculadas à safra
-              </caption>
-              <thead class="border-b border-border bg-primary text-white">
-                <tr class="text-xs font-semibold uppercase tracking-wide text-white">
-                  <th class="px-5 py-4" scope="col">Data</th>
-                  <th class="px-5 py-4" scope="col">Descrição</th>
-                  <th class="px-5 py-4" scope="col">Categoria</th>
-                  <th class="px-5 py-4" scope="col">Status</th>
-                  <th class="px-5 py-4 text-right" scope="col">Valor</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                @for (transaction of page.content; track transaction.id) {
-                  <tr class="transition-colors hover:bg-background/60">
-                    <td class="px-5 py-4 text-text-muted">
-                      {{ formatDate(transaction.transactionDate) }}
-                    </td>
-                    <td class="px-5 py-4 font-semibold text-text-primary">
-                      {{ transaction.description }}
-                    </td>
-                    <td class="px-5 py-4 text-text-muted">
-                      {{ transaction.categoryName ?? 'Sem categoria' }}
-                    </td>
-                    <td class="px-5 py-4">
-                      <gd-badge [variant]="transactionStatusVariant(transaction.status)" size="sm">
-                        {{ transactionStatusLabel(transaction.status) }}
-                      </gd-badge>
-                    </td>
-                    <td
-                      [class]="
-                        'whitespace-nowrap px-5 py-4 text-right font-semibold ' +
-                        transactionAmountClasses(transaction)
-                      "
+              @if (transactionsLoading()) {
+                <div class="mt-6 grid gap-3" aria-label="Carregando movimentações vinculadas">
+                  @for (item of skeletons; track item) {
+                    <gd-skeleton height="4rem" />
+                  }
+                </div>
+              } @else if (transactionsError()) {
+                <gd-error-state
+                  [title]="transactionsError() ?? ''"
+                  description="Tente carregar esta seção novamente."
+                  actionLabel="Tentar novamente"
+                  (action)="retryTransactions()"
+                />
+              } @else if ((transactionsPage()?.content?.length ?? 0) === 0) {
+                <gd-empty-state
+                  title="Nenhuma movimentação vinculada a esta safra."
+                  description="As receitas e despesas vinculadas a esta safra aparecerão aqui quando forem registradas."
+                  icon="receipt-text"
+                />
+              } @else if (transactionsPage(); as page) {
+                <div
+                  class="mt-6 grid gap-3 md:hidden"
+                  aria-label="Movimentações vinculadas em lista"
+                >
+                  @for (transaction of page.content; track transaction.id) {
+                    <article class="rounded-control border border-border bg-background/55 p-4">
+                      <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0">
+                          <h3 class="font-semibold text-text-primary">
+                            {{ transaction.description }}
+                          </h3>
+                          <p class="mt-1 text-sm text-text-muted">
+                            {{ transaction.categoryName ?? 'Sem categoria' }} ·
+                            {{ formatDate(transaction.transactionDate) }}
+                          </p>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            <gd-badge
+                              [variant]="transactionStatusVariant(transaction.status)"
+                              size="sm"
+                            >
+                              {{ transactionStatusLabel(transaction.status) }}
+                            </gd-badge>
+                            <gd-badge variant="neutral" size="sm">{{
+                              transactionTypeLabel(transaction.type)
+                            }}</gd-badge>
+                          </div>
+                        </div>
+                        <p
+                          [class]="
+                            'shrink-0 whitespace-nowrap text-sm font-semibold ' +
+                            transactionAmountClasses(transaction)
+                          "
+                        >
+                          {{ transactionAmountPrefix(transaction)
+                          }}{{ transaction.amount | brCurrency }}
+                        </p>
+                      </div>
+                    </article>
+                  }
+                </div>
+
+                <div class="mt-6 hidden overflow-hidden rounded-app border border-border md:block">
+                  <table class="w-full border-collapse text-left text-sm">
+                    <caption class="sr-only">
+                      Movimentações vinculadas à safra
+                    </caption>
+                    <thead class="border-b border-border bg-primary text-white">
+                      <tr class="text-xs font-semibold uppercase tracking-wide text-white">
+                        <th class="px-5 py-4" scope="col">Data</th>
+                        <th class="px-5 py-4" scope="col">Descrição</th>
+                        <th class="px-5 py-4" scope="col">Categoria</th>
+                        <th class="px-5 py-4" scope="col">Status</th>
+                        <th class="px-5 py-4 text-right" scope="col">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      @for (transaction of page.content; track transaction.id) {
+                        <tr class="transition-colors hover:bg-background/60">
+                          <td class="px-5 py-4 text-text-muted">
+                            {{ formatDate(transaction.transactionDate) }}
+                          </td>
+                          <td class="px-5 py-4 font-semibold text-text-primary">
+                            {{ transaction.description }}
+                          </td>
+                          <td class="px-5 py-4 text-text-muted">
+                            {{ transaction.categoryName ?? 'Sem categoria' }}
+                          </td>
+                          <td class="px-5 py-4">
+                            <gd-badge
+                              [variant]="transactionStatusVariant(transaction.status)"
+                              size="sm"
+                            >
+                              {{ transactionStatusLabel(transaction.status) }}
+                            </gd-badge>
+                          </td>
+                          <td
+                            [class]="
+                              'whitespace-nowrap px-5 py-4 text-right font-semibold ' +
+                              transactionAmountClasses(transaction)
+                            "
+                          >
+                            {{ transactionAmountPrefix(transaction)
+                            }}{{ transaction.amount | brCurrency }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <div
+                  class="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <p class="text-sm text-text-muted">
+                    Pagina {{ page.page + 1 }} de {{ page.totalPages || 1 }} ·
+                    {{ page.totalElements }} movimentações
+                  </p>
+                  <div class="grid grid-cols-2 gap-2 sm:flex">
+                    <gd-button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      [disabled]="page.first"
+                      (click)="previousTransactionsPage()"
                     >
-                      {{ transactionAmountPrefix(transaction)
-                      }}{{ transaction.amount | brCurrency }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div
-            class="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <p class="text-sm text-text-muted">
-              Pagina {{ page.page + 1 }} de {{ page.totalPages || 1 }} ·
-              {{ page.totalElements }} movimentações
-            </p>
-            <div class="grid grid-cols-2 gap-2 sm:flex">
-              <gd-button
-                type="button"
-                variant="outline"
-                size="sm"
-                [disabled]="page.first"
-                (click)="previousTransactionsPage()"
-              >
-                Anterior
-              </gd-button>
-              <gd-button
-                type="button"
-                variant="outline"
-                size="sm"
-                [disabled]="page.last"
-                (click)="nextTransactionsPage()"
-              >
-                Proxima
-              </gd-button>
-            </div>
-          </div>
-        }
+                      Anterior
+                    </gd-button>
+                    <gd-button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      [disabled]="page.last"
+                      (click)="nextTransactionsPage()"
+                    >
+                      Proxima
+                    </gd-button>
+                  </div>
+                </div>
+              }
             </gd-card>
           </section>
         </div>
@@ -283,85 +331,146 @@
                 <svg lucideIcon="info" class="size-4 text-text-muted" aria-hidden="true"></svg>
               </gd-tooltip>
             </div>
-            <p class="mt-1 text-sm leading-6 text-text-muted">Organize as receitas e despesas previstas para esta Safra.</p>
+            <p class="mt-1 text-sm leading-6 text-text-muted">
+              Organize as receitas e despesas previstas para esta Safra.
+            </p>
           </div>
           @if (canManageBudget()) {
             <div class="flex flex-wrap gap-2">
-              <gd-button type="button" variant="outline" size="sm" (click)="openCreateBudgetItem('EXPENSE')">Adicionar despesa</gd-button>
-              <gd-button type="button" size="sm" (click)="openCreateBudgetItem('INCOME')">Adicionar receita</gd-button>
+              <gd-button
+                type="button"
+                variant="outline"
+                size="sm"
+                (click)="openCreateBudgetItem('EXPENSE')"
+                >Adicionar despesa</gd-button
+              >
+              <gd-button type="button" size="sm" (click)="openCreateBudgetItem('INCOME')"
+                >Adicionar receita</gd-button
+              >
             </div>
           } @else if (budgetError()) {
-            <gd-button type="button" variant="outline" size="sm" (click)="retryBudget()">Tentar novamente</gd-button>
+            <gd-button type="button" variant="outline" size="sm" (click)="retryBudget()"
+              >Tentar novamente</gd-button
+            >
           }
         </div>
         @if (budgetLoading()) {
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando planejamento financeiro">
-            @for (item of skeletons; track item) { <gd-skeleton height="6.25rem" /> }
+          <div
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Carregando planejamento financeiro"
+          >
+            @for (item of skeletons; track item) {
+              <gd-skeleton height="6.25rem" />
+            }
           </div>
         } @else if (budgetError()) {
-          <gd-error-state [title]="budgetError()!" description="Tente carregar esta seção novamente." />
+          <gd-error-state
+            [title]="budgetError()!"
+            description="Tente carregar esta seção novamente."
+          />
         } @else if (budget(); as currentBudget) {
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (card of planningCards(); track card.title) {
-              <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [meta]="card.meta ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
+              <gd-summary-card
+                [title]="card.title"
+                [value]="card.value"
+                [description]="card.description"
+                [meta]="card.meta ?? null"
+                [icon]="card.icon"
+                [tone]="card.tone"
+                density="compact"
+              />
             }
           </div>
 
           <div class="mt-6 grid gap-6 xl:grid-cols-2">
-              @for (section of budgetSections(); track section.type) {
-                <gd-card class="h-full" padding="sm">
-                  <div class="flex items-center justify-between gap-3 border-b border-border px-3 pb-4 pt-3">
-                    <div class="flex min-w-0 items-center gap-2">
-                      <span
-                        class="flex size-8 shrink-0 items-center justify-center rounded-full"
-                        [class.bg-danger]="section.type === 'EXPENSE'"
-                        [class.bg-success]="section.type === 'INCOME'"
-                      >
-                        <svg
-                          [lucideIcon]="section.type === 'EXPENSE' ? 'briefcase-business' : 'trending-up'"
-                          class="size-4 text-white"
-                          aria-hidden="true"
-                        ></svg>
-                      </span>
-                      <h3 class="truncate font-semibold text-text-primary">{{ section.title }}</h3>
-                    </div>
-                    <p class="shrink-0 text-sm font-semibold" [class.text-success]="section.type === 'INCOME'" [class.text-danger]="section.type === 'EXPENSE'">
-                      {{ section.total | brCurrency }}
-                    </p>
+            @for (section of budgetSections(); track section.type) {
+              <gd-card class="h-full" padding="sm">
+                <div
+                  class="flex items-center justify-between gap-3 border-b border-border px-3 pb-4 pt-3"
+                >
+                  <div class="flex min-w-0 items-center gap-2">
+                    <span
+                      class="flex size-8 shrink-0 items-center justify-center rounded-full"
+                      [class.bg-danger]="section.type === 'EXPENSE'"
+                      [class.bg-success]="section.type === 'INCOME'"
+                    >
+                      <svg
+                        [lucideIcon]="
+                          section.type === 'EXPENSE' ? 'briefcase-business' : 'trending-up'
+                        "
+                        class="size-4 text-white"
+                        aria-hidden="true"
+                      ></svg>
+                    </span>
+                    <h3 class="truncate font-semibold text-text-primary">{{ section.title }}</h3>
                   </div>
-                  @if (section.groups.length === 0) {
-                    <gd-empty-state
-                      class="m-3"
-                      [title]="section.type === 'EXPENSE' ? 'Nenhuma despesa planejada' : 'Nenhuma receita planejada'"
-                      [description]="section.type === 'EXPENSE' ? 'Adicione as despesas previstas para esta safra.' : 'Adicione as receitas previstas para esta safra.'"
-                      [icon]="section.type === 'EXPENSE' ? 'briefcase-business' : 'trending-up'"
-                      [actionLabel]="canManageBudget() ? (section.type === 'EXPENSE' ? 'Adicionar despesa' : 'Adicionar receita') : null"
-                      (action)="openCreateBudgetItem(section.type)"
-                    />
-                  } @else {
-                    @for (group of section.groups; track group.categoryId ?? group.categoryName) {
-                      <article [class]="'px-3 py-4' + (!$last ? ' border-b border-border' : '')">
-                        <button
-                          type="button"
-                          class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-control text-left transition-colors hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          [attr.aria-expanded]="isBudgetGroupExpanded(section.type, group)"
-                          [attr.aria-controls]="budgetGroupContentId(section.type, group)"
-                          (click)="toggleBudgetGroup(section.type, group)"
-                        >
-                          <span class="flex min-w-0 items-center gap-2">
-                            <svg
-                              [lucideIcon]="isBudgetGroupExpanded(section.type, group) ? 'chevron-down' : 'chevron-right'"
-                              class="size-4 shrink-0 text-text-muted"
-                              aria-hidden="true"
-                            ></svg>
-                            <span class="min-w-0">
-                              <span class="block truncate font-semibold text-text-primary">{{ group.categoryName }}</span>
-                              <span class="mt-1 block text-xs text-text-muted">{{ group.itemCount }} {{ group.itemCount === 1 ? 'item' : 'itens' }}</span>
-                            </span>
+                  <p
+                    class="shrink-0 text-sm font-semibold"
+                    [class.text-success]="section.type === 'INCOME'"
+                    [class.text-danger]="section.type === 'EXPENSE'"
+                  >
+                    {{ section.total | brCurrency }}
+                  </p>
+                </div>
+                @if (section.groups.length === 0) {
+                  <gd-empty-state
+                    class="m-3"
+                    [title]="
+                      section.type === 'EXPENSE'
+                        ? 'Nenhuma despesa planejada'
+                        : 'Nenhuma receita planejada'
+                    "
+                    [description]="
+                      section.type === 'EXPENSE'
+                        ? 'Adicione as despesas previstas para esta safra.'
+                        : 'Adicione as receitas previstas para esta safra.'
+                    "
+                    [icon]="section.type === 'EXPENSE' ? 'briefcase-business' : 'trending-up'"
+                    [actionLabel]="
+                      canManageBudget()
+                        ? section.type === 'EXPENSE'
+                          ? 'Adicionar despesa'
+                          : 'Adicionar receita'
+                        : null
+                    "
+                    (action)="openCreateBudgetItem(section.type)"
+                  />
+                } @else {
+                  @for (group of section.groups; track group.categoryId ?? group.categoryName) {
+                    <article [class]="'px-3 py-4' + (!$last ? ' border-b border-border' : '')">
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-control text-left transition-colors hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        [attr.aria-expanded]="isBudgetGroupExpanded(section.type, group)"
+                        [attr.aria-controls]="budgetGroupContentId(section.type, group)"
+                        (click)="toggleBudgetGroup(section.type, group)"
+                      >
+                        <span class="flex min-w-0 items-center gap-2">
+                          <svg
+                            [lucideIcon]="
+                              isBudgetGroupExpanded(section.type, group)
+                                ? 'chevron-down'
+                                : 'chevron-right'
+                            "
+                            class="size-4 shrink-0 text-text-muted"
+                            aria-hidden="true"
+                          ></svg>
+                          <span class="min-w-0">
+                            <span class="block truncate font-semibold text-text-primary">{{
+                              group.categoryName
+                            }}</span>
+                            <span class="mt-1 block text-xs text-text-muted"
+                              >{{ group.itemCount }}
+                              {{ group.itemCount === 1 ? 'item' : 'itens' }}</span
+                            >
                           </span>
-                          <span class="shrink-0 whitespace-nowrap font-semibold text-text-primary">{{ group.plannedAmount | brCurrency }}</span>
-                        </button>
-                        @if (isBudgetGroupExpanded(section.type, group)) {
+                        </span>
+                        <span class="shrink-0 whitespace-nowrap font-semibold text-text-primary">{{
+                          group.plannedAmount | brCurrency
+                        }}</span>
+                      </button>
+                      @if (isBudgetGroupExpanded(section.type, group)) {
                         <div
                           [id]="budgetGroupContentId(section.type, group)"
                           class="mt-3 divide-y divide-border border-t border-border"
@@ -370,16 +479,44 @@
                         >
                           @for (item of group.items; track item.id) {
                             <div class="flex items-center gap-3 py-3 text-sm">
-                              <span class="min-w-0 flex-1 break-words text-text-muted">{{ item.description }}</span>
+                              <span class="min-w-0 flex-1 break-words text-text-muted">{{
+                                item.description
+                              }}</span>
                               <div class="flex shrink-0 items-center gap-1.5">
-                                <span class="mr-1 font-medium text-text-primary">{{ item.plannedAmount | brCurrency }}</span>
+                                <span class="mr-1 font-medium text-text-primary">{{
+                                  item.plannedAmount | brCurrency
+                                }}</span>
                                 @if (canManageBudget()) {
                                   <div data-testid="budget-item-actions" class="flex gap-1">
-                                    <gd-button type="button" variant="ghost" size="sm" [iconOnly]="true" ariaLabel="Editar" title="Editar" (click)="openEditBudgetItem(item)">
-                                      <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                                    <gd-button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      [iconOnly]="true"
+                                      ariaLabel="Editar"
+                                      title="Editar"
+                                      (click)="openEditBudgetItem(item)"
+                                    >
+                                      <svg
+                                        lucideIcon="pencil"
+                                        class="size-4"
+                                        aria-hidden="true"
+                                      ></svg>
                                     </gd-button>
-                                    <gd-button type="button" variant="ghost" size="sm" [iconOnly]="true" ariaLabel="Remover" title="Remover" (click)="requestDeleteBudgetItem(item)">
-                                      <svg lucideIcon="trash-2" class="size-4" aria-hidden="true"></svg>
+                                    <gd-button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      [iconOnly]="true"
+                                      ariaLabel="Remover"
+                                      title="Remover"
+                                      (click)="requestDeleteBudgetItem(item)"
+                                    >
+                                      <svg
+                                        lucideIcon="trash-2"
+                                        class="size-4"
+                                        aria-hidden="true"
+                                      ></svg>
                                     </gd-button>
                                   </div>
                                 }
@@ -387,13 +524,13 @@
                             </div>
                           }
                         </div>
-                        }
-                      </article>
-                    }
+                      }
+                    </article>
                   }
-                </gd-card>
-              }
-            </div>
+                }
+              </gd-card>
+            }
+          </div>
         }
       </div>
     }
@@ -604,8 +741,17 @@
       [errorMessage]="budgetFieldError('plannedAmount')"
     />
     <div class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-      <gd-button type="button" variant="outline" [fullWidth]="true" [disabled]="budgetSubmitting()" (click)="closeBudgetDrawer()">Cancelar</gd-button>
-      <gd-button type="submit" [fullWidth]="true" [loading]="budgetSubmitting()">{{ editingBudgetItem() ? 'Salvar item' : 'Adicionar item' }}</gd-button>
+      <gd-button
+        type="button"
+        variant="outline"
+        [fullWidth]="true"
+        [disabled]="budgetSubmitting()"
+        (click)="closeBudgetDrawer()"
+        >Cancelar</gd-button
+      >
+      <gd-button type="submit" [fullWidth]="true" [loading]="budgetSubmitting()">{{
+        editingBudgetItem() ? 'Salvar item' : 'Adicionar item'
+      }}</gd-button>
     </div>
   </form>
 </gd-drawer>
@@ -613,7 +759,13 @@
 <gd-confirm-dialog
   [open]="budgetDeleteTarget() !== null"
   title="Remover item do planejamento?"
-  [description]="budgetDeleteTarget() ? budgetDeleteTarget()!.description + ' — ' + currencyLabel(budgetDeleteTarget()!.plannedAmount) : ''"
+  [description]="
+    budgetDeleteTarget()
+      ? budgetDeleteTarget()!.description +
+        ' — ' +
+        currencyLabel(budgetDeleteTarget()!.plannedAmount)
+      : ''
+  "
   confirmLabel="Remover"
   cancelLabel="Cancelar"
   variant="danger"

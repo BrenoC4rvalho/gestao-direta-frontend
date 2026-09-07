@@ -83,6 +83,7 @@ import {
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
 import { PerHectareIndicators } from './components/per-hectare-indicators/per-hectare-indicators';
+import { PlanningCurrentComparison } from './components/planning-current-comparison/planning-current-comparison';
 
 interface HarvestFormControls {
   productionActivityId: GdFormControl;
@@ -157,6 +158,7 @@ interface StatusTarget {
     ErrorState,
     NgTemplateOutlet,
     PerHectareIndicators,
+    PlanningCurrentComparison,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
@@ -325,7 +327,11 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         'Resultado planejado da safra.',
         'chart-no-axes-combined',
       ),
-      this.marginCard('Margem planejada', planning.plannedMargin, 'Percentual do resultado sobre a receita planejada.'),
+      this.marginCard(
+        'Margem planejada',
+        planning.plannedMargin,
+        'Percentual do resultado sobre a receita planejada.',
+      ),
       this.currencyCard(
         'Custo realizado',
         realized.realizedCost,
@@ -346,7 +352,11 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         'Resultado realizado da safra.',
         'wallet',
       ),
-      this.marginCard('Margem realizada', realized.realizedMargin, 'Percentual do resultado sobre a receita realizada.'),
+      this.marginCard(
+        'Margem realizada',
+        realized.realizedMargin,
+        'Percentual do resultado sobre a receita realizada.',
+      ),
       this.currencyCard(
         'Custo projetado',
         projection.projectedCost,
@@ -367,11 +377,16 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         'Resultado estimado ao final da safra, considerando realizado e compromissos em aberto.',
         'chart-no-axes-combined',
       ),
-      this.marginCard('Margem projetada', projection.projectedMargin, 'Percentual do resultado projetado sobre a receita projetada.'),
+      this.marginCard(
+        'Margem projetada',
+        projection.projectedMargin,
+        'Percentual do resultado projetado sobre a receita projetada.',
+      ),
       {
         title: 'Desempenho do lucro',
         value: this.percentageLabel(comparison.profitPerformancePercentage),
-        description: 'Compara o lucro projetado, com realizado e compromissos em aberto, ao orçamento da safra.',
+        description:
+          'Compara o lucro projetado, com realizado e compromissos em aberto, ao orçamento da safra.',
         detail: this.comparisonStatusLabel(comparison.profitPerformanceStatus),
         icon: 'chart-no-axes-column-increasing',
         tone: this.profitPerformanceTone(comparison.profitPerformanceStatus),
@@ -379,7 +394,8 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
       {
         title: 'Desvio de custo',
         value: this.currencyLabel(comparison.costVarianceAmount),
-        description: 'Diferença entre o custo projetado, com realizado e compromissos em aberto, e o orçamento da safra.',
+        description:
+          'Diferença entre o custo projetado, com realizado e compromissos em aberto, e o orçamento da safra.',
         detail: this.comparisonStatusLabel(
           comparison.costVarianceStatus,
           comparison.costVariancePercentage,
@@ -453,13 +469,13 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
       ),
     ];
   });
-  protected readonly consolidatedSummaryGroups = computed(() =>
-    [{
+  protected readonly consolidatedSummaryGroups = computed(() => [
+    {
       title: 'Resumo financeiro',
       gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
       cards: this.mainSummaryCards(),
-    }],
-  );
+    },
+  ]);
   protected readonly mainSummaryCards = computed<readonly DetailSummaryCard[]>(() => {
     const cards = this.summaryCards();
     const status = this.harvest()?.status;
@@ -497,28 +513,34 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     }
 
     return [
-      this.withoutTooltip(this.currencyCard(
-        'Despesas planejadas',
-        budget.plannedExpense,
-        'Total de despesas previstas para a safra.',
-        'briefcase-business',
-        'warning',
-        this.budgetItemCount(budget.expenses),
-      )),
-      this.withoutTooltip(this.currencyCard(
-        'Receitas planejadas',
-        budget.plannedRevenue,
-        'Total de receitas previstas para a safra.',
-        'trending-up',
-        'success',
-        this.budgetItemCount(budget.incomes),
-      )),
-      this.withoutTooltip(this.profitCard(
-        'Resultado planejado',
-        budget.plannedResult,
-        'Resultado entre receitas e despesas previstas.',
-        'chart-no-axes-combined',
-      )),
+      this.withoutTooltip(
+        this.currencyCard(
+          'Despesas planejadas',
+          budget.plannedExpense,
+          'Total de despesas previstas para a safra.',
+          'briefcase-business',
+          'warning',
+          this.budgetItemCount(budget.expenses),
+        ),
+      ),
+      this.withoutTooltip(
+        this.currencyCard(
+          'Receitas planejadas',
+          budget.plannedRevenue,
+          'Total de receitas previstas para a safra.',
+          'trending-up',
+          'success',
+          this.budgetItemCount(budget.incomes),
+        ),
+      ),
+      this.withoutTooltip(
+        this.profitCard(
+          'Resultado planejado',
+          budget.plannedResult,
+          'Resultado entre receitas e despesas previstas.',
+          'chart-no-axes-combined',
+        ),
+      ),
       {
         title: 'Margem planejada',
         value: this.percentageLabel(budget.plannedMargin),
@@ -657,7 +679,10 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     return this.expandedBudgetGroupKeys().has(this.budgetGroupKey(type, group));
   }
 
-  protected toggleBudgetGroup(type: BudgetSection['type'], group: HarvestSeasonBudgetCategory): void {
+  protected toggleBudgetGroup(
+    type: BudgetSection['type'],
+    group: HarvestSeasonBudgetCategory,
+  ): void {
     const key = this.budgetGroupKey(type, group);
 
     this.expandedBudgetGroupKeys.update((expandedGroups) => {
@@ -692,7 +717,9 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     const harvest = this.harvest();
 
     if (harvest) {
-      void this.router.navigate(['/transactions'], { queryParams: { harvestSeasonId: harvest.id } });
+      void this.router.navigate(['/transactions'], {
+        queryParams: { harvestSeasonId: harvest.id },
+      });
     }
   }
 
@@ -1025,9 +1052,7 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         next: () => {
           this.statusTarget.set(null);
           this.drawerOpen.set(false);
-          this.toastStore.success(
-            this.statusSuccessMessage(confirmation.action),
-          );
+          this.toastStore.success(this.statusSuccessMessage(confirmation.action));
           this.loadDetails(harvest.id);
         },
         error: (error: unknown) => this.showOperationError(error),
