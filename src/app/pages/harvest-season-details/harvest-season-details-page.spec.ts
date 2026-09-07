@@ -5,6 +5,7 @@ import { of, Subject, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { Farm } from '../../core/models/farm.models';
 import { FinancialTransaction } from '../../core/models/financial-transaction.models';
 import {
   HarvestSeason,
@@ -22,6 +23,7 @@ import {
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { PageHeaderStore } from '../../core/stores/page-header.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import { HarvestSeasonDetailsPage } from './harvest-season-details-page';
@@ -42,6 +44,25 @@ const harvest: HarvestSeason = {
   status: 'IN_PROGRESS',
   createdAt: '2026-01-01T00:00:00',
   updatedAt: '2026-02-01T00:00:00',
+};
+
+const farm: Farm = {
+  id: 10,
+  name: 'Fazenda Boa Safra',
+  document: null,
+  city: 'Londrina',
+  state: 'PR',
+  totalArea: 120.5,
+  productionType: 'AGRICULTURE',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00',
+  updatedAt: '2026-01-01T00:00:00',
+};
+
+const secondFarm: Farm = {
+  ...farm,
+  id: 20,
+  name: 'Fazenda Santa Clara',
 };
 
 const summary: HarvestSeasonDetailSummary = {
@@ -161,6 +182,7 @@ describe('HarvestSeasonDetailsPage', () => {
   let sessionStore: SessionStore;
   let farmAccessStore: FarmAccessStore;
   let pageHeaderStore: PageHeaderStore;
+  let selectedFarmStore: SelectedFarmStore;
 
   beforeEach(async () => {
     harvestService = {
@@ -204,6 +226,7 @@ describe('HarvestSeasonDetailsPage', () => {
     sessionStore = TestBed.inject(SessionStore);
     farmAccessStore = TestBed.inject(FarmAccessStore);
     pageHeaderStore = TestBed.inject(PageHeaderStore);
+    selectedFarmStore = TestBed.inject(SelectedFarmStore);
   });
 
   afterEach(() => {
@@ -226,6 +249,17 @@ describe('HarvestSeasonDetailsPage', () => {
       sort: 'transactionDate',
       direction: 'DESC',
     });
+  });
+
+  it('should return to the harvest list when the selected farm changes', () => {
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    setupUser('PRODUCER');
+    createComponent();
+
+    selectedFarmStore.selectFarmById(secondFarm.id);
+    fixture.detectChanges();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/harvests']);
   });
 
   it('should render the overview as the initial tab without planning content', () => {

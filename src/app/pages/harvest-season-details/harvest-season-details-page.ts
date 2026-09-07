@@ -7,6 +7,7 @@ import {
   OnInit,
   OnDestroy,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -50,6 +51,7 @@ import {
 import { ProductionActivityService } from '../../core/services/production-activity.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { PageHeaderStore } from '../../core/stores/page-header.store';
+import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
 import {
@@ -180,6 +182,7 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
   private readonly pageHeaderStore = inject(PageHeaderStore);
 
   protected readonly farmAccessStore = inject(FarmAccessStore);
+  protected readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly sessionStore = inject(SessionStore);
 
   protected readonly harvest = signal<HarvestSeason | null>(null);
@@ -214,6 +217,22 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     'O planejamento financeiro pode ser ajustado enquanto a Safra estiver Planejada ou Em andamento.';
 
   private readonly harvestId = signal<number | null>(null);
+  private selectedFarmId: number | null | undefined;
+  private readonly redirectOnFarmChange = effect(() => {
+    const selectedFarmId = this.selectedFarmStore.selectedFarmId();
+
+    if (this.selectedFarmId === undefined) {
+      this.selectedFarmId = selectedFarmId;
+      return;
+    }
+
+    if (this.selectedFarmId === selectedFarmId) {
+      return;
+    }
+
+    this.selectedFarmId = selectedFarmId;
+    void this.router.navigate(['/harvests']);
+  });
 
   protected readonly form = new FormGroup<HarvestFormControls>(
     {
