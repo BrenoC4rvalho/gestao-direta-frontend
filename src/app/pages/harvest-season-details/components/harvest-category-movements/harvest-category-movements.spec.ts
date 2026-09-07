@@ -142,6 +142,27 @@ describe('HarvestCategoryAnalysis', () => {
     expect(component.chartData().datasets[0].data).toEqual([1000, 250]);
   });
 
+  it('aligns and centers distribution list columns from the small breakpoint', async () => {
+    const fixture = await createComponent();
+    selectOption(fixture, 'Lista');
+
+    const hiddenSections = Array.from(
+      fixture.nativeElement.querySelectorAll('div[aria-hidden="true"]') as NodeListOf<HTMLElement>,
+    );
+    const header = hiddenSections.find((element) => element.textContent?.includes('Participação')) as HTMLElement;
+    const row = fixture.nativeElement.querySelector(
+      '[aria-label="Lista de movimentações por categoria"] li',
+    ) as HTMLElement;
+
+    expect(header.className).toContain('grid-cols-[minmax(0,1fr)_8rem_7rem]');
+    expect(header.children[1].className).toContain('text-center');
+    expect(header.children[2].className).toContain('text-center');
+    expect(row.className).toContain('sm:grid-cols-[minmax(0,1fr)_8rem_7rem]');
+    expect(row.className).toContain('sm:items-center');
+    expect(row.children[1].className).toContain('sm:text-center');
+    expect(row.children[2].className).toContain('sm:text-center');
+  });
+
   it('loads and caches the comparison while preserving type and view state independently', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance as unknown as ComponentTestApi;

@@ -85,15 +85,15 @@
         </div>
       } @else if (analysisMode() === 'movements') {
         <div class="mt-4">
-          <div class="hidden grid-cols-[minmax(0,1fr)_auto_auto] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted sm:grid" aria-hidden="true">
-            <span>Categoria</span><span>Valor</span><span>Participação</span>
+          <div class="hidden grid-cols-[minmax(0,1fr)_8rem_7rem] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted sm:grid" aria-hidden="true">
+            <span>Categoria</span><span class="text-center">Valor</span><span class="text-center">Participação</span>
           </div>
           <ul class="divide-y divide-border" aria-label="Lista de movimentações por categoria">
             @for (category of movementCategories(); track category.categoryId ?? category.categoryName) {
-              <li class="flex items-center justify-between gap-4 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <li class="flex items-center justify-between gap-4 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_8rem_7rem] sm:items-center">
                 <span class="min-w-0 truncate text-sm font-medium text-text-primary">{{ category.categoryName }}</span>
-                <span class="shrink-0 text-right text-sm font-semibold text-text-primary">{{ category.amount | brCurrency }}</span>
-                <span class="shrink-0 text-right text-sm text-text-muted"><span class="sm:hidden"> · {{ formatPercentage(category.percentage) }}</span><span class="hidden sm:inline">{{ formatPercentage(category.percentage) }}</span></span>
+                <span class="shrink-0 text-right text-sm font-semibold text-text-primary sm:text-center">{{ category.amount | brCurrency }}</span>
+                <span class="shrink-0 text-right text-sm text-text-muted sm:text-center"><span class="sm:hidden"> · {{ formatPercentage(category.percentage) }}</span><span class="hidden sm:inline">{{ formatPercentage(category.percentage) }}</span></span>
               </li>
             }
           </ul>
