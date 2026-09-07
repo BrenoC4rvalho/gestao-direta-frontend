@@ -1,10 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import { provideGestaoDiretaIcons } from '../../../../core/constants/lucide-icons';
-import {
-  HarvestSeasonDetailSummary,
-  HarvestSeasonStatus,
-} from '../../../../core/models/harvest-season.models';
+import { HarvestSeasonDetailSummary } from '../../../../core/models/harvest-season.models';
 import { PerHectareIndicators } from './per-hectare-indicators';
 
 const summary: HarvestSeasonDetailSummary = {
@@ -47,55 +44,73 @@ const summary: HarvestSeasonDetailSummary = {
 };
 
 describe('PerHectareIndicators', () => {
-  it('should render planned indicators received from the summary', async () => {
-    const fixture = await createComponent('PLANNED');
+  it('should render planning, projection and realized indicators from the summary', async () => {
+    const fixture = await createComponent();
 
     expect(text(fixture)).toContain('Custo planejado/ha');
     expect(text(fixture)).toContain('Receita planejada/ha');
     expect(text(fixture)).toContain('Resultado planejado/ha');
-    expect(text(fixture)).toContain('R$ 2.000,00/ha');
-    expect(fixture.nativeElement.querySelector('gd-tooltip')).not.toBeNull();
-  });
-
-  it('should select projected indicators while the harvest is in progress', async () => {
-    const fixture = await createComponent('IN_PROGRESS');
-
     expect(text(fixture)).toContain('Custo projetado/ha');
     expect(text(fixture)).toContain('Receita projetada/ha');
     expect(text(fixture)).toContain('Lucro projetado/ha');
-    expect(text(fixture)).toContain('R$ 2.400,00/ha');
-  });
-
-  it.each<HarvestSeasonStatus>(['FINISHED', 'INACTIVE'])
-  ('should select realized indicators for %s harvests', async (status) => {
-    const fixture = await createComponent(status);
-
     expect(text(fixture)).toContain('Custo realizado/ha');
     expect(text(fixture)).toContain('Receita realizada/ha');
     expect(text(fixture)).toContain('Lucro realizado/ha');
+    expect(text(fixture)).toContain('Planejamento');
+    expect(text(fixture)).toContain('Projeção');
+    expect(text(fixture)).toContain('Realizado');
+    expect(text(fixture)).toContain('R$ 2.000,00/ha');
+    expect(text(fixture)).toContain('R$ 2.400,00/ha');
     expect(text(fixture)).toContain('R$ 1.200,00/ha');
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(9);
+    expect(fixture.nativeElement.querySelector('gd-tooltip')).not.toBeNull();
+  });
+
+  it('should omit unavailable metrics without hiding available groups', async () => {
+    const fixture = await createComponent({
+      ...summary,
+      plannedRevenuePerHectare: null,
+      plannedResultPerHectare: null,
+      projectedCostPerHectare: null,
+      projectedRevenuePerHectare: null,
+      projectedProfitPerHectare: null,
+      realizedCostPerHectare: null,
+      realizedRevenuePerHectare: null,
+    });
+
+    expect(text(fixture)).toContain('Planejamento');
+    expect(text(fixture)).toContain('Realizado');
+    expect(text(fixture)).not.toContain('Projeção');
+    expect(text(fixture)).toContain('Custo planejado/ha');
+    expect(text(fixture)).toContain('Lucro realizado/ha');
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(2);
   });
 
   it('should show an empty state when the backend returns no per-hectare values', async () => {
-    const fixture = await createComponent('PLANNED', {
+    const fixture = await createComponent({
       ...summary,
       plannedCostPerHectare: null,
       plannedRevenuePerHectare: null,
       plannedResultPerHectare: null,
+      projectedCostPerHectare: null,
+      projectedRevenuePerHectare: null,
+      projectedProfitPerHectare: null,
+      realizedCostPerHectare: null,
+      realizedRevenuePerHectare: null,
+      realizedProfitPerHectare: null,
     });
 
     expect(text(fixture)).toContain('Informe a área da Safra para visualizar os indicadores por hectare.');
     expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(0);
   });
 
-  async function createComponent(status: HarvestSeasonStatus, currentSummary = summary) {
+  async function createComponent(currentSummary = summary) {
     await TestBed.configureTestingModule({
       imports: [PerHectareIndicators],
       providers: [provideGestaoDiretaIcons()],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(PerHectareIndicators);
-    fixture.componentRef.setInput('status', status);
     fixture.componentRef.setInput('summary', currentSummary);
     fixture.detectChanges();
     return fixture;

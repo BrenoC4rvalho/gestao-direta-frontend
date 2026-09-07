@@ -1,9 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import {
-  HarvestSeasonDetailSummary,
-  HarvestSeasonStatus,
-} from '../../../../core/models/harvest-season.models';
+import { HarvestSeasonDetailSummary } from '../../../../core/models/harvest-season.models';
 import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
 import { EmptyState, SummaryCard, SummaryCardTone, Tooltip } from '../../../../shared/ui';
 
@@ -14,6 +11,11 @@ interface PerHectareIndicator {
   tone: SummaryCardTone;
 }
 
+interface PerHectareIndicatorGroup {
+  title: string;
+  indicators: readonly PerHectareIndicator[];
+}
+
 @Component({
   selector: 'gd-per-hectare-indicators',
   imports: [BrCurrencyPipe, EmptyState, SummaryCard, Tooltip],
@@ -21,47 +23,47 @@ interface PerHectareIndicator {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PerHectareIndicators {
-  readonly status = input.required<HarvestSeasonStatus>();
   readonly summary = input.required<HarvestSeasonDetailSummary>();
 
   protected readonly tooltip =
     'Indicadores financeiros calculados com base na área total da Safra.';
-  protected readonly indicators = computed<readonly PerHectareIndicator[]>(() => {
+  protected readonly groups = computed<readonly PerHectareIndicatorGroup[]>(() => {
     const summary = this.summary();
 
-    switch (this.status()) {
-      case 'PLANNED':
-        return this.indicatorsFor(
-          ['Custo planejado/ha', summary.plannedCostPerHectare, 'briefcase-business', 'warning'],
-          ['Receita planejada/ha', summary.plannedRevenuePerHectare, 'trending-up', 'success'],
-          ['Resultado planejado/ha', summary.plannedResultPerHectare, 'chart-no-axes-combined'],
-        );
-      case 'IN_PROGRESS':
-        return this.indicatorsFor(
-          ['Custo projetado/ha', summary.projectedCostPerHectare, 'briefcase-business', 'warning'],
-          ['Receita projetada/ha', summary.projectedRevenuePerHectare, 'trending-up', 'success'],
-          ['Lucro projetado/ha', summary.projectedProfitPerHectare, 'chart-no-axes-combined'],
-        );
-      default:
-        return this.indicatorsFor(
-          ['Custo realizado/ha', summary.realizedCostPerHectare, 'briefcase-business', 'warning'],
-          ['Receita realizada/ha', summary.realizedRevenuePerHectare, 'trending-up', 'success'],
-          ['Lucro realizado/ha', summary.realizedProfitPerHectare, 'wallet'],
-        );
-    }
+    return [
+      this.group('Planejamento', [
+        ['Custo planejado/ha', summary.plannedCostPerHectare, 'briefcase-business', 'warning'],
+        ['Receita planejada/ha', summary.plannedRevenuePerHectare, 'trending-up', 'success'],
+        ['Resultado planejado/ha', summary.plannedResultPerHectare, 'chart-no-axes-combined'],
+      ]),
+      this.group('Projeção', [
+        ['Custo projetado/ha', summary.projectedCostPerHectare, 'briefcase-business', 'warning'],
+        ['Receita projetada/ha', summary.projectedRevenuePerHectare, 'trending-up', 'success'],
+        ['Lucro projetado/ha', summary.projectedProfitPerHectare, 'chart-no-axes-combined'],
+      ]),
+      this.group('Realizado', [
+        ['Custo realizado/ha', summary.realizedCostPerHectare, 'briefcase-business', 'warning'],
+        ['Receita realizada/ha', summary.realizedRevenuePerHectare, 'trending-up', 'success'],
+        ['Lucro realizado/ha', summary.realizedProfitPerHectare, 'wallet'],
+      ]),
+    ].filter((group) => group.indicators.length > 0);
   });
 
-  private indicatorsFor(
-    ...indicators: readonly [string, number | null, string, SummaryCardTone?][]
-  ): readonly PerHectareIndicator[] {
-    return indicators
-      .filter(([, value]) => value !== null)
-      .map(([title, value, icon, tone]) => ({
-        title,
-        value: value!,
-        icon,
-        tone: tone ?? this.profitTone(value!),
-      }));
+  private group(
+    title: string,
+    indicators: readonly [string, number | null, string, SummaryCardTone?][],
+  ): PerHectareIndicatorGroup {
+    return {
+      title,
+      indicators: indicators
+        .filter(([, value]) => value !== null)
+        .map(([indicatorTitle, value, icon, tone]) => ({
+          title: indicatorTitle,
+          value: value!,
+          icon,
+          tone: tone ?? this.profitTone(value!),
+        })),
+    };
   }
 
   private profitTone(value: number): SummaryCardTone {

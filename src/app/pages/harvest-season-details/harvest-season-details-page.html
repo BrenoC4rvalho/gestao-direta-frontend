@@ -83,10 +83,6 @@
           }
         </section>
 
-        @if (!summaryLoading() && !summaryError() && summary(); as currentSummary) {
-          <gd-per-hectare-indicators [status]="harvest.status" [summary]="currentSummary" />
-        }
-
         <div class="grid gap-6 xl:grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)]">
           <section aria-labelledby="harvest-info-heading">
             <gd-card class="h-full">
@@ -420,6 +416,11 @@
     [ngTemplateOutlet]="indicatorGroups"
     [ngTemplateOutletContext]="{ $implicit: financialSummaryGroups(), headings: true }"
   />
+  @if (summary(); as currentSummary) {
+    <div class="mt-6 border-t border-border pt-6">
+      <gd-per-hectare-indicators [summary]="currentSummary" />
+    </div>
+  }
 </gd-drawer>
 
 <ng-template #indicatorGroups let-groups let-headings="headings">

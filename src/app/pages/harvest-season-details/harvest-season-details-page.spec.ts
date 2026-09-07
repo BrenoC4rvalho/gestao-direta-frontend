@@ -237,13 +237,13 @@ describe('HarvestSeasonDetailsPage', () => {
       'Receita projetada',
       'Lucro projetado',
       'Desvio de custo',
-      'Custo projetado/ha',
-      'Receita projetada/ha',
-      'Lucro projetado/ha',
     ]);
     expect(text()).toContain('29.200,00');
     expect(text()).not.toContain('Custo planejado');
+    expect(text()).not.toContain('Indicadores por hectare');
+
     clickButton('Ver todos os indicadores');
+
     expect(text()).toContain('98.800,00');
     expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
     expect(text()).toContain('Indicadores por hectare');
@@ -437,7 +437,11 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(drawer.textContent).toContain('Projeção');
     expect(drawer.textContent).toContain('Comparação');
     expect(drawer.textContent).toContain('Compromissos');
-    expect(drawer.querySelectorAll('gd-summary-card').length).toBe(18);
+    expect(drawer.textContent).toContain('Indicadores por hectare');
+    expect(drawer.textContent).toContain('Planejamento');
+    expect(drawer.textContent).toContain('Projeção');
+    expect(drawer.textContent).toContain('Realizado');
+    expect(drawer.querySelectorAll('gd-summary-card').length).toBe(27);
   });
 
   it('should close the detailed indicators drawer from its close button', async () => {
