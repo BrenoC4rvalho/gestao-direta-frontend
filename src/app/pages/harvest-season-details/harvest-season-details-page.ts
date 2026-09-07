@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -101,6 +102,12 @@ interface DetailSummaryCard {
   tone: SummaryCardTone;
 }
 
+interface DetailSummaryGroup {
+  title: string;
+  gridClasses: string;
+  cards: readonly DetailSummaryCard[];
+}
+
 type HarvestDetailTab = 'overview' | 'planning';
 
 interface BudgetSection {
@@ -139,6 +146,7 @@ interface StatusTarget {
     Drawer,
     EmptyState,
     ErrorState,
+    NgTemplateOutlet,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
@@ -188,6 +196,7 @@ export class HarvestSeasonDetailsPage implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly statusTarget = signal<StatusTarget | null>(null);
   protected readonly statusSubmitting = signal(false);
+  protected readonly indicatorsDrawerOpen = signal(false);
   protected readonly activeTab = signal<HarvestDetailTab>('overview');
   protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
 
@@ -376,31 +385,44 @@ export class HarvestSeasonDetailsPage implements OnInit {
       ),
     ];
   });
-  protected readonly primarySummaryCards = computed(() =>
-    this.summaryCards().filter((card) =>
-      ['Custo planejado', 'Receita planejada', 'Lucro planejado', 'Desempenho do lucro'].includes(
-        card.title,
+  protected readonly financialSummaryGroups = computed<readonly DetailSummaryGroup[]>(() => {
+    const cards = this.summaryCards();
+
+    return [
+      this.summaryGroup(
+        'Visão consolidada',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+        cards,
+        ['Custo projetado', 'Receita projetada', 'Lucro projetado', 'Desempenho do lucro'],
       ),
-    ),
-  );
-  protected readonly operationalSummaryCards = computed(() =>
-    this.summaryCards().filter((card) =>
-      ['Custo realizado', 'Receita realizada', 'Lucro realizado', 'A pagar', 'A receber'].includes(
-        card.title,
+      this.summaryGroup(
+        'Planejado',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
+        cards,
+        ['Custo planejado', 'Receita planejada', 'Lucro planejado'],
       ),
-    ),
-  );
-  protected readonly complementarySummaryCards = computed(() =>
-    this.summaryCards().filter((card) =>
-      [
-        'Custo projetado',
-        'Receita projetada',
-        'Lucro projetado',
-        'Desvio de custo',
-        'Vencidas a pagar',
-        'Vencidas a receber',
-      ].includes(card.title),
-    ),
+      this.summaryGroup(
+        'Realizado',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
+        cards,
+        ['Custo realizado', 'Receita realizada', 'Lucro realizado'],
+      ),
+      this.summaryGroup(
+        'Comparação com planejamento',
+        'grid grid-cols-1 items-stretch gap-3',
+        cards,
+        ['Desvio de custo'],
+      ),
+      this.summaryGroup(
+        'Compromissos financeiros',
+        'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
+        cards,
+        ['A pagar', 'A receber', 'Vencidas a pagar', 'Vencidas a receber'],
+      ),
+    ];
+  });
+  protected readonly consolidatedSummaryGroups = computed(() =>
+    this.financialSummaryGroups().filter((group) => group.title === 'Visão consolidada'),
   );
   protected readonly planningCards = computed<readonly DetailSummaryCard[]>(() => {
     const budget = this.budget();
@@ -551,6 +573,14 @@ export class HarvestSeasonDetailsPage implements OnInit {
 
   protected selectTab(tab: HarvestDetailTab): void {
     this.activeTab.set(tab);
+  }
+
+  protected openIndicatorsDrawer(): void {
+    this.indicatorsDrawerOpen.set(true);
+  }
+
+  protected closeIndicatorsDrawer(): void {
+    this.indicatorsDrawerOpen.set(false);
   }
 
   protected goToTransactions(): void {
@@ -1003,6 +1033,19 @@ export class HarvestSeasonDetailsPage implements OnInit {
     tone: SummaryCardTone,
   ): DetailSummaryCard {
     return { title, value: this.currencyLabel(amount), description, icon, tone };
+  }
+
+  private summaryGroup(
+    title: string,
+    gridClasses: string,
+    cards: readonly DetailSummaryCard[],
+    titles: readonly string[],
+  ): DetailSummaryGroup {
+    return {
+      title,
+      gridClasses,
+      cards: cards.filter((card) => titles.includes(card.title)),
+    };
   }
 
   private profitTone(value: number): SummaryCardTone {

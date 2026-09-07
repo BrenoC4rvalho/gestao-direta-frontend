@@ -56,35 +56,31 @@
       </div>
     </header>
 
-    <nav
-      role="tablist"
-      aria-label="Seções da safra"
-      class="inline-flex max-w-full items-center gap-5 overflow-x-auto border-b border-border"
-    >
+    <nav aria-label="Seções da safra" class="inline-flex items-center gap-5 border-b border-border">
       <button
         type="button"
-        role="tab"
-        id="harvest-overview-tab"
-        aria-controls="harvest-overview-panel"
-        [attr.aria-selected]="activeTab() === 'overview'"
-        [class]="'relative inline-flex min-h-10 shrink-0 cursor-pointer items-center px-1 pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeTab() === 'overview' ? 'font-semibold text-text-primary' : 'text-text-muted hover:text-text-primary')"
+        [attr.aria-current]="activeTab() === 'overview' ? 'page' : null"
+        class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        [class.font-semibold]="activeTab() === 'overview'"
+        [class.text-text-primary]="activeTab() === 'overview'"
         (click)="selectTab('overview')"
       >
-        Visão geral
+        <svg lucideIcon="layout-dashboard" class="size-4" aria-hidden="true"></svg>
+        <span>Visão geral</span>
         @if (activeTab() === 'overview') {
           <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
         }
       </button>
       <button
         type="button"
-        role="tab"
-        id="harvest-planning-tab"
-        aria-controls="harvest-planning-panel"
-        [attr.aria-selected]="activeTab() === 'planning'"
-        [class]="'relative inline-flex min-h-10 shrink-0 cursor-pointer items-center px-1 pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeTab() === 'planning' ? 'font-semibold text-text-primary' : 'text-text-muted hover:text-text-primary')"
+        [attr.aria-current]="activeTab() === 'planning' ? 'page' : null"
+        class="relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        [class.font-semibold]="activeTab() === 'planning'"
+        [class.text-text-primary]="activeTab() === 'planning'"
         (click)="selectTab('planning')"
       >
-        Planejamento financeiro
+        <svg lucideIcon="wallet" class="size-4" aria-hidden="true"></svg>
+        <span>Planejamento financeiro</span>
         @if (activeTab() === 'planning') {
           <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
         }
@@ -92,7 +88,7 @@
     </nav>
 
     @if (activeTab() === 'overview') {
-      <div id="harvest-overview-panel" role="tabpanel" aria-labelledby="harvest-overview-tab" class="space-y-6">
+      <div class="space-y-6">
         <section class="space-y-4" aria-labelledby="summary-heading">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -101,6 +97,11 @@
             </div>
             @if (summaryError()) {
               <gd-button type="button" variant="outline" size="sm" (click)="retrySummary()">Tentar novamente</gd-button>
+            } @else if (!summaryLoading() && consolidatedSummaryGroups().length > 0) {
+              <gd-button type="button" variant="outline" size="sm" (click)="openIndicatorsDrawer()">
+                <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
+                Ver todos os indicadores
+              </gd-button>
             }
           </div>
           @if (summaryLoading()) {
@@ -110,24 +111,10 @@
           } @else if (summaryError()) {
             <gd-error-state [title]="summaryError()!" description="As demais informações da safra continuam disponíveis." />
           } @else {
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              @for (card of primarySummaryCards(); track card.title) {
-                <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
-              }
-            </div>
-            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              @for (card of operationalSummaryCards(); track card.title) {
-                <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
-              }
-            </div>
-            <div class="mt-4 rounded-app border border-border bg-background/40 p-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Indicadores complementares</p>
-              <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                @for (card of complementarySummaryCards(); track card.title) {
-                  <gd-summary-card [title]="card.title" [value]="card.value" [description]="card.description" [detail]="card.detail ?? null" [icon]="card.icon" [tone]="card.tone" density="compact" />
-                }
-              </div>
-            </div>
+            <ng-container
+              [ngTemplateOutlet]="indicatorGroups"
+              [ngTemplateOutletContext]="{ $implicit: consolidatedSummaryGroups(), headings: false }"
+            />
           }
         </section>
 
@@ -298,7 +285,7 @@
         </div>
       </div>
     } @else {
-      <div id="harvest-planning-panel" role="tabpanel" aria-labelledby="harvest-planning-tab" class="space-y-6">
+      <div class="space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 class="text-lg font-semibold text-text-primary">Planejamento financeiro</h2>
@@ -387,6 +374,47 @@
     }
   }
 </section>
+
+<gd-drawer
+  [open]="indicatorsDrawerOpen()"
+  title="Indicadores financeiros"
+  description="Visão detalhada dos resultados e compromissos financeiros desta Safra."
+  position="center"
+  size="xl"
+  [reserveScrollbarGutter]="true"
+  (closed)="closeIndicatorsDrawer()"
+>
+  <ng-container
+    [ngTemplateOutlet]="indicatorGroups"
+    [ngTemplateOutletContext]="{ $implicit: financialSummaryGroups(), headings: true }"
+  />
+</gd-drawer>
+
+<ng-template #indicatorGroups let-groups let-headings="headings">
+  <div [class]="headings ? 'space-y-5' : ''">
+    @for (group of groups; track group.title) {
+      <section [attr.aria-label]="group.title">
+        @if (headings) {
+          <h2 class="mb-3 text-sm font-semibold text-text-primary">{{ group.title }}</h2>
+        }
+        <div [class]="group.gridClasses">
+          @for (card of group.cards; track card.title) {
+            <gd-summary-card
+              class="h-full"
+              [title]="card.title"
+              [value]="card.value"
+              [description]="card.description"
+              [detail]="card.detail ?? null"
+              [icon]="card.icon"
+              [tone]="card.tone"
+              layout="metric"
+            />
+          }
+        </div>
+      </section>
+    }
+  </div>
+</ng-template>
 
 <gd-drawer
   [open]="drawerOpen()"

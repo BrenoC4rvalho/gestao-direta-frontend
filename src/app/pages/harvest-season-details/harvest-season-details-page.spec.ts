@@ -218,26 +218,18 @@ describe('HarvestSeasonDetailsPage', () => {
     createComponent();
 
     expect(summaryCardTitles()).toEqual([
-      'Custo planejado',
-      'Receita planejada',
-      'Lucro planejado',
-      'Desempenho do lucro',
-      'Custo realizado',
-      'Receita realizada',
-      'Lucro realizado',
-      'A pagar',
-      'A receber',
       'Custo projetado',
       'Receita projetada',
       'Lucro projetado',
-      'Desvio de custo',
-      'Vencidas a pagar',
-      'Vencidas a receber',
+      'Desempenho do lucro',
     ]);
+    expect(text()).toContain('29.200,00');
+    expect(text()).not.toContain('Custo planejado');
+    clickButton('Ver todos os indicadores');
     expect(text()).toContain('98.800,00');
     expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
     expect(text()).not.toContain('Indicadores por hectare');
-    expect(text()).toContain('Lucro planejado');
+    expect(text()).toContain('Lucro projetado');
     expect(text()).not.toContain('Lucro previsto');
     expect(text()).toContain('Venda de soja');
     expect(text()).not.toContain('Organize as receitas e despesas previstas para esta Safra.');
@@ -305,6 +297,7 @@ describe('HarvestSeasonDetailsPage', () => {
   it('should render pending and overdue amounts without counts', () => {
     setupUser('PRODUCER');
     createComponent();
+    clickButton('Ver todos os indicadores');
 
     const cards = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
@@ -322,6 +315,7 @@ describe('HarvestSeasonDetailsPage', () => {
   it('should use a positive tone for cost below planned', () => {
     setupUser('PRODUCER');
     createComponent();
+    clickButton('Ver todos os indicadores');
 
     const card = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
@@ -332,6 +326,36 @@ describe('HarvestSeasonDetailsPage', () => {
         item.classList.contains('bg-success/10'),
       ),
     ).toBe(true);
+  });
+
+  it('should open the detailed indicators drawer with every summary group', () => {
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Ver todos os indicadores');
+
+    const drawer = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+
+    expect(drawer).not.toBeNull();
+    expect(drawer.textContent).toContain('Indicadores financeiros');
+    expect(drawer.textContent).toContain('Visão consolidada');
+    expect(drawer.textContent).toContain('Planejado');
+    expect(drawer.textContent).toContain('Realizado');
+    expect(drawer.textContent).toContain('Comparação com planejamento');
+    expect(drawer.textContent).toContain('Compromissos financeiros');
+    expect(drawer.querySelectorAll('gd-summary-card').length).toBe(15);
+  });
+
+  it('should close the detailed indicators drawer from its close button', async () => {
+    setupUser('PRODUCER');
+    createComponent();
+    clickButton('Ver todos os indicadores');
+
+    (fixture.nativeElement.querySelector('[aria-label="Fechar drawer"]') as HTMLButtonElement).click();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('should keep transactions available when a 200 summary payload is invalid', () => {
@@ -719,8 +743,8 @@ describe('HarvestSeasonDetailsPage', () => {
 
   function summaryCardTitles(): string[] {
     return Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card p.text-xs'),
-    ).map((item) => item.textContent?.trim() ?? '');
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
+    ).map((card) => card.querySelector('article p')?.textContent?.trim() ?? '');
   }
 
   function tableHeaderTexts(): string[] {
