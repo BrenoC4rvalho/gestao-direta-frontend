@@ -73,6 +73,7 @@ import {
   StatusActionSection,
   SummaryCard,
   SummaryCardTone,
+  Tooltip,
 } from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
@@ -98,7 +99,7 @@ interface BudgetItemFormControls {
 interface DetailSummaryCard {
   title: string;
   value: string;
-  description: string;
+  description: string | null;
   meta?: string;
   detail?: string;
   icon: string;
@@ -160,6 +161,7 @@ interface StatusTarget {
     StatusActionSection,
     SummaryCard,
     Textarea,
+    Tooltip,
   ],
   templateUrl: './harvest-season-details-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -204,7 +206,10 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
   protected readonly statusSubmitting = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   protected readonly activeTab = signal<HarvestDetailTab>('overview');
+  protected readonly expandedBudgetGroupKeys = signal<ReadonlySet<string>>(new Set());
   protected readonly skeletons = Array.from({ length: 15 }, (_, index) => index + 1);
+  protected readonly planningTooltip =
+    'Valores previstos para a Safra. O resultado planejado é a diferença entre receitas e despesas, e a margem representa o resultado em relação às receitas.';
 
   private readonly harvestId = signal<number | null>(null);
 
@@ -471,32 +476,32 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     }
 
     return [
-      this.currencyCard(
+      this.withoutTooltip(this.currencyCard(
         'Despesas planejadas',
         budget.plannedExpense,
         'Total de despesas previstas para a safra.',
         'briefcase-business',
         'warning',
         this.budgetItemCount(budget.expenses),
-      ),
-      this.currencyCard(
+      )),
+      this.withoutTooltip(this.currencyCard(
         'Receitas planejadas',
         budget.plannedRevenue,
         'Total de receitas previstas para a safra.',
         'trending-up',
         'success',
         this.budgetItemCount(budget.incomes),
-      ),
-      this.profitCard(
+      )),
+      this.withoutTooltip(this.profitCard(
         'Resultado planejado',
         budget.plannedResult,
         'Resultado entre receitas e despesas previstas.',
         'chart-no-axes-combined',
-      ),
+      )),
       {
         title: 'Margem planejada',
         value: this.percentageLabel(budget.plannedMargin),
-        description: 'Margem do resultado planejado sobre as receitas previstas.',
+        description: null,
         icon: 'chart-no-axes-column-increasing',
         tone: this.profitTone(budget.plannedMargin),
       },
@@ -617,7 +622,41 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
   }
 
   protected selectTab(tab: HarvestDetailTab): void {
+    if (tab === 'planning' && this.activeTab() !== 'planning') {
+      this.expandedBudgetGroupKeys.set(new Set());
+    }
+
     this.activeTab.set(tab);
+  }
+
+  protected isBudgetGroupExpanded(
+    type: BudgetSection['type'],
+    group: HarvestSeasonBudgetCategory,
+  ): boolean {
+    return this.expandedBudgetGroupKeys().has(this.budgetGroupKey(type, group));
+  }
+
+  protected toggleBudgetGroup(type: BudgetSection['type'], group: HarvestSeasonBudgetCategory): void {
+    const key = this.budgetGroupKey(type, group);
+
+    this.expandedBudgetGroupKeys.update((expandedGroups) => {
+      const updatedGroups = new Set(expandedGroups);
+
+      if (updatedGroups.has(key)) {
+        updatedGroups.delete(key);
+      } else {
+        updatedGroups.add(key);
+      }
+
+      return updatedGroups;
+    });
+  }
+
+  protected budgetGroupContentId(
+    type: BudgetSection['type'],
+    group: HarvestSeasonBudgetCategory,
+  ): string {
+    return `budget-group-${this.budgetGroupKey(type, group)}`;
   }
 
   protected openIndicatorsDrawer(): void {
@@ -1068,6 +1107,14 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
       icon,
       tone,
     };
+  }
+
+  private withoutTooltip(card: DetailSummaryCard): DetailSummaryCard {
+    return { ...card, description: null };
+  }
+
+  private budgetGroupKey(type: BudgetSection['type'], group: HarvestSeasonBudgetCategory): string {
+    return `${type.toLowerCase()}-${group.categoryId ?? 'uncategorized'}`;
   }
 
   private budgetItemCount(groups: readonly HarvestSeasonBudgetCategory[]): number {

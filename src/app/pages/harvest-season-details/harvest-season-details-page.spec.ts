@@ -719,14 +719,26 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Resultado planejado');
     expect(text()).toContain('Margem planejada');
     expect(text()).toContain('Sem categoria');
-    expect(text()).toContain('Planejamento anterior');
     expect(text()).toContain('1 item');
     expect(summaryCardText('Despesas planejadas')).toContain('1 item');
     expect(summaryCardText('Receitas planejadas')).toContain('0 itens');
-    expect(fixture.nativeElement.querySelector('[aria-label="Editar"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[aria-label="Remover"]')).not.toBeNull();
+    expect(text()).not.toContain('Planejamento anterior');
+    expect(fixture.nativeElement.querySelector('[aria-label="Editar"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Remover"]')).toBeNull();
+    expect(budgetCategoryButton('Sem categoria')?.getAttribute('aria-expanded')).toBe('false');
+    expect(
+      fixture.nativeElement.querySelectorAll('gd-summary-card [aria-label^="Explicação sobre"]'),
+    ).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('gd-tooltip')).not.toBeNull();
     expect(text()).not.toContain('Nenhum item nesta seção.');
     expect(text()).not.toContain('Movimentações vinculadas');
+
+    clickBudgetCategory('Sem categoria');
+
+    expect(budgetCategoryButton('Sem categoria')?.getAttribute('aria-expanded')).toBe('true');
+    expect(text()).toContain('Planejamento anterior');
+    expect(fixture.nativeElement.querySelector('[aria-label="Editar"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Remover"]')).not.toBeNull();
 
     clickButton('Editar');
 
@@ -764,6 +776,31 @@ describe('HarvestSeasonDetailsPage', () => {
   });
 
   it('should keep planning read-only for an employee', () => {
+    harvestService.getBudgetItems.mockReturnValue(
+      of({
+        ...budget,
+        expenses: [
+          {
+            categoryId: null,
+            categoryName: 'Sem categoria',
+            type: 'EXPENSE',
+            itemCount: 1,
+            plannedAmount: 100,
+            items: [
+              {
+                id: 9,
+                harvestSeasonId: 1,
+                categoryId: null,
+                categoryName: 'Sem categoria',
+                type: 'EXPENSE',
+                description: 'Planejamento anterior',
+                plannedAmount: 100,
+              },
+            ],
+          },
+        ],
+      }),
+    );
     setupUser('EMPLOYEE');
     createComponent();
 
@@ -771,6 +808,11 @@ describe('HarvestSeasonDetailsPage', () => {
 
     expect(text()).not.toContain('Adicionar despesa');
     expect(text()).not.toContain('Adicionar receita');
+    expect(text()).not.toContain('Planejamento anterior');
+
+    clickBudgetCategory('Sem categoria');
+
+    expect(text()).toContain('Planejamento anterior');
     expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
   });
 
@@ -838,6 +880,24 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(summaryCardText('Despesas planejadas')).toContain('3 itens');
     expect(text()).toContain('Nenhuma receita planejada');
     expect(emptyStateText('Nenhuma receita planejada')).toContain('Adicionar receita');
+    expect(text()).not.toContain('Sementes');
+    expect(text()).not.toContain('Frete');
+
+    clickBudgetCategory('Insumos');
+    clickBudgetCategory('Sem categoria');
+
+    expect(budgetCategoryButton('Insumos')?.getAttribute('aria-expanded')).toBe('true');
+    expect(budgetCategoryButton('Sem categoria')?.getAttribute('aria-expanded')).toBe('true');
+    expect(text()).toContain('Sementes');
+    expect(text()).toContain('Fertilizante');
+    expect(text()).toContain('Frete');
+
+    clickBudgetCategory('Insumos');
+
+    expect(budgetCategoryButton('Insumos')?.getAttribute('aria-expanded')).toBe('false');
+    expect(budgetCategoryButton('Sem categoria')?.getAttribute('aria-expanded')).toBe('true');
+    expect(text()).not.toContain('Sementes');
+    expect(text()).toContain('Frete');
   });
 
   function createComponent(): void {
@@ -904,6 +964,19 @@ describe('HarvestSeasonDetailsPage', () => {
 
     button?.click();
     fixture.detectChanges();
+  }
+
+  function clickBudgetCategory(name: string): void {
+    budgetCategoryButton(name)?.click();
+    fixture.detectChanges();
+  }
+
+  function budgetCategoryButton(name: string): HTMLButtonElement | undefined {
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        'button[aria-controls^="budget-group-"]',
+      ),
+    ).find((item) => item.textContent?.includes(name));
   }
 
   function sectionHeadingTexts(): string[] {
