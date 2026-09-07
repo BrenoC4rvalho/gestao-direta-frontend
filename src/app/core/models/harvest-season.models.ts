@@ -123,6 +123,23 @@ export interface HarvestSeasonBudget {
   incomes: HarvestSeasonBudgetCategory[];
 }
 
+export interface HarvestCategoryMovement {
+  categoryId: number | null;
+  categoryName: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface HarvestCategoryBreakdown {
+  total: number;
+  categories: readonly HarvestCategoryMovement[];
+}
+
+export interface HarvestCategoryMovements {
+  expenses: HarvestCategoryBreakdown;
+  incomes: HarvestCategoryBreakdown;
+}
+
 export interface UpdateHarvestSeasonStatusRequest {
   status: HarvestSeasonStatus;
 }

@@ -9,6 +9,7 @@ import {
   HarvestSeason,
   HarvestSeasonFinancialSummary,
   HarvestSeasonDetailSummary,
+  HarvestCategoryMovements,
   HarvestSeasonSummaryListItem,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
@@ -179,6 +180,14 @@ const dashboardHarvests: readonly DashboardHarvestSeason[] = [
   },
 ];
 
+const categoryMovements: HarvestCategoryMovements = {
+  expenses: {
+    total: 1200,
+    categories: [{ categoryId: 1, categoryName: 'Insumos', amount: 1200, percentage: 100 }],
+  },
+  incomes: { total: 0, categories: [] },
+};
+
 const response: PageResponse<HarvestSeason> = {
   content: [season],
   page: 0,
@@ -282,6 +291,17 @@ describe('HarvestSeasonService', () => {
     expect(request.request.params.get('harvestSeasonIdA')).toBe('25');
     expect(request.request.params.get('harvestSeasonIdB')).toBe('26');
     request.flush({});
+  });
+
+  it('should get the category breakdown for a harvest season', () => {
+    service
+      .getCategoryBreakdown(25)
+      .subscribe((result) => expect(result).toEqual(categoryMovements));
+
+    const request = http.expectOne(`${apiUrl}/25/category-breakdown`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(categoryMovements);
   });
 
   it('should call GET /api/harvest/seasons/summary-list with supported params', () => {

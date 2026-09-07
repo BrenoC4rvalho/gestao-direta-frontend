@@ -18,6 +18,7 @@ import {
   HarvestSeasonBudget,
   HarvestSeasonBudgetItem,
   HarvestSeasonBudgetItemRequest,
+  HarvestCategoryMovements,
   HarvestSeasonComparison,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
@@ -86,6 +87,10 @@ export class HarvestSeasonService {
     return this.http
       .get<unknown>(this.apiUrl + '/' + id + '/summary')
       .pipe(map((response) => this.parseDetailSummary(response)));
+  }
+
+  getCategoryBreakdown(id: number): Observable<HarvestCategoryMovements> {
+    return this.http.get<HarvestCategoryMovements>(`${this.apiUrl}/${id}/category-breakdown`);
   }
 
   getBudgetItems(id: number): Observable<HarvestSeasonBudget> {

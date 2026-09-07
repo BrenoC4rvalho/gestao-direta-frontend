@@ -216,6 +216,7 @@ describe('HarvestSeasonDetailsPage', () => {
   let harvestService: {
     getById: Mock;
     getSummary: Mock;
+    getCategoryBreakdown: Mock;
     getBudgetItems: Mock;
     createBudgetItem: Mock;
     updateBudgetItem: Mock;
@@ -238,6 +239,12 @@ describe('HarvestSeasonDetailsPage', () => {
     harvestService = {
       getById: vi.fn(() => of(harvest)),
       getSummary: vi.fn(() => of(summary)),
+      getCategoryBreakdown: vi.fn(() =>
+        of({
+          expenses: { total: 0, categories: [] },
+          incomes: { total: 0, categories: [] },
+        }),
+      ),
       getBudgetItems: vi.fn(() => of(budget)),
       createBudgetItem: vi.fn(() => of({})),
       updateBudgetItem: vi.fn(() => of({})),

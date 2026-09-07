@@ -1,0 +1,112 @@
+<gd-card>
+  <section aria-labelledby="harvest-category-movements-heading">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 id="harvest-category-movements-heading" class="text-lg font-semibold text-text-primary">
+          {{ title() }}
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">{{ totalLabel() }}</p>
+        @if (!loading() && !error() && activeBreakdown(); as currentBreakdown) {
+          <p class="mt-1 text-xl font-semibold text-text-primary">
+            {{ currentBreakdown.total | brCurrency }}
+          </p>
+        }
+      </div>
+      <div
+        class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1"
+        aria-label="Tipo de movimentação"
+      >
+        <button
+          type="button"
+          class="flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Despesas"
+          title="Despesas"
+          [class.bg-surface]="selectedType() === 'EXPENSE'"
+          [class.text-danger]="selectedType() === 'EXPENSE'"
+          [class.text-text-muted]="selectedType() !== 'EXPENSE'"
+          [attr.aria-pressed]="selectedType() === 'EXPENSE'"
+          (click)="selectType('EXPENSE')"
+        >
+          <svg lucideIcon="trending-down" class="size-4" aria-hidden="true"></svg>
+          <span class="sr-only">Despesas</span>
+        </button>
+        <button
+          type="button"
+          class="flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Receitas"
+          title="Receitas"
+          [class.bg-surface]="selectedType() === 'INCOME'"
+          [class.text-success]="selectedType() === 'INCOME'"
+          [class.text-text-muted]="selectedType() !== 'INCOME'"
+          [attr.aria-pressed]="selectedType() === 'INCOME'"
+          (click)="selectType('INCOME')"
+        >
+          <svg lucideIcon="trending-up" class="size-4" aria-hidden="true"></svg>
+          <span class="sr-only">Receitas</span>
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="mt-5 space-y-3" aria-label="Carregando movimentações por categoria">
+        <gd-skeleton height="2.5rem" />
+        <gd-skeleton height="2.5rem" />
+        <gd-skeleton height="2.5rem" />
+      </div>
+    } @else if (error()) {
+      <gd-error-state
+        class="mt-5"
+        [title]="error()!"
+        description="Tente carregar esta seção novamente."
+        actionLabel="Tentar novamente"
+        (action)="retry()"
+      />
+    } @else if (isEmpty()) {
+      <gd-empty-state
+        class="mt-5"
+        [title]="
+          selectedType() === 'EXPENSE' ? 'Nenhuma despesa realizada.' : 'Nenhuma receita realizada.'
+        "
+        [description]="
+          selectedType() === 'EXPENSE'
+            ? 'As despesas pagas desta safra aparecerão aqui.'
+            : 'As receitas recebidas desta safra aparecerão aqui.'
+        "
+        [icon]="selectedType() === 'EXPENSE' ? 'trending-down' : 'trending-up'"
+      />
+    } @else {
+      <div
+        class="relative mt-5"
+        [style.height]="chartHeight()"
+        role="img"
+        [attr.aria-label]="title()"
+      >
+        <canvas
+          baseChart
+          [type]="chartType"
+          [data]="chartData()"
+          [options]="chartOptions()"
+          aria-hidden="true"
+        ></canvas>
+      </div>
+      <ul
+        class="mt-5 divide-y divide-border"
+        aria-label="Representação textual das movimentações por categoria"
+      >
+        @for (category of categories(); track category.categoryId ?? category.categoryName) {
+          <li class="flex items-center justify-between gap-4 py-3">
+            <span class="min-w-0 truncate text-sm font-medium text-text-primary">{{
+              category.categoryName
+            }}</span>
+            <span class="shrink-0 text-right text-sm text-text-muted">
+              <span class="font-semibold text-text-primary">{{
+                category.amount | brCurrency
+              }}</span>
+              · {{ formatPercentage(category.percentage) }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</gd-card>
