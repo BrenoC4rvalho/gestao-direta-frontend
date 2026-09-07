@@ -1,17 +1,44 @@
 <gd-card>
   <section aria-labelledby="harvest-category-movements-heading">
-    <div class="flex items-start justify-between gap-3">
-      <div>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
         <h2 id="harvest-category-movements-heading" class="text-lg font-semibold text-text-primary">
           {{ title() }}
         </h2>
-        <p class="mt-1 text-sm text-text-muted">{{ totalLabel() }}</p>
-        @if (!loading() && !error() && activeBreakdown(); as currentBreakdown) {
-          <p class="mt-1 text-xl font-semibold text-text-primary">
-            {{ currentBreakdown.total | brCurrency }}
-          </p>
-        }
+        <p class="mt-1 text-sm text-text-muted">Acompanhe os valores realizados por categoria.</p>
       </div>
+      <div
+        class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1"
+        aria-label="Modo de visualização"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          [class.bg-surface]="viewMode() === 'chart'"
+          [class.text-primary]="viewMode() === 'chart'"
+          [class.text-text-muted]="viewMode() !== 'chart'"
+          [attr.aria-pressed]="viewMode() === 'chart'"
+          (click)="selectViewMode('chart')"
+        >
+          <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
+          Gráfico
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          [class.bg-surface]="viewMode() === 'list'"
+          [class.text-primary]="viewMode() === 'list'"
+          [class.text-text-muted]="viewMode() !== 'list'"
+          [attr.aria-pressed]="viewMode() === 'list'"
+          (click)="selectViewMode('list')"
+        >
+          <svg lucideIcon="list-checks" class="size-4" aria-hidden="true"></svg>
+          Lista
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
       <div
         class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1"
         aria-label="Tipo de movimentação"
@@ -45,6 +72,15 @@
           <span class="sr-only">Receitas</span>
         </button>
       </div>
+
+      <div class="min-w-0 sm:text-right">
+        <p class="text-sm text-text-muted">{{ totalLabel() }}</p>
+        @if (!loading() && !error() && activeBreakdown(); as currentBreakdown) {
+          <p class="mt-1 text-xl font-semibold text-text-primary">
+            {{ currentBreakdown.total | brCurrency }}
+          </p>
+        }
+      </div>
     </div>
 
     @if (loading()) {
@@ -75,38 +111,49 @@
         [icon]="selectedType() === 'EXPENSE' ? 'trending-down' : 'trending-up'"
       />
     } @else {
-      <div
-        class="relative mt-5"
-        [style.height]="chartHeight()"
-        role="img"
-        [attr.aria-label]="title()"
-      >
-        <canvas
-          baseChart
-          [type]="chartType"
-          [data]="chartData()"
-          [options]="chartOptions()"
-          aria-hidden="true"
-        ></canvas>
-      </div>
-      <ul
-        class="mt-5 divide-y divide-border"
-        aria-label="Representação textual das movimentações por categoria"
-      >
-        @for (category of categories(); track category.categoryId ?? category.categoryName) {
-          <li class="flex items-center justify-between gap-4 py-3">
-            <span class="min-w-0 truncate text-sm font-medium text-text-primary">{{
-              category.categoryName
-            }}</span>
-            <span class="shrink-0 text-right text-sm text-text-muted">
-              <span class="font-semibold text-text-primary">{{
-                category.amount | brCurrency
-              }}</span>
-              · {{ formatPercentage(category.percentage) }}
-            </span>
-          </li>
-        }
-      </ul>
+      @if (viewMode() === 'chart') {
+        <div
+          class="relative mt-5"
+          [style.height]="chartHeight()"
+          role="img"
+          [attr.aria-label]="title()"
+        >
+          <canvas
+            baseChart
+            [type]="chartType"
+            [data]="chartData()"
+            [options]="chartOptions()"
+            aria-hidden="true"
+          ></canvas>
+        </div>
+      } @else {
+        <div class="mt-5">
+          <div
+            class="hidden grid-cols-[minmax(0,1fr)_auto_auto] gap-4 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-text-muted sm:grid"
+            aria-hidden="true"
+          >
+            <span>Categoria</span>
+            <span>Valor</span>
+            <span>Participação</span>
+          </div>
+          <ul class="divide-y divide-border" aria-label="Lista de movimentações por categoria">
+            @for (category of categories(); track category.categoryId ?? category.categoryName) {
+              <li class="flex items-center justify-between gap-4 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <span class="min-w-0 truncate text-sm font-medium text-text-primary">{{
+                  category.categoryName
+                }}</span>
+                <span class="shrink-0 text-right text-sm font-semibold text-text-primary">{{
+                  category.amount | brCurrency
+                }}</span>
+                <span class="shrink-0 text-right text-sm text-text-muted sm:contents">
+                  <span class="sm:hidden"> · {{ formatPercentage(category.percentage) }}</span>
+                  <span class="hidden sm:inline">{{ formatPercentage(category.percentage) }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
     }
   </section>
 </gd-card>

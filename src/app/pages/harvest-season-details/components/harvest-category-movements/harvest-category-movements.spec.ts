@@ -45,33 +45,68 @@ describe('HarvestCategoryMovements', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('loads expenses first and maps backend values to a horizontal chart and accessible list', async () => {
+  it('starts with the chart and maps expense values to a horizontal chart', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance as unknown as ComponentTestApi;
 
     expect(service.getCategoryBreakdown).toHaveBeenCalledWith(25);
-    expect(text(fixture)).toContain('Despesas por categoria');
+    expect(text(fixture)).toContain('Movimentações por categoria');
     expect(text(fixture)).toContain('R$ 1.250,00');
-    expect(text(fixture)).toContain('Fertilizantes');
-    expect(text(fixture)).toContain('Sem categoria');
-    expect(text(fixture)).toContain('80,00%');
     expect(component.chartType).toBe('bar');
     expect(component.chartOptions().indexAxis).toBe('y');
     expect(component.chartData().datasets[0].data).toEqual([1000, 250]);
     expect(fixture.nativeElement.querySelector('canvas')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Lista de movimentações por categoria"]')).toBeNull();
+    expect(button(fixture, 'Gráfico').getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('switches to incomes without another request', async () => {
+  it('switches exclusively between chart and list without another request', async () => {
     const fixture = await createComponent();
+
+    button(fixture, 'Lista').click();
+    fixture.detectChanges();
+
+    expect(service.getCategoryBreakdown).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('canvas')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Lista de movimentações por categoria"]')).not.toBeNull();
+    expect(button(fixture, 'Lista').getAttribute('aria-pressed')).toBe('true');
+    expect(button(fixture, 'Gráfico').getAttribute('aria-pressed')).toBe('false');
+
+    button(fixture, 'Gráfico').click();
+    fixture.detectChanges();
+
+    expect(service.getCategoryBreakdown).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('canvas')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Lista de movimentações por categoria"]')).toBeNull();
+  });
+
+  it('keeps category data, total and type independent across view changes', async () => {
+    const fixture = await createComponent();
+
+    button(fixture, 'Lista').click();
+    fixture.detectChanges();
+
+    expect(text(fixture)).toContain('Fertilizantes');
+    expect(text(fixture)).toContain('Sem categoria');
+    expect(text(fixture)).toContain('R$ 1.000,00');
+    expect(text(fixture)).toContain('80,00%');
+    expect(text(fixture)).toContain('R$ 1.250,00');
 
     button(fixture, 'Receitas').click();
     fixture.detectChanges();
 
     expect(service.getCategoryBreakdown).toHaveBeenCalledOnce();
-    expect(text(fixture)).toContain('Receitas por categoria');
     expect(text(fixture)).toContain('R$ 2.200,00');
     expect(text(fixture)).toContain('Venda de soja');
     expect(button(fixture, 'Receitas').getAttribute('aria-pressed')).toBe('true');
+    expect(button(fixture, 'Lista').getAttribute('aria-pressed')).toBe('true');
+
+    button(fixture, 'Gráfico').click();
+    fixture.detectChanges();
+
+    expect(text(fixture)).toContain('R$ 2.200,00');
+    expect(fixture.nativeElement.querySelector('canvas')).not.toBeNull();
+    expect(service.getCategoryBreakdown).toHaveBeenCalledOnce();
   });
 
   it('renders loading, empty and error states locally', async () => {
@@ -92,6 +127,9 @@ describe('HarvestCategoryMovements', () => {
     pending.complete();
     loadingFixture.detectChanges();
     expect(text(loadingFixture)).toContain('Nenhuma despesa realizada.');
+    expect(button(loadingFixture, 'Lista')).not.toBeNull();
+    expect(loadingFixture.nativeElement.querySelector('canvas')).toBeNull();
+    expect(loadingFixture.nativeElement.querySelector('[aria-label="Lista de movimentações por categoria"]')).toBeNull();
 
     TestBed.resetTestingModule();
     service = { getCategoryBreakdown: vi.fn(() => throwError(() => new Error('failure'))) };

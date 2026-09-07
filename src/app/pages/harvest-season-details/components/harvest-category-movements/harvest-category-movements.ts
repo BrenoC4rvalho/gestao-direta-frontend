@@ -25,6 +25,7 @@ import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../../../shared/ui';
 
 type CategoryMovementType = 'EXPENSE' | 'INCOME';
+type CategoryMovementViewMode = 'chart' | 'list';
 
 interface ChartThemeColors {
   muted: string;
@@ -70,13 +71,12 @@ export class HarvestCategoryMovements {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly selectedType = signal<CategoryMovementType>('EXPENSE');
+  protected readonly viewMode = signal<CategoryMovementViewMode>('chart');
   private readonly expenses = signal<HarvestCategoryBreakdown | null>(null);
   private readonly incomes = signal<HarvestCategoryBreakdown | null>(null);
 
   protected readonly chartType = 'bar' as const;
-  protected readonly title = computed(() =>
-    this.selectedType() === 'EXPENSE' ? 'Despesas por categoria' : 'Receitas por categoria',
-  );
+  protected readonly title = computed(() => 'Movimentações por categoria');
   protected readonly totalLabel = computed(() =>
     this.selectedType() === 'EXPENSE'
       ? 'Total de despesas realizadas'
@@ -160,6 +160,10 @@ export class HarvestCategoryMovements {
 
   protected selectType(type: CategoryMovementType): void {
     this.selectedType.set(type);
+  }
+
+  protected selectViewMode(viewMode: CategoryMovementViewMode): void {
+    this.viewMode.set(viewMode);
   }
 
   protected retry(): void {
