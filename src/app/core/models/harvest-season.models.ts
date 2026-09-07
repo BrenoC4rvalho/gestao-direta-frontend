@@ -140,6 +140,39 @@ export interface HarvestCategoryMovements {
   incomes: HarvestCategoryBreakdown;
 }
 
+export type HarvestCategoryComparisonStatus =
+  | 'ABOVE_PLAN'
+  | 'BELOW_PLAN'
+  | 'ON_PLAN'
+  | 'UNPLANNED'
+  | 'NO_MOVEMENT';
+
+export type ComparisonSemantic = 'BETTER' | 'WORSE' | 'NEUTRAL';
+
+export interface HarvestCategoryComparisonCategory {
+  categoryId: number | null;
+  categoryName: string;
+  planned: boolean;
+  plannedAmount: number | null;
+  realizedAmount: number;
+  difference: number;
+  percentageDifference: number | null;
+  status: HarvestCategoryComparisonStatus;
+  semantic: ComparisonSemantic;
+}
+
+export interface HarvestCategoryComparisonBreakdown {
+  plannedTotal: number;
+  realizedTotal: number;
+  difference: number;
+  categories: readonly HarvestCategoryComparisonCategory[];
+}
+
+export interface HarvestCategoryComparison {
+  expenses: HarvestCategoryComparisonBreakdown;
+  incomes: HarvestCategoryComparisonBreakdown;
+}
+
 export interface UpdateHarvestSeasonStatusRequest {
   status: HarvestSeasonStatus;
 }

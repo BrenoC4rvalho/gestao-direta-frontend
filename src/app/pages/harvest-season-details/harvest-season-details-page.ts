@@ -83,7 +83,7 @@ import {
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
 import { PerHectareIndicators } from './components/per-hectare-indicators/per-hectare-indicators';
-import { HarvestCategoryMovements } from './components/harvest-category-movements/harvest-category-movements';
+import { HarvestCategoryAnalysis } from './components/harvest-category-movements/harvest-category-movements';
 import { PlanningCurrentComparison } from './components/planning-current-comparison/planning-current-comparison';
 
 interface HarvestFormControls {
@@ -157,7 +157,7 @@ interface StatusTarget {
     Drawer,
     EmptyState,
     ErrorState,
-    HarvestCategoryMovements,
+    HarvestCategoryAnalysis,
     NgTemplateOutlet,
     PerHectareIndicators,
     PlanningCurrentComparison,

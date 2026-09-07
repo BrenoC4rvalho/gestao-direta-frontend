@@ -10,6 +10,7 @@ import {
   HarvestSeasonFinancialSummary,
   HarvestSeasonDetailSummary,
   HarvestCategoryMovements,
+  HarvestCategoryComparison,
   HarvestSeasonSummaryListItem,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
@@ -188,6 +189,11 @@ const categoryMovements: HarvestCategoryMovements = {
   incomes: { total: 0, categories: [] },
 };
 
+const categoryComparison: HarvestCategoryComparison = {
+  expenses: { plannedTotal: 1200, realizedTotal: 1000, difference: -200, categories: [] },
+  incomes: { plannedTotal: 0, realizedTotal: 0, difference: 0, categories: [] },
+};
+
 const response: PageResponse<HarvestSeason> = {
   content: [season],
   page: 0,
@@ -302,6 +308,17 @@ describe('HarvestSeasonService', () => {
     expect(request.request.method).toBe('GET');
     expect(request.request.withCredentials).toBe(true);
     request.flush(categoryMovements);
+  });
+
+  it('should get the category comparison for a harvest season', () => {
+    service
+      .getCategoryComparison(25)
+      .subscribe((result) => expect(result).toEqual(categoryComparison));
+
+    const request = http.expectOne(`${apiUrl}/25/category-comparison`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush(categoryComparison);
   });
 
   it('should call GET /api/harvest/seasons/summary-list with supported params', () => {

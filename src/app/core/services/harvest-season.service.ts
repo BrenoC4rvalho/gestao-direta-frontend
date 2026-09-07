@@ -18,6 +18,7 @@ import {
   HarvestSeasonBudget,
   HarvestSeasonBudgetItem,
   HarvestSeasonBudgetItemRequest,
+  HarvestCategoryComparison,
   HarvestCategoryMovements,
   HarvestSeasonComparison,
   UpdateHarvestSeasonRequest,
@@ -91,6 +92,10 @@ export class HarvestSeasonService {
 
   getCategoryBreakdown(id: number): Observable<HarvestCategoryMovements> {
     return this.http.get<HarvestCategoryMovements>(`${this.apiUrl}/${id}/category-breakdown`);
+  }
+
+  getCategoryComparison(id: number): Observable<HarvestCategoryComparison> {
+    return this.http.get<HarvestCategoryComparison>(`${this.apiUrl}/${id}/category-comparison`);
   }
 
   getBudgetItems(id: number): Observable<HarvestSeasonBudget> {
