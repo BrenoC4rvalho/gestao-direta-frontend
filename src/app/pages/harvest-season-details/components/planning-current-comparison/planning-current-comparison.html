@@ -19,35 +19,13 @@
       <p class="mt-1 text-sm text-text-muted">
         Compare o planejamento financeiro com os valores atuais da Safra.
       </p>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         @for (card of cards(); track card.title) {
-          <gd-card padding="md">
-            <h3 class="text-sm font-semibold text-text-primary">{{ card.title }}</h3>
-            <dl class="mt-4 space-y-2 text-sm">
-              <div class="flex items-center justify-between gap-3">
-                <dt class="text-text-muted">Planejado</dt>
-                <dd class="font-medium text-text-primary">
-                  {{ formatValue(card.metric, card.metric.planned) }}
-                </dd>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <dt class="text-text-muted">{{ currentLabel() }}</dt>
-                <dd class="font-medium text-text-primary">
-                  {{ formatValue(card.metric, card.metric.current) }}
-                </dd>
-              </div>
-            </dl>
-            <div class="mt-4 border-t border-border pt-3">
-              <p class="text-xs font-medium text-text-muted">Diferença</p>
-              <p class="mt-1 text-sm font-semibold" [class]="semanticClasses(card.metric.semantic)">
-                {{ formatDifference(card.metric) }}
-                @if (percentageDifference(card.metric); as percentage) {
-                  <span class="text-xs">({{ percentage }})</span>
-                }
-              </p>
-              <p class="mt-1 text-xs text-text-muted">{{ positionLabel(card.metric) }}</p>
-            </div>
-          </gd-card>
+          <gd-planning-comparison-card
+            [card]="card"
+            [currentLabel]="currentLabel()"
+            [basis]="comparison().basis!"
+          />
         }
       </div>
     }

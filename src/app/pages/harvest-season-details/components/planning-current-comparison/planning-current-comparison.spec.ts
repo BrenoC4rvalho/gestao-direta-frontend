@@ -43,7 +43,7 @@ describe('PlanningCurrentComparison', () => {
     expect(text(fixture)).toContain('R$ 1.000,00');
     expect(text(fixture)).toContain('-R$ 200,00');
     expect(text(fixture)).toContain('(+15,00%)');
-    expect(text(fixture)).toContain('15,00% p.p.');
+    expect(text(fixture)).toContain('15,00 p.p.');
     expect(text(fixture)).toContain('Abaixo do planejado');
     expect(fixture.nativeElement.querySelectorAll('gd-card')).toHaveLength(4);
     expect(fixture.nativeElement.querySelector('gd-tooltip')).not.toBeNull();

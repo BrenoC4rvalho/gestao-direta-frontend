@@ -1,0 +1,48 @@
+<gd-card padding="md" class="flex h-full flex-col">
+  <div class="flex items-start gap-2">
+    <div
+      class="flex size-8 shrink-0 items-center justify-center rounded-control bg-background text-text-muted"
+    >
+      <svg [lucideIcon]="card().icon" class="size-4" aria-hidden="true"></svg>
+    </div>
+    <div class="min-w-0">
+      <h3 class="text-sm font-semibold text-text-primary">{{ card().title }}</h3>
+      <p class="mt-0.5 text-xs text-text-muted">Planejado x {{ currentLabel() }}</p>
+    </div>
+  </div>
+
+  <div class="relative mt-4 h-52 min-h-52" role="img" [attr.aria-label]="accessibleDescription()">
+    <canvas
+      baseChart
+      [type]="chartType"
+      [data]="chartData()"
+      [options]="chartOptions()"
+      [plugins]="chartPlugins()"
+      aria-hidden="true"
+    ></canvas>
+  </div>
+
+  <dl class="sr-only">
+    <dt>Planejado</dt>
+    <dd>{{ formatValue(card().metric, card().metric.planned) }}</dd>
+    <dt>{{ currentLabel() }}</dt>
+    <dd>{{ formatValue(card().metric, card().metric.current) }}</dd>
+    <dt>Diferença</dt>
+    <dd>{{ formattedDifference() }}</dd>
+    <dt>Situação</dt>
+    <dd>{{ positionLabel(card().metric) }}</dd>
+  </dl>
+
+  <div class="mt-auto border-t border-border pt-3">
+    <p class="text-xs font-medium text-text-muted">Diferença</p>
+    <p class="mt-1 text-sm font-semibold" [class]="semanticClasses()">
+      <span aria-hidden="true">{{ arrow() }}</span>
+      {{ formattedDifference() }}
+      @if (formattedPercentageDifference(); as percentage) {
+        <span class="text-xs">({{ percentage }})</span>
+      }
+    </p>
+    <p class="mt-1 text-xs text-text-muted">{{ positionLabel(card().metric) }}</p>
+    <p class="mt-2 min-h-10 text-xs leading-5 text-text-muted">{{ explanation() }}</p>
+  </div>
+</gd-card>
