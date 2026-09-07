@@ -99,6 +99,7 @@ interface DetailSummaryCard {
   title: string;
   value: string;
   description: string;
+  meta?: string;
   detail?: string;
   icon: string;
   tone: SummaryCardTone;
@@ -476,6 +477,7 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         'Total de despesas previstas para a safra.',
         'briefcase-business',
         'warning',
+        this.budgetItemCount(budget.expenses),
       ),
       this.currencyCard(
         'Receitas planejadas',
@@ -483,6 +485,7 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
         'Total de receitas previstas para a safra.',
         'trending-up',
         'success',
+        this.budgetItemCount(budget.incomes),
       ),
       this.profitCard(
         'Resultado planejado',
@@ -1055,8 +1058,24 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
     description: string,
     icon: string,
     tone: SummaryCardTone,
+    itemCount?: number,
   ): DetailSummaryCard {
-    return { title, value: this.currencyLabel(amount), description, icon, tone };
+    return {
+      title,
+      value: this.currencyLabel(amount),
+      description,
+      meta: itemCount === undefined ? undefined : this.itemCountLabel(itemCount),
+      icon,
+      tone,
+    };
+  }
+
+  private budgetItemCount(groups: readonly HarvestSeasonBudgetCategory[]): number {
+    return groups.reduce((total, group) => total + group.itemCount, 0);
+  }
+
+  private itemCountLabel(itemCount: number): string {
+    return `${itemCount} ${itemCount === 1 ? 'item' : 'itens'}`;
   }
 
   private profitCard(

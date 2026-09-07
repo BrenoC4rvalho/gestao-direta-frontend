@@ -678,7 +678,7 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
   });
 
-  it('should switch to the planning tab and render planned totals and legacy groups', () => {
+  it('should render compact planning sections, summary item counts and accessible item actions', () => {
     harvestService.getBudgetItems.mockReturnValue(
       of({
         ...budget,
@@ -720,9 +720,26 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Margem planejada');
     expect(text()).toContain('Sem categoria');
     expect(text()).toContain('Planejamento anterior');
-    expect(text()).toContain('Editar');
-    expect(text()).toContain('Remover');
+    expect(text()).toContain('1 item');
+    expect(summaryCardText('Despesas planejadas')).toContain('1 item');
+    expect(summaryCardText('Receitas planejadas')).toContain('0 itens');
+    expect(fixture.nativeElement.querySelector('[aria-label="Editar"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Remover"]')).not.toBeNull();
+    expect(text()).not.toContain('Nenhum item nesta seção.');
     expect(text()).not.toContain('Movimentações vinculadas');
+
+    clickButton('Editar');
+
+    expect(text()).toContain('Editar despesa planejada');
+
+    clickButton('Cancelar');
+    clickButton('Remover');
+
+    expect(text()).toContain('Remover item do planejamento?');
+
+    clickLastButton('Remover');
+
+    expect(harvestService.deleteBudgetItem).toHaveBeenCalledWith(1, 9);
   });
 
   it('should show planning create actions only to users that can manage the harvest', () => {
@@ -734,14 +751,14 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Adicionar receita');
   });
 
-  it('should render the planning empty state with actions for an authorized user', () => {
+  it('should render contextual empty states and actions for an authorized user', () => {
     setupUser('PRODUCER');
     createComponent();
 
     clickButton('Planejamento financeiro');
 
-    expect(text()).toContain('Nenhum item planejado ainda.');
-    expect(text()).toContain('Adicione receitas e despesas previstas para acompanhar o planejamento');
+    expect(text()).toContain('Nenhuma despesa planejada');
+    expect(text()).toContain('Nenhuma receita planejada');
     expect(text()).toContain('Adicionar despesa');
     expect(text()).toContain('Adicionar receita');
   });
@@ -755,6 +772,72 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).not.toContain('Adicionar despesa');
     expect(text()).not.toContain('Adicionar receita');
     expect(fixture.nativeElement.querySelector('[data-testid="budget-item-actions"]')).toBeNull();
+  });
+
+  it('should preserve multiple category groups and provide a contextual action for an empty section', () => {
+    harvestService.getBudgetItems.mockReturnValue(
+      of({
+        ...budget,
+        plannedExpense: 500,
+        expenses: [
+          {
+            categoryId: 3,
+            categoryName: 'Insumos',
+            type: 'EXPENSE',
+            itemCount: 2,
+            plannedAmount: 500,
+            items: [
+              {
+                id: 9,
+                harvestSeasonId: 1,
+                categoryId: 3,
+                categoryName: 'Insumos',
+                type: 'EXPENSE',
+                description: 'Sementes',
+                plannedAmount: 300,
+              },
+              {
+                id: 10,
+                harvestSeasonId: 1,
+                categoryId: 3,
+                categoryName: 'Insumos',
+                type: 'EXPENSE',
+                description: 'Fertilizante',
+                plannedAmount: 200,
+              },
+            ],
+          },
+          {
+            categoryId: null,
+            categoryName: 'Sem categoria',
+            type: 'EXPENSE',
+            itemCount: 1,
+            plannedAmount: 100,
+            items: [
+              {
+                id: 11,
+                harvestSeasonId: 1,
+                categoryId: null,
+                categoryName: 'Sem categoria',
+                type: 'EXPENSE',
+                description: 'Frete',
+                plannedAmount: 100,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+
+    expect(text()).toContain('Insumos');
+    expect(text()).toContain('Sem categoria');
+    expect(summaryCardText('Despesas planejadas')).toContain('3 itens');
+    expect(text()).toContain('Nenhuma receita planejada');
+    expect(emptyStateText('Nenhuma receita planejada')).toContain('Adicionar receita');
   });
 
   function createComponent(): void {
@@ -833,6 +916,22 @@ describe('HarvestSeasonDetailsPage', () => {
     return Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
     ).map((card) => card.querySelector('article p')?.textContent?.trim() ?? '');
+  }
+
+  function summaryCardText(title: string): string {
+    const card = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
+    ).find((item) => item.textContent?.includes(title));
+
+    return card?.textContent ?? '';
+  }
+
+  function emptyStateText(title: string): string {
+    const emptyState = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('gd-empty-state'),
+    ).find((item) => item.textContent?.includes(title));
+
+    return emptyState?.textContent ?? '';
   }
 
   function tableHeaderTexts(): string[] {
