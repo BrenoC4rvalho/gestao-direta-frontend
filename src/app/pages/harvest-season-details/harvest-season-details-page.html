@@ -91,8 +91,16 @@
                   Informações da safra
                 </h2>
                 @if (canManageHarvests()) {
-                  <gd-button type="button" variant="outline" size="sm" (click)="openEditDrawer()">
-                    Editar safra
+                  <gd-button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    [iconOnly]="true"
+                    ariaLabel="Editar safra"
+                    title="Editar safra"
+                    (click)="openEditDrawer()"
+                  >
+                    <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
                   </gd-button>
                 }
               </div>
@@ -190,7 +198,6 @@
                 <tr class="text-xs font-semibold uppercase tracking-wide text-white">
                   <th class="px-5 py-4" scope="col">Data</th>
                   <th class="px-5 py-4" scope="col">Descrição</th>
-                  <th class="px-5 py-4" scope="col">Tipo</th>
                   <th class="px-5 py-4" scope="col">Categoria</th>
                   <th class="px-5 py-4" scope="col">Status</th>
                   <th class="px-5 py-4 text-right" scope="col">Valor</th>
@@ -204,9 +211,6 @@
                     </td>
                     <td class="px-5 py-4 font-semibold text-text-primary">
                       {{ transaction.description }}
-                    </td>
-                    <td class="px-5 py-4 text-text-muted">
-                      {{ transactionTypeLabel(transaction.type) }}
                     </td>
                     <td class="px-5 py-4 text-text-muted">
                       {{ transaction.categoryName ?? 'Sem categoria' }}

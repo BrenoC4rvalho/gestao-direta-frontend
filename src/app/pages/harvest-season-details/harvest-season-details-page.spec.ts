@@ -302,7 +302,6 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(tableHeaderTexts()).toEqual([
       'Data',
       'Descrição',
-      'Tipo',
       'Categoria',
       'Status',
       'Valor',
@@ -477,7 +476,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Editar');
+    expect(editHarvestButton()).toBeTruthy();
     expect(text()).not.toContain('Inativar');
     expect(text()).not.toContain('Reativar');
   });
@@ -509,7 +508,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('EMPLOYEE');
     createComponent();
 
-    expect(text()).not.toContain('Editar');
+    expect(editHarvestButton()).toBeNull();
     expect(text()).not.toContain('Status da safra');
   });
 
@@ -517,7 +516,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('ACCOUNTANT');
     createComponent();
 
-    expect(text()).not.toContain('Editar');
+    expect(editHarvestButton()).toBeNull();
     expect(text()).not.toContain('Status da safra');
   });
 
@@ -525,7 +524,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Editar');
+    expect(editHarvestButton()).toBeTruthy();
   });
 
   it('should open the edit drawer with the harvest status section for active harvests', () => {
@@ -807,7 +806,9 @@ describe('HarvestSeasonDetailsPage', () => {
   function clickButton(label: string): void {
     const button = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
-    ).find((item) => item.textContent?.trim() === label);
+    ).find(
+      (item) => item.textContent?.trim() === label || item.getAttribute('aria-label') === label,
+    );
 
     button?.click();
     fixture.detectChanges();
@@ -838,6 +839,10 @@ describe('HarvestSeasonDetailsPage', () => {
     return Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('table thead th'),
     ).map((item) => item.textContent?.trim() ?? '');
+  }
+
+  function editHarvestButton(): HTMLButtonElement | null {
+    return (fixture.nativeElement as HTMLElement).querySelector('[aria-label="Editar safra"]');
   }
 
   function text(): string {
