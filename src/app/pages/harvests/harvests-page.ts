@@ -59,6 +59,7 @@ import {
   numberToBrazilianMoney,
   sanitizeBrazilianMoneyInput,
 } from '../../shared/utils/money.utils';
+import { HarvestComparisonDrawer } from '../dashboard/components/harvest-comparison-drawer/harvest-comparison-drawer';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -90,6 +91,7 @@ interface HarvestSummaryCard {
     Drawer,
     EmptyState,
     ErrorState,
+    HarvestComparisonDrawer,
     Input,
     ListFilters,
     LucideDynamicIcon,
@@ -131,6 +133,7 @@ export class HarvestsPage {
   protected readonly error = signal(false);
   protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
+  protected readonly harvestComparisonOpen = signal(false);
   protected readonly submitting = signal(false);
   protected readonly skeletons = [1, 2, 3, 4];
   protected readonly summarySkeletons = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -406,6 +409,14 @@ export class HarvestsPage {
       areaHectares: '',
     });
     this.drawerOpen.set(true);
+  }
+
+  protected openHarvestComparison(): void {
+    this.harvestComparisonOpen.set(true);
+  }
+
+  protected closeHarvestComparison(): void {
+    this.harvestComparisonOpen.set(false);
   }
 
   protected closeDrawer(): void {

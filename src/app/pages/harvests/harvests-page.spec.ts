@@ -624,6 +624,17 @@ describe('HarvestsPage', () => {
     expect(text()).not.toContain('Ativar');
   });
 
+  it('should open the harvest comparison drawer', () => {
+    setupSelectedFarm('PRODUCER');
+
+    expect(text()).toContain('Comparar safras');
+    expect(componentState().harvestComparisonOpen()).toBe(false);
+
+    clickButton('Comparar safras');
+
+    expect(componentState().harvestComparisonOpen()).toBe(true);
+  });
+
   it('should navigate to details when clicking a harvest card', () => {
     setupSelectedFarm('PRODUCER');
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
@@ -653,6 +664,7 @@ describe('HarvestsPage', () => {
     setupSelectedFarm('EMPLOYEE');
 
     expect(text()).not.toContain('Nova safra');
+    expect(text()).toContain('Comparar safras');
     expect(text()).not.toContain('Ver detalhes');
     expect(text()).not.toContain('Editar');
     expect(text()).not.toContain('Inativar');
@@ -760,11 +772,13 @@ describe('HarvestsPage', () => {
     loading: () => boolean;
     error: () => boolean;
     response: () => PageResponse<HarvestSeasonSummaryListItem> | null;
+    harvestComparisonOpen: () => boolean;
   } {
     return fixture.componentInstance as unknown as {
       loading: () => boolean;
       error: () => boolean;
       response: () => PageResponse<HarvestSeasonSummaryListItem> | null;
+      harvestComparisonOpen: () => boolean;
     };
   }
 
