@@ -143,7 +143,7 @@ export class PlanningComparisonCard {
   protected readonly accessibleDescription = computed(() => {
     const { title, metric } = this.card();
 
-    return `${title}. Planejado: ${this.formatValue(metric, metric.planned)}. ${this.currentLabel()}: ${this.formatValue(metric, metric.current)}. Diferença: ${this.formattedDifference()}. ${this.positionLabel(metric)}.`;
+    return `${title}. Planejado: ${this.formatValue(metric, metric.planned)}. ${this.currentLabel()}: ${this.formatValue(metric, metric.current)}. Variação: ${this.formattedDifference()}. ${this.positionLabel(metric)}.`;
   });
 
   constructor() {

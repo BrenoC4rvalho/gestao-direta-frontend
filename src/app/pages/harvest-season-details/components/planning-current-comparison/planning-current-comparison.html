@@ -1,59 +1,61 @@
-<section aria-labelledby="planning-current-comparison-heading">
-  <div class="flex items-center gap-2">
-    <h2 id="planning-current-comparison-heading" class="text-lg font-semibold text-text-primary">
-      {{ title() }}
-    </h2>
-    @if (showProjectionTooltip()) {
-      <gd-tooltip
-        [ariaLabel]="projectionTooltip"
-        [content]="projectionTooltip"
-        class="focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <svg lucideIcon="info" class="size-4 text-text-muted" aria-hidden="true"></svg>
-      </gd-tooltip>
-    }
-  </div>
+<gd-card>
+  <section aria-labelledby="planning-current-comparison-heading">
+    <div class="flex items-center gap-2">
+      <h2 id="planning-current-comparison-heading" class="text-lg font-semibold text-text-primary">
+        {{ title() }}
+      </h2>
+      @if (showProjectionTooltip()) {
+        <gd-tooltip
+          [ariaLabel]="projectionTooltip"
+          [content]="projectionTooltip"
+          class="focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <svg lucideIcon="info" class="size-4 text-text-muted" aria-hidden="true"></svg>
+        </gd-tooltip>
+      }
+    </div>
 
-  @switch (comparison().state) {
-    @case ('READY') {
-      <p class="mt-1 text-sm text-text-muted">
-        Compare o planejamento financeiro com os valores atuais da Safra.
-      </p>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-        @for (card of cards(); track card.title) {
-          <gd-planning-comparison-card
-            [card]="card"
-            [currentLabel]="currentLabel()"
-            [basis]="comparison().basis!"
-          />
-        }
-      </div>
+    @switch (comparison().state) {
+      @case ('READY') {
+        <p class="mt-1 text-sm text-text-muted">
+          Compare o planejamento financeiro com os valores atuais da Safra.
+        </p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          @for (card of cards(); track card.title) {
+            <gd-planning-comparison-card
+              [card]="card"
+              [currentLabel]="currentLabel()"
+              [basis]="comparison().basis!"
+            />
+          }
+        </div>
+      }
+      @case ('MISSING_PLANNING') {
+        <gd-empty-state
+          class="mt-4"
+          title="Planejamento financeiro não informado"
+          description="Adicione itens de planejamento para comparar os valores previstos com a Safra."
+          icon="wallet"
+          actionLabel="Ver planejamento financeiro"
+          (action)="viewPlanning.emit()"
+        />
+      }
+      @case ('PLANNED') {
+        <gd-empty-state
+          class="mt-4"
+          title="Aguardando o início da Safra"
+          description="A comparação será exibida quando a Safra estiver em andamento ou finalizada."
+          icon="calendar-clock"
+        />
+      }
+      @case ('MISSING_CURRENT_DATA') {
+        <gd-empty-state
+          class="mt-4"
+          title="Sem dados financeiros atuais"
+          description="Registre movimentações ou compromissos financeiros para comparar com o planejamento."
+          icon="receipt-text"
+        />
+      }
     }
-    @case ('MISSING_PLANNING') {
-      <gd-empty-state
-        class="mt-4"
-        title="Planejamento financeiro não informado"
-        description="Adicione itens de planejamento para comparar os valores previstos com a Safra."
-        icon="wallet"
-        actionLabel="Ver planejamento financeiro"
-        (action)="viewPlanning.emit()"
-      />
-    }
-    @case ('PLANNED') {
-      <gd-empty-state
-        class="mt-4"
-        title="Aguardando o início da Safra"
-        description="A comparação será exibida quando a Safra estiver em andamento ou finalizada."
-        icon="calendar-clock"
-      />
-    }
-    @case ('MISSING_CURRENT_DATA') {
-      <gd-empty-state
-        class="mt-4"
-        title="Sem dados financeiros atuais"
-        description="Registre movimentações ou compromissos financeiros para comparar com o planejamento."
-        icon="receipt-text"
-      />
-    }
-  }
-</section>
+  </section>
+</gd-card>

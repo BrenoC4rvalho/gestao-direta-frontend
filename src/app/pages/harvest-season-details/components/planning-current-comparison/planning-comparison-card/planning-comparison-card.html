@@ -27,14 +27,13 @@
     <dd>{{ formatValue(card().metric, card().metric.planned) }}</dd>
     <dt>{{ currentLabel() }}</dt>
     <dd>{{ formatValue(card().metric, card().metric.current) }}</dd>
-    <dt>Diferença</dt>
+    <dt>Variação</dt>
     <dd>{{ formattedDifference() }}</dd>
     <dt>Situação</dt>
     <dd>{{ positionLabel(card().metric) }}</dd>
   </dl>
 
   <div class="mt-auto border-t border-border pt-3">
-    <p class="text-xs font-medium text-text-muted">Diferença</p>
     <p class="mt-1 text-sm font-semibold" [class]="semanticClasses()">
       <span aria-hidden="true">{{ arrow() }}</span>
       {{ formattedDifference() }}

@@ -5,7 +5,7 @@ import {
   HarvestPlanningComparison,
   HarvestPlanningComparisonMetric,
 } from '../../../../core/models/harvest-season.models';
-import { EmptyState, Tooltip } from '../../../../shared/ui';
+import { Card, EmptyState, Tooltip } from '../../../../shared/ui';
 import {
   PlanningComparisonCard,
   PlanningComparisonCardModel,
@@ -13,7 +13,8 @@ import {
 
 @Component({
   selector: 'gd-planning-current-comparison',
-  imports: [EmptyState, LucideDynamicIcon, PlanningComparisonCard, Tooltip],
+  host: { class: 'block' },
+  imports: [Card, EmptyState, LucideDynamicIcon, PlanningComparisonCard, Tooltip],
   templateUrl: './planning-current-comparison.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
