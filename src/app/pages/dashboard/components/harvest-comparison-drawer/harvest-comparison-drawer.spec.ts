@@ -185,7 +185,7 @@ describe('HarvestComparisonDrawer', () => {
     ) as HTMLTableRowElement;
 
     expect(service.compareHarvestSeasons).toHaveBeenCalledWith(10, 1, 2);
-    expect(headers).toEqual(['Indicador', 'Safra A', 'Safra B']);
+    expect(headers).toEqual(['Indicador', 'Café 2025/2026', 'Café 2026/2027']);
     expect(text).toContain('Planejamento');
     expect(text).toContain('Projeção');
     expect(text).toContain('Realizado');

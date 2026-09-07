@@ -93,19 +93,19 @@
               Indicadores financeiros e produtivos de {{ currentComparison.harvestA.name }} e
               {{ currentComparison.harvestB.name }}
             </caption>
-            <thead class="bg-background text-left">
-              <tr>
+            <thead class="border-b border-border bg-primary text-left text-white">
+              <tr class="text-xs font-semibold uppercase tracking-wide text-white">
                 <th
                   scope="col"
-                  class="sticky left-0 z-10 min-w-52 border-b border-border bg-background px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-muted"
+                  class="sticky left-0 z-10 min-w-52 bg-primary px-4 py-3"
                 >
                   Indicador
                 </th>
-                <th scope="col" class="min-w-60 border-b border-border px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  Safra A
+                <th scope="col" class="min-w-60 px-4 py-3 text-right">
+                  {{ currentComparison.harvestA.name }}
                 </th>
-                <th scope="col" class="min-w-60 border-b border-border px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  Safra B
+                <th scope="col" class="min-w-60 px-4 py-3 text-right">
+                  {{ currentComparison.harvestB.name }}
                 </th>
               </tr>
             </thead>
