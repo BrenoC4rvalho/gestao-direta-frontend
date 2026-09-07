@@ -122,6 +122,8 @@ interface BudgetSection {
 interface InfoItem {
   label: string;
   value: string;
+  fullWidth?: boolean;
+  statusVariant?: BadgeVariant;
 }
 
 interface StatusConfirmation {
@@ -528,16 +530,19 @@ export class HarvestSeasonDetailsPage implements OnInit, OnDestroy {
 
     return [
       { label: 'Nome', value: this.emptyLabel(harvest.name) },
-      { label: 'Descrição', value: this.emptyLabel(harvest.description) },
       { label: 'Atividade produtiva', value: this.emptyLabel(harvest.productionActivityName) },
       {
         label: 'Fazenda',
         value: this.emptyLabel(harvest.farmName ?? `Fazenda #${harvest.farmId}`),
       },
-      { label: 'Status', value: this.statusLabel(harvest.status) },
-      { label: 'Data inicial', value: this.dateLabel(harvest.startDate) },
-      { label: 'Data final', value: harvest.endDate ? this.dateLabel(harvest.endDate) : '—' },
-      { label: 'Área em hectares', value: this.hectareLabel(harvest.areaHectares) },
+      {
+        label: 'Status',
+        value: this.statusLabel(harvest.status),
+        statusVariant: this.statusVariant(harvest.status),
+      },
+      { label: 'Período', value: this.periodLabel(harvest) },
+      { label: 'Área', value: this.hectareLabel(harvest.areaHectares) },
+      { label: 'Descrição', value: this.emptyLabel(harvest.description), fullWidth: true },
       { label: 'Criado em', value: harvest.createdAt ? this.dateLabel(harvest.createdAt) : '—' },
       {
         label: 'Atualizado em',

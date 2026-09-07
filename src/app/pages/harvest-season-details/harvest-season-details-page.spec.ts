@@ -243,14 +243,33 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).toContain('Movimentações vinculadas');
   });
 
-  it('should render harvest information with name and description', () => {
+  it('should render the compact harvest information summary', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    expect(text()).toContain('Nome');
-    expect(text()).toContain('Safra Soja 2026');
-    expect(text()).toContain('Descrição');
-    expect(text()).toContain('Safra de verao');
+    const informationSection = (fixture.nativeElement as HTMLElement).querySelector(
+      'section[aria-labelledby="harvest-info-heading"]',
+    );
+    const informationText = informationSection?.textContent ?? '';
+
+    expect(informationText).toContain('Nome');
+    expect(informationText).toContain('Safra Soja 2026');
+    expect(informationText).toContain('Atividade produtiva');
+    expect(informationText).toContain('Soja');
+    expect(informationText).toContain('Fazenda');
+    expect(informationText).toContain('Fazenda Boa Safra');
+    expect(informationText).toContain('Status');
+    expect(informationSection?.querySelector('gd-badge')?.textContent).toContain('Em andamento');
+    expect(informationText).toContain('Período');
+    expect(informationText).toContain('01/01/2026 a 30/06/2026');
+    expect(informationText).toContain('Área');
+    expect(informationText).toContain('120.5 ha');
+    expect(informationText).toContain('Descrição');
+    expect(informationText).toContain('Safra de verao');
+    expect(informationText).toContain('Criado em');
+    expect(informationText).toContain('01/01/2026');
+    expect(informationText).toContain('Atualizado em');
+    expect(informationText).toContain('01/02/2026');
   });
 
   it('should publish the harvest name, status and metadata to the page header', () => {
