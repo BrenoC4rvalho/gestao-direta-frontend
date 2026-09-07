@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   effect,
   inject,
   input,
@@ -74,6 +75,8 @@ export class HarvestCategoryAnalysis {
   private readonly themeStore = inject(ThemeStore);
   private readonly destroyRef = inject(DestroyRef);
   private readonly chartDirective = viewChild(BaseChartDirective);
+  private readonly controlsButton = viewChild<ElementRef<HTMLElement>>('controlsButton');
+  private readonly controlsMenu = viewChild<ElementRef<HTMLElement>>('controlsMenu');
 
   protected readonly movementsLoading = signal(false);
   protected readonly movementsError = signal<string | null>(null);
@@ -82,6 +85,7 @@ export class HarvestCategoryAnalysis {
   protected readonly analysisMode = signal<CategoryAnalysisMode>('movements');
   protected readonly selectedType = signal<CategoryMovementType>('EXPENSE');
   protected readonly viewMode = signal<CategoryMovementViewMode>('chart');
+  protected readonly controlsMenuOpen = signal(false);
   private readonly expenses = signal<HarvestCategoryBreakdown | null>(null);
   private readonly incomes = signal<HarvestCategoryBreakdown | null>(null);
   private readonly comparison = signal<HarvestCategoryComparison | null>(null);
@@ -223,6 +227,18 @@ export class HarvestCategoryAnalysis {
 
   protected selectViewMode(viewMode: CategoryMovementViewMode): void {
     this.viewMode.set(viewMode);
+  }
+
+  protected toggleControlsMenu(): void {
+    this.controlsMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected closeControlsMenuWhenClickingOutside(event: MouseEvent): void {
+    const target = event.target as Node;
+    const clickedButton = this.controlsButton()?.nativeElement.contains(target) ?? false;
+    const clickedMenu = this.controlsMenu()?.nativeElement.contains(target) ?? false;
+
+    if (!clickedButton && !clickedMenu) this.controlsMenuOpen.set(false);
   }
 
   protected retry(): void {

@@ -1,5 +1,5 @@
 <gd-card>
-  <section aria-labelledby="harvest-category-analysis-heading">
+  <section aria-labelledby="harvest-category-analysis-heading" (document:click)="closeControlsMenuWhenClickingOutside($event)">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-2">
@@ -8,31 +8,13 @@
           </h2>
           <div class="inline-flex" aria-label="Tipo financeiro">
             <gd-tooltip ariaLabel="Despesas" content="Despesas">
-              <button
-                type="button"
-                class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Despesas"
-                [class.bg-surface]="selectedType() === 'EXPENSE'"
-                [class.text-danger]="selectedType() === 'EXPENSE'"
-                [class.text-text-muted]="selectedType() !== 'EXPENSE'"
-                [attr.aria-pressed]="selectedType() === 'EXPENSE'"
-                (click)="selectType('EXPENSE')"
-              >
+              <button type="button" class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Despesas" [class.bg-surface]="selectedType() === 'EXPENSE'" [class.text-danger]="selectedType() === 'EXPENSE'" [class.text-text-muted]="selectedType() !== 'EXPENSE'" [attr.aria-pressed]="selectedType() === 'EXPENSE'" (click)="selectType('EXPENSE')">
                 <svg lucideIcon="trending-down" class="size-4" aria-hidden="true"></svg>
                 <span class="sr-only">Despesas</span>
               </button>
             </gd-tooltip>
             <gd-tooltip ariaLabel="Receitas" content="Receitas">
-              <button
-                type="button"
-                class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Receitas"
-                [class.bg-surface]="selectedType() === 'INCOME'"
-                [class.text-success]="selectedType() === 'INCOME'"
-                [class.text-text-muted]="selectedType() !== 'INCOME'"
-                [attr.aria-pressed]="selectedType() === 'INCOME'"
-                (click)="selectType('INCOME')"
-              >
+              <button type="button" class="flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Receitas" [class.bg-surface]="selectedType() === 'INCOME'" [class.text-success]="selectedType() === 'INCOME'" [class.text-text-muted]="selectedType() !== 'INCOME'" [attr.aria-pressed]="selectedType() === 'INCOME'" (click)="selectType('INCOME')">
                 <svg lucideIcon="trending-up" class="size-4" aria-hidden="true"></svg>
                 <span class="sr-only">Receitas</span>
               </button>
@@ -43,57 +25,42 @@
           Acompanhe os valores financeiros da Safra por categoria.
         </p>
       </div>
-      <div class="inline-flex shrink-0 rounded-lg border border-border bg-background p-1" aria-label="Modo de visualização">
+      <div class="relative shrink-0">
         <button
           type="button"
-          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          [class.bg-surface]="viewMode() === 'chart'"
-          [class.text-primary]="viewMode() === 'chart'"
-          [class.text-text-muted]="viewMode() !== 'chart'"
-          [attr.aria-pressed]="viewMode() === 'chart'"
-          (click)="selectViewMode('chart')"
+          #controlsButton
+          class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Abrir visualização da análise por categoria"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="controlsMenuOpen()"
+          (click)="toggleControlsMenu()"
         >
-          <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
-          Gráfico
+          <svg lucideIcon="settings" class="size-4" aria-hidden="true"></svg>
+          Visualização
         </button>
-        <button
-          type="button"
-          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          [class.bg-surface]="viewMode() === 'list'"
-          [class.text-primary]="viewMode() === 'list'"
-          [class.text-text-muted]="viewMode() !== 'list'"
-          [attr.aria-pressed]="viewMode() === 'list'"
-          (click)="selectViewMode('list')"
-        >
-          <svg lucideIcon="list-checks" class="size-4" aria-hidden="true"></svg>
-          Lista
-        </button>
-      </div>
-    </div>
 
-    <div class="mt-4 inline-flex rounded-lg bg-surface p-1" aria-label="Tipo de análise">
-      <button
-        type="button"
-        class="cursor-pointer rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        [class.bg-background]="analysisMode() === 'movements'"
-        [class.text-primary]="analysisMode() === 'movements'"
-        [class.text-text-muted]="analysisMode() !== 'movements'"
-        [attr.aria-pressed]="analysisMode() === 'movements'"
-        (click)="selectAnalysisMode('movements')"
-      >
-        Movimentações
-      </button>
-      <button
-        type="button"
-        class="cursor-pointer rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        [class.bg-background]="analysisMode() === 'comparison'"
-        [class.text-primary]="analysisMode() === 'comparison'"
-        [class.text-text-muted]="analysisMode() !== 'comparison'"
-        [attr.aria-pressed]="analysisMode() === 'comparison'"
-        (click)="selectAnalysisMode('comparison')"
-      >
-        Planejado x realizado
-      </button>
+        @if (controlsMenuOpen()) {
+          <div #controlsMenu class="absolute right-0 z-10 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-3 shadow-lg" role="menu" aria-label="Visualização da análise por categoria">
+            <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Visão</p>
+            <div class="mt-2 grid grid-cols-2 gap-1">
+              <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="analysisMode() === 'movements'" [class.text-text-muted]="analysisMode() !== 'movements'" [attr.aria-checked]="analysisMode() === 'movements'" (click)="selectAnalysisMode('movements')">Distribuição</button>
+              <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="analysisMode() === 'comparison'" [class.text-text-muted]="analysisMode() !== 'comparison'" [attr.aria-checked]="analysisMode() === 'comparison'" (click)="selectAnalysisMode('comparison')">Comparativo</button>
+            </div>
+
+            <p class="mt-4 text-xs font-medium uppercase tracking-wide text-text-muted">Tipo</p>
+            <div class="mt-2 grid grid-cols-2 gap-1">
+              <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-danger]="selectedType() === 'EXPENSE'" [class.text-text-muted]="selectedType() !== 'EXPENSE'" [attr.aria-checked]="selectedType() === 'EXPENSE'" (click)="selectType('EXPENSE')">Despesas</button>
+              <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="selectedType() === 'INCOME'" [class.text-text-muted]="selectedType() !== 'INCOME'" [attr.aria-checked]="selectedType() === 'INCOME'" (click)="selectType('INCOME')">Receitas</button>
+            </div>
+
+            <p class="mt-4 text-xs font-medium uppercase tracking-wide text-text-muted">Exibição</p>
+            <div class="mt-2 grid grid-cols-2 gap-1">
+              <button type="button" role="menuitemradio" class="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="viewMode() === 'chart'" [class.text-text-muted]="viewMode() !== 'chart'" [attr.aria-checked]="viewMode() === 'chart'" (click)="selectViewMode('chart')"><svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>Gráfico</button>
+              <button type="button" role="menuitemradio" class="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="viewMode() === 'list'" [class.text-text-muted]="viewMode() !== 'list'" [attr.aria-checked]="viewMode() === 'list'" (click)="selectViewMode('list')"><svg lucideIcon="list-checks" class="size-4" aria-hidden="true"></svg>Lista</button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
 
     @if (loading()) {

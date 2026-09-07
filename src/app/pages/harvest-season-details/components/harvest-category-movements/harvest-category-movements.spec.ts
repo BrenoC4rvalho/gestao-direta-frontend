@@ -125,14 +125,17 @@ describe('HarvestCategoryAnalysis', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('starts with movements, expenses and chart without loading the comparison', async () => {
+  it('starts with distribution, expenses and chart without loading the comparison', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance as unknown as ComponentTestApi;
 
     expect(text(fixture)).toContain('Análise por categoria');
-    expect(button(fixture, 'Movimentações').getAttribute('aria-pressed')).toBe('true');
-    expect(button(fixture, 'Despesas').getAttribute('aria-pressed')).toBe('true');
-    expect(button(fixture, 'Gráfico').getAttribute('aria-pressed')).toBe('true');
+    openOptions(fixture);
+    expect(text(fixture)).toContain('Visão');
+    expect(menuOption(fixture, 'Distribuição').getAttribute('aria-checked')).toBe('true');
+    expect(menuOption(fixture, 'Despesas').getAttribute('aria-checked')).toBe('true');
+    expect(text(fixture)).toContain('Exibição');
+    expect(menuOption(fixture, 'Gráfico').getAttribute('aria-checked')).toBe('true');
     expect(service.getCategoryBreakdown).toHaveBeenCalledWith(25);
     expect(service.getCategoryComparison).not.toHaveBeenCalled();
     expect(component.chartOptions().indexAxis).toBe('y');
@@ -143,43 +146,41 @@ describe('HarvestCategoryAnalysis', () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance as unknown as ComponentTestApi;
 
-    button(fixture, 'Planejado x realizado').click();
-    fixture.detectChanges();
+    selectOption(fixture, 'Comparativo');
 
     expect(service.getCategoryComparison).toHaveBeenCalledOnce();
-    expect(button(fixture, 'Planejado x realizado').getAttribute('aria-pressed')).toBe('true');
-    expect(button(fixture, 'Despesas').getAttribute('aria-pressed')).toBe('true');
-    expect(button(fixture, 'Gráfico').getAttribute('aria-pressed')).toBe('true');
+    openOptions(fixture);
+    expect(menuOption(fixture, 'Comparativo').getAttribute('aria-checked')).toBe('true');
+    expect(menuOption(fixture, 'Despesas').getAttribute('aria-checked')).toBe('true');
+    expect(menuOption(fixture, 'Gráfico').getAttribute('aria-checked')).toBe('true');
     expect(component.chartData().datasets).toHaveLength(2);
     expect(component.chartData().datasets[0].data).toEqual([25000, null, 2000]);
     expect(component.chartData().datasets[1].data).toEqual([26000, 8000, 0]);
     expect(component.chartOptions().plugins?.legend?.display).toBe(true);
 
-    button(fixture, 'Receitas').click();
-    button(fixture, 'Lista').click();
-    fixture.detectChanges();
+    selectOption(fixture, 'Receitas');
+    selectOption(fixture, 'Lista');
 
     expect(text(fixture)).toContain('Venda de soja');
     expect(text(fixture)).toContain('Bônus');
     expect(text(fixture)).toContain('Não planejado');
-    expect(button(fixture, 'Lista').getAttribute('aria-pressed')).toBe('true');
+    openOptions(fixture);
+    expect(menuOption(fixture, 'Lista').getAttribute('aria-checked')).toBe('true');
     expect(service.getCategoryComparison).toHaveBeenCalledOnce();
 
-    button(fixture, 'Movimentações').click();
-    fixture.detectChanges();
-    expect(button(fixture, 'Receitas').getAttribute('aria-pressed')).toBe('true');
-    expect(button(fixture, 'Lista').getAttribute('aria-pressed')).toBe('true');
+    selectOption(fixture, 'Distribuição');
+    openOptions(fixture);
+    expect(menuOption(fixture, 'Receitas').getAttribute('aria-checked')).toBe('true');
+    expect(menuOption(fixture, 'Lista').getAttribute('aria-checked')).toBe('true');
 
-    button(fixture, 'Planejado x realizado').click();
-    fixture.detectChanges();
+    selectOption(fixture, 'Comparativo');
     expect(service.getCategoryComparison).toHaveBeenCalledOnce();
   });
 
   it('renders comparison statuses from the backend in the detailed list', async () => {
     const fixture = await createComponent();
-    button(fixture, 'Planejado x realizado').click();
-    button(fixture, 'Lista').click();
-    fixture.detectChanges();
+    selectOption(fixture, 'Comparativo');
+    selectOption(fixture, 'Lista');
 
     expect(fixture.nativeElement.querySelector('[aria-label="Lista de planejado x realizado por categoria"]')).not.toBeNull();
     expect(text(fixture)).toContain('R$ 35.000,00');
@@ -191,14 +192,30 @@ describe('HarvestCategoryAnalysis', () => {
     const pending = new Subject<HarvestCategoryComparison>();
     service.getCategoryComparison.mockReturnValue(pending);
     const fixture = await createComponent();
-    button(fixture, 'Planejado x realizado').click();
-    fixture.detectChanges();
+    selectOption(fixture, 'Comparativo');
 
     expect(fixture.nativeElement.querySelector('[aria-label="Carregando comparativo por categoria"]')).not.toBeNull();
 
     pending.error(new Error('failure'));
     fixture.detectChanges();
     expect(text(fixture)).toContain('Não foi possível carregar o comparativo por categoria.');
+  });
+
+  it('keeps the menu open during selection and closes it outside the menu', async () => {
+    const fixture = await createComponent();
+
+    openOptions(fixture);
+    menuOption(fixture, 'Comparativo').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).not.toBeNull();
+
+    fixture.nativeElement
+      .querySelector('#harvest-category-analysis-heading')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
   });
 
   async function createComponent(): Promise<ComponentFixture<HarvestCategoryAnalysis>> {
@@ -224,6 +241,27 @@ describe('HarvestCategoryAnalysis', () => {
     return Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
       (element: HTMLButtonElement) => element.textContent?.trim() === label,
     ) as HTMLButtonElement;
+  }
+
+  function openOptions(fixture: ComponentFixture<HarvestCategoryAnalysis>): void {
+    if (button(fixture, 'Visualização').getAttribute('aria-expanded') === 'true') return;
+    button(fixture, 'Visualização').click();
+    fixture.detectChanges();
+  }
+
+  function selectOption(fixture: ComponentFixture<HarvestCategoryAnalysis>, label: string): void {
+    openOptions(fixture);
+    menuOption(fixture, label).click();
+    fixture.detectChanges();
+  }
+
+  function menuOption(
+    fixture: ComponentFixture<HarvestCategoryAnalysis>,
+    label: string,
+  ): HTMLButtonElement {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('[role="menu"] button') as NodeListOf<HTMLButtonElement>,
+    ).find((element: HTMLButtonElement) => element.textContent?.trim() === label) as HTMLButtonElement;
   }
 
   function text(fixture: ComponentFixture<HarvestCategoryAnalysis>): string {
