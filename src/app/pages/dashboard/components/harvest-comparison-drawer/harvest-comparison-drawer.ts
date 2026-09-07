@@ -32,6 +32,8 @@ interface ComparisonRow {
   metric: HarvestSeasonComparisonMetric;
   valueA: number | null;
   valueB: number | null;
+  bestA: boolean;
+  bestB: boolean;
   format: 'currency' | 'percentage';
 }
 
@@ -198,12 +200,6 @@ export class HarvestComparisonDrawer {
       });
   }
 
-  protected isBest(metric: HarvestSeasonComparisonMetric, harvestSeasonId: number): boolean {
-    return (this.comparison()?.bestMetrics ?? []).some(
-      (best) => best.metric === metric && best.harvestSeasonIds.includes(harvestSeasonId),
-    );
-  }
-
   protected format(value: number | null, format: ComparisonRow['format']): string {
     if (value === null) return '—';
     if (format === 'percentage') {
@@ -295,13 +291,32 @@ export class HarvestComparisonDrawer {
     definitions: readonly RowDefinition[],
   ): readonly ComparisonRow[] {
     if (!comparison) return [];
-    return definitions.map(([label, metric, group, field, format]) => ({
-      label,
-      metric,
-      valueA: (comparison.harvestA[group] as Record<string, number | null> | null)?.[field] ?? null,
-      valueB: (comparison.harvestB[group] as Record<string, number | null> | null)?.[field] ?? null,
-      format,
-    }));
+    return definitions.map(([label, metric, group, field, format]) => {
+      const valueA =
+        (comparison.harvestA[group] as Record<string, number | null> | null)?.[field] ?? null;
+      const valueB =
+        (comparison.harvestB[group] as Record<string, number | null> | null)?.[field] ?? null;
+
+      return {
+        label,
+        metric,
+        valueA,
+        valueB,
+        bestA: valueA !== null && this.isBestFromBackend(comparison, metric, comparison.harvestA.id),
+        bestB: valueB !== null && this.isBestFromBackend(comparison, metric, comparison.harvestB.id),
+        format,
+      };
+    });
+  }
+
+  private isBestFromBackend(
+    comparison: HarvestSeasonComparison,
+    metric: HarvestSeasonComparisonMetric,
+    harvestSeasonId: number,
+  ): boolean {
+    return comparison.bestMetrics.some(
+      (best) => best.metric === metric && best.harvestSeasonIds.includes(harvestSeasonId),
+    );
   }
 
   private parseUtcDate(date: string): Date {

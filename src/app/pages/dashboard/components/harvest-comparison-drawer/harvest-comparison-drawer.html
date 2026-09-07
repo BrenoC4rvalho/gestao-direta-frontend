@@ -144,20 +144,40 @@
                       </span>
                     </th>
                     <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
-                      {{ format(row.valueA, row.format) }}
-                      @if (isBest(row.metric, currentComparison.harvestA.id)) {
-                        <gd-tooltip ariaLabel="Melhor resultado entre as Safras comparadas para este indicador." content="Melhor resultado entre as Safras comparadas para este indicador.">
-                          <svg lucideIcon="trophy" data-testid="comparison-best-trophy" class="ml-1 inline size-4 text-warning" aria-hidden="true"></svg>
-                        </gd-tooltip>
-                      }
+                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                        {{ format(row.valueA, row.format) }}
+                        @if (row.bestA) {
+                          <gd-tooltip
+                            ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
+                            content="Melhor resultado entre as Safras comparadas neste indicador."
+                          >
+                            <svg
+                              lucideIcon="trophy"
+                              data-testid="comparison-best-trophy"
+                              class="size-4 text-warning"
+                              aria-hidden="true"
+                            ></svg>
+                          </gd-tooltip>
+                        }
+                      </span>
                     </td>
                     <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
-                      {{ format(row.valueB, row.format) }}
-                      @if (isBest(row.metric, currentComparison.harvestB.id)) {
-                        <gd-tooltip ariaLabel="Melhor resultado entre as Safras comparadas para este indicador." content="Melhor resultado entre as Safras comparadas para este indicador.">
-                          <svg lucideIcon="trophy" data-testid="comparison-best-trophy" class="ml-1 inline size-4 text-warning" aria-hidden="true"></svg>
-                        </gd-tooltip>
-                      }
+                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                        {{ format(row.valueB, row.format) }}
+                        @if (row.bestB) {
+                          <gd-tooltip
+                            ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
+                            content="Melhor resultado entre as Safras comparadas neste indicador."
+                          >
+                            <svg
+                              lucideIcon="trophy"
+                              data-testid="comparison-best-trophy"
+                              class="size-4 text-warning"
+                              aria-hidden="true"
+                            ></svg>
+                          </gd-tooltip>
+                        }
+                      </span>
                     </td>
                   </tr>
                 }

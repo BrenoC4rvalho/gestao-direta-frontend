@@ -126,6 +126,14 @@ function normalizedText(element: Element): string {
   return (element.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
+function comparisonRow(fixture: ComponentFixture<HarvestComparisonDrawer>, label: string): HTMLTableRowElement {
+  const rows = Array.from(
+    fixture.nativeElement.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>,
+  );
+
+  return rows.find((row) => normalizedText(row).includes(label)) as HTMLTableRowElement;
+}
+
 async function createComponent(compareResult = of(comparison)): Promise<{
   fixture: ComponentFixture<HarvestComparisonDrawer>;
   service: { list: ReturnType<typeof vi.fn>; compareHarvestSeasons: ReturnType<typeof vi.fn> };
@@ -204,6 +212,24 @@ describe('HarvestComparisonDrawer', () => {
   it('should render the Trophy icon only for the Harvest Season marked as best by the backend', async () => {
     const comparisonWithBest: HarvestSeasonComparison = {
       ...comparison,
+      harvestA: {
+        ...comparison.harvestA,
+        realized: {
+          realizedCost: 70,
+          realizedRevenue: 100,
+          realizedProfit: 30,
+          realizedMargin: 30,
+        },
+      },
+      harvestB: {
+        ...comparison.harvestB,
+        realized: {
+          realizedCost: 80,
+          realizedRevenue: 120,
+          realizedProfit: 40,
+          realizedMargin: 33.33,
+        },
+      },
       bestMetrics: [{ metric: 'REALIZED_REVENUE', harvestSeasonIds: [2] }],
     };
     const { fixture } = await createComponent(of(comparisonWithBest));
@@ -212,21 +238,67 @@ describe('HarvestComparisonDrawer', () => {
     const trophies = fixture.nativeElement.querySelectorAll(
       '[data-testid="comparison-best-trophy"]',
     ) as NodeListOf<SVGElement>;
+    const realizedRevenueRow = comparisonRow(fixture, 'Receita realizada');
+    const cells = realizedRevenueRow.querySelectorAll('td');
 
     expect(trophies).toHaveLength(1);
     expect(trophies[0].tagName.toLowerCase()).toBe('svg');
+    expect(trophies[0].querySelector('path')).not.toBeNull();
     expect(trophies[0].closest('gd-tooltip')).not.toBeNull();
+    expect(cells[0].querySelector('[data-testid="comparison-best-trophy"]')).toBeNull();
+    expect(cells[1].querySelector('[data-testid="comparison-best-trophy"]')).not.toBeNull();
+    expect(trophies[0].closest('gd-tooltip')?.getAttribute('aria-label')).toBe(
+      'Melhor resultado entre as Safras comparadas neste indicador.',
+    );
   });
 
   it('should render a Trophy for every Harvest Season returned in a best tie', async () => {
     const comparisonWithTie: HarvestSeasonComparison = {
       ...comparison,
+      harvestB: {
+        ...comparison.harvestB,
+        realized: {
+          realizedCost: 70,
+          realizedRevenue: 100,
+          realizedProfit: 30,
+          realizedMargin: 31.61,
+        },
+      },
       bestMetrics: [{ metric: 'REALIZED_MARGIN', harvestSeasonIds: [1, 2] }],
     };
     const { fixture } = await createComponent(of(comparisonWithTie));
     selectHarvests(fixture);
 
     expect(fixture.nativeElement.querySelectorAll('[data-testid="comparison-best-trophy"]')).toHaveLength(2);
+  });
+
+  it('should not render a Trophy for a null value', async () => {
+    const comparisonWithNullValue: HarvestSeasonComparison = {
+      ...comparison,
+      harvestA: {
+        ...comparison.harvestA,
+        perHectare: {
+          ...comparison.harvestA.perHectare,
+          realizedRevenuePerHectare: null,
+        },
+      },
+      bestMetrics: [{ metric: 'REALIZED_REVENUE_PER_HECTARE', harvestSeasonIds: [1] }],
+    };
+    const { fixture } = await createComponent(of(comparisonWithNullValue));
+    selectHarvests(fixture);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="comparison-best-trophy"]')).toBeNull();
+  });
+
+  it('should not render a Trophy for the non-comparable area information', async () => {
+    const comparisonWithAreaBest: HarvestSeasonComparison = {
+      ...comparison,
+      bestMetrics: [{ metric: 'AREA_HECTARES', harvestSeasonIds: [1, 2] }],
+    };
+    const { fixture } = await createComponent(of(comparisonWithAreaBest));
+    selectHarvests(fixture);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="comparison-best-trophy"]')).toBeNull();
   });
 
   it('should not render a Trophy when the backend does not mark a metric as best', async () => {
