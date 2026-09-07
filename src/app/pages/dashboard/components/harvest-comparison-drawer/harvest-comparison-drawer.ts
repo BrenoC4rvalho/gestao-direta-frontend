@@ -1,4 +1,3 @@
-import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,19 +11,19 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import {
   HarvestSeason,
   HarvestSeasonComparison,
-  HarvestSeasonComparisonDifference,
   HarvestSeasonComparisonMetric,
 } from '../../../../core/models/harvest-season.models';
 import { HarvestSeasonService } from '../../../../core/services/harvest-season.service';
 import { GdSelectOption, Select } from '../../../../shared/forms';
 import { Drawer } from '../../../../shared/overlays';
 import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
-import { EmptyState, ErrorState, Skeleton } from '../../../../shared/ui';
+import { Badge, BadgeVariant, EmptyState, ErrorState, Skeleton, Tooltip } from '../../../../shared/ui';
 
 interface ComparisonRow {
   label: string;
@@ -35,7 +34,19 @@ interface ComparisonRow {
 }
 
 type ComparisonGroup = 'planning' | 'projection' | 'realized' | 'perHectare';
-type RowDefinition = readonly [string, HarvestSeasonComparisonMetric, ComparisonGroup, string, ComparisonRow['format']];
+type RowDefinition = readonly [
+  string,
+  HarvestSeasonComparisonMetric,
+  ComparisonGroup,
+  string,
+  ComparisonRow['format'],
+];
+
+interface ComparisonSection {
+  id: 'planning' | 'projection' | 'realized' | 'per-hectare';
+  label: string;
+  rows: readonly ComparisonRow[];
+}
 
 @Component({
   selector: 'gd-harvest-comparison-drawer',
@@ -43,10 +54,12 @@ type RowDefinition = readonly [string, HarvestSeasonComparisonMetric, Comparison
     Drawer,
     EmptyState,
     ErrorState,
-    NgTemplateOutlet,
+    Badge,
+    LucideDynamicIcon,
     ReactiveFormsModule,
     Select,
     Skeleton,
+    Tooltip,
   ],
   templateUrl: './harvest-comparison-drawer.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,43 +87,57 @@ export class HarvestComparisonDrawer {
   protected readonly harvestAOptions = computed(() => this.optionsExcluding(this.selectedHarvestBId()));
   protected readonly harvestBOptions = computed(() => this.optionsExcluding(this.selectedHarvestAId()));
 
-  protected readonly planningRows = computed(() =>
-    this.rows(this.comparison(), [
-      ['Custo planejado', 'PLANNED_COST', 'planning', 'plannedCost', 'currency'],
-      ['Receita planejada', 'PLANNED_REVENUE', 'planning', 'plannedRevenue', 'currency'],
-      ['Resultado planejado', 'PLANNED_RESULT', 'planning', 'plannedProfit', 'currency'],
-      ['Margem planejada', 'PLANNED_MARGIN', 'planning', 'plannedMargin', 'percentage'],
-    ]),
-  );
-  protected readonly projectionRows = computed(() =>
-    this.rows(this.comparison(), [
-      ['Custo projetado', 'PROJECTED_COST', 'projection', 'projectedCost', 'currency'],
-      ['Receita projetada', 'PROJECTED_REVENUE', 'projection', 'projectedRevenue', 'currency'],
-      ['Lucro projetado', 'PROJECTED_PROFIT', 'projection', 'projectedProfit', 'currency'],
-      ['Margem projetada', 'PROJECTED_MARGIN', 'projection', 'projectedMargin', 'percentage'],
-    ]),
-  );
-  protected readonly realizedRows = computed(() =>
-    this.rows(this.comparison(), [
-      ['Custo realizado', 'REALIZED_COST', 'realized', 'realizedCost', 'currency'],
-      ['Receita realizada', 'REALIZED_REVENUE', 'realized', 'realizedRevenue', 'currency'],
-      ['Lucro realizado', 'REALIZED_PROFIT', 'realized', 'realizedProfit', 'currency'],
-      ['Margem realizada', 'REALIZED_MARGIN', 'realized', 'realizedMargin', 'percentage'],
-    ]),
-  );
-  protected readonly perHectareRows = computed(() =>
-    this.rows(this.comparison(), [
-      ['Custo planejado/ha', 'PLANNED_COST_PER_HECTARE', 'perHectare', 'plannedCostPerHectare', 'currency'],
-      ['Receita planejada/ha', 'PLANNED_REVENUE_PER_HECTARE', 'perHectare', 'plannedRevenuePerHectare', 'currency'],
-      ['Resultado planejado/ha', 'PLANNED_RESULT_PER_HECTARE', 'perHectare', 'plannedResultPerHectare', 'currency'],
-      ['Custo projetado/ha', 'PROJECTED_COST_PER_HECTARE', 'perHectare', 'projectedCostPerHectare', 'currency'],
-      ['Receita projetada/ha', 'PROJECTED_REVENUE_PER_HECTARE', 'perHectare', 'projectedRevenuePerHectare', 'currency'],
-      ['Lucro projetado/ha', 'PROJECTED_PROFIT_PER_HECTARE', 'perHectare', 'projectedProfitPerHectare', 'currency'],
-      ['Custo realizado/ha', 'REALIZED_COST_PER_HECTARE', 'perHectare', 'realizedCostPerHectare', 'currency'],
-      ['Receita realizada/ha', 'REALIZED_REVENUE_PER_HECTARE', 'perHectare', 'realizedRevenuePerHectare', 'currency'],
-      ['Lucro realizado/ha', 'REALIZED_PROFIT_PER_HECTARE', 'perHectare', 'realizedProfitPerHectare', 'currency'],
-    ]),
-  );
+  protected readonly comparisonSections = computed<readonly ComparisonSection[]>(() => {
+    const comparison = this.comparison();
+
+    return [
+      {
+        id: 'planning',
+        label: 'Planejamento',
+        rows: this.rows(comparison, [
+          ['Custo planejado', 'PLANNED_COST', 'planning', 'plannedCost', 'currency'],
+          ['Receita planejada', 'PLANNED_REVENUE', 'planning', 'plannedRevenue', 'currency'],
+          ['Resultado planejado', 'PLANNED_RESULT', 'planning', 'plannedProfit', 'currency'],
+          ['Margem planejada', 'PLANNED_MARGIN', 'planning', 'plannedMargin', 'percentage'],
+        ]),
+      },
+      {
+        id: 'projection',
+        label: 'Projeção',
+        rows: this.rows(comparison, [
+          ['Custo projetado', 'PROJECTED_COST', 'projection', 'projectedCost', 'currency'],
+          ['Receita projetada', 'PROJECTED_REVENUE', 'projection', 'projectedRevenue', 'currency'],
+          ['Lucro projetado', 'PROJECTED_PROFIT', 'projection', 'projectedProfit', 'currency'],
+          ['Margem projetada', 'PROJECTED_MARGIN', 'projection', 'projectedMargin', 'percentage'],
+        ]),
+      },
+      {
+        id: 'realized',
+        label: 'Realizado',
+        rows: this.rows(comparison, [
+          ['Custo realizado', 'REALIZED_COST', 'realized', 'realizedCost', 'currency'],
+          ['Receita realizada', 'REALIZED_REVENUE', 'realized', 'realizedRevenue', 'currency'],
+          ['Lucro realizado', 'REALIZED_PROFIT', 'realized', 'realizedProfit', 'currency'],
+          ['Margem realizada', 'REALIZED_MARGIN', 'realized', 'realizedMargin', 'percentage'],
+        ]),
+      },
+      {
+        id: 'per-hectare',
+        label: 'Indicadores por hectare',
+        rows: this.rows(comparison, [
+          ['Custo planejado / ha', 'PLANNED_COST_PER_HECTARE', 'perHectare', 'plannedCostPerHectare', 'currency'],
+          ['Receita planejada / ha', 'PLANNED_REVENUE_PER_HECTARE', 'perHectare', 'plannedRevenuePerHectare', 'currency'],
+          ['Resultado planejado / ha', 'PLANNED_RESULT_PER_HECTARE', 'perHectare', 'plannedResultPerHectare', 'currency'],
+          ['Custo projetado / ha', 'PROJECTED_COST_PER_HECTARE', 'perHectare', 'projectedCostPerHectare', 'currency'],
+          ['Receita projetada / ha', 'PROJECTED_REVENUE_PER_HECTARE', 'perHectare', 'projectedRevenuePerHectare', 'currency'],
+          ['Lucro projetado / ha', 'PROJECTED_PROFIT_PER_HECTARE', 'perHectare', 'projectedProfitPerHectare', 'currency'],
+          ['Custo realizado / ha', 'REALIZED_COST_PER_HECTARE', 'perHectare', 'realizedCostPerHectare', 'currency'],
+          ['Receita realizada / ha', 'REALIZED_REVENUE_PER_HECTARE', 'perHectare', 'realizedRevenuePerHectare', 'currency'],
+          ['Lucro realizado / ha', 'REALIZED_PROFIT_PER_HECTARE', 'perHectare', 'realizedProfitPerHectare', 'currency'],
+        ]),
+      },
+    ];
+  });
 
   private readonly loadForOpenDrawer = effect(() => {
     const farmId = this.farmId();
@@ -146,37 +173,58 @@ export class HarvestComparisonDrawer {
     this.loadComparison();
   }
 
-  protected difference(metric: HarvestSeasonComparisonMetric): HarvestSeasonComparisonDifference | null {
-    return this.comparison()?.differences.find((difference) => difference.metric === metric) ?? null;
-  }
-
-  protected format(value: number | null, format: ComparisonRow['format'], perHectare = false): string {
+  protected format(value: number | null, format: ComparisonRow['format']): string {
     if (value === null) return '—';
     if (format === 'percentage') {
       return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
     }
-    return `${new BrCurrencyPipe().transform(value)}${perHectare ? '/ha' : ''}`;
+    return new BrCurrencyPipe().transform(value);
   }
 
-  protected semanticClasses(semantic: HarvestSeasonComparisonDifference['semantic']): string {
-    return semantic === 'BETTER' ? 'text-success' : semantic === 'WORSE' ? 'text-danger' : 'text-text-muted';
+  protected formatArea(areaHectares: number | null): string {
+    if (areaHectares === null) return 'Área não informada';
+    return `${areaHectares.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ha`;
   }
 
-  protected metricLabel(metric: HarvestSeasonComparisonMetric): string {
-    const labels: Record<HarvestSeasonComparisonMetric, string> = {
-      AREA_HECTARES: 'Área', PLANNED_COST: 'Custo planejado', PLANNED_REVENUE: 'Receita planejada',
-      PLANNED_RESULT: 'Resultado planejado', PLANNED_MARGIN: 'Margem planejada',
-      PROJECTED_COST: 'Custo projetado', PROJECTED_REVENUE: 'Receita projetada',
-      PROJECTED_PROFIT: 'Lucro projetado', PROJECTED_MARGIN: 'Margem projetada',
-      REALIZED_COST: 'Custo realizado', REALIZED_REVENUE: 'Receita realizada',
-      REALIZED_PROFIT: 'Lucro realizado', REALIZED_MARGIN: 'Margem realizada',
-      PLANNED_COST_PER_HECTARE: 'Custo planejado/ha', PLANNED_REVENUE_PER_HECTARE: 'Receita planejada/ha',
-      PLANNED_RESULT_PER_HECTARE: 'Resultado planejado/ha', PROJECTED_COST_PER_HECTARE: 'Custo projetado/ha',
-      PROJECTED_REVENUE_PER_HECTARE: 'Receita projetada/ha', PROJECTED_PROFIT_PER_HECTARE: 'Lucro projetado/ha',
-      REALIZED_COST_PER_HECTARE: 'Custo realizado/ha', REALIZED_REVENUE_PER_HECTARE: 'Receita realizada/ha',
-      REALIZED_PROFIT_PER_HECTARE: 'Lucro realizado/ha',
+  protected formatPeriod(startDate: string, endDate: string | null): string {
+    const formatDate = (date: string) =>
+      new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+
+    return `${formatDate(startDate)} — ${endDate ? formatDate(endDate) : 'Sem data final'}`;
+  }
+
+  protected formatDuration(startDate: string, endDate: string | null): string {
+    const start = this.parseUtcDate(startDate);
+    const end = this.parseUtcDate(endDate ?? new Date().toISOString().slice(0, 10));
+    const calendarMonths =
+      (end.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      end.getUTCMonth() -
+      start.getUTCMonth() +
+      1;
+    const months = Math.max(0, calendarMonths);
+
+    return `${months} ${months === 1 ? 'mês' : 'meses'}`;
+  }
+
+  protected tooltip(metric: HarvestSeasonComparisonMetric): string | null {
+    const tooltips: Partial<Record<HarvestSeasonComparisonMetric, string>> = {
+      REALIZED_COST: 'Total de despesas realizadas vinculadas à Safra.',
+      REALIZED_PROFIT: 'Receita realizada menos custo realizado.',
+      REALIZED_MARGIN: 'Percentual do resultado realizado em relação à receita realizada.',
     };
-    return labels[metric];
+
+    return tooltips[metric] ?? null;
+  }
+
+  protected statusVariant(status: HarvestSeason['status']): BadgeVariant {
+    const variants: Record<HarvestSeason['status'], BadgeVariant> = {
+      PLANNED: 'info',
+      IN_PROGRESS: 'success',
+      FINISHED: 'neutral',
+      INACTIVE: 'neutral',
+    };
+
+    return variants[status];
   }
 
   private loadComparison(): void {
@@ -223,6 +271,10 @@ export class HarvestComparisonDrawer {
       valueB: (comparison.harvestB[group] as Record<string, number | null> | null)?.[field] ?? null,
       format,
     }));
+  }
+
+  private parseUtcDate(date: string): Date {
+    return new Date(`${date}T00:00:00Z`);
   }
 
   private resetComparison(): void {

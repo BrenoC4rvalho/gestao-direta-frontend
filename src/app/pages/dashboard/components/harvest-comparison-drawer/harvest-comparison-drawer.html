@@ -1,12 +1,12 @@
 <gd-drawer
   [open]="open()"
-  title="Comparar safras"
-  description="Compare indicadores financeiros entre duas Safras da Fazenda."
+  title="Comparar Safras"
+  description="Compare indicadores financeiros e produtivos entre as Safras selecionadas."
   position="center"
   size="xl"
   (closed)="close()"
 >
-  <div class="space-y-6">
+  <div class="space-y-5">
     <div class="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
       <gd-select
         id="harvest-comparison-a"
@@ -32,9 +32,9 @@
     }
 
     @if (seasonsLoading() || comparisonLoading()) {
-      <div class="space-y-4" aria-label="Carregando comparação">
+      <div class="space-y-3" aria-label="Carregando comparação">
         <gd-skeleton width="100%" height="5rem" />
-        <gd-skeleton width="100%" height="15rem" />
+        <gd-skeleton width="100%" height="30rem" />
       </div>
     } @else if (comparisonError(); as error) {
       <gd-error-state
@@ -50,80 +50,106 @@
         icon="chart-no-axes-combined"
       />
     } @else if (comparison(); as currentComparison) {
-      <section aria-labelledby="comparison-general-title" class="rounded-app border border-border bg-background p-4">
-        <h3 id="comparison-general-title" class="text-base font-semibold text-text-primary">Dados gerais</h3>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <section aria-labelledby="comparison-matrix-title">
+        <h3 id="comparison-matrix-title" class="sr-only">Matriz comparativa de indicadores das Safras</h3>
+
+        <div class="mb-5 grid gap-4 sm:grid-cols-2">
           @for (harvest of [currentComparison.harvestA, currentComparison.harvestB]; track harvest.id; let index = $index) {
             <article class="rounded-control border border-border bg-surface p-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Safra {{ index === 0 ? 'A' : 'B' }}</p>
-              <h4 class="mt-1 text-base font-semibold text-text-primary">{{ harvest.name }}</h4>
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Safra {{ index === 0 ? 'A' : 'B' }}
+              </p>
+              <div class="mt-1 flex flex-wrap items-center gap-2">
+                <h4 class="text-base font-semibold text-text-primary">{{ harvest.name }}</h4>
+                <gd-badge [variant]="statusVariant(harvest.status)" size="sm">
+                  {{ statusLabel(harvest.status) }}
+                </gd-badge>
+              </div>
               <dl class="mt-3 grid gap-2 text-sm">
-                <div class="flex justify-between gap-3"><dt class="text-text-muted">Status</dt><dd>{{ statusLabel(harvest.status) }}</dd></div>
-                <div class="flex justify-between gap-3"><dt class="text-text-muted">Atividade</dt><dd>{{ harvest.productionActivityName }}</dd></div>
-                <div class="flex justify-between gap-3"><dt class="text-text-muted">Área</dt><dd>{{ harvest.areaHectares === null ? '—' : harvest.areaHectares + ' ha' }}</dd></div>
-                <div class="flex justify-between gap-3"><dt class="text-text-muted">Período</dt><dd>{{ harvest.startDate }}{{ harvest.endDate ? ' — ' + harvest.endDate : '' }}</dd></div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-text-muted">Atividade</dt>
+                  <dd class="text-right text-text-primary">{{ harvest.productionActivityName }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-text-muted">Área</dt>
+                  <dd class="text-right text-text-primary">{{ formatArea(harvest.areaHectares) }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-text-muted">Período</dt>
+                  <dd class="text-right text-text-primary">{{ formatPeriod(harvest.startDate, harvest.endDate) }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-text-muted">Duração</dt>
+                  <dd class="text-right text-text-primary">{{ formatDuration(harvest.startDate, harvest.endDate) }}</dd>
+                </div>
               </dl>
             </article>
           }
         </div>
-      </section>
 
-      @if (currentComparison.highlights.length > 0) {
-        <section aria-labelledby="comparison-highlights-title">
-          <h3 id="comparison-highlights-title" class="text-base font-semibold text-text-primary">Principais diferenças</h3>
-          <div class="mt-3 grid gap-3 md:grid-cols-3">
-            @for (highlight of currentComparison.highlights; track highlight.metric) {
-              <div class="rounded-control border border-border bg-surface p-3 text-sm">
-                <p class="text-text-muted">{{ metricLabel(highlight.metric) }}</p>
-                <p class="mt-1 font-semibold" [class]="semanticClasses(highlight.semantic)">
-                  {{ format(highlight.difference, 'currency') }}
-                  @if (highlight.percentageDifference !== null) { ({{ format(highlight.percentageDifference, 'percentage') }}) }
-                </p>
-              </div>
+        <div class="overflow-x-auto overscroll-x-contain rounded-app border border-border">
+          <table class="min-w-[44rem] w-full border-collapse text-sm">
+            <caption class="sr-only">
+              Indicadores financeiros e produtivos de {{ currentComparison.harvestA.name }} e
+              {{ currentComparison.harvestB.name }}
+            </caption>
+            <thead class="bg-background text-left">
+              <tr>
+                <th
+                  scope="col"
+                  class="sticky left-0 z-10 min-w-52 border-b border-border bg-background px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-muted"
+                >
+                  Indicador
+                </th>
+                <th scope="col" class="min-w-60 border-b border-border px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Safra A
+                </th>
+                <th scope="col" class="min-w-60 border-b border-border px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Safra B
+                </th>
+              </tr>
+            </thead>
+
+            @for (section of comparisonSections(); track section.id) {
+              <tbody>
+                <tr>
+                  <th
+                    scope="colgroup"
+                    colspan="3"
+                    class="border-y border-border bg-background px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-text-muted"
+                  >
+                    {{ section.label }}
+                  </th>
+                </tr>
+                @for (row of section.rows; track row.metric) {
+                  @let tooltipContent = tooltip(row.metric);
+                  <tr class="group border-b border-border transition-colors last:border-b-0 hover:bg-background">
+                    <th
+                      scope="row"
+                      class="sticky left-0 z-10 bg-surface px-4 py-2.5 text-left font-medium text-text-primary transition-colors group-hover:bg-background"
+                    >
+                      <span class="inline-flex items-center gap-1.5">
+                        {{ row.label }}
+                        @if (tooltipContent) {
+                          <gd-tooltip [ariaLabel]="tooltipContent" [content]="tooltipContent" width="narrow">
+                            <svg lucideIcon="info" class="size-3.5 text-text-muted" aria-hidden="true"></svg>
+                          </gd-tooltip>
+                        }
+                      </span>
+                    </th>
+                    <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
+                      {{ format(row.valueA, row.format) }}
+                    </td>
+                    <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
+                      {{ format(row.valueB, row.format) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
             }
-          </div>
-        </section>
-      }
-
-      <section aria-labelledby="comparison-planning-title">
-        <h3 id="comparison-planning-title" class="text-base font-semibold text-text-primary">Planejamento</h3>
-        <ng-container *ngTemplateOutlet="rows; context: { $implicit: planningRows(), perHectare: false }" />
-      </section>
-      <section aria-labelledby="comparison-projection-title">
-        <h3 id="comparison-projection-title" class="text-base font-semibold text-text-primary">Projeção</h3>
-        <ng-container *ngTemplateOutlet="rows; context: { $implicit: projectionRows(), perHectare: false }" />
-      </section>
-      <section aria-labelledby="comparison-realized-title">
-        <h3 id="comparison-realized-title" class="text-base font-semibold text-text-primary">Realizado</h3>
-        <ng-container *ngTemplateOutlet="rows; context: { $implicit: realizedRows(), perHectare: false }" />
-      </section>
-      <section aria-labelledby="comparison-per-hectare-title">
-        <h3 id="comparison-per-hectare-title" class="text-base font-semibold text-text-primary">Por hectare</h3>
-        <ng-container *ngTemplateOutlet="rows; context: { $implicit: perHectareRows(), perHectare: true }" />
+          </table>
+        </div>
       </section>
     }
   </div>
 </gd-drawer>
-
-<ng-template #rows let-rows let-perHectare="perHectare">
-  <div class="mt-3 overflow-hidden rounded-control border border-border">
-    <div class="hidden grid-cols-[minmax(10rem,1.4fr)_1fr_1fr_1fr] gap-3 border-b border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted md:grid">
-      <span>Indicador</span><span>Safra A</span><span>Safra B</span><span>Diferença</span>
-    </div>
-    @for (row of rows; track row.metric) {
-      @let rowDifference = difference(row.metric);
-      <article class="grid gap-2 border-b border-border px-3 py-3 last:border-b-0 md:grid-cols-[minmax(10rem,1.4fr)_1fr_1fr_1fr] md:items-center md:gap-3">
-        <h4 class="text-sm font-medium text-text-primary">{{ row.label }}</h4>
-        <p class="text-sm"><span class="mr-2 text-xs text-text-muted md:hidden">Safra A</span>{{ format(row.valueA, row.format, perHectare) }}</p>
-        <p class="text-sm"><span class="mr-2 text-xs text-text-muted md:hidden">Safra B</span>{{ format(row.valueB, row.format, perHectare) }}</p>
-        <p class="text-sm font-semibold" [class]="semanticClasses(rowDifference?.semantic ?? null)">
-          <span class="mr-2 text-xs font-normal text-text-muted md:hidden">Diferença</span>
-          {{ format(rowDifference?.difference ?? null, row.format, perHectare) }}
-          @if (rowDifference?.percentageDifference !== null && rowDifference?.percentageDifference !== undefined) {
-            <span class="text-xs">({{ format(rowDifference?.percentageDifference ?? null, 'percentage') }})</span>
-          }
-        </p>
-      </article>
-    }
-  </div>
-</ng-template>

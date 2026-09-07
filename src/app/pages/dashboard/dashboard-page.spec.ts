@@ -314,7 +314,9 @@ describe('DashboardPage', () => {
     findButton(fixture, 'Comparar safras')?.click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Compare indicadores financeiros entre duas Safras da Fazenda.');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Compare indicadores financeiros e produtivos entre as Safras selecionadas.',
+    );
   });
 
   it('should render greeting and empty state without calling dashboard endpoints', () => {
