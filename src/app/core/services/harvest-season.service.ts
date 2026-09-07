@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
@@ -58,6 +58,21 @@ export class HarvestSeasonService {
         .set('farmId', farmId)
         .set('harvestSeasonIdA', harvestSeasonIdA)
         .set('harvestSeasonIdB', harvestSeasonIdB),
+    });
+  }
+
+  exportHarvestComparisonPdf(
+    farmId: number,
+    harvestSeasonIdA: number,
+    harvestSeasonIdB: number,
+  ): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/compare/export/pdf`, {
+      params: new HttpParams()
+        .set('farmId', farmId)
+        .set('harvestSeasonIdA', harvestSeasonIdA)
+        .set('harvestSeasonIdB', harvestSeasonIdB),
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 

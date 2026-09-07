@@ -1,3 +1,4 @@
+import { HttpResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,10 +21,11 @@ import {
   HarvestSeasonComparisonMetric,
 } from '../../../../core/models/harvest-season.models';
 import { HarvestSeasonService } from '../../../../core/services/harvest-season.service';
+import { ToastStore } from '../../../../core/stores/toast.store';
 import { GdSelectOption, Select } from '../../../../shared/forms';
 import { Drawer } from '../../../../shared/overlays';
 import { BrCurrencyPipe } from '../../../../shared/pipes/br-currency.pipe';
-import { Badge, BadgeVariant, EmptyState, ErrorState, Skeleton, Tooltip } from '../../../../shared/ui';
+import { Badge, BadgeVariant, Button, EmptyState, ErrorState, Skeleton, Tooltip } from '../../../../shared/ui';
 
 interface ComparisonRow {
   label: string;
@@ -55,6 +57,7 @@ interface ComparisonSection {
     EmptyState,
     ErrorState,
     Badge,
+    Button,
     LucideDynamicIcon,
     ReactiveFormsModule,
     Select,
@@ -67,6 +70,7 @@ interface ComparisonSection {
 export class HarvestComparisonDrawer {
   private readonly harvestSeasonService = inject(HarvestSeasonService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toastStore = inject(ToastStore);
 
   readonly open = input(false);
   readonly farmId = input<number | null>(null);
@@ -81,6 +85,7 @@ export class HarvestComparisonDrawer {
   protected readonly comparison = signal<HarvestSeasonComparison | null>(null);
   protected readonly comparisonLoading = signal(false);
   protected readonly comparisonError = signal<string | null>(null);
+  protected readonly exportingPdf = signal(false);
   protected readonly selectionError = signal<string | null>(null);
   private lastFarmId: number | null = null;
 
@@ -171,6 +176,32 @@ export class HarvestComparisonDrawer {
 
   protected retry(): void {
     this.loadComparison();
+  }
+
+  protected exportPdf(): void {
+    const farmId = this.farmId();
+    const harvestSeasonIdA = this.harvestAControl.value;
+    const harvestSeasonIdB = this.harvestBControl.value;
+    if (!farmId || harvestSeasonIdA === null || harvestSeasonIdB === null || this.exportingPdf()) return;
+
+    const pdfWindow = window.open('', '_blank');
+    this.exportingPdf.set(true);
+    this.harvestSeasonService
+      .exportHarvestComparisonPdf(farmId, harvestSeasonIdA, harvestSeasonIdB)
+      .pipe(finalize(() => this.exportingPdf.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => this.openPdf(response, pdfWindow),
+        error: () => {
+          pdfWindow?.close();
+          this.toastStore.error('Não foi possível gerar o comparativo em PDF.');
+        },
+      });
+  }
+
+  protected isBest(metric: HarvestSeasonComparisonMetric, harvestSeasonId: number): boolean {
+    return (this.comparison()?.bestMetrics ?? []).some(
+      (best) => best.metric === metric && best.harvestSeasonIds.includes(harvestSeasonId),
+    );
   }
 
   protected format(value: number | null, format: ComparisonRow['format']): string {
@@ -275,6 +306,39 @@ export class HarvestComparisonDrawer {
 
   private parseUtcDate(date: string): Date {
     return new Date(`${date}T00:00:00Z`);
+  }
+
+  private openPdf(response: HttpResponse<Blob>, pdfWindow: Window | null): void {
+    const blob = response.body;
+    if (!blob) {
+      pdfWindow?.close();
+      this.toastStore.error('Não foi possível gerar o comparativo em PDF.');
+      return;
+    }
+
+    if (pdfWindow) {
+      const url = URL.createObjectURL(blob);
+      pdfWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    this.downloadPdf(blob, this.pdfFilename(response));
+  }
+
+  private downloadPdf(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private pdfFilename(response: HttpResponse<Blob>): string {
+    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(contentDisposition);
+    return match?.[1] ?? 'comparativo-safras.pdf';
   }
 
   private resetComparison(): void {

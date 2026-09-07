@@ -102,6 +102,7 @@ const comparison: HarvestSeasonComparison = {
   },
   differences: [],
   highlights: [],
+  bestMetrics: [],
 };
 
 interface DrawerControls {
@@ -198,6 +199,41 @@ describe('HarvestComparisonDrawer', () => {
     expect(normalizedText(plannedCostRow)).toContain('—');
     expect(text).not.toContain('Principais diferenças');
     expect(text).not.toContain('Diferença');
+  });
+
+  it('should render the Trophy icon only for the Harvest Season marked as best by the backend', async () => {
+    const comparisonWithBest: HarvestSeasonComparison = {
+      ...comparison,
+      bestMetrics: [{ metric: 'REALIZED_REVENUE', harvestSeasonIds: [2] }],
+    };
+    const { fixture } = await createComponent(of(comparisonWithBest));
+    selectHarvests(fixture);
+
+    const trophies = fixture.nativeElement.querySelectorAll(
+      '[data-testid="comparison-best-trophy"]',
+    ) as NodeListOf<SVGElement>;
+
+    expect(trophies).toHaveLength(1);
+    expect(trophies[0].tagName.toLowerCase()).toBe('svg');
+    expect(trophies[0].closest('gd-tooltip')).not.toBeNull();
+  });
+
+  it('should render a Trophy for every Harvest Season returned in a best tie', async () => {
+    const comparisonWithTie: HarvestSeasonComparison = {
+      ...comparison,
+      bestMetrics: [{ metric: 'REALIZED_MARGIN', harvestSeasonIds: [1, 2] }],
+    };
+    const { fixture } = await createComponent(of(comparisonWithTie));
+    selectHarvests(fixture);
+
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="comparison-best-trophy"]')).toHaveLength(2);
+  });
+
+  it('should not render a Trophy when the backend does not mark a metric as best', async () => {
+    const { fixture } = await createComponent();
+    selectHarvests(fixture);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="comparison-best-trophy"]')).toBeNull();
   });
 
   it('should show a matrix-shaped loading state while the comparison is requested', async () => {

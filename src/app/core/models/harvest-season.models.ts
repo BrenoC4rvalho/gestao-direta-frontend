@@ -385,9 +385,15 @@ export interface HarvestSeasonComparisonDifference {
   semantic: HarvestSeasonComparisonSemantic | null;
 }
 
+export interface HarvestSeasonComparisonBest {
+  metric: HarvestSeasonComparisonMetric;
+  harvestSeasonIds: number[];
+}
+
 export interface HarvestSeasonComparison {
   harvestA: HarvestSeasonComparisonHarvest;
   harvestB: HarvestSeasonComparisonHarvest;
   differences: HarvestSeasonComparisonDifference[];
   highlights: HarvestSeasonComparisonDifference[];
+  bestMetrics: HarvestSeasonComparisonBest[];
 }

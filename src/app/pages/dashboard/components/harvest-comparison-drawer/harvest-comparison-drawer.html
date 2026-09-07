@@ -7,6 +7,12 @@
   (closed)="close()"
 >
   <div class="space-y-5">
+    <div class="flex justify-end">
+      <gd-button type="button" variant="outline" size="sm" [loading]="exportingPdf()" [disabled]="!comparison()" (click)="exportPdf()">
+        <svg lucideIcon="download" class="size-4" aria-hidden="true"></svg>
+        Exportar PDF
+      </gd-button>
+    </div>
     <div class="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
       <gd-select
         id="harvest-comparison-a"
@@ -139,9 +145,19 @@
                     </th>
                     <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
                       {{ format(row.valueA, row.format) }}
+                      @if (isBest(row.metric, currentComparison.harvestA.id)) {
+                        <gd-tooltip ariaLabel="Melhor resultado entre as Safras comparadas para este indicador." content="Melhor resultado entre as Safras comparadas para este indicador.">
+                          <svg lucideIcon="trophy" data-testid="comparison-best-trophy" class="ml-1 inline size-4 text-warning" aria-hidden="true"></svg>
+                        </gd-tooltip>
+                      }
                     </td>
                     <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
                       {{ format(row.valueB, row.format) }}
+                      @if (isBest(row.metric, currentComparison.harvestB.id)) {
+                        <gd-tooltip ariaLabel="Melhor resultado entre as Safras comparadas para este indicador." content="Melhor resultado entre as Safras comparadas para este indicador.">
+                          <svg lucideIcon="trophy" data-testid="comparison-best-trophy" class="ml-1 inline size-4 text-warning" aria-hidden="true"></svg>
+                        </gd-tooltip>
+                      }
                     </td>
                   </tr>
                 }
