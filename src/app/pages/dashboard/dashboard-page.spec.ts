@@ -196,6 +196,7 @@ describe('DashboardPage', () => {
   let harvestSeasonService: {
     listSummary: ReturnType<typeof vi.fn>;
     getDashboardHarvests: ReturnType<typeof vi.fn>;
+    compareHarvestSeasons: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
   };
   let farmAccessStore: FarmAccessStore;
@@ -247,6 +248,7 @@ describe('DashboardPage', () => {
     harvestSeasonService = {
       listSummary: vi.fn(),
       getDashboardHarvests: vi.fn().mockReturnValue(of(dashboardHarvests)),
+      compareHarvestSeasons: vi.fn(),
       list: vi.fn().mockReturnValue(of(pageResponse([
         {
           id: 20,
@@ -301,6 +303,18 @@ describe('DashboardPage', () => {
     farmAccessStore.clear();
     selectedFarmStore.clear();
     sessionStore.clear();
+  });
+
+  it('should open the harvest comparison drawer from the dashboard action', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    findButton(fixture, 'Comparar safras')?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Compare indicadores financeiros entre duas Safras da Fazenda.');
   });
 
   it('should render greeting and empty state without calling dashboard endpoints', () => {

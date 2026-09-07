@@ -248,3 +248,69 @@ export interface HarvestSeasonDetailSummary {
   incomeCount: number;
   expenseCount: number;
 }
+
+export type HarvestSeasonComparisonSemantic = 'BETTER' | 'WORSE' | 'NEUTRAL';
+
+export type HarvestSeasonComparisonMetric =
+  | 'AREA_HECTARES'
+  | 'PLANNED_COST'
+  | 'PLANNED_REVENUE'
+  | 'PLANNED_RESULT'
+  | 'PLANNED_MARGIN'
+  | 'PROJECTED_COST'
+  | 'PROJECTED_REVENUE'
+  | 'PROJECTED_PROFIT'
+  | 'PROJECTED_MARGIN'
+  | 'REALIZED_COST'
+  | 'REALIZED_REVENUE'
+  | 'REALIZED_PROFIT'
+  | 'REALIZED_MARGIN'
+  | 'PLANNED_COST_PER_HECTARE'
+  | 'PLANNED_REVENUE_PER_HECTARE'
+  | 'PLANNED_RESULT_PER_HECTARE'
+  | 'PROJECTED_COST_PER_HECTARE'
+  | 'PROJECTED_REVENUE_PER_HECTARE'
+  | 'PROJECTED_PROFIT_PER_HECTARE'
+  | 'REALIZED_COST_PER_HECTARE'
+  | 'REALIZED_REVENUE_PER_HECTARE'
+  | 'REALIZED_PROFIT_PER_HECTARE';
+
+export interface HarvestSeasonPerHectareComparison {
+  plannedCostPerHectare: number | null;
+  plannedRevenuePerHectare: number | null;
+  plannedResultPerHectare: number | null;
+  projectedCostPerHectare: number | null;
+  projectedRevenuePerHectare: number | null;
+  projectedProfitPerHectare: number | null;
+  realizedCostPerHectare: number | null;
+  realizedRevenuePerHectare: number | null;
+  realizedProfitPerHectare: number | null;
+}
+
+export interface HarvestSeasonComparisonHarvest {
+  id: number;
+  name: string;
+  status: HarvestSeasonStatus;
+  productionActivityName: string;
+  startDate: string;
+  endDate: string | null;
+  areaHectares: number | null;
+  planning: HarvestSeasonPlanningSummary | null;
+  projection: HarvestSeasonProjectionSummary | null;
+  realized: HarvestSeasonRealizedSummary | null;
+  perHectare: HarvestSeasonPerHectareComparison;
+}
+
+export interface HarvestSeasonComparisonDifference {
+  metric: HarvestSeasonComparisonMetric;
+  difference: number | null;
+  percentageDifference: number | null;
+  semantic: HarvestSeasonComparisonSemantic | null;
+}
+
+export interface HarvestSeasonComparison {
+  harvestA: HarvestSeasonComparisonHarvest;
+  harvestB: HarvestSeasonComparisonHarvest;
+  differences: HarvestSeasonComparisonDifference[];
+  highlights: HarvestSeasonComparisonDifference[];
+}

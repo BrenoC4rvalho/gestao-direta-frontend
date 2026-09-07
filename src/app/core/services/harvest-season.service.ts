@@ -18,6 +18,7 @@ import {
   HarvestSeasonBudget,
   HarvestSeasonBudgetItem,
   HarvestSeasonBudgetItemRequest,
+  HarvestSeasonComparison,
   UpdateHarvestSeasonRequest,
 } from '../models/harvest-season.models';
 import { PageResponse } from '../models/page-response.model';
@@ -42,6 +43,19 @@ export class HarvestSeasonService {
   getDashboardHarvests(farmId: number): Observable<readonly DashboardHarvestSeason[]> {
     return this.http.get<readonly DashboardHarvestSeason[]>(`${this.apiUrl}/dashboard`, {
       params: new HttpParams().set("farmId", farmId),
+    });
+  }
+
+  compareHarvestSeasons(
+    farmId: number,
+    harvestSeasonIdA: number,
+    harvestSeasonIdB: number,
+  ): Observable<HarvestSeasonComparison> {
+    return this.http.get<HarvestSeasonComparison>(`${this.apiUrl}/compare`, {
+      params: new HttpParams()
+        .set('farmId', farmId)
+        .set('harvestSeasonIdA', harvestSeasonIdA)
+        .set('harvestSeasonIdB', harvestSeasonIdB),
     });
   }
 

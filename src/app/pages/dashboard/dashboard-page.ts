@@ -58,6 +58,7 @@ import {
 import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { CashFlowChartComponent } from './components/cash-flow-chart/cash-flow-chart.component';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
+import { HarvestComparisonDrawer } from './components/harvest-comparison-drawer/harvest-comparison-drawer';
 import { TransactionFormDrawer } from '../transactions/components/transaction-form-drawer/transaction-form-drawer';
 
 interface SummaryCardViewModel {
@@ -79,6 +80,7 @@ interface SummaryCardViewModel {
     Drawer,
     EmptyState,
     ErrorState,
+    HarvestComparisonDrawer,
     ImportantAlerts,
     LatestTransactionsCard,
     ReactiveFormsModule,
@@ -110,6 +112,7 @@ export class DashboardPage {
   protected readonly summary = signal<FinancialSummary | null>(null);
   protected readonly summaryLoading = signal(false);
   protected readonly summaryError = signal<string | null>(null);
+  protected readonly harvestComparisonOpen = signal(false);
 
   protected readonly transactions = signal<readonly DashboardFinancialTransaction[]>([]);
   protected readonly transactionsLoading = signal(false);
@@ -152,6 +155,14 @@ export class DashboardPage {
 
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6, 7, 8];
   protected readonly harvestSkeletons = [1, 2, 3];
+
+  protected openHarvestComparison(): void {
+    this.harvestComparisonOpen.set(true);
+  }
+
+  protected closeHarvestComparison(): void {
+    this.harvestComparisonOpen.set(false);
+  }
 
   private readonly currencyPipe = new BrCurrencyPipe();
   private handledAiTransactionOpenRequest = this.dashboardAiTransactionAction.openRequest();

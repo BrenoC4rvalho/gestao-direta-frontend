@@ -206,6 +206,17 @@ describe('HarvestSeasonService', () => {
     request.flush(dashboardHarvests);
   });
 
+  it('should call the comparison endpoint with the selected farm and two harvest seasons', () => {
+    service.compareHarvestSeasons(8, 25, 26).subscribe();
+
+    const request = http.expectOne((req) => req.url === `${apiUrl}/compare`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('8');
+    expect(request.request.params.get('harvestSeasonIdA')).toBe('25');
+    expect(request.request.params.get('harvestSeasonIdB')).toBe('26');
+    request.flush({});
+  });
+
   it('should call GET /api/harvest/seasons/summary-list with supported params', () => {
     service
       .listSummary({
