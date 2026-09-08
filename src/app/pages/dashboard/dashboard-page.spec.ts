@@ -305,18 +305,13 @@ describe('DashboardPage', () => {
     sessionStore.clear();
   });
 
-  it('should open the harvest comparison drawer from the dashboard action', () => {
+  it('should not render the harvest comparison action', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    findButton(fixture, 'Comparar safras')?.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain(
-      'Compare indicadores financeiros e produtivos entre as Safras selecionadas.',
-    );
+    expect(findButton(fixture, 'Comparar safras')).toBeNull();
   });
 
   it('should render greeting and empty state without calling dashboard endpoints', () => {
