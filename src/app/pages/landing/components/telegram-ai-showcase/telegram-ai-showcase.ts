@@ -17,8 +17,8 @@ interface ParsedField {
 export class TelegramAiShowcase {
   protected readonly expenseFields: readonly ParsedField[] = [
     { label: 'Tipo', value: 'Despesa' },
-    { label: 'Valor', value: 'R$ 1.850,00' },
-    { label: 'Categoria', value: 'Fertilizantes' },
+    { label: 'Valor', value: 'R$ 400,00' },
+    { label: 'Categoria', value: 'Combustíveis' },
     { label: 'Data', value: 'Hoje' },
   ];
 

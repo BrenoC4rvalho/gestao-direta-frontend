@@ -43,10 +43,17 @@ describe('LandingPage', () => {
   it('renders the financial management hero and realistic product preview', () => {
     const text = textContent();
 
-    expect(text).toContain('Gestão financeira rural mais simples, organizada e inteligente');
+    expect(text).toContain('Mais controle sobre as finanças da sua propriedade rural');
+    expect(text).toContain(
+      'Organize receitas, despesas e compromissos, acompanhe cada Safra e tenha informações mais claras para planejar e tomar decisões.',
+    );
+    expect(text).not.toContain('Gestão financeira rural mais simples, organizada e inteligente');
+    expect(text).not.toContain('Gestão financeira para o campo');
+    expect(text).not.toContain('Telegram integrado');
     expect(text).toContain('Resumo da propriedade');
     expect(text).toContain('Fluxo de caixa');
     expect(text).toContain('Café 2026/2027');
+    expect(text).toContain('Movimentação identificada');
     expect(query('img[src*="lading.png"]')).toBeNull();
   });
 
@@ -80,15 +87,21 @@ describe('LandingPage', () => {
     }
   });
 
-  it('communicates Telegram parsing and mandatory review without claiming audio support', () => {
+  it('communicates Telegram text and audio parsing with mandatory review', () => {
     const text = textContent();
 
     expect(text).toContain('Telegram disponível');
+    expect(text).toContain('Registre movimentações por texto ou áudio');
+    expect(text).toContain('Envie uma mensagem de texto ou um áudio pelo Telegram');
+    expect(text).toContain('O Gestão Direta interpreta as informações');
+    expect(text).toContain('Áudio · 0:08');
+    expect(text).toContain('Gastei quatrocentos reais com diesel para o trator');
+    expect(text).toContain('R$ 400,00');
+    expect(text).toContain('Combustíveis');
     expect(text).toContain('Aguardando revisão');
     expect(text).toContain('Aprove somente depois de revisar os dados');
     expect(text).toContain('WhatsApp');
     expect(text).toContain('Em breve');
-    expect(text).not.toContain('áudio');
   });
 
   it('renders Harvest planning and the real two-Harvest comparison model', () => {
