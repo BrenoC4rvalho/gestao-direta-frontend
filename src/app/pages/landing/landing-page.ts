@@ -4,26 +4,20 @@ import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 
-import { Badge } from '../../shared/ui';
+import { DashboardPreview } from './components/dashboard-preview/dashboard-preview';
+import { FinancialShowcase } from './components/financial-showcase/financial-showcase';
+import { HarvestShowcase } from './components/harvest-showcase/harvest-showcase';
+import { LandingNavbar } from './components/landing-navbar/landing-navbar';
+import { TelegramAiShowcase } from './components/telegram-ai-showcase/telegram-ai-showcase';
+import { RevealOnScrollDirective } from './reveal-on-scroll.directive';
 
-interface LandingCard {
+interface LandingItem {
   readonly icon: string;
   readonly title: string;
   readonly description: string;
 }
 
-interface SolutionItem {
-  readonly title: string;
-  readonly description: string;
-}
-
-interface ChatMessage {
-  readonly sender: 'Você' | 'Gestão Direta';
-  readonly text: string;
-  readonly own?: boolean;
-}
-
-interface MessageStep {
+interface LandingStep {
   readonly number: string;
   readonly title: string;
   readonly description: string;
@@ -31,153 +25,64 @@ interface MessageStep {
 
 @Component({
   selector: 'gd-landing-page',
-  imports: [Badge, LucideDynamicIcon, NgOptimizedImage, RouterLink],
+  imports: [
+    DashboardPreview,
+    FinancialShowcase,
+    HarvestShowcase,
+    LandingNavbar,
+    LucideDynamicIcon,
+    NgOptimizedImage,
+    RevealOnScrollDirective,
+    RouterLink,
+    TelegramAiShowcase,
+  ],
   templateUrl: './landing-page.html',
+  styleUrl: './landing-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LandingPage {
   private readonly title = inject(Title);
 
-  protected readonly problemCards: readonly LandingCard[] = [
-    {
-      icon: 'inbox',
-      title: 'Anotações espalhadas',
-      description:
-        'Informações em cadernos, conversas e planilhas dificultam encontrar o que aconteceu.',
-    },
-    {
-      icon: 'receipt-text',
-      title: 'Receitas e despesas sem organização',
-      description:
-        'Registrar cada movimentação depois consome tempo e aumenta a chance de esquecer detalhes.',
-    },
-    {
-      icon: 'sprout',
-      title: 'Visão por safra difícil',
-      description:
-        'Sem separar os lançamentos, acompanhar os resultados de cada ciclo fica mais trabalhoso.',
-    },
-    {
-      icon: 'calendar-days',
-      title: 'Informações descentralizadas',
-      description:
-        'Decisões importantes ficam mais difíceis quando os dados financeiros não estão no mesmo lugar.',
-    },
+  protected readonly proofPoints: readonly Pick<LandingItem, 'icon' | 'title'>[] = [
+    { icon: 'message-circle', title: 'Registre em segundos' },
+    { icon: 'sprout', title: 'Organize por Safra' },
+    { icon: 'list-checks', title: 'Planeje antes de gastar' },
+    { icon: 'wallet', title: 'Acompanhe seu caixa' },
+    { icon: 'chart-spline', title: 'Decida com informação' },
   ];
 
-  protected readonly solutionItems: readonly SolutionItem[] = [
-    {
-      title: 'Receitas e despesas organizadas',
-      description: 'Registre movimentações e acompanhe o financeiro da fazenda em um só lugar.',
-    },
-    {
-      title: 'Fazendas, safras e categorias',
-      description:
-        'Relacione os lançamentos ao contexto da produção para manter a gestão organizada.',
-    },
-    {
-      title: 'Indicadores e relatórios financeiros',
-      description: 'Acompanhe receitas, despesas, saldo e resultados com os dados já cadastrados.',
-    },
-    {
-      title: 'Movimentações por mensagem com revisão',
-      description:
-        'Envie uma descrição, revise os dados identificados e confirme antes de incluir no financeiro.',
-    },
+  protected readonly problems: readonly LandingItem[] = [
+    { icon: 'inbox', title: 'Controle manual', description: 'Receitas e despesas ficam espalhadas entre planilhas, cadernos e anotações.' },
+    { icon: 'wallet', title: 'Falta de visão do caixa', description: 'Sem acompanhar compromissos futuros, fica difícil saber quanto realmente estará disponível.' },
+    { icon: 'sprout', title: 'Custos da Safra', description: 'Sem planejamento, é difícil identificar onde os gastos ultrapassaram o esperado.' },
+    { icon: 'clock', title: 'Informação atrasada', description: 'Quando os registros ficam para depois, decisões são tomadas sem dados atualizados.' },
+    { icon: 'chart-no-axes-combined', title: 'Dificuldade para comparar', description: 'Sem histórico organizado, comparar resultados entre Safras se torna trabalhoso.' },
   ];
 
-  protected readonly chatMessages: readonly ChatMessage[] = [
-    {
-      sender: 'Você',
-      text: 'Gastei R$ 200 de diesel hoje na safra de soja.',
-      own: true,
-    },
-    {
-      sender: 'Gestão Direta',
-      text: 'Identifiquei uma despesa:\n\nR$ 200,00\nCombustível\nSafra de soja\n\nA movimentação foi enviada para revisão antes de entrar no seu controle financeiro.',
-    },
+  protected readonly features: readonly LandingItem[] = [
+    { icon: 'receipt-text', title: 'Movimentações financeiras', description: 'Registre receitas e despesas, organize por categoria e acompanhe o histórico da propriedade.' },
+    { icon: 'calendar-clock', title: 'Agenda Financeira', description: 'Visualize valores a pagar e a receber e acompanhe os próximos compromissos.' },
+    { icon: 'sprout', title: 'Gestão de Safras', description: 'Acompanhe cada ciclo produtivo com período, atividade, área e informações financeiras.' },
+    { icon: 'list-checks', title: 'Planejamento financeiro', description: 'Planeje despesas e receitas por categoria antes e durante a Safra.' },
+    { icon: 'chart-spline', title: 'Relatórios e indicadores', description: 'Transforme os registros financeiros em informações mais claras para análise.' },
+    { icon: 'message-circle', title: 'Telegram + IA', description: 'Envie movimentações por mensagem e revise os dados estruturados antes da aprovação.' },
   ];
 
-  protected readonly messageSteps: readonly MessageStep[] = [
-    {
-      number: '1',
-      title: 'Envie',
-      description: 'Descreva a movimentação como você falaria normalmente.',
-    },
-    {
-      number: '2',
-      title: 'A IA organiza',
-      description: 'Valor, tipo, data e outras informações são identificados quando disponíveis.',
-    },
-    {
-      number: '3',
-      title: 'Revise',
-      description: 'Confira os dados e complete o que estiver faltando.',
-    },
-    {
-      number: '4',
-      title: 'Confirme',
-      description: 'A movimentação entra no seu controle financeiro.',
-    },
+  protected readonly steps: readonly LandingStep[] = [
+    { number: '01', title: 'Registre', description: 'Cadastre uma movimentação no sistema ou envie uma mensagem pelo Telegram.' },
+    { number: '02', title: 'Organize', description: 'Relacione as informações à Fazenda, categoria e Safra.' },
+    { number: '03', title: 'Acompanhe', description: 'Visualize receitas, despesas, compromissos, planejamento e resultados.' },
+    { number: '04', title: 'Analise', description: 'Use relatórios e indicadores para entender melhor a situação financeira.' },
   ];
 
-  protected readonly benefits: readonly LandingCard[] = [
-    {
-      icon: 'chart-spline',
-      title: 'Mais clareza para decidir',
-      description: 'Consulte receitas, despesas e saldo com as informações organizadas.',
-    },
-    {
-      icon: 'list-checks',
-      title: 'Rotina financeira mais simples',
-      description: 'Mantenha os lançamentos, categorias e pendências no mesmo sistema.',
-    },
-    {
-      icon: 'sprout',
-      title: 'Acompanhamento por fazenda e safra',
-      description: 'Organize os dados conforme a realidade da sua produção.',
-    },
-    {
-      icon: 'receipt-text',
-      title: 'Revisão antes da aprovação',
-      description: 'Ajuste as movimentações identificadas por mensagem antes de confirmar.',
-    },
-  ];
-
-  protected readonly roadmapItems: readonly LandingCard[] = [
-    {
-      icon: 'sparkles',
-      title: 'IA para compra de insumos',
-      description: 'Recomendações inteligentes de melhor momento e preço para comprar.',
-    },
-    {
-      icon: 'trending-up',
-      title: 'IA para venda da safra',
-      description: 'Análise de mercado para maximizar sua receita.',
-    },
-    {
-      icon: 'chart-no-axes-combined',
-      title: 'Simulação de cenários',
-      description: 'Teste diferentes estratégias antes de executar.',
-    },
-    {
-      icon: 'receipt-text',
-      title: 'Integração com NF-e',
-      description: 'Importação automática de notas fiscais.',
-    },
-    {
-      icon: 'inbox',
-      title: 'Controle de estoque',
-      description: 'Gerencie insumos, sementes e produção.',
-    },
-    {
-      icon: 'badge-dollar-sign',
-      title: 'Análises avançadas',
-      description: 'Benchmarking e comparações com o mercado.',
-    },
+  protected readonly benefits: readonly LandingItem[] = [
+    { icon: 'receipt-text', title: 'Registre com facilidade', description: 'Reduza o esforço necessário para manter as informações financeiras atualizadas.' },
+    { icon: 'list-checks', title: 'Planeje melhor', description: 'Organize custos e receitas esperadas antes de executar a Safra.' },
+    { icon: 'calendar-clock', title: 'Acompanhe o caixa', description: 'Visualize compromissos e entenda o que ainda precisa pagar ou receber.' },
+    { icon: 'chart-spline', title: 'Decida com informação', description: 'Use histórico, relatórios e indicadores para apoiar suas decisões.' },
   ];
 
   constructor() {
-    this.title.setTitle('Gestão Direta — Gestão financeira para produtores rurais');
+    this.title.setTitle('Gestão Direta | Gestão financeira rural');
   }
 }

@@ -1,0 +1,52 @@
+<header
+  class="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-md transition-shadow"
+  [class.border-transparent]="!scrolled()"
+  [class.border-border]="scrolled()"
+  [class.shadow-sm]="scrolled()"
+  (keydown)="handleMenuKeydown($event)"
+>
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <a href="#inicio" class="inline-flex items-center gap-2 rounded-control" aria-label="Gestão Direta, voltar ao início">
+      <img ngSrc="/assets/brand/logo_horizontal.svg" width="990" height="313" alt="Gestão Direta" priority class="hidden h-auto w-36 sm:block" />
+      <img ngSrc="/assets/brand/logo-mark.svg" width="690" height="503" alt="" priority class="h-9 w-auto sm:hidden" />
+      <span class="text-base font-semibold text-primary sm:hidden">Gestão Direta</span>
+    </a>
+
+    <nav class="hidden items-center gap-5 text-sm font-medium text-text-muted xl:flex" aria-label="Navegação principal">
+      @for (item of navItems; track item.href) {
+        <a [href]="item.href" class="whitespace-nowrap rounded-control transition-colors hover:text-primary">{{ item.label }}</a>
+      }
+    </nav>
+
+    <div class="ml-auto hidden items-center gap-2 sm:flex">
+      <a routerLink="/login" data-testid="landing-login-link" class="inline-flex min-h-10 items-center justify-center rounded-control px-4 text-sm font-semibold text-primary transition-colors hover:bg-highlight-soft">Entrar</a>
+      <a href="https://wa.me/5524988276875" target="_blank" rel="noopener noreferrer" data-testid="landing-navbar-start-link" class="inline-flex min-h-10 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover">Começar agora</a>
+    </div>
+
+    <button
+      #menuButton
+      type="button"
+      class="flex size-10 cursor-pointer items-center justify-center rounded-control border border-border text-text-primary transition-colors hover:bg-background sm:ml-0 xl:hidden"
+      [attr.aria-label]="menuOpen() ? 'Fechar menu de navegação' : 'Abrir menu de navegação'"
+      aria-controls="landing-mobile-menu"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >
+      <svg [lucideIcon]="menuOpen() ? 'x' : 'menu'" class="size-5" aria-hidden="true"></svg>
+    </button>
+  </div>
+
+  @if (menuOpen()) {
+    <div id="landing-mobile-menu" class="border-t border-border bg-white px-4 py-4 shadow-sm xl:hidden">
+      <nav class="mx-auto grid max-w-7xl gap-1" aria-label="Navegação principal mobile">
+        @for (item of navItems; track item.href) {
+          <a [href]="item.href" class="rounded-control px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-background" (click)="closeMenu()">{{ item.label }}</a>
+        }
+        <div class="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:hidden">
+          <a routerLink="/login" data-testid="landing-mobile-login-link" class="inline-flex min-h-11 items-center justify-center rounded-control border border-border text-sm font-semibold text-primary" (click)="closeMenu()">Entrar</a>
+          <a href="https://wa.me/5524988276875" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-3 text-center text-sm font-semibold text-white" (click)="closeMenu()">Começar agora</a>
+        </div>
+      </nav>
+    </div>
+  }
+</header>

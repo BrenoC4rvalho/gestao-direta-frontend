@@ -7,9 +7,7 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 
 import { LandingPage } from './landing-page';
 
-@Component({
-  template: '',
-})
+@Component({ template: '' })
 class LoginStub {}
 
 describe('LandingPage', () => {
@@ -38,116 +36,100 @@ describe('LandingPage', () => {
     return fixture.nativeElement.querySelector(selector) as T | null;
   }
 
-  it('should set the SEO page title', () => {
-    expect(TestBed.inject(Title).getTitle()).toBe(
-      'Gestão Direta — Gestão financeira para produtores rurais',
-    );
+  it('sets the landing SEO title', () => {
+    expect(TestBed.inject(Title).getTitle()).toBe('Gestão Direta | Gestão financeira rural');
   });
 
-  it('should render the main title', () => {
-    expect(textContent()).toContain('Controle financeiro simples para quem produz o Brasil');
+  it('renders the financial management hero and realistic product preview', () => {
+    const text = textContent();
+
+    expect(text).toContain('Gestão financeira rural mais simples, organizada e inteligente');
+    expect(text).toContain('Resumo da propriedade');
+    expect(text).toContain('Fluxo de caixa');
+    expect(text).toContain('Café 2026/2027');
+    expect(query('img[src*="lading.png"]')).toBeNull();
   });
 
-  it('should render Entrar and Começar agora buttons', () => {
-    expect(textContent()).toContain('Entrar');
-    expect(textContent()).toContain('Começar agora');
+  it('keeps the commercial and platform CTAs on real destinations', () => {
+    const startLink = query<HTMLAnchorElement>('[data-testid="landing-start-link"]');
+    const platformLink = query<HTMLAnchorElement>('[data-testid="landing-platform-link"]');
+
+    expect(startLink?.getAttribute('href')).toBe('https://wa.me/5524988276875');
+    expect(startLink?.getAttribute('target')).toBe('_blank');
+    expect(platformLink?.getAttribute('href')).toBe('#funcionalidades');
   });
 
-  it('should navigate to login when Entrar is clicked', async () => {
+  it('navigates to login from the navbar', async () => {
     query<HTMLAnchorElement>('[data-testid="landing-login-link"]')?.click();
     await fixture.whenStable();
 
     expect(router.url).toBe('/login');
   });
 
-  it('should link Começar agora to WhatsApp', () => {
-    const link = query<HTMLAnchorElement>('[data-testid="landing-start-link"]');
-
-    expect(link?.getAttribute('href')).toBe('https://wa.me/5524988276875');
-    expect(link?.getAttribute('target')).toBe('_blank');
+  it('renders the principal anchored sections', () => {
+    for (const id of [
+      'como-funciona',
+      'funcionalidades',
+      'telegram',
+      'inteligencia-artificial',
+      'safras',
+      'compromissos',
+      'relatorios',
+    ]) {
+      expect(query(`#${id}`), `missing #${id}`).toBeTruthy();
+    }
   });
 
-  it('should render the prioritized hero image at its intrinsic 3:2 ratio', () => {
-    const image = query<HTMLImageElement>('img[alt="Visão da plataforma Gestão Direta"]');
-    const imageContainer = image?.parentElement;
-
-    expect(image?.getAttribute('src')).toContain('/assets/img/lading.png');
-    expect(image?.getAttribute('width')).toBe('1536');
-    expect(image?.getAttribute('height')).toBe('1024');
-    expect(image?.getAttribute('fetchpriority')).toBe('high');
-    expect(image?.classList.contains('h-full')).toBe(true);
-    expect(image?.classList.contains('w-full')).toBe(true);
-    expect(image?.classList.contains('object-cover')).toBe(true);
-    expect(imageContainer?.classList.contains('aspect-[3/2]')).toBe(true);
-    expect(imageContainer?.classList.contains('overflow-hidden')).toBe(true);
-    expect(image?.parentElement?.parentElement?.classList.contains('xl:h-full')).toBe(true);
-    expect(image?.parentElement?.parentElement?.classList.contains('xl:w-full')).toBe(true);
-    expect(image?.parentElement?.parentElement?.classList.contains('xl:aspect-[3/2]')).toBe(true);
-    expect(image?.classList.contains('h-64')).toBe(false);
-    expect(image?.classList.contains('sm:h-80')).toBe(false);
-    expect(image?.classList.contains('lg:h-[28rem]')).toBe(false);
-    expect(textContent()).not.toContain('Saldo projetado');
-    expect(textContent()).not.toContain('R$ 84.320');
-    expect(textContent()).not.toContain('R$ 126.800');
-    expect(textContent()).not.toContain('R$ 42.480');
-  });
-
-  it('should render the Problema section', () => {
-    expect(textContent()).toContain('O problema no campo não é produzir. É gerenciar.');
-    expect(textContent()).toContain(
-      'Informações em cadernos, conversas e planilhas dificultam encontrar o que aconteceu.',
-    );
-  });
-
-  it('should render the Solução section', () => {
-    expect(textContent()).toContain('Uma solução simples para uma realidade complexa');
-    expect(textContent()).toContain('Receitas e despesas organizadas');
-  });
-
-  it('should communicate message-based registration with Telegram available and WhatsApp coming soon', () => {
+  it('communicates Telegram parsing and mandatory review without claiming audio support', () => {
     const text = textContent();
 
-    expect(text).toContain('Sua gestão financeira começa com uma mensagem');
-    expect(text).toContain('Telegram');
-    expect(text).toContain('Disponível');
+    expect(text).toContain('Telegram disponível');
+    expect(text).toContain('Aguardando revisão');
+    expect(text).toContain('Aprove somente depois de revisar os dados');
     expect(text).toContain('WhatsApp');
     expect(text).toContain('Em breve');
-    expect(text).toContain(
-      'A movimentação foi enviada para revisão antes de entrar no seu controle financeiro.',
-    );
-    expect(text).toContain('A IA organiza');
-    expect(text).not.toContain('Controle financeiro direto pelo WhatsApp');
-    expect(text).not.toContain('Consulte saldo e relatórios por mensagem.');
-    expect(text).not.toContain('Registrado!');
+    expect(text).not.toContain('áudio');
   });
 
-  it('should render the Benefícios section', () => {
-    expect(textContent()).toContain('Por que usar o Gestão Direta?');
-    expect(textContent()).toContain('Mais clareza para decidir');
+  it('renders Harvest planning and the real two-Harvest comparison model', () => {
+    const text = textContent();
+
+    expect(text).toContain('Entenda o resultado de cada Safra');
+    expect(text).toContain('Planeje antes de executar');
+    expect(text).toContain('Planejado × realizado');
+    expect(text).toContain('Café 2025/2026');
+    expect(text).toContain('Café 2026/2027');
+    expect(text).toContain('Resultado / ha');
   });
 
-  it('should render the Em breve section', () => {
-    expect(textContent()).toContain('Evoluindo com você');
-    expect(textContent()).toContain('IA para compra de insumos');
+  it('renders Agenda Financeira, reports and the final CTA', () => {
+    const text = textContent();
+
+    expect(text).toContain('Saiba o que ainda precisa entrar e sair do caixa');
+    expect(text).toContain('Transforme registros em informações para decidir melhor');
+    expect(text).toContain('Tenha mais controle sobre o financeiro da sua propriedade');
+    expect(query('[data-testid="landing-final-start-link"]')).toBeTruthy();
   });
 
-  it('should expose responsive anchors for the landing sections', () => {
-    expect(query<HTMLAnchorElement>('a[href="\#mensagens"]'))?.toBeTruthy();
-    expect(query<HTMLElement>('#mensagens'))?.toBeTruthy();
-    expect(query<HTMLElement>('#mensagens')?.classList.contains('scroll-mt-32')).toBe(true);
+  it('opens and closes the accessible mobile menu', () => {
+    const menuButton = query<HTMLButtonElement>('button[aria-controls="landing-mobile-menu"]');
+
+    expect(menuButton?.getAttribute('aria-expanded')).toBe('false');
+    menuButton?.click();
+    fixture.detectChanges();
+    expect(menuButton?.getAttribute('aria-expanded')).toBe('true');
+    expect(query('#landing-mobile-menu')).toBeTruthy();
+
+    menuButton?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(menuButton?.getAttribute('aria-expanded')).toBe('false');
+    expect(query('#landing-mobile-menu')).toBeNull();
   });
 
-  it('should render the final CTA section', () => {
-    expect(textContent()).toContain('Pare de adivinhar. Comece a decidir com dados.');
-    expect(textContent()).toContain('Entrar em contato');
-    expect(
-      query<HTMLAnchorElement>('a[href="https://wa.me/5524988276875"]')?.getAttribute('target'),
-    ).toBe('_blank');
-  });
-
-  it('should not render the authenticated app layout chrome', () => {
+  it('does not render authenticated layout chrome or unsupported promises', () => {
     expect(query('gd-desktop-sidebar')).toBeNull();
     expect(query('gd-mobile-header')).toBeNull();
-    expect(query('gd-farm-context-selector')).toBeNull();
+    expect(textContent()).not.toContain('IA para compra de insumos');
+    expect(textContent()).not.toContain('benchmarking');
   });
 });
