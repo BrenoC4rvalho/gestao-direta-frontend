@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -20,6 +21,7 @@ import {
   CashFlowResponse,
   FinancialAlerts,
   FinancialSummary,
+  FinancialHorizonDays,
   FinancialTransaction as DashboardFinancialTransaction,
 } from '../../core/models/financial.models';
 import { DashboardHarvestSeason, HarvestSeason } from '../../core/models/harvest-season.models';
@@ -61,6 +63,9 @@ import { LatestTransactionsCard } from './components/latest-transactions-card/la
 import { TransactionFormDrawer } from '../transactions/components/transaction-form-drawer/transaction-form-drawer';
 
 interface SummaryCardViewModel {
+  id: string;
+  subtitle?: string;
+  meta?: string;
   title: string;
   value: string;
   description: string;
@@ -149,6 +154,10 @@ export class DashboardPage {
 
   private readonly reloadTrigger = signal(0);
 
+  protected readonly selectedHorizon = signal<FinancialHorizonDays>(30);
+  protected readonly horizons: readonly FinancialHorizonDays[] = [30, 90, 180];
+  private readonly summaryReloadTrigger = signal(0);
+
   protected readonly summarySkeletons = [1, 2, 3, 4, 5, 6, 7, 8];
   protected readonly harvestSkeletons = [1, 2, 3];
 
@@ -162,70 +171,91 @@ export class DashboardPage {
       return [];
     }
 
+    const period = `Próximos ${summary.horizonDays} dias`;
+    const coverage = summary.financialCoverage;
+    const coverageLabels = {
+      SUFFICIENT: 'Suficiente',
+      INSUFFICIENT: 'Insuficiente',
+      NO_OBLIGATIONS: 'Sem obrigações no período',
+    };
+    const coverageTones: Record<typeof coverage.status, SummaryCardTone> = {
+      SUFFICIENT: 'success',
+      INSUFFICIENT: 'danger',
+      NO_OBLIGATIONS: 'neutral',
+    };
+
     return [
       {
+        id: 'currentBalance',
         title: 'Saldo atual',
         value: this.formatCurrency(summary.currentBalance),
-        description: 'Resultado financeiro já realizado: entradas pagas menos saídas pagas.',
-        detail: 'Considera apenas movimentações pagas.',
+        description: 'Resultado financeiro realizado: receitas pagas menos despesas pagas.',
         icon: 'wallet',
         tone: summary.currentBalance >= 0 ? 'success' : 'danger',
       },
       {
-        title: 'Entradas previstas',
-        value: this.formatCurrency(summary.expectedIncome),
-        description: 'Total de receitas que ainda não foram recebidas.',
-        detail: 'Inclui entradas pendentes e atrasadas, exceto canceladas.',
+        id: 'totalReceivable',
+        title: 'A receber',
+        value: this.formatCurrency(summary.totalReceivable),
+        description: 'Total de receitas em aberto, incluindo vencidas e sem vencimento.',
         icon: 'trending-up',
-        tone: 'success',
+        tone: 'info',
       },
       {
-        title: 'Saídas previstas',
-        value: this.formatCurrency(summary.expectedExpense),
-        description: 'Total de despesas que ainda não foram pagas.',
-        detail: 'Inclui saídas pendentes e atrasadas, exceto canceladas.',
+        id: 'totalPayable',
+        title: 'A pagar',
+        value: this.formatCurrency(summary.totalPayable),
+        description: 'Total de despesas em aberto, incluindo vencidas e sem vencimento.',
         icon: 'trending-down',
         tone: 'warning',
       },
       {
-        title: 'Saldo projetado',
-        value: this.formatCurrency(summary.projectedBalance),
-        description: 'Saldo esperado após considerar entradas e saídas previstas.',
-        detail: 'Calculado por: saldo atual + entradas previstas - saídas previstas.',
-        icon: 'wallet',
-        tone: summary.projectedBalance >= 0 ? 'success' : 'danger',
-      },
-      {
-        title: 'A pagar em 30 dias',
-        value: this.formatCurrency(summary.payableNext30Days),
-        description: 'Despesas pendentes com vencimento nos próximos 30 dias.',
-        detail: 'Não inclui contas já atrasadas.',
-        icon: 'calendar-clock',
-        tone: 'warning',
-      },
-      {
-        title: 'Atrasado',
-        value: this.formatCurrency(summary.overdueExpenses),
-        description: 'Despesas vencidas que ainda não foram pagas.',
-        detail: 'Indica compromissos financeiros em atraso.',
+        id: 'overduePayable',
+        title: 'A pagar em atraso',
+        value: this.formatCurrency(summary.overduePayable),
+        description: 'Despesas vencidas antes de hoje e que continuam em aberto.',
         icon: 'alert-circle',
         tone: 'danger',
       },
       {
-        title: 'A receber em 30 dias',
-        value: this.formatCurrency(summary.receivableNext30Days),
-        description: 'Receitas atrasadas ou previstas para os próximos 30 dias.',
-        detail: 'Ajuda a visualizar o dinheiro que deve entrar no curto prazo.',
+        id: 'receivableInHorizon',
+        title: 'A receber',
+        subtitle: period,
+        value: this.formatCurrency(summary.receivableInHorizon),
+        description: 'Receitas em aberto com vencimento entre hoje e o final do horizonte, inclusive.',
         icon: 'landmark',
         tone: 'info',
       },
       {
-        title: 'Fluxo 30 dias',
-        value: this.formatCurrency(summary.cashFlowNext30Days),
-        description: 'Diferença entre valores a receber e contas a pagar no curto prazo.',
-        detail: 'Calculado por: a receber - a pagar em 30 dias - atrasado.',
+        id: 'payableInHorizon',
+        title: 'A pagar',
+        subtitle: period,
+        value: this.formatCurrency(summary.payableInHorizon),
+        description: 'Despesas em aberto com vencimento entre hoje e o final do horizonte, sem atrasadas.',
+        icon: 'calendar-clock',
+        tone: 'warning',
+      },
+      {
+        id: 'projectedBalance',
+        title: 'Saldo projetado',
+        subtitle: `Em ${summary.horizonDays} dias`,
+        value: this.formatCurrency(summary.projectedBalance),
+        description: 'Saldo atual mais receitas do horizonte, menos despesas do horizonte e vencidas.',
+        detail: 'Não presume o recebimento de receitas já vencidas.',
+        icon: 'wallet',
+        tone: summary.projectedBalance >= 0 ? 'success' : 'danger',
+      },
+      {
+        id: 'financialCoverage',
+        title: 'Cobertura financeira',
+        subtitle: period,
+        value: coverage.coveragePercentage === null
+          ? 'Sem obrigações no período'
+          : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(coverage.coveragePercentage)}%`,
+        meta: coverage.status === 'NO_OBLIGATIONS' ? undefined : coverageLabels[coverage.status],
+        description: 'Quanto das despesas vencidas e do horizonte é coberto pelo saldo atual e receitas do horizonte.',
         icon: 'chart-no-axes-combined',
-        tone: summary.cashFlowNext30Days >= 0 ? 'success' : 'danger',
+        tone: coverageTones[coverage.status],
       },
     ];
   });
@@ -311,6 +341,30 @@ export class DashboardPage {
       const farmId = this.selectedFarmStore.selectedFarmId();
       const access = this.farmAccessStore.access();
       const accessLoading = this.farmAccessStore.loading();
+      const horizon = this.selectedHorizon();
+      this.reloadTrigger();
+      this.summaryReloadTrigger();
+
+      if (
+        !farmId ||
+        accessLoading ||
+        access?.farmId !== farmId ||
+        !access.permissions.canViewFinancial
+      ) {
+        this.summary.set(null);
+        this.summaryLoading.set(false);
+        this.summaryError.set(null);
+        return;
+      }
+
+      const subscription = untracked(() => this.loadSummary(farmId, horizon));
+      onCleanup(() => subscription.unsubscribe());
+    });
+
+    effect((onCleanup) => {
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      const access = this.farmAccessStore.access();
+      const accessLoading = this.farmAccessStore.loading();
       this.reloadTrigger();
 
       if (
@@ -324,7 +378,6 @@ export class DashboardPage {
       }
 
       const subscriptions = new Subscription();
-      this.loadSummary(farmId, subscriptions);
       this.loadTransactions(farmId, subscriptions);
       this.loadAlerts(farmId, subscriptions);
       this.loadInProgressHarvests(farmId, subscriptions);
@@ -354,20 +407,30 @@ export class DashboardPage {
     });
   }
 
-  private loadSummary(farmId: number, subscriptions: Subscription): void {
-    this.summary.set(null);
+  protected selectHorizon(horizon: FinancialHorizonDays): void {
+    if (this.horizons.includes(horizon)) {
+      this.selectedHorizon.set(horizon);
+    }
+  }
+
+  protected retrySummary(): void {
+    this.summaryReloadTrigger.update((value) => value + 1);
+  }
+
+  private loadSummary(farmId: number, horizon: FinancialHorizonDays): Subscription {
+    if (this.summary()?.farmId !== farmId) {
+      this.summary.set(null);
+    }
     this.summaryError.set(null);
     this.summaryLoading.set(true);
 
-    subscriptions.add(
-      this.financialService
-        .getSummary(farmId)
-        .pipe(finalize(() => this.summaryLoading.set(false)))
-        .subscribe({
-          next: (summary) => this.summary.set(summary),
-          error: () => this.summaryError.set('Não foi possível carregar o resumo financeiro.'),
-        }),
-    );
+    return this.financialService
+      .getSummary(farmId, horizon)
+      .pipe(finalize(() => this.summaryLoading.set(false)))
+      .subscribe({
+        next: (summary) => this.summary.set(summary),
+        error: () => this.summaryError.set('Não foi possível carregar o resumo financeiro.'),
+      });
   }
 
   private loadTransactions(farmId: number, subscriptions: Subscription): void {
@@ -784,9 +847,6 @@ export class DashboardPage {
   }
 
   private clearDashboardData(): void {
-    this.summary.set(null);
-    this.summaryLoading.set(false);
-    this.summaryError.set(null);
     this.transactions.set([]);
     this.transactionsLoading.set(false);
     this.transactionsError.set(null);

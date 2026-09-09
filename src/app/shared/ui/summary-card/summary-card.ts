@@ -20,6 +20,7 @@ export class SummaryCard {
   readonly title = input.required<string>();
   readonly value = input.required<string>();
   readonly description = input<string | null>(null);
+  readonly subtitle = input<string | null>(null);
   readonly meta = input<string | null>(null);
   readonly detail = input<string | null>(null);
   readonly icon = input.required<string>();

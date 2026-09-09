@@ -25,10 +25,19 @@ describe('FinancialService', () => {
     http.verify();
   });
 
+  for (const horizon of [30, 90, 180] as const) {
+    it('sends the selected horizon ' + horizon, () => {
+      service.getSummary(1, horizon).subscribe();
+      const request = http.expectOne(apiUrl + '/financial/summary?farmId=1&horizonDays=' + horizon);
+      expect(request.request.method).toBe('GET');
+      request.flush({});
+    });
+  }
+
   it('should call GET /api/financial/summary with farmId', () => {
     service.getSummary(1).subscribe();
 
-    const request = http.expectOne(apiUrl + '/financial/summary?farmId=1');
+    const request = http.expectOne(apiUrl + '/financial/summary?farmId=1&horizonDays=30');
     expect(request.request.method).toBe('GET');
     request.flush({});
   });

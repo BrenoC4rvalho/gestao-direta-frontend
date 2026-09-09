@@ -82,13 +82,14 @@ function farmAccess(farmId: number, canViewFinancial = true): FarmAccessResponse
 const summary: FinancialSummary = {
   farmId: 1,
   currentBalance: 1000,
-  expectedIncome: 500,
-  expectedExpense: 300,
+  totalReceivable: 500,
+  totalPayable: 300,
   projectedBalance: 1200,
-  payableNext30Days: 200,
-  overdueExpenses: 100,
-  receivableNext30Days: 400,
-  cashFlowNext30Days: 100,
+  payableInHorizon: 200,
+  overduePayable: 100,
+  receivableInHorizon: 400,
+  horizonDays: 30,
+  financialCoverage: { coveragePercentage: 125, status: 'SUFFICIENT' },
 };
 
 const transaction: FinancialTransaction = {
@@ -305,6 +306,118 @@ describe('DashboardPage', () => {
     sessionStore.clear();
   });
 
+  it('selects horizons immediately and renders backend values without financial calculations', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    const button = (days: number): HTMLButtonElement =>
+      Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+        .find((element) => element.textContent?.trim() === days + ' dias')!;
+    expect(button(30).getAttribute('aria-pressed')).toBe('true');
+    expect(button(90)).toBeTruthy();
+    expect(button(180)).toBeTruthy();
+    expect(textContent(fixture)).not.toContain('Aplicar');
+    expect(textContent(fixture)).not.toContain('Fluxo 30 dias');
+    const stableCards = () => Array.from(
+      fixture.nativeElement.querySelectorAll('gd-summary-card') as NodeListOf<HTMLElement>,
+    ).slice(0, 4).map((card) => card.textContent);
+    const initial = stableCards();
+    for (const horizon of [90, 180] as const) {
+      financialService.getSummary.mockReturnValueOnce(of({
+        ...summary, horizonDays: horizon, projectedBalance: 9876,
+        financialCoverage: { coveragePercentage: 42.5, status: 'INSUFFICIENT' },
+      }));
+      button(horizon).click();
+      fixture.detectChanges();
+      expect(financialService.getSummary).toHaveBeenLastCalledWith(1, horizon);
+      expect(button(horizon).getAttribute('aria-pressed')).toBe('true');
+      expect(stableCards()).toEqual(initial);
+      expect(textContent(fixture)).toContain('Próximos ' + horizon + ' dias');
+      expect(textContent(fixture)).toContain('Em ' + horizon + ' dias');
+      expect(textContent(fixture)).toContain('R$ 9.876,00');
+      expect(textContent(fixture)).toContain('42,5%');
+      expect(textContent(fixture)).toContain('Insuficiente');
+    }
+    expect(financialService.getAlerts).toHaveBeenCalledTimes(1);
+    expect(financialService.getCashFlow).toHaveBeenCalledTimes(1);
+    expect(financialService.getLatestTransactions).toHaveBeenCalledTimes(1);
+    expect(harvestSeasonService.getDashboardHarvests).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps previous cards during loading and cancels superseded horizon responses', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    const pending90 = new Subject<FinancialSummary>();
+    const pending180 = new Subject<FinancialSummary>();
+    financialService.getSummary.mockReturnValueOnce(pending90).mockReturnValueOnce(pending180);
+    const select = (days: number) => {
+      const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
+      buttons.find((button) => button.textContent?.trim() === days + ' dias')!.click();
+      fixture.detectChanges();
+    };
+    select(90);
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(8);
+    expect(textContent(fixture)).toContain('Próximos 30 dias');
+    select(180);
+    expect(pending90.observed).toBe(false);
+    pending180.next({ ...summary, horizonDays: 180, projectedBalance: 7654 });
+    pending180.complete();
+    fixture.detectChanges();
+    pending90.next({ ...summary, horizonDays: 90, projectedBalance: 99999 });
+    fixture.detectChanges();
+    expect(textContent(fixture)).toContain('Em 180 dias');
+    expect(textContent(fixture)).toContain('R$ 7.654,00');
+    expect(textContent(fixture)).not.toContain('R$ 99.999,00');
+  });
+
+  it('clears the previous farm while loading and ignores its late response', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    const pendingFirstFarm = new Subject<FinancialSummary>();
+    const pendingSecondFarm = new Subject<FinancialSummary>();
+    financialService.getSummary.mockReturnValueOnce(pendingFirstFarm).mockReturnValueOnce(pendingSecondFarm);
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
+    buttons.find((button) => button.textContent?.trim() === '90 dias')!.click();
+    fixture.detectChanges();
+    selectedFarmStore.selectFarmById(2);
+    farmAccessStore.setAccess(farmAccess(2));
+    fixture.detectChanges();
+    expect(pendingFirstFarm.observed).toBe(false);
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(0);
+    expect(financialService.getSummary).toHaveBeenLastCalledWith(2, 90);
+    pendingFirstFarm.next({ ...summary, horizonDays: 90, currentBalance: 99999 });
+    pendingSecondFarm.next({ ...summary, farmId: 2, horizonDays: 90, currentBalance: 4321 });
+    pendingSecondFarm.complete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(8);
+    expect(textContent(fixture)).toContain('R$ 4.321,00');
+    expect(textContent(fixture)).not.toContain('R$ 99.999,00');
+  });
+
+  it('shows no obligations without infinity and preserves values after a failed horizon request', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    financialService.getSummary.mockReturnValueOnce(of({
+      ...summary, financialCoverage: { coveragePercentage: null, status: 'NO_OBLIGATIONS' },
+    }));
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+    expect(textContent(fixture)).toContain('Sem obrigações no período');
+    expect(textContent(fixture)).not.toMatch(/NaN|Infinity|∞/);
+    financialService.getSummary.mockReturnValueOnce(throwError(() => new Error('network')));
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
+    buttons.find((button) => button.textContent?.trim() === '90 dias')!.click();
+    fixture.detectChanges();
+    expect(textContent(fixture)).toContain('Erro ao carregar resumo');
+    expect(textContent(fixture)).toContain('Próximos 30 dias');
+    expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(8);
+  });
+
   it('should not render the harvest comparison action', () => {
     selectedFarmStore.setFarms(farms);
     farmAccessStore.setAccess(farmAccess(1));
@@ -352,7 +465,7 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    expect(financialService.getSummary).toHaveBeenCalledWith(1);
+    expect(financialService.getSummary).toHaveBeenCalledWith(1, 30);
     expect(financialService.getAlerts).toHaveBeenCalledWith(1);
     expect(financialService.getCashFlow).toHaveBeenCalledWith(1, new Date().getFullYear());
     expect(financialService.getLatestTransactions).toHaveBeenCalledWith(1);
@@ -368,20 +481,20 @@ describe('DashboardPage', () => {
     expect(summaryCards).toHaveLength(8);
     expect(summaryCards[0]).toContain('Saldo atual');
     expect(summaryCards[0]).toContain('R$ 1.000,00');
-    expect(summaryCards[1]).toContain('Entradas previstas');
+    expect(summaryCards[1]).toContain('A receber');
     expect(summaryCards[1]).toContain('R$ 500,00');
-    expect(summaryCards[2]).toContain('Saídas previstas');
+    expect(summaryCards[2]).toContain('A pagar');
     expect(summaryCards[2]).toContain('R$ 300,00');
-    expect(summaryCards[3]).toContain('Saldo projetado');
-    expect(summaryCards[3]).toContain('R$ 1.200,00');
-    expect(summaryCards[4]).toContain('A pagar em 30 dias');
-    expect(summaryCards[4]).toContain('R$ 200,00');
-    expect(summaryCards[5]).toContain('Atrasado');
-    expect(summaryCards[5]).toContain('R$ 100,00');
-    expect(summaryCards[6]).toContain('A receber');
-    expect(summaryCards[6]).toContain('R$ 400,00');
-    expect(summaryCards[7]).toContain('Fluxo 30 dias');
-    expect(summaryCards[7]).toContain('R$ 100,00');
+    expect(summaryCards[3]).toContain('A pagar em atraso');
+    expect(summaryCards[3]).toContain('R$ 100,00');
+    expect(summaryCards[4]).toContain('A receber');
+    expect(summaryCards[4]).toContain('R$ 400,00');
+    expect(summaryCards[5]).toContain('A pagar');
+    expect(summaryCards[5]).toContain('R$ 200,00');
+    expect(summaryCards[6]).toContain('Saldo projetado');
+    expect(summaryCards[6]).toContain('R$ 1.200,00');
+    expect(summaryCards[7]).toContain('Cobertura financeira');
+    expect(summaryCards[7]).toContain('125%');
     expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
     expect(text).toContain('Venda de soja');
     expect(text).toContain('Alertas importantes');
@@ -406,7 +519,7 @@ describe('DashboardPage', () => {
     expect(layoutGrid.className).toContain('grid-cols-1');
     expect(layoutGrid.className).toContain('items-stretch');
     expect(layoutGrid.className).toContain('xl:grid-cols-3');
-    expect(cashFlowCard.previousElementSibling?.className).toContain('xl:grid-cols-4');
+    expect(cashFlowCard.previousElementSibling?.querySelector('.grid')?.className).toContain('xl:grid-cols-4');
     expect(cashFlowCard.nextElementSibling).toBe(layoutGrid);
     expect(layoutGrid.nextElementSibling).toBe(harvestCard);
     expect(latestTransactions.className).toContain('order-2');
@@ -653,8 +766,8 @@ describe('DashboardPage', () => {
     farmAccessStore.setAccess(farmAccess(2));
     fixture.detectChanges();
 
-    expect(financialService.getSummary).toHaveBeenCalledWith(1);
-    expect(financialService.getSummary).toHaveBeenCalledWith(2);
+    expect(financialService.getSummary).toHaveBeenCalledWith(1, 30);
+    expect(financialService.getSummary).toHaveBeenCalledWith(2, 30);
     expect(financialService.getAlerts).toHaveBeenCalledWith(1);
     expect(financialService.getAlerts).toHaveBeenCalledWith(2);
     expect(financialService.getCashFlow).toHaveBeenCalledWith(2, new Date().getFullYear());

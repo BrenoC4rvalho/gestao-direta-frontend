@@ -5,7 +5,12 @@
         <svg [lucideIcon]="icon()" [class]="iconSvgClasses()" aria-hidden="true"></svg>
       </div>
 
-      <p [class]="titleClasses()">{{ title() }}</p>
+      <div class="min-w-0">
+        <p [class]="titleClasses()">{{ title() }}</p>
+        @if (subtitle(); as subtitleText) {
+          <p class="mt-1 text-xs text-text-muted">{{ subtitleText }}</p>
+        }
+      </div>
     </div>
 
     @if (description(); as descriptionText) {

@@ -57,6 +57,16 @@ describe('SummaryCard', () => {
     expect(tooltip?.textContent).toContain(detail);
   });
 
+  it('renders an optional subtitle between title and value without changing the default', async () => {
+    const fixture = await createComponent();
+    expect(visibleCardText(fixture)).not.toContain('Próximos 90 dias');
+    fixture.componentRef.setInput('subtitle', 'Próximos 90 dias');
+    fixture.detectChanges();
+    const text = visibleCardText(fixture);
+    expect(text.indexOf('Próximos 90 dias')).toBeGreaterThan(text.indexOf('Saldo atual'));
+    expect(text.indexOf('Próximos 90 dias')).toBeLessThan(text.indexOf('R$ 1.000,00'));
+  });
+
   it('should render optional meta text outside the tooltip', async () => {
     const fixture = await createComponent(detail, '2 contas');
 

@@ -7,6 +7,7 @@ import {
   CashFlowResponse,
   FinancialAlerts,
   FinancialSummary,
+  FinancialHorizonDays,
   FinancialTransaction,
   UpcomingBill,
 } from '../models/financial.models';
@@ -25,9 +26,9 @@ export class FinancialService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  getSummary(farmId: number): Observable<FinancialSummary> {
+  getSummary(farmId: number, horizonDays: FinancialHorizonDays = 30): Observable<FinancialSummary> {
     return this.http.get<FinancialSummary>(`${this.apiUrl}/financial/summary`, {
-      params: new HttpParams().set('farmId', farmId),
+      params: new HttpParams().set('farmId', farmId).set('horizonDays', horizonDays),
     });
   }
 

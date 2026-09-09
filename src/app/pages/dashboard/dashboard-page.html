@@ -20,33 +20,56 @@
       icon="alert-circle"
     />
   } @else {
-    @if (summaryLoading()) {
-      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
-        @for (item of summarySkeletons; track item) {
-          <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
-            <gd-skeleton width="45%" height="0.875rem" />
-            <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
-            <gd-skeleton class="mt-4 block" width="60%" height="0.75rem" />
+    <section aria-labelledby="financial-summary-title" [attr.aria-busy]="summaryLoading()" class="space-y-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 id="financial-summary-title" class="text-lg font-semibold text-text-primary">Resumo financeiro</h2>
+        <div>
+          <p id="financial-horizon-label" class="mb-2 text-sm font-medium text-text-muted">Horizonte financeiro</p>
+          <div role="group" aria-labelledby="financial-horizon-label" class="inline-flex rounded-lg border border-border bg-background p-1">
+            @for (horizon of horizons; track horizon) {
+              <button type="button"
+                class="min-h-10 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                [class.bg-surface]="selectedHorizon() === horizon"
+                [class.text-primary]="selectedHorizon() === horizon"
+                [class.text-text-muted]="selectedHorizon() !== horizon"
+                [attr.aria-pressed]="selectedHorizon() === horizon"
+                (click)="selectHorizon(horizon)">{{ horizon }} dias</button>
+            }
           </div>
-        }
+        </div>
       </div>
-    } @else if (summaryError(); as errorMessage) {
-      <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage" />
-    } @else {
-      <div class="gd-fade-in-up grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
-        @for (card of summaryCards(); track card.title) {
-          <gd-summary-card
-            class="h-full"
-            [title]="card.title"
-            [value]="card.value"
-            [description]="card.description"
-            [detail]="card.detail ?? null"
-            [icon]="card.icon"
-            [tone]="card.tone"
-          />
+      @if (summaryError(); as errorMessage) {
+        <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage"
+          actionLabel="Tentar novamente" (action)="retrySummary()" />
+      }
+      @if (summaryLoading() && !summary()) {
+        <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+          @for (item of summarySkeletons; track item) {
+            <div class="h-full min-h-[128px] rounded-app border border-border bg-surface p-5">
+              <gd-skeleton width="45%" height="0.875rem" />
+              <gd-skeleton class="mt-4 block" width="80%" height="2rem" />
+              <gd-skeleton class="mt-4 block" width="60%" height="0.75rem" />
+            </div>
+          }
+        </div>
+      } @else if (summary()) {
+        @if (summaryLoading()) {
+          <p role="status" class="text-sm text-text-muted">Atualizando horizonte financeiro…</p>
         }
-      </div>
-    }
+        <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+          @for (card of summaryCards(); track card.id; let index = $index) {
+            @if (index === 0 || index === 4) {
+              <h3 class="col-span-full text-sm font-medium text-text-muted">
+                {{ index === 0 ? 'Posição atual' : 'Horizonte financeiro' }}
+              </h3>
+            }
+            <gd-summary-card class="h-full" [title]="card.title" [subtitle]="card.subtitle ?? null"
+              [value]="card.value" [description]="card.description" [detail]="card.detail ?? null"
+              [meta]="card.meta ?? null" [icon]="card.icon" [tone]="card.tone" />
+          }
+        </div>
+      }
+    </section>
 
     <gd-card class="gd-fade-in-up block w-full">
       <section aria-labelledby="cash-flow-title">

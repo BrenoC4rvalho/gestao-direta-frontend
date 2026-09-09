@@ -1,13 +1,19 @@
+export type FinancialHorizonDays = 30 | 90 | 180;
+
 export interface FinancialSummary {
   farmId: number;
   currentBalance: number;
-  expectedIncome: number;
-  expectedExpense: number;
+  totalReceivable: number;
+  totalPayable: number;
+  overduePayable: number;
+  horizonDays: FinancialHorizonDays;
+  receivableInHorizon: number;
+  payableInHorizon: number;
   projectedBalance: number;
-  payableNext30Days: number;
-  overdueExpenses: number;
-  receivableNext30Days: number;
-  cashFlowNext30Days: number;
+  financialCoverage: {
+    coveragePercentage: number | null;
+    status: 'SUFFICIENT' | 'INSUFFICIENT' | 'NO_OBLIGATIONS';
+  };
 }
 
 export interface CashFlowPoint {
