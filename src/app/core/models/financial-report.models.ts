@@ -56,6 +56,14 @@ export interface FinancialEvolutionPoint {
   realizedResult: number;
   currentPeriod: boolean;
 }
+export interface FinancialCumulativeEvolutionPoint {
+  period: string;
+  label: string;
+  periodStart: string;
+  periodEnd: string;
+  cumulativeIncome: number;
+  cumulativeExpense: number;
+}
 export interface FinancialCashFlowPoint {
   period: string;
   label: string;
@@ -136,6 +144,7 @@ export interface FinancialReportResponse {
   summary: FinancialReportSummary;
   commitments: FinancialReportCommitments;
   evolution: readonly FinancialEvolutionPoint[];
+  realizedCumulativeEvolution: readonly FinancialCumulativeEvolutionPoint[];
   cashFlow: FinancialCashFlow;
   categories: readonly FinancialCategorySummaryGroup[];
   harvests: readonly FinancialHarvestSummary[];

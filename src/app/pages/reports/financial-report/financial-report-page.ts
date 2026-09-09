@@ -46,6 +46,7 @@ import {
 import { Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 import { FinancialCashFlowChart } from './components/financial-cash-flow-chart/financial-cash-flow-chart';
+import { FinancialIncomeExpenseChart } from './components/financial-income-expense-chart/financial-income-expense-chart';
 
 interface AppliedReportFilters {
   startDate: string;
@@ -93,6 +94,7 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
     Drawer,
     FinancialEvolutionChart,
     FinancialCashFlowChart,
+    FinancialIncomeExpenseChart,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,

@@ -3,7 +3,10 @@ import { of } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
 import { Farm } from '../../../core/models/farm.models';
-import { FinancialReportResponse } from '../../../core/models/financial-report.models';
+import {
+  FinancialCumulativeEvolutionPoint,
+  FinancialReportResponse,
+} from '../../../core/models/financial-report.models';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { FinancialCategoryService } from '../../../core/services/financial-category.service';
 import { FinancialService } from '../../../core/services/financial.service';
@@ -76,6 +79,7 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       next30DaysPayable: 42000,
     },
     evolution: [],
+    realizedCumulativeEvolution: [],
     cashFlow: {
       openingExpectedBalance: 0,
       openingProjectedBalance: 0,
@@ -141,18 +145,23 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
 
 describe('FinancialReportPage', () => {
   let fixture: ComponentFixture<FinancialReportPage>;
+  let financialService: {
+    getFinancialReport: ReturnType<typeof vi.fn>;
+    getFinancialReportTransactions: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
+    financialService = {
+      getFinancialReport: vi.fn(() => of(report())),
+      getFinancialReportTransactions: vi.fn(() => of(harvests)),
+    };
     await TestBed.configureTestingModule({
       imports: [FinancialReportPage],
       providers: [
         provideGestaoDiretaIcons(),
         {
           provide: FinancialService,
-          useValue: {
-            getFinancialReport: () => of(report()),
-            getFinancialReportTransactions: () => of(harvests),
-          },
+          useValue: financialService,
         },
         {
           provide: HarvestSeasonService,
@@ -287,6 +296,73 @@ describe('FinancialReportPage', () => {
 
     expect(monthlyButton.getAttribute('aria-pressed')).toBe('false');
     expect(quarterlyButton.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('should render the realized cumulative income and expense chart', () => {
+    const realizedCumulativeEvolution = [cumulativeEvolutionPoint()];
+    setReport({ ...report(), realizedCumulativeEvolution });
+    const section = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="financial-income-expense-title"]',
+    ) as HTMLElement;
+    const chart = section.querySelector('gd-financial-income-expense-chart') as HTMLElement;
+
+    expect(section.textContent).toContain('Receitas e despesas acumuladas');
+    expect(section.textContent).toContain(
+      'Acompanhe a evolução acumulada das entradas e saídas ao longo do período selecionado.',
+    );
+    expect(chart).not.toBeNull();
+    expect(chart.textContent).toContain('Receitas acumuladas');
+    expect(chart.textContent).toContain('Despesas acumuladas');
+    expect(chart.textContent).not.toContain('Resultado');
+  });
+
+  it('should reload both charts with the shared report filters and granularity', () => {
+    financialService.getFinancialReport.mockClear();
+    const component = fixture.componentInstance as unknown as {
+      filterForm: {
+        setValue: (value: {
+          startDate: string;
+          endDate: string;
+          basis: string;
+          harvestSeasonId: number;
+          categoryId: number;
+        }) => void;
+      };
+      applyFilters: () => void;
+      selectEvolutionGranularity: (granularity: 'MONTHLY' | 'QUARTERLY') => void;
+    };
+    component.filterForm.setValue({
+      startDate: '2026-03-15',
+      endDate: '2026-08-20',
+      basis: 'ACCRUAL',
+      harvestSeasonId: 25,
+      categoryId: 7,
+    });
+    component.applyFilters();
+    fixture.detectChanges();
+
+    expect(financialService.getFinancialReport).toHaveBeenLastCalledWith({
+      farmId: 10,
+      startDate: '2026-03-15',
+      endDate: '2026-08-20',
+      basis: 'ACCRUAL',
+      harvestSeasonIds: [25],
+      categoryIds: [7],
+      granularity: 'MONTHLY',
+    });
+
+    component.selectEvolutionGranularity('QUARTERLY');
+    fixture.detectChanges();
+
+    expect(financialService.getFinancialReport).toHaveBeenLastCalledWith({
+      farmId: 10,
+      startDate: '2026-03-15',
+      endDate: '2026-08-20',
+      basis: 'ACCRUAL',
+      harvestSeasonIds: [25],
+      categoryIds: [7],
+      granularity: 'QUARTERLY',
+    });
   });
 
   it('should show expense categories by default and switch to income without another request', () => {
@@ -535,5 +611,16 @@ describe('FinancialReportPage', () => {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  }
+
+  function cumulativeEvolutionPoint(): FinancialCumulativeEvolutionPoint {
+    return {
+      period: '2026-01',
+      label: 'Jan',
+      periodStart: '2026-01-01',
+      periodEnd: '2026-01-31',
+      cumulativeIncome: 100000,
+      cumulativeExpense: 80000,
+    };
   }
 });

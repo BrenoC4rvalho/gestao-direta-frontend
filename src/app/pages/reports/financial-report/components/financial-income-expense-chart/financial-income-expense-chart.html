@@ -1,0 +1,43 @@
+@if (hasData()) {
+  <div class="h-64 w-full overflow-x-auto overscroll-x-contain sm:h-72">
+    <div class="h-full min-w-full" [style.min-width.px]="chartWidth()">
+      <canvas
+        baseChart
+        [type]="chartType"
+        [data]="chartData()"
+        [options]="chartOptions()"
+        role="img"
+        aria-label="Gráfico de linhas comparando receitas e despesas realizadas acumuladas"
+      ></canvas>
+    </div>
+  </div>
+
+  <div
+    class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
+    aria-label="Legenda do gráfico de receitas e despesas acumuladas"
+  >
+    <span class="inline-flex items-center gap-2">
+      <span class="h-0.5 w-4 bg-[#22C55E]" aria-hidden="true"></span>
+      Receitas acumuladas
+    </span>
+    <span class="inline-flex items-center gap-2">
+      <span class="h-0.5 w-4 bg-[#DC2626]" aria-hidden="true"></span>
+      Despesas acumuladas
+    </span>
+  </div>
+
+  <ul class="sr-only" aria-label="Dados do gráfico de receitas e despesas acumuladas">
+    @for (point of points(); track point.period) {
+      <li>
+        {{ point.label }}: Receitas acumuladas {{ formatCurrency(point.cumulativeIncome) }}, Despesas
+        acumuladas {{ formatCurrency(point.cumulativeExpense) }}
+      </li>
+    }
+  </ul>
+} @else {
+  <div class="flex min-h-64 items-center justify-center px-4 text-center sm:min-h-72">
+    <p class="text-sm text-text-muted">
+      Não há receitas ou despesas realizadas para o período selecionado.
+    </p>
+  </div>
+}
