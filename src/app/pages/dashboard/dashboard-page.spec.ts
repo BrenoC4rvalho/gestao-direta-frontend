@@ -512,7 +512,7 @@ describe('DashboardPage', () => {
     expect(summaryCards[7]).not.toContain('Suficiente');
     expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
     expect(text).toContain('Visão geral da sua posição financeira e projeções.');
-    expect(text).toContain('Valores previstos para os próximos 30 dias.');
+    expect(text).not.toContain('Valores previstos para os próximos 30 dias.');
     expect(text).toContain('Venda de soja');
     expect(text).toContain('Alertas importantes');
     expect(text).toContain('Boleto fornecedor AgroSul');
@@ -541,7 +541,7 @@ describe('DashboardPage', () => {
       'section[aria-label="Posição atual"]',
     ) as HTMLElement;
     const financialHorizonSection = financialSummarySection.querySelector(
-      'section[aria-labelledby="financial-horizon-title"]',
+      'section[aria-label="Horizonte financeiro"]',
     ) as HTMLElement;
     const currentPositionGrid = currentPositionSection.querySelector('.grid') as HTMLElement;
     const financialHorizonGrid = financialHorizonSection.querySelector('.grid') as HTMLElement;
@@ -559,7 +559,17 @@ describe('DashboardPage', () => {
     expect(financialHorizonGrid.className).toContain('grid-cols-1');
     expect(financialHorizonGrid.className).toContain('sm:grid-cols-2');
     expect(financialHorizonGrid.className).toContain('lg:grid-cols-4');
-    expect(financialHorizonSection.className).toContain('border-t');
+    expect(financialHorizonSection.querySelector('h3')).toBeNull();
+    expect(financialHorizonSection.className).not.toContain('border-t');
+    const financialSummaryTitle = financialSummarySection.querySelector(
+      '#financial-summary-title',
+    ) as HTMLElement;
+
+    expect(financialSummaryTitle.className).toContain('text-2xl');
+    expect(financialSummaryTitle.className).toContain('gap-1');
+    expect(financialSummaryTitle.nextElementSibling?.className).toContain('text-base');
+    expect(financialSummaryTitle.querySelector('svg')?.classList.contains('size-6')).toBe(true);
+    expect(financialSummaryTitle.querySelector('svg')?.classList.contains('stroke-[4]')).toBe(true);
     expect(currentBalanceArticle.className).toContain('border-l-4');
     expect(currentBalanceArticle.className).toContain('min-h-[100px]');
     expect(currentBalanceArticle.className).toContain('bg-surface');

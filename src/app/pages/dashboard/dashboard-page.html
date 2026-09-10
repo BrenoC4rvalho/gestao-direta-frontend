@@ -23,10 +23,18 @@
     <section aria-labelledby="financial-summary-title" [attr.aria-busy]="summaryLoading()" class="space-y-5">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="financial-summary-title" class="text-lg font-semibold text-text-primary">
-            Resumo financeiro
+          <h2
+            id="financial-summary-title"
+            class="flex items-center gap-1 text-2xl font-semibold text-text-primary"
+          >
+            <svg
+              lucideIcon="chart-no-axes-column-increasing"
+              class="size-6 shrink-0 stroke-[4] text-primary"
+              aria-hidden="true"
+            ></svg>
+            <span>Resumo financeiro</span>
           </h2>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
+          <p class="mt-1 text-base leading-6 text-text-muted">
             Visão geral da sua posição financeira e projeções.
           </p>
         </div>
@@ -53,18 +61,7 @@
           </div>
         </section>
 
-        <section
-          aria-labelledby="financial-horizon-loading-title"
-          class="space-y-3 border-t border-border pt-5"
-        >
-          <div>
-            <h3 id="financial-horizon-loading-title" class="text-sm font-semibold text-text-primary">
-              Horizonte financeiro
-            </h3>
-            <p class="mt-1 text-sm text-text-muted">
-              Valores previstos para os próximos {{ selectedHorizon() }} dias.
-            </p>
-          </div>
+        <section aria-label="Horizonte financeiro">
           <div class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (item of summarySkeletons.slice(4); track item) {
               <div class="h-full min-h-[100px] rounded-app border border-border bg-surface p-4">
@@ -96,18 +93,7 @@
           </div>
         </section>
 
-        <section
-          aria-labelledby="financial-horizon-title"
-          class="space-y-3 border-t border-border pt-5"
-        >
-          <div>
-            <h3 id="financial-horizon-title" class="text-sm font-semibold text-text-primary">
-              Horizonte financeiro
-            </h3>
-            <p class="mt-1 text-sm text-text-muted">
-              Valores previstos para os próximos {{ displayedHorizon() }} dias.
-            </p>
-          </div>
+        <section aria-label="Horizonte financeiro">
           <div class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (card of financialHorizonCards(); track card.id) {
               <gd-summary-card

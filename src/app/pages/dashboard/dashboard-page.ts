@@ -13,6 +13,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { ParsedTransactionResponse } from '../../core/models/ai-transaction.models';
@@ -90,6 +91,7 @@ interface SummaryCardViewModel {
     FinancialPeriodSelector,
     ImportantAlerts,
     LatestTransactionsCard,
+    LucideDynamicIcon,
     ReactiveFormsModule,
     RouterLink,
     Skeleton,
@@ -270,9 +272,6 @@ export class DashboardPage {
 
   protected readonly currentPositionCards = computed(() => this.summaryCards().slice(0, 4));
   protected readonly financialHorizonCards = computed(() => this.summaryCards().slice(4));
-  protected readonly displayedHorizon = computed(
-    () => this.summary()?.horizonDays ?? this.selectedHorizon(),
-  );
 
   protected readonly emptyFarmDescription = computed(() => {
     if (this.selectedFarmStore.loaded() && !this.selectedFarmStore.hasFarms()) {
