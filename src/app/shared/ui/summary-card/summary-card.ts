@@ -4,6 +4,8 @@ import { LucideDynamicIcon } from '@lucide/angular';
 export type SummaryCardTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 export type SummaryCardDensity = 'default' | 'compact';
 export type SummaryCardLayout = 'default' | 'metric';
+export type SummaryCardProminence = 'default' | 'primary' | 'secondary';
+export type SummaryCardContentSize = 'default' | 'large';
 
 let nextTooltipId = 0;
 
@@ -27,6 +29,8 @@ export class SummaryCard {
   readonly tone = input<SummaryCardTone>('neutral');
   readonly density = input<SummaryCardDensity>('default');
   readonly layout = input<SummaryCardLayout>('default');
+  readonly prominence = input<SummaryCardProminence>('default');
+  readonly contentSize = input<SummaryCardContentSize>('default');
 
   protected readonly tooltipOpen = signal(false);
   protected readonly tooltipId = `gd-summary-card-tooltip-${nextTooltipId++}`;
@@ -36,7 +40,8 @@ export class SummaryCard {
   protected articleClasses(): string {
     if (this.metricLayout()) {
       return [
-        'relative z-0 flex h-[176px] flex-col overflow-visible rounded-app border border-border bg-surface p-6 text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+        'relative z-0 flex h-[176px] flex-col overflow-visible rounded-app border p-6 text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+        this.surfaceClasses(),
       ].join(' ');
     }
 
@@ -48,7 +53,8 @@ export class SummaryCard {
     const contentAlignment = this.density() === 'compact' ? 'justify-start' : 'justify-between';
 
     return [
-      'relative z-0 flex h-full flex-col overflow-visible rounded-app border border-border bg-surface text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+      'relative z-0 flex h-full flex-col overflow-visible rounded-app border text-text-primary transition-all duration-200 ease-out focus-within:z-30 sm:hover:z-30 sm:hover:-translate-y-0.5 sm:hover:border-primary/25 sm:hover:shadow-md',
+      this.surfaceClasses(),
       contentAlignment,
       densityClasses,
     ].join(' ');
@@ -69,10 +75,18 @@ export class SummaryCard {
   }
 
   protected iconClasses(): string {
+    if (this.contentSize() === 'large') {
+      return 'size-10';
+    }
+
     return this.density() === 'compact' ? 'size-9' : 'size-11';
   }
 
   protected iconSvgClasses(): string {
+    if (this.contentSize() === 'large') {
+      return 'size-5';
+    }
+
     return this.density() === 'compact' ? 'size-4' : 'size-5';
   }
 
@@ -90,6 +104,18 @@ export class SummaryCard {
   }
 
   protected valueClasses(): string {
+    if (this.contentSize() === 'large') {
+      return 'min-w-0 break-words text-2xl font-semibold leading-tight tracking-tight text-text-primary';
+    }
+
+    if (this.prominence() === 'primary') {
+      return 'break-words text-3xl font-semibold leading-tight tracking-tight text-text-primary';
+    }
+
+    if (this.prominence() === 'secondary') {
+      return 'min-w-0 break-words text-xl font-semibold leading-tight text-text-primary xl:text-2xl';
+    }
+
     return this.density() === 'compact'
       ? 'min-w-0 truncate whitespace-nowrap text-lg font-semibold leading-tight text-text-primary xl:text-xl'
       : 'break-words text-2xl font-semibold leading-tight text-text-primary';
@@ -134,5 +160,15 @@ export class SummaryCard {
     };
 
     return tones[this.tone()];
+  }
+
+  private surfaceClasses(): string {
+    const prominences: Record<SummaryCardProminence, string> = {
+      default: 'border-border bg-surface',
+      primary: 'border-primary/30 border-l-4 border-l-primary bg-surface shadow-sm',
+      secondary: 'border-primary/25 bg-surface shadow-sm',
+    };
+
+    return prominences[this.prominence()];
   }
 }

@@ -54,6 +54,7 @@ import {
   ErrorState,
   Skeleton,
   SummaryCard,
+  SummaryCardProminence,
   SummaryCardTone,
   Tooltip,
 } from '../../shared/ui';
@@ -72,6 +73,7 @@ interface SummaryCardViewModel {
   detail?: string;
   icon: string;
   tone: SummaryCardTone;
+  prominence?: SummaryCardProminence;
 }
 
 @Component({
@@ -192,6 +194,7 @@ export class DashboardPage {
         description: 'Resultado financeiro realizado: receitas pagas menos despesas pagas.',
         icon: 'wallet',
         tone: summary.currentBalance >= 0 ? 'success' : 'danger',
+        prominence: 'primary',
       },
       {
         id: 'totalReceivable',
@@ -215,7 +218,7 @@ export class DashboardPage {
         value: this.formatCurrency(summary.overduePayable),
         description: 'Despesas vencidas antes de hoje e que continuam em aberto.',
         icon: 'alert-circle',
-        tone: 'danger',
+        tone: summary.overduePayable > 0 ? 'danger' : 'neutral',
       },
       {
         id: 'receivableInHorizon',
@@ -244,6 +247,7 @@ export class DashboardPage {
         detail: 'Não presume o recebimento de receitas já vencidas.',
         icon: 'wallet',
         tone: summary.projectedBalance >= 0 ? 'success' : 'danger',
+        prominence: 'secondary',
       },
       {
         id: 'financialCoverage',
@@ -252,13 +256,21 @@ export class DashboardPage {
         value: coverage.coveragePercentage === null
           ? 'Sem obrigações no período'
           : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(coverage.coveragePercentage)}%`,
-        meta: coverage.status === 'NO_OBLIGATIONS' ? undefined : coverageLabels[coverage.status],
+        meta: coverage.status === 'NO_OBLIGATIONS'
+          ? undefined
+          : `${coverage.status === 'SUFFICIENT' ? '✓ ' : ''}${coverageLabels[coverage.status]}`,
         description: 'Quanto das despesas vencidas e do horizonte é coberto pelo saldo atual e receitas do horizonte.',
         icon: 'chart-no-axes-combined',
         tone: coverageTones[coverage.status],
       },
     ];
   });
+
+  protected readonly currentPositionCards = computed(() => this.summaryCards().slice(0, 4));
+  protected readonly financialHorizonCards = computed(() => this.summaryCards().slice(4));
+  protected readonly displayedHorizon = computed(
+    () => this.summary()?.horizonDays ?? this.selectedHorizon(),
+  );
 
   protected readonly emptyFarmDescription = computed(() => {
     if (this.selectedFarmStore.loaded() && !this.selectedFarmStore.hasFarms()) {

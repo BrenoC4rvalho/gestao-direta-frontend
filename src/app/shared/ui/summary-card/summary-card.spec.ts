@@ -199,4 +199,50 @@ describe('SummaryCard', () => {
     expect(meta?.className).toContain('whitespace-pre-line');
     expect(meta?.className).toContain('text-xs');
   });
+
+  it('should apply visual prominence without changing the default appearance', async () => {
+    const fixture = await createComponent();
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const value = Array.from(
+      fixture.nativeElement.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>,
+    ).find((item) => item.textContent?.includes('R$ 1.000,00'));
+
+    expect(article.className).toContain('border-border');
+    expect(article.className).toContain('bg-surface');
+    expect(article.className).not.toContain('border-l-4');
+
+    fixture.componentRef.setInput('prominence', 'primary');
+    fixture.detectChanges();
+
+    expect(article.className).toContain('border-l-4');
+    expect(article.className).toContain('border-l-primary');
+    expect(article.className).toContain('bg-surface');
+    expect(value?.className).toContain('text-3xl');
+
+    fixture.componentRef.setInput('prominence', 'secondary');
+    fixture.componentRef.setInput('density', 'compact');
+    fixture.detectChanges();
+
+    expect(article.className).toContain('border-primary/25');
+    expect(article.className).toContain('bg-surface');
+    expect(value?.className).toContain('text-xl');
+  });
+
+  it('should render consistently larger values and icons when requested', async () => {
+    const fixture = await createComponent(detail, null, 'compact');
+    fixture.componentRef.setInput('contentSize', 'large');
+    fixture.detectChanges();
+
+    const article = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const icon = (article.querySelector('svg') as SVGElement).parentElement as HTMLElement;
+    const iconSvg = icon.querySelector('svg') as SVGElement;
+    const value = Array.from(article.querySelectorAll('p') as NodeListOf<HTMLParagraphElement>).find(
+      (item) => item.textContent?.includes('R$ 1.000,00'),
+    );
+
+    expect(icon.className).toContain('size-10');
+    expect(iconSvg.classList.contains('size-5')).toBe(true);
+    expect(value?.className).toContain('text-2xl');
+    expect(value?.className).toContain('break-words');
+  });
 });

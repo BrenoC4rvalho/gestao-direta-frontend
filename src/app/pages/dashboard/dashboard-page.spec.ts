@@ -495,7 +495,10 @@ describe('DashboardPage', () => {
     expect(summaryCards[6]).toContain('R$ 1.200,00');
     expect(summaryCards[7]).toContain('Cobertura financeira');
     expect(summaryCards[7]).toContain('125%');
+    expect(summaryCards[7]).toContain('✓ Suficiente');
     expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
+    expect(text).toContain('Visão geral da sua posição financeira e projeções.');
+    expect(text).toContain('Valores previstos para os próximos 30 dias.');
     expect(text).toContain('Venda de soja');
     expect(text).toContain('Alertas importantes');
     expect(text).toContain('Boleto fornecedor AgroSul');
@@ -519,7 +522,43 @@ describe('DashboardPage', () => {
     expect(layoutGrid.className).toContain('grid-cols-1');
     expect(layoutGrid.className).toContain('items-stretch');
     expect(layoutGrid.className).toContain('xl:grid-cols-3');
-    expect(cashFlowCard.previousElementSibling?.querySelector('.grid')?.className).toContain('xl:grid-cols-4');
+    const financialSummarySection = cashFlowCard.previousElementSibling as HTMLElement;
+    const currentPositionSection = financialSummarySection.querySelector(
+      'section[aria-labelledby="current-position-title"]',
+    ) as HTMLElement;
+    const financialHorizonSection = financialSummarySection.querySelector(
+      'section[aria-labelledby="financial-horizon-title"]',
+    ) as HTMLElement;
+    const currentPositionGrid = currentPositionSection.querySelector('.grid') as HTMLElement;
+    const financialHorizonGrid = financialHorizonSection.querySelector('.grid') as HTMLElement;
+    const currentBalanceArticle = financialSummarySection
+      .querySelectorAll('gd-summary-card')[0]
+      .querySelector('article') as HTMLElement;
+    const projectedBalanceArticle = financialSummarySection
+      .querySelectorAll('gd-summary-card')[6]
+      .querySelector('article') as HTMLElement;
+
+    expect(currentPositionGrid.className).toContain('grid-cols-1');
+    expect(currentPositionGrid.className).toContain('sm:grid-cols-2');
+    expect(currentPositionGrid.className).toContain('lg:grid-cols-4');
+    expect(financialHorizonGrid.className).toContain('grid-cols-1');
+    expect(financialHorizonGrid.className).toContain('sm:grid-cols-2');
+    expect(financialHorizonGrid.className).toContain('lg:grid-cols-4');
+    expect(financialHorizonSection.className).toContain('border-t');
+    expect(currentBalanceArticle.className).toContain('border-l-4');
+    expect(currentBalanceArticle.className).toContain('min-h-[100px]');
+    expect(currentBalanceArticle.className).toContain('bg-surface');
+    expect(projectedBalanceArticle.className).toContain('bg-surface');
+    for (const card of financialSummarySection.querySelectorAll('gd-summary-card')) {
+      const article = card.querySelector('article') as HTMLElement;
+      const icon = article.querySelector('svg')?.parentElement as HTMLElement;
+      const value = Array.from(article.querySelectorAll('p')).find((item) =>
+        item.textContent?.includes('R$') || item.textContent?.includes('%'),
+      );
+
+      expect(icon.className).toContain('size-10');
+      expect(value?.className).toContain('text-2xl');
+    }
     expect(cashFlowCard.nextElementSibling).toBe(layoutGrid);
     expect(layoutGrid.nextElementSibling).toBe(harvestCard);
     expect(latestTransactions.className).toContain('order-2');
@@ -534,6 +573,22 @@ describe('DashboardPage', () => {
     expect(importantAlerts.className).toContain('xl:col-span-1');
     expect(cashFlowCard.textContent).toContain('Fluxo de Caixa');
     expect(fixture.nativeElement.querySelector('gd-upcoming-bills-card')).toBeNull();
+  });
+
+  it('uses a neutral overdue appearance when there is no overdue payable amount', () => {
+    selectedFarmStore.setFarms(farms);
+    farmAccessStore.setAccess(farmAccess(1));
+    financialService.getSummary.mockReturnValueOnce(of({ ...summary, overduePayable: 0 }));
+
+    const fixture = TestBed.createComponent(DashboardPage);
+    fixture.detectChanges();
+
+    const overdueCard = fixture.nativeElement.querySelectorAll('gd-summary-card')[3] as HTMLElement;
+    const iconContainer = overdueCard.querySelector('svg')?.parentElement as HTMLElement;
+
+    expect(overdueCard.textContent?.replace(/\u00a0/g, ' ')).toContain('R$ 0,00');
+    expect(iconContainer.className).toContain('bg-highlight-soft');
+    expect(iconContainer.className).not.toContain('bg-danger/10');
   });
 
   it('should render nine cash flow years around the current year in ascending order', () => {
