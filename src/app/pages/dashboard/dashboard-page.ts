@@ -256,9 +256,9 @@ export class DashboardPage {
         value: coverage.coveragePercentage === null
           ? 'Sem obrigações no período'
           : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(coverage.coveragePercentage)}%`,
-        meta: coverage.status === 'NO_OBLIGATIONS'
+        meta: coverage.status === 'NO_OBLIGATIONS' || coverage.status === 'SUFFICIENT'
           ? undefined
-          : `${coverage.status === 'SUFFICIENT' ? '✓ ' : ''}${coverageLabels[coverage.status]}`,
+          : coverageLabels[coverage.status],
         description: 'Quanto das despesas vencidas e do horizonte é coberto pelo saldo atual e receitas do horizonte.',
         icon: 'chart-no-axes-combined',
         tone: coverageTones[coverage.status],

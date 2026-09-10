@@ -60,10 +60,7 @@
           actionLabel="Tentar novamente" (action)="retrySummary()" />
       }
       @if (summaryLoading() && !summary()) {
-        <section aria-labelledby="current-position-loading-title" class="space-y-3">
-          <h3 id="current-position-loading-title" class="text-sm font-semibold text-text-primary">
-            Posição atual
-          </h3>
+        <section aria-label="Posição atual">
           <div class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (item of summarySkeletons.slice(0, 4); track item) {
               <div class="h-full min-h-[100px] rounded-app border border-border bg-surface p-4">
@@ -99,10 +96,7 @@
         @if (summaryLoading()) {
           <p role="status" class="text-sm text-text-muted">Atualizando horizonte financeiro…</p>
         }
-        <section aria-labelledby="current-position-title" class="space-y-3">
-          <h3 id="current-position-title" class="text-sm font-semibold text-text-primary">
-            Posição atual
-          </h3>
+        <section aria-label="Posição atual">
           <div class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (card of currentPositionCards(); track card.id) {
               <gd-summary-card

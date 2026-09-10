@@ -495,7 +495,7 @@ describe('DashboardPage', () => {
     expect(summaryCards[6]).toContain('R$ 1.200,00');
     expect(summaryCards[7]).toContain('Cobertura financeira');
     expect(summaryCards[7]).toContain('125%');
-    expect(summaryCards[7]).toContain('✓ Suficiente');
+    expect(summaryCards[7]).not.toContain('Suficiente');
     expect(summaryCards.some((card) => card.includes('Pendências'))).toBe(false);
     expect(text).toContain('Visão geral da sua posição financeira e projeções.');
     expect(text).toContain('Valores previstos para os próximos 30 dias.');
@@ -524,7 +524,7 @@ describe('DashboardPage', () => {
     expect(layoutGrid.className).toContain('xl:grid-cols-3');
     const financialSummarySection = cashFlowCard.previousElementSibling as HTMLElement;
     const currentPositionSection = financialSummarySection.querySelector(
-      'section[aria-labelledby="current-position-title"]',
+      'section[aria-label="Posição atual"]',
     ) as HTMLElement;
     const financialHorizonSection = financialSummarySection.querySelector(
       'section[aria-labelledby="financial-horizon-title"]',
@@ -541,6 +541,7 @@ describe('DashboardPage', () => {
     expect(currentPositionGrid.className).toContain('grid-cols-1');
     expect(currentPositionGrid.className).toContain('sm:grid-cols-2');
     expect(currentPositionGrid.className).toContain('lg:grid-cols-4');
+    expect(currentPositionSection.querySelector('h3')).toBeNull();
     expect(financialHorizonGrid.className).toContain('grid-cols-1');
     expect(financialHorizonGrid.className).toContain('sm:grid-cols-2');
     expect(financialHorizonGrid.className).toContain('lg:grid-cols-4');
