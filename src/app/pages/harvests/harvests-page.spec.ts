@@ -7,7 +7,6 @@ import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
 import { Farm } from '../../core/models/farm.models';
 import {
   HarvestSeason,
-  HarvestSeasonFinancialSummary,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
 } from '../../core/models/harvest-season.models';
@@ -155,21 +154,6 @@ const response: PageResponse<HarvestSeasonSummaryListItem> = {
   last: true,
 };
 
-const financialSummary: HarvestSeasonFinancialSummary = {
-  farmId: 10,
-  activeHarvestCount: 2,
-  planning: { plannedCost: 130000, plannedRevenue: 230000, plannedProfit: 100000, plannedMargin: 43.48 },
-  realized: { realizedCost: 102500, realizedRevenue: 215000, realizedProfit: 112500, realizedMargin: 52.33 },
-  projection: { projectedCost: 125500, projectedRevenue: 247000, projectedProfit: 121500, projectedMargin: 49.19 },
-  comparison: { profitPerformancePercentage: 12.5, profitPerformanceStatus: 'ABOVE_PLANNED', costVarianceAmount: -27500, costVariancePercentage: -21.15, costVarianceStatus: 'BELOW_PLANNED' },
-  openAmounts: {
-    payableAmount: 23000,
-    receivableAmount: 32000,
-    pending: { payableAmount: 23000, receivableAmount: 32000 },
-    overdue: { payableAmount: 0, receivableAmount: 0 },
-  },
-};
-
 const emptyResponse: PageResponse<HarvestSeasonSummaryListItem> = {
   content: [],
   page: 0,
@@ -195,7 +179,6 @@ describe('HarvestsPage', () => {
   let harvestService: {
     list: Mock;
     listSummary: Mock;
-    getFinancialSummary: Mock;
     create: Mock;
     update: Mock;
     updateStatus: Mock;
@@ -211,7 +194,6 @@ describe('HarvestsPage', () => {
     harvestService = {
       list: vi.fn(() => of(response)),
       listSummary: vi.fn(() => of(response)),
-      getFinancialSummary: vi.fn(() => of(financialSummary)),
       create: vi.fn(() => of(seasons[0] as HarvestSeason)),
       update: vi.fn(() => of(seasons[0] as HarvestSeason)),
       updateStatus: vi.fn(() => of({ ...(seasons[0] as HarvestSeason), status: 'IN_PROGRESS' })),
@@ -250,6 +232,7 @@ describe('HarvestsPage', () => {
 
     expect(harvestService.listSummary).not.toHaveBeenCalled();
     expect(harvestService.list).not.toHaveBeenCalled();
+    expect(harvestService).not.toHaveProperty('getFinancialSummary');
     expect(productionActivityService.list).not.toHaveBeenCalled();
     expect(componentState().loading()).toBe(false);
     expect(text()).toContain('Selecione uma fazenda para visualizar as safras.');
@@ -271,6 +254,7 @@ describe('HarvestsPage', () => {
       direction: 'DESC',
     });
     expect(harvestService.list).not.toHaveBeenCalled();
+    expect(harvestService).not.toHaveProperty('getFinancialSummary');
     expect(productionActivityService.list).toHaveBeenCalledWith({
       farmId: 10,
       includeInactive: true,
@@ -279,12 +263,15 @@ describe('HarvestsPage', () => {
       sort: 'name',
       direction: 'ASC',
     });
-    expect(text()).toContain('Safras');
+    expect(text()).toContain('Filtros');
     expect(getListFilters().textContent).not.toContain('Nova safra');
     expect(text()).toContain('Safra Soja 2026');
-    expect(text()).toContain('Safras ativas');
-    expect(text()).toContain('130.000,00');
-    expect(text()).toContain('112.500,00');
+    expect(
+      fixture.nativeElement.querySelector('section[aria-label="Resumo financeiro das safras"]'),
+    ).toBeNull();
+    expect(text()).not.toContain('Safras ativas');
+    expect(text()).toContain('Resultado financeiro');
+    expect(text()).toContain('72.500,00');
   });
 
   it('should finish loading after a successful PageResponse and avoid reloading in a loop', () => {
@@ -307,74 +294,6 @@ describe('HarvestsPage', () => {
     expect(text()).toContain('Nenhuma safra cadastrada.');
   });
 
-  it('should render financial summary data from the summary list response', () => {
-    setupSelectedFarm('PRODUCER');
-
-    const content = text();
-
-    for (const label of [
-      'Safras ativas',
-      'Custo planejado',
-      'Receita planejada',
-      'Lucro planejado',
-      'Custo realizado',
-      'Receita realizada',
-      'Lucro realizado',
-      'Custo projetado',
-      'Receita projetada',
-      'Lucro projetado',
-      'Desempenho do lucro',
-      'Desvio de custo',
-    ]) {
-      expect(content).toContain(label);
-    }
-    const summaryCards = fixture.nativeElement.querySelectorAll(
-      'section[aria-label="Resumo financeiro das safras"] gd-summary-card',
-    ) as NodeListOf<HTMLElement>;
-
-    expect(summaryCards).toHaveLength(12);
-    for (const card of summaryCards) {
-      expect(card.querySelectorAll('article > div:nth-child(2) > p')).toHaveLength(1);
-    }
-
-    const summaryHeadings = Array.from(
-      fixture.nativeElement.querySelectorAll('section[aria-label="Resumo financeiro das safras"] h2') as NodeListOf<HTMLHeadingElement>,
-    ).map((heading) => heading.textContent?.trim());
-
-    expect(summaryHeadings).not.toContain('Visão geral');
-    expect(summaryHeadings).not.toContain('Planejamento');
-    expect(summaryHeadings).not.toContain('Realizado');
-    expect(summaryHeadings).not.toContain('Projeção atual');
-    expect(summaryHeadings).not.toContain('Comparação');
-    expect(content).toContain('Resultado financeiro');
-    expect(content).toContain('Pendencias e movimentacoes');
-    expect(content).toContain('72.500,00');
-    expect(content).toContain('150.000,00');
-    expect(content).toContain('77.500,00');
-    expect(content).toContain('18.000,00');
-    expect(content).toContain('6.000,00');
-    expect(content).toContain('6');
-  });
-
-  it('should keep comparison cards for not-applicable summary values', () => {
-    harvestService.getFinancialSummary.mockReturnValueOnce(of({
-      ...financialSummary,
-      comparison: {
-        profitPerformancePercentage: null,
-        profitPerformanceStatus: 'NOT_APPLICABLE',
-        costVarianceAmount: -27500,
-        costVariancePercentage: null,
-        costVarianceStatus: 'NOT_APPLICABLE',
-      },
-    }));
-
-    setupSelectedFarm('PRODUCER');
-
-    expect(text()).toContain('Desempenho do lucro');
-    expect(text()).toContain('Desvio de custo');
-    expect(text()).toContain('Não aplicável');
-  });
-
   it('should show an error state and finish loading when the API fails', () => {
     harvestService.listSummary.mockReturnValueOnce(throwError(() => new Error('list failed')));
 
@@ -395,7 +314,11 @@ describe('HarvestsPage', () => {
     };
 
     harvestService.listSummary.mockImplementation((params: HarvestSeasonSummaryListParams) =>
-      of(params.farmId === 20 ? { ...response, content: [secondFarmSeason], totalElements: 1 } : response),
+      of(
+        params.farmId === 20
+          ? { ...response, content: [secondFarmSeason], totalElements: 1 }
+          : response,
+      ),
     );
 
     setupSelectedFarm('PRODUCER');
@@ -575,7 +498,9 @@ describe('HarvestsPage', () => {
   });
 
   it('should keep filters when paginating', () => {
-    harvestService.listSummary.mockReturnValue(of({ ...response, page: 0, totalPages: 2, first: true, last: false }));
+    harvestService.listSummary.mockReturnValue(
+      of({ ...response, page: 0, totalPages: 2, first: true, last: false }),
+    );
     setupSelectedFarm('PRODUCER');
 
     clickButton('Em andamento');
@@ -598,7 +523,9 @@ describe('HarvestsPage', () => {
   it('should keep harvest list working when production activities fail to load', () => {
     const toastStore = TestBed.inject(ToastStore);
     const errorSpy = vi.spyOn(toastStore, 'error');
-    productionActivityService.list.mockReturnValueOnce(throwError(() => new Error('activities failed')));
+    productionActivityService.list.mockReturnValueOnce(
+      throwError(() => new Error('activities failed')),
+    );
 
     setupSelectedFarm('PRODUCER');
 
@@ -726,7 +653,6 @@ describe('HarvestsPage', () => {
     expect(component.form.controls.description.valid).toBe(false);
   });
 
-
   function setupSelectedFarm(role: 'PRODUCER' | 'EMPLOYEE' | 'ACCOUNTANT'): void {
     sessionStore.setUser(user('USER'));
     selectedFarmStore.setFarms([farm]);
@@ -782,7 +708,6 @@ describe('HarvestsPage', () => {
     };
   }
 
-
   function getListFilters(): HTMLElement {
     return fixture.nativeElement.querySelector('gd-list-filters') as HTMLElement;
   }
@@ -805,16 +730,20 @@ describe('HarvestsPage', () => {
   }
 
   function clickButton(label: string): void {
-    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
-      (item) => item.textContent?.trim() === label,
-    );
+    const button = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).find((item) => item.textContent?.trim() === label);
 
     button?.click();
     fixture.detectChanges();
   }
 
   function harvestCards(): HTMLElement[] {
-    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('article[role="button"]'));
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
+        'article[role="button"]',
+      ),
+    );
   }
 
   function text(): string {

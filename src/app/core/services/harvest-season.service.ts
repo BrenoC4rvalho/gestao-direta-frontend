@@ -9,7 +9,6 @@ import {
   DashboardHarvestSeason,
   HarvestSeason,
   HarvestSeasonFilters,
-  HarvestSeasonFinancialSummary,
   HarvestSeasonDetailSummary,
   HarvestSeasonListParams,
   HarvestSeasonStatus,
@@ -86,13 +85,6 @@ export class HarvestSeasonService {
         withCredentials: true,
       },
     );
-  }
-
-  getFinancialSummary(filters: HarvestSeasonFilters): Observable<HarvestSeasonFinancialSummary> {
-    return this.http.get<HarvestSeasonFinancialSummary>(`${this.apiUrl}/summary`, {
-      params: this.buildFinancialSummaryParams(filters),
-      withCredentials: true,
-    });
   }
 
   getById(id: number): Observable<HarvestSeason> {
@@ -345,10 +337,6 @@ export class HarvestSeasonService {
 
   private buildListSummaryParams(params: HarvestSeasonSummaryListParams): HttpParams {
     return this.appendPageParams(this.buildFilterParams(params), params);
-  }
-
-  private buildFinancialSummaryParams(filters: HarvestSeasonFilters): HttpParams {
-    return this.buildFilterParams(filters);
   }
 
   private buildFilterParams(filters: HarvestSeasonFilters): HttpParams {

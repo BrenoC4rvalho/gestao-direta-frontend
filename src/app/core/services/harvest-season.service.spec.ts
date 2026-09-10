@@ -7,7 +7,6 @@ import {
   CreateHarvestSeasonRequest,
   DashboardHarvestSeason,
   HarvestSeason,
-  HarvestSeasonFinancialSummary,
   HarvestSeasonDetailSummary,
   HarvestCategoryMovements,
   HarvestCategoryComparison,
@@ -128,42 +127,6 @@ const summary: HarvestSeasonDetailSummary = {
   transactionCount: 3,
   incomeCount: 1,
   expenseCount: 2,
-};
-
-const financialSummary: HarvestSeasonFinancialSummary = {
-  farmId: 10,
-  activeHarvestCount: 2,
-  planning: {
-    plannedCost: 130000,
-    plannedRevenue: 230000,
-    plannedProfit: 100000,
-    plannedMargin: 43.48,
-  },
-  realized: {
-    realizedCost: 102500,
-    realizedRevenue: 215000,
-    realizedProfit: 112500,
-    realizedMargin: 52.33,
-  },
-  projection: {
-    projectedCost: 125500,
-    projectedRevenue: 247000,
-    projectedProfit: 121500,
-    projectedMargin: 49.19,
-  },
-  comparison: {
-    profitPerformancePercentage: 12.5,
-    profitPerformanceStatus: 'ABOVE_PLANNED',
-    costVarianceAmount: -27500,
-    costVariancePercentage: -21.15,
-    costVarianceStatus: 'BELOW_PLANNED',
-  },
-  openAmounts: {
-    payableAmount: 23000,
-    receivableAmount: 32000,
-    pending: { payableAmount: 23000, receivableAmount: 32000 },
-    overdue: { payableAmount: 0, receivableAmount: 0 },
-  },
 };
 
 const dashboardHarvests: readonly DashboardHarvestSeason[] = [
@@ -458,39 +421,6 @@ describe('HarvestSeasonService', () => {
     expect(request.request.method).toBe('GET');
     expect(request.request.withCredentials).toBe(true);
     request.flush(season);
-  });
-
-  it('should call financial summary with filters and without pagination', () => {
-    service
-      .getFinancialSummary({
-        farmId: 10,
-        search: 'soja',
-        statuses: ['PLANNED', 'IN_PROGRESS'],
-        productionActivityIds: [2, 3],
-        periodStart: '2026-01-01',
-        periodEnd: '2026-12-31',
-      })
-      .subscribe((result) => expect(result).toEqual(financialSummary));
-    const request = http.expectOne((req) => req.url === apiUrl + '/summary');
-    expect(request.request.params.get('farmId')).toBe('10');
-    expect(request.request.params.get('search')).toBe('soja');
-    expect(request.request.params.get('statuses')).toBe('PLANNED,IN_PROGRESS');
-    expect(request.request.params.get('productionActivityIds')).toBe('2,3');
-    expect(request.request.params.get('periodStart')).toBe('2026-01-01');
-    expect(request.request.params.get('periodEnd')).toBe('2026-12-31');
-    expect(request.request.params.has('startDate')).toBe(false);
-    expect(request.request.params.has('endDate')).toBe(false);
-    expect(request.request.params.has('page')).toBe(false);
-    expect(request.request.params.has('size')).toBe(false);
-    request.flush(financialSummary);
-  });
-
-  it('should send a single selected status as statuses', () => {
-    service.getFinancialSummary({ farmId: 10, statuses: ['IN_PROGRESS'] }).subscribe();
-    const request = http.expectOne((req) => req.url === apiUrl + '/summary');
-    expect(request.request.params.get('statuses')).toBe('IN_PROGRESS');
-    expect(request.request.params.has('status')).toBe(false);
-    request.flush(financialSummary);
   });
 
   it('should call GET /api/harvest/seasons/{id}/summary', () => {

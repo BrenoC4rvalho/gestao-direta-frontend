@@ -141,11 +141,7 @@ export interface HarvestCategoryMovements {
 }
 
 export type HarvestCategoryComparisonStatus =
-  | 'ABOVE_PLAN'
-  | 'BELOW_PLAN'
-  | 'ON_PLAN'
-  | 'UNPLANNED'
-  | 'NO_MOVEMENT';
+  'ABOVE_PLAN' | 'BELOW_PLAN' | 'ON_PLAN' | 'UNPLANNED' | 'NO_MOVEMENT';
 
 export type ComparisonSemantic = 'BETTER' | 'WORSE' | 'NEUTRAL';
 
@@ -232,27 +228,6 @@ export interface HarvestSeasonComparisonSummary {
   costVarianceAmount: number;
   costVariancePercentage: number | null;
   costVarianceStatus: HarvestComparisonStatus;
-}
-
-export type HarvestPlanningSummary = HarvestSeasonPlanningSummary;
-export type HarvestRealizedSummary = HarvestSeasonRealizedSummary;
-export type HarvestProjectionSummary = HarvestSeasonProjectionSummary;
-export interface HarvestComparisonSummary {
-  profitPerformancePercentage: number | null;
-  profitPerformanceStatus: HarvestComparisonStatus;
-  costVarianceAmount: number;
-  costVariancePercentage: number | null;
-  costVarianceStatus: HarvestComparisonStatus;
-}
-
-export interface HarvestSeasonFinancialSummary {
-  farmId: number;
-  activeHarvestCount: number;
-  planning: HarvestPlanningSummary;
-  realized: HarvestRealizedSummary;
-  projection: HarvestProjectionSummary;
-  comparison: HarvestComparisonSummary;
-  openAmounts: HarvestSeasonOpenAmountsSummary;
 }
 
 export interface HarvestSeasonPendingAmountsSummary {
