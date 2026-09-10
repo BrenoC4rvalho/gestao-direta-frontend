@@ -176,6 +176,30 @@ function textContent(fixture: ComponentFixture<DashboardPage>): string {
   return (fixture.nativeElement.textContent as string).replace(/\u00a0/g, ' ');
 }
 
+function periodTrigger(fixture: ComponentFixture<DashboardPage>): HTMLButtonElement {
+  return fixture.nativeElement.querySelector(
+    'gd-financial-period-selector button[aria-haspopup="listbox"]',
+  );
+}
+
+function selectPeriod(fixture: ComponentFixture<DashboardPage>, days: number): void {
+  periodTrigger(fixture).click();
+  fixture.detectChanges();
+
+  const option = Array.from(
+    fixture.nativeElement.querySelectorAll(
+      'gd-financial-period-selector [role="option"]',
+    ) as NodeListOf<HTMLButtonElement>,
+  ).find((element) => element.textContent?.trim() === `Últimos ${days} dias`);
+
+  if (!option) {
+    throw new Error(`Período de ${days} dias não encontrado.`);
+  }
+
+  option.click();
+  fixture.detectChanges();
+}
+
 describe('DashboardPage', () => {
   let aiTransactionService: {
     parseTransactionText: ReturnType<typeof vi.fn>;
@@ -311,12 +335,11 @@ describe('DashboardPage', () => {
     farmAccessStore.setAccess(farmAccess(1));
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
-    const button = (days: number): HTMLButtonElement =>
-      Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
-        .find((element) => element.textContent?.trim() === days + ' dias')!;
-    expect(button(30).getAttribute('aria-pressed')).toBe('true');
-    expect(button(90)).toBeTruthy();
-    expect(button(180)).toBeTruthy();
+    expect(periodTrigger(fixture).textContent).toContain('Últimos 30 dias');
+    expect(periodTrigger(fixture).getAttribute('aria-expanded')).toBe('false');
+    expect(
+      fixture.nativeElement.querySelectorAll('gd-financial-period-selector button'),
+    ).toHaveLength(1);
     expect(textContent(fixture)).not.toContain('Aplicar');
     expect(textContent(fixture)).not.toContain('Fluxo 30 dias');
     const stableCards = () => Array.from(
@@ -328,10 +351,10 @@ describe('DashboardPage', () => {
         ...summary, horizonDays: horizon, projectedBalance: 9876,
         financialCoverage: { coveragePercentage: 42.5, status: 'INSUFFICIENT' },
       }));
-      button(horizon).click();
-      fixture.detectChanges();
+      selectPeriod(fixture, horizon);
       expect(financialService.getSummary).toHaveBeenLastCalledWith(1, horizon);
-      expect(button(horizon).getAttribute('aria-pressed')).toBe('true');
+      expect(periodTrigger(fixture).textContent).toContain(`Últimos ${horizon} dias`);
+      expect(periodTrigger(fixture).getAttribute('aria-expanded')).toBe('false');
       expect(stableCards()).toEqual(initial);
       expect(textContent(fixture)).toContain('Próximos ' + horizon + ' dias');
       expect(textContent(fixture)).toContain('Em ' + horizon + ' dias');
@@ -353,15 +376,10 @@ describe('DashboardPage', () => {
     const pending90 = new Subject<FinancialSummary>();
     const pending180 = new Subject<FinancialSummary>();
     financialService.getSummary.mockReturnValueOnce(pending90).mockReturnValueOnce(pending180);
-    const select = (days: number) => {
-      const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
-      buttons.find((button) => button.textContent?.trim() === days + ' dias')!.click();
-      fixture.detectChanges();
-    };
-    select(90);
+    selectPeriod(fixture, 90);
     expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(8);
     expect(textContent(fixture)).toContain('Próximos 30 dias');
-    select(180);
+    selectPeriod(fixture, 180);
     expect(pending90.observed).toBe(false);
     pending180.next({ ...summary, horizonDays: 180, projectedBalance: 7654 });
     pending180.complete();
@@ -381,9 +399,7 @@ describe('DashboardPage', () => {
     const pendingFirstFarm = new Subject<FinancialSummary>();
     const pendingSecondFarm = new Subject<FinancialSummary>();
     financialService.getSummary.mockReturnValueOnce(pendingFirstFarm).mockReturnValueOnce(pendingSecondFarm);
-    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
-    buttons.find((button) => button.textContent?.trim() === '90 dias')!.click();
-    fixture.detectChanges();
+    selectPeriod(fixture, 90);
     selectedFarmStore.selectFarmById(2);
     farmAccessStore.setAccess(farmAccess(2));
     fixture.detectChanges();
@@ -410,9 +426,7 @@ describe('DashboardPage', () => {
     expect(textContent(fixture)).toContain('Sem obrigações no período');
     expect(textContent(fixture)).not.toMatch(/NaN|Infinity|∞/);
     financialService.getSummary.mockReturnValueOnce(throwError(() => new Error('network')));
-    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
-    buttons.find((button) => button.textContent?.trim() === '90 dias')!.click();
-    fixture.detectChanges();
+    selectPeriod(fixture, 90);
     expect(textContent(fixture)).toContain('Erro ao carregar resumo');
     expect(textContent(fixture)).toContain('Próximos 30 dias');
     expect(fixture.nativeElement.querySelectorAll('gd-summary-card')).toHaveLength(8);

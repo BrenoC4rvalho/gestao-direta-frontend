@@ -31,29 +31,11 @@
           </p>
         </div>
 
-        <div class="w-full sm:w-auto">
-          <p id="financial-horizon-label" class="sr-only">Horizonte financeiro</p>
-          <div
-            role="group"
-            aria-labelledby="financial-horizon-label"
-            class="inline-flex w-full rounded-lg border border-border bg-background p-1 sm:w-auto"
-          >
-            @for (horizon of horizons; track horizon) {
-              <button
-                type="button"
-                class="min-h-10 flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none"
-                [class.bg-primary]="selectedHorizon() === horizon"
-                [class.text-white]="selectedHorizon() === horizon"
-                [class.shadow-sm]="selectedHorizon() === horizon"
-                [class.text-text-muted]="selectedHorizon() !== horizon"
-                [attr.aria-pressed]="selectedHorizon() === horizon"
-                (click)="selectHorizon(horizon)"
-              >
-                {{ horizon }} dias
-              </button>
-            }
-          </div>
-        </div>
+        <gd-financial-period-selector
+          [selectedPeriod]="selectedHorizon()"
+          [periods]="horizons"
+          (periodChange)="selectHorizon($event)"
+        />
       </div>
       @if (summaryError(); as errorMessage) {
         <gd-error-state title="Erro ao carregar resumo" [description]="errorMessage"

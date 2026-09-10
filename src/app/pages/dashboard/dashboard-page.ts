@@ -60,6 +60,7 @@ import {
 } from '../../shared/ui';
 import { ImportantAlerts } from './components/important-alerts/important-alerts';
 import { CashFlowChartComponent } from './components/cash-flow-chart/cash-flow-chart.component';
+import { FinancialPeriodSelector } from './components/financial-period-selector/financial-period-selector';
 import { LatestTransactionsCard } from './components/latest-transactions-card/latest-transactions-card';
 import { TransactionFormDrawer } from '../transactions/components/transaction-form-drawer/transaction-form-drawer';
 
@@ -86,6 +87,7 @@ interface SummaryCardViewModel {
     Drawer,
     EmptyState,
     ErrorState,
+    FinancialPeriodSelector,
     ImportantAlerts,
     LatestTransactionsCard,
     ReactiveFormsModule,
