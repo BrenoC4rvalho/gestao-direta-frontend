@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormGroup } from '@angular/forms';
 import { of } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
@@ -20,10 +21,12 @@ interface SummaryCardViewModel {
   title: string;
   value: string;
   tone: string;
+  meta?: string;
 }
 
 interface SummaryGroupViewModel {
   title: string;
+  gridClasses: string;
   cards: readonly SummaryCardViewModel[];
 }
 
@@ -126,6 +129,42 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       },
     ],
     harvests: [],
+    financialIndicators: {
+      result: {
+        totalIncome: 220000,
+        totalExpense: 194300,
+        projectedResult: 25700,
+        marginPercentage: 11.7,
+        realizedIncome: 40500,
+        realizedExpense: 104600,
+        realizedResult: -64100,
+      },
+      liquidity: {
+        accountsReceivable: 179500,
+        accountsPayable: 89700,
+        overdueReceivable: 0,
+        overduePayable: 0,
+        coveragePercentage: 128.65,
+        cashNeed: -25600,
+      },
+      efficiency: {
+        costToIncomePercentage: 88.32,
+        returnOnCostsPercentage: -61.28,
+      },
+      ruralManagement: {
+        areaHectares: 120,
+        incomePerHectare: 1833.33,
+        costPerHectare: 1619.17,
+        resultPerHectare: 214.16,
+      },
+      planning: {
+        availability: 'AVAILABLE',
+        incomeExecutionPercentage: 81,
+        expenseExecutionPercentage: 95,
+        incomeDeviation: -9500,
+        expenseDeviation: -5400,
+      },
+    },
     indicators: {
       analyzedMonthCount: 0,
       highestIncomePeriod: null,
@@ -216,45 +255,39 @@ describe('FinancialReportPage', () => {
     fixture.detectChanges();
   });
 
-  it('should organize financial indicators into consolidated, realized and projected groups', () => {
+  it('should organize every backend indicator into the requested groups', () => {
     expect(summaryGroups().map((group) => group.title)).toEqual([
-      'Visão consolidada',
-      'Realizado',
-      'Projetado',
-      'Compromissos financeiros',
-      'Próximos 30 dias',
+      'Resultado',
+      'Liquidez e compromissos',
+      'Eficiência',
+      'Gestão rural',
+      'Planejamento',
+      'Destaques do período',
     ]);
     expect(summaryGroups()[0].cards.map((card) => card.title)).toEqual([
       'Receitas totais',
       'Despesas totais',
-      'Saldo líquido',
+      'Resultado projetado',
       'Margem',
-    ]);
-    expect(summaryGroups()[1].cards.map((card) => card.title)).toEqual([
       'Receitas realizadas',
       'Despesas realizadas',
       'Resultado realizado',
     ]);
-    expect(summaryGroups()[2].cards.map((card) => card.title)).toEqual([
-      'Receitas projetadas',
-      'Despesas projetadas',
-      'Resultado projetado',
-    ]);
-    expect(summaryGroups()[3].cards.map((card) => card.title)).toEqual([
+    expect(summaryGroups()[1].cards.map((card) => card.title)).toEqual([
       'Contas a receber',
       'Contas a pagar',
-      'Vencido a receber',
-      'Vencido a pagar',
-    ]);
-    expect(summaryGroups()[4].cards.map((card) => card.title)).toEqual([
-      'Recebimentos previstos',
-      'Pagamentos previstos',
-      'Fluxo líquido previsto',
+      'Vencidos a receber',
+      'Vencidos a pagar',
       'Cobertura financeira',
+      'Necessidade de caixa',
+    ]);
+    expect(summaryGroups()[2].cards.map((card) => card.title)).toEqual([
+      'Custo sobre receita',
+      'Retorno sobre custos',
     ]);
   });
 
-  it('should show only consolidated indicators on the main page', () => {
+  it('should show only the four main indicators on the page', () => {
     expect((fixture.componentInstance as unknown as { canViewReport: () => boolean }).canViewReport()).toBe(true);
     expect(fixture.componentInstance.report()).not.toBeNull();
     expect(fixture.componentInstance.reportLoading()).toBe(false);
@@ -262,19 +295,25 @@ describe('FinancialReportPage', () => {
       'section[aria-label="Visão consolidada"]',
     ) as HTMLElement;
 
-    expect(consolidatedSection.textContent).toContain('Receitas totais');
-    expect(consolidatedSection.textContent).toContain('Despesas totais');
-    expect(consolidatedSection.textContent).toContain('Saldo líquido');
+    expect(consolidatedSection.textContent).toContain('Resultado projetado');
     expect(consolidatedSection.textContent).toContain('Margem');
+    expect(consolidatedSection.textContent).toContain('Receitas realizadas');
+    expect(consolidatedSection.textContent).toContain('Despesas realizadas');
     expect(consolidatedSection.querySelectorAll('gd-summary-card').length).toBe(4);
     expect(
       Array.from(consolidatedSection.querySelectorAll('gd-summary-card')).every((card) =>
         card.querySelector('article')?.classList.contains('h-[176px]'),
       ),
     ).toBe(true);
-    expect(fixture.nativeElement.textContent).not.toContain('Receitas realizadas');
-    expect(fixture.nativeElement.textContent).not.toContain('Compromissos financeiros');
-    expect(fixture.nativeElement.textContent).not.toContain('Próximos 30 dias');
+    const mainCards = (fixture.componentInstance as unknown as {
+      primaryIndicatorCards: () => readonly SummaryCardViewModel[];
+    }).primaryIndicatorCards();
+    expect(mainCards.map((item) => item.title)).toEqual([
+      'Resultado projetado',
+      'Margem',
+      'Receitas realizadas',
+      'Despesas realizadas',
+    ]);
   });
 
   it('should show the PDF export action when the report is available', () => {
@@ -426,15 +465,22 @@ describe('FinancialReportPage', () => {
 
     expect(dialog).not.toBeNull();
     expect(dialog.textContent).toContain('Indicadores financeiros');
-    expect(dialog.textContent).toContain('Visão consolidada');
-    expect(dialog.textContent).toContain('Realizado');
-    expect(dialog.textContent).toContain('Projetado');
-    expect(dialog.textContent).toContain('Compromissos financeiros');
-    expect(dialog.textContent).toContain('Próximos 30 dias');
-    expect(dialog.querySelectorAll('gd-summary-card').length).toBe(18);
+    expect(dialog.textContent).toContain(
+      'Veja os principais indicadores calculados com base nos filtros selecionados.',
+    );
+    expect(dialog.textContent).toContain('Resultado');
+    expect(dialog.textContent).toContain('Liquidez e compromissos');
+    expect(dialog.textContent).toContain('Eficiência');
+    expect(dialog.textContent).toContain('Gestão rural');
+    expect(dialog.textContent).toContain('Planejamento');
+    expect(dialog.textContent).toContain('Destaques do período');
+    expect(dialog.querySelectorAll('gd-summary-card').length).toBe(27);
+    expect(
+      summaryGroups().every((group) => group.gridClasses.includes('xl:grid-cols-4')),
+    ).toBe(true);
     expect(
       Array.from(dialog.querySelectorAll('gd-summary-card')).every((card) =>
-        card.querySelector('article')?.classList.contains('h-[176px]'),
+        card.querySelector('article')?.classList.contains('min-h-[100px]'),
       ),
     ).toBe(true);
     expect(dialog.classList.contains('max-h-[85dvh]')).toBe(true);
@@ -469,95 +515,146 @@ describe('FinancialReportPage', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('should derive short-term flow and coverage without division by zero', () => {
-    const value = report();
-    value.commitments.next30DaysReceivable = 65000;
-    value.commitments.next30DaysPayable = 42000;
+  it('should present backend values without recalculating financial indicators', () => {
+    const value = report({
+      totalIncome: 1,
+      totalExpense: 1,
+      realizedIncome: 1,
+      realizedExpense: 1,
+    });
+    value.financialIndicators.result.projectedResult = -4321;
+    value.financialIndicators.result.realizedResult = 987;
+    value.financialIndicators.liquidity.coveragePercentage = 123.45;
     setReport(value);
 
-    expect(card('Fluxo líquido previsto')).toMatchObject({ value: currency(23000), tone: 'success' });
-    expect(card('Cobertura financeira').value).toBe('1,55x');
-
-    setReport({
-      ...value,
-      commitments: { ...value.commitments, next30DaysPayable: 0 },
-    });
-    expect(card('Cobertura financeira').value).toBe('Sem compromissos');
-
-    setReport({
-      ...value,
-      commitments: { ...value.commitments, next30DaysReceivable: 0, next30DaysPayable: 0 },
-    });
-    expect(card('Cobertura financeira').value).toBe('—');
+    expect(card('Resultado projetado')).toMatchObject({ value: currency(-4321), tone: 'danger' });
+    expect(card('Resultado realizado')).toMatchObject({ value: currency(987), tone: 'success' });
+    expect(card('Cobertura financeira').value).toBe('123,5%');
   });
 
-  it('should omit the next thirty days group when it is unavailable', () => {
+  it('should render unavailable ratios without null, NaN or Infinity', () => {
     const value = report();
-    value.commitments.next30DaysAvailable = false;
-    value.commitments.next30DaysReceivable = null;
-    value.commitments.next30DaysPayable = null;
+    value.financialIndicators.result.marginPercentage = null;
+    value.financialIndicators.liquidity.coveragePercentage = null;
+    value.financialIndicators.efficiency.costToIncomePercentage = null;
+    value.financialIndicators.efficiency.returnOnCostsPercentage = null;
     setReport(value);
 
-    expect(summaryGroups().map((group) => group.title)).not.toContain('Próximos 30 dias');
-    button('Ver todos os indicadores').click();
-    fixture.detectChanges();
+    expect(card('Margem').value).toBe('—');
+    expect(card('Cobertura financeira').value).toBe('—');
+    expect(card('Custo sobre receita').value).toBe('—');
+    expect(card('Retorno sobre custos').value).toBe('—');
+    expect(fixture.nativeElement.textContent).not.toMatch(/NaN|Infinity|null|undefined/);
+  });
 
-    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).not.toContain(
-      'Próximos 30 dias',
+  it('should omit rural indicators when the backend marks the context unavailable', () => {
+    const value = report();
+    value.financialIndicators.ruralManagement = null;
+    setReport(value);
+
+    expect(summaryGroups().map((group) => group.title)).not.toContain('Gestão rural');
+  });
+
+  it('should explain unavailable planning without showing monetary zero', () => {
+    const value = report();
+    value.financialIndicators.planning = {
+      availability: 'HARVEST_REQUIRED',
+      incomeExecutionPercentage: null,
+      expenseExecutionPercentage: null,
+      incomeDeviation: null,
+      expenseDeviation: null,
+    };
+    setReport(value);
+
+    expect(card('Execução do orçamento')).toMatchObject({
+      value: '—',
+      tone: 'neutral',
+    });
+    expect(card('Execução do orçamento').meta).toBe('Selecione uma única Safra.');
+    expect(card('Desvio do orçamento').value).toBe('—');
+  });
+
+  it('should accept exactly twelve calendar months and reject a longer period', () => {
+    financialService.getFinancialReport.mockClear();
+    const component = fixture.componentInstance as unknown as {
+      filterForm: FormGroup;
+      applyFilters: () => void;
+    };
+
+    component.filterForm.patchValue({ startDate: '2024-02-29', endDate: '2025-02-28' });
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(component.filterForm.valid).toBe(true);
+    expect(financialService.getFinancialReport).toHaveBeenCalledTimes(1);
+
+    component.filterForm.patchValue({ endDate: '2025-03-01' });
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(component.filterForm.hasError('maxPeriod')).toBe(true);
+    expect(financialService.getFinancialReport).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.textContent).toContain(
+      'O período do relatório não pode ultrapassar 12 meses.',
     );
   });
 
-  it('should restore the next thirty days group when the filtered report changes', () => {
-    setReport({
-      ...report(),
-      commitments: {
-        ...report().commitments,
-        next30DaysAvailable: false,
-        next30DaysReceivable: null,
-        next30DaysPayable: null,
-      },
-    });
-    expect(summaryGroups().map((group) => group.title)).not.toContain('Próximos 30 dias');
+  it('should reject an end date before the start date without requesting the report', () => {
+    financialService.getFinancialReport.mockClear();
+    const component = fixture.componentInstance as unknown as {
+      filterForm: FormGroup;
+      applyFilters: () => void;
+    };
+    component.filterForm.patchValue({ startDate: '2026-02-01', endDate: '2026-01-31' });
 
-    setReport(report());
-
-    expect(summaryGroups().map((group) => group.title)).toContain('Próximos 30 dias');
-  });
-
-  it('should calculate positive realized and projected results', () => {
-    setReport(report({ realizedIncome: 100, realizedExpense: 40, projectedIncome: 90, projectedExpense: 10 }));
-
-    expect(card('Resultado realizado')).toMatchObject({ value: currency(60), tone: 'success' });
-    expect(card('Resultado projetado')).toMatchObject({ value: currency(80), tone: 'success' });
-  });
-
-  it('should calculate negative realized and projected results', () => {
-    setReport(report({ realizedIncome: 40500, realizedExpense: 104600, projectedIncome: 89700, projectedExpense: 179500 }));
-
-    expect(card('Resultado realizado')).toMatchObject({ value: currency(-64100), tone: 'danger' });
-    expect(card('Resultado projetado')).toMatchObject({ value: currency(-89800), tone: 'danger' });
-  });
-
-  it('should use neutral tones for zero realized and projected results', () => {
-    setReport(report({ realizedIncome: 100, realizedExpense: 100, projectedIncome: 200, projectedExpense: 200 }));
-
-    expect(card('Resultado realizado')).toMatchObject({ value: currency(0), tone: 'neutral' });
-    expect(card('Resultado projetado')).toMatchObject({ value: currency(0), tone: 'neutral' });
-  });
-
-  it('should recalculate results when the filtered report changes', () => {
-    setReport(report({ realizedIncome: 100, realizedExpense: 20, projectedIncome: 80, projectedExpense: 30 }));
-    expect(card('Resultado realizado').value).toBe(currency(80));
-    expect(card('Resultado projetado').value).toBe(currency(50));
-
-    setReport(report({ realizedIncome: 10, realizedExpense: 70, projectedIncome: 40, projectedExpense: 100 }));
-    expect(card('Resultado realizado')).toMatchObject({ value: currency(-60), tone: 'danger' });
-    expect(card('Resultado projetado')).toMatchObject({ value: currency(-60), tone: 'danger' });
-
-    button('Ver todos os indicadores').click();
+    component.applyFilters();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain(currency(-60));
+    expect(component.filterForm.hasError('dateOrder')).toBe(true);
+    expect(financialService.getFinancialReport).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain(
+      'A data final deve ser igual ou posterior à data inicial.',
+    );
+  });
+
+  it('should preserve loading and error states for the report request', () => {
+    fixture.componentInstance.reportLoading.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('section[aria-label="Visão consolidada"]')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('gd-skeleton').length).toBeGreaterThan(0);
+
+    fixture.componentInstance.reportLoading.set(false);
+    fixture.componentInstance.report.set(null);
+    fixture.componentInstance.reportError.set('Falha controlada');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Erro ao carregar relatório');
+    expect(fixture.nativeElement.textContent).toContain('Falha controlada');
+  });
+
+  it('should preserve the empty state when the filtered report has no movements', () => {
+    const value = report({
+      totalIncome: 0,
+      totalExpense: 0,
+      netBalance: 0,
+      marginPercentage: 0,
+      realizedIncome: 0,
+      realizedExpense: 0,
+      projectedIncome: 0,
+      projectedExpense: 0,
+    });
+    value.financialIndicators.result = {
+      totalIncome: 0,
+      totalExpense: 0,
+      projectedResult: 0,
+      marginPercentage: null,
+      realizedIncome: 0,
+      realizedExpense: 0,
+      realizedResult: 0,
+    };
+    setReport(value);
+
+    expect(fixture.nativeElement.textContent).toContain('Nenhum dado financeiro encontrado');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Nenhum dado financeiro encontrado para os filtros selecionados.',
+    );
   });
 
   function setReport(value: FinancialReportResponse): void {

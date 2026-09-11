@@ -10,13 +10,22 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpResponse } from '@angular/common/http';
 import { NgTemplateOutlet } from '@angular/common';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import {
   FinancialReportBasis,
   FinancialCategorySummaryGroup,
+  FinancialPlanningIndicators,
   FinancialReportGranularity,
   FinancialReportResponse,
   FinancialReportTransaction,
@@ -125,6 +134,8 @@ export class FinancialReportPage {
     year: 'numeric',
     timeZone: 'UTC',
   });
+  private readonly indicatorGridClasses =
+    'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4';
 
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
@@ -143,12 +154,16 @@ export class FinancialReportPage {
   protected readonly harvestOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly categoryOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly filterForm = new FormGroup({
-    startDate: new FormControl<GdFormValue>(DEFAULT_FILTERS.startDate),
-    endDate: new FormControl<GdFormValue>(DEFAULT_FILTERS.endDate),
+    startDate: new FormControl<GdFormValue>(DEFAULT_FILTERS.startDate, {
+      validators: [Validators.required],
+    }),
+    endDate: new FormControl<GdFormValue>(DEFAULT_FILTERS.endDate, {
+      validators: [Validators.required],
+    }),
     basis: new FormControl<GdFormValue>(DEFAULT_FILTERS.basis),
     harvestSeasonId: new FormControl<GdFormValue>(''),
     categoryId: new FormControl<GdFormValue>(''),
-  });
+  }, { validators: [this.reportPeriodValidator()] });
   protected readonly basisOptions: readonly GdSelectOption[] = [
     { label: 'Regime de caixa', value: 'CASH' },
     { label: 'Regime de competência', value: 'ACCRUAL' },
@@ -193,219 +208,103 @@ export class FinancialReportPage {
   protected readonly selectedCategorySummary = computed<FinancialCategorySummaryGroup | null>(() =>
     this.report()?.categories.find((group) => group.type === this.categorySummaryType()) ?? null,
   );
-  protected readonly financialSummaryGroups = computed<readonly FinancialSummaryGroup[]>(() => {
-    const summary = this.report()?.summary;
-
-    if (!summary) {
-      return [];
-    }
-
-    const realizedResult = summary.realizedIncome - summary.realizedExpense;
-    const projectedResult = summary.projectedIncome - summary.projectedExpense;
-    const commitments = this.report()?.commitments;
+  protected readonly primaryIndicatorCards = computed<readonly FinancialSummaryCard[]>(() => {
+    const indicators = this.report()?.financialIndicators;
+    if (!indicators) return [];
 
     return [
+      this.currencyCard(
+        'Resultado projetado',
+        indicators.result.projectedResult,
+        'Receitas totais menos despesas totais no período selecionado.',
+        'chart-no-axes-combined',
+      ),
       {
-        title: 'Visão consolidada',
-        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
-        cards: [
-          {
-            title: 'Receitas totais',
-            value: this.formatCurrency(summary.totalIncome),
-            description:
-              'Soma das receitas realizadas e projetadas incluídas no período pelo regime selecionado.',
-            icon: 'trending-up',
-            tone: 'success',
-          },
-          {
-            title: 'Despesas totais',
-            value: this.formatCurrency(summary.totalExpense),
-            description:
-              'Soma das despesas realizadas e projetadas incluídas no período pelo regime selecionado.',
-            icon: 'trending-down',
-            tone: 'danger',
-          },
-          {
-            title: 'Saldo líquido',
-            value: this.formatCurrency(summary.netBalance),
-            description:
-              'Diferença entre as receitas e as despesas incluídas no período analisado.',
-            icon: 'wallet',
-            tone: this.signedValueTone(summary.netBalance),
-          },
-          {
-            title: 'Margem',
-            value: this.formatPercentage(summary.marginPercentage),
-            description:
-              'Percentual do saldo líquido em relação às receitas incluídas no período.',
-            icon: 'chart-no-axes-combined',
-            tone: summary.marginPercentage >= 0 ? 'info' : 'danger',
-          },
-        ],
+        title: 'Margem',
+        value: this.formatNullablePercentage(indicators.result.marginPercentage),
+        description: 'Resultado projetado em relação às receitas totais.',
+        icon: 'chart-no-axes-combined',
+        tone:
+          indicators.result.marginPercentage === null
+            ? 'neutral'
+            : this.signedValueTone(indicators.result.marginPercentage),
       },
       {
-        title: 'Realizado',
-        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
-        cards: [
-          {
-            title: 'Receitas realizadas',
-            value: this.formatCurrency(summary.realizedIncome),
-            description:
-              'Receitas com status pago incluídas no período pelo regime selecionado.',
-            icon: 'circle-check',
-            tone: 'success',
-            meta: `${this.realizedPercentage(summary.realizedIncome, summary.totalIncome)} do total`,
-          },
-          {
-            title: 'Despesas realizadas',
-            value: this.formatCurrency(summary.realizedExpense),
-            description:
-              'Despesas com status pago incluídas no período pelo regime selecionado.',
-            icon: 'circle-check',
-            tone: 'danger',
-            meta: `${this.realizedPercentage(summary.realizedExpense, summary.totalExpense)} do total`,
-          },
-          {
-            title: 'Resultado realizado',
-            value: this.formatCurrency(realizedResult),
-            description:
-              'Receitas realizadas menos despesas realizadas no período selecionado.',
-            icon: 'chart-no-axes-combined',
-            tone: this.signedValueTone(realizedResult),
-          },
-        ],
+        title: 'Receitas realizadas',
+        value: this.formatCurrency(indicators.result.realizedIncome),
+        description: 'Receitas efetivamente recebidas até a data de corte.',
+        icon: 'circle-check',
+        tone: 'success',
       },
       {
-        title: 'Projetado',
-        gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3',
-        cards: [
-          {
-            title: 'Receitas projetadas',
-            value: this.formatCurrency(summary.projectedIncome),
-            description:
-              'Receitas pendentes ou vencidas incluídas no período pelo regime selecionado.',
-            icon: 'clock',
-            tone: 'success',
-          },
-          {
-            title: 'Despesas projetadas',
-            value: this.formatCurrency(summary.projectedExpense),
-            description:
-              'Despesas pendentes ou vencidas incluídas no período pelo regime selecionado.',
-            icon: 'clock',
-            tone: 'danger',
-          },
-          {
-            title: 'Resultado projetado',
-            value: this.formatCurrency(projectedResult),
-            description:
-              'Receitas projetadas menos despesas projetadas no período selecionado.',
-            icon: 'chart-no-axes-combined',
-            tone: this.signedValueTone(projectedResult),
-          },
-        ],
+        title: 'Despesas realizadas',
+        value: this.formatCurrency(indicators.result.realizedExpense),
+        description: 'Despesas efetivamente pagas até a data de corte.',
+        icon: 'circle-check',
+        tone: 'danger',
       },
-      ...(commitments
-        ? [
-            {
-              title: 'Compromissos financeiros',
-              gridClasses: 'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
-              cards: [
-                {
-                  title: 'Contas a receber',
-                  value: this.formatCurrency(commitments.accountsReceivable),
-                  description: 'Receitas em aberto na data final do período selecionado.',
-                  icon: 'circle-dollar-sign',
-                  tone: 'success' as const,
-                },
-                {
-                  title: 'Contas a pagar',
-                  value: this.formatCurrency(commitments.accountsPayable),
-                  description: 'Despesas em aberto na data final do período selecionado.',
-                  icon: 'receipt-text',
-                  tone: 'danger' as const,
-                },
-                {
-                  title: 'Vencido a receber',
-                  value: this.formatCurrency(commitments.overdueReceivableAmount),
-                  meta: this.overdueMeta(commitments.overdueReceivableCount),
-                  description: 'Receitas em aberto vencidas antes da data final do período.',
-                  icon: 'triangle-alert',
-                  tone:
-                    commitments.overdueReceivableAmount > 0
-                      ? ('warning' as const)
-                      : ('neutral' as const),
-                },
-                {
-                  title: 'Vencido a pagar',
-                  value: this.formatCurrency(commitments.overduePayableAmount),
-                  meta: this.overdueMeta(commitments.overduePayableCount),
-                  description: 'Despesas em aberto vencidas antes da data final do período.',
-                  icon: 'triangle-alert',
-                  tone:
-                    commitments.overduePayableAmount > 0
-                      ? ('danger' as const)
-                      : ('neutral' as const),
-                },
-              ],
-            },
-            ...(commitments.next30DaysAvailable
-              ? [
-                  {
-                    title: 'Próximos 30 dias',
-                    gridClasses:
-                      'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4',
-                    cards: [
-                      {
-                        title: 'Recebimentos previstos',
-                        value: this.formatCurrency(commitments.next30DaysReceivable ?? 0),
-                        description: 'Receitas previstas entre hoje e os próximos 30 dias.',
-                        icon: 'trending-up',
-                        tone: 'success' as const,
-                      },
-                      {
-                        title: 'Pagamentos previstos',
-                        value: this.formatCurrency(commitments.next30DaysPayable ?? 0),
-                        description: 'Despesas previstas entre hoje e os próximos 30 dias.',
-                        icon: 'trending-down',
-                        tone: 'danger' as const,
-                      },
-                      {
-                        title: 'Fluxo líquido previsto',
-                        value: this.formatCurrency(
-                          (commitments.next30DaysReceivable ?? 0) -
-                            (commitments.next30DaysPayable ?? 0),
-                        ),
-                        description:
-                          'Recebimentos menos pagamentos previstos entre hoje e os próximos 30 dias.',
-                        icon: 'wallet',
-                        tone: this.signedValueTone(
-                          (commitments.next30DaysReceivable ?? 0) -
-                            (commitments.next30DaysPayable ?? 0),
-                        ),
-                      },
-                      {
-                        title: 'Cobertura financeira',
-                        value: this.coverageValue(
-                          commitments.next30DaysReceivable ?? 0,
-                          commitments.next30DaysPayable ?? 0,
-                        ),
-                        description:
-                          'Relação entre recebimentos e pagamentos previstos entre hoje e os próximos 30 dias.',
-                        icon: 'shield-check',
-                        tone: 'info' as const,
-                      },
-                    ],
-                  },
-                ]
-              : []),
-          ]
-        : []),
     ];
   });
-  protected readonly consolidatedSummaryGroups = computed(() =>
-    this.financialSummaryGroups().filter((group) => group.title === 'Visão consolidada'),
-  );
+  protected readonly financialSummaryGroups = computed<readonly FinancialSummaryGroup[]>(() => {
+    const report = this.report();
+    if (!report) return [];
+
+    const indicators = report.financialIndicators;
+    const result = indicators.result;
+    const liquidity = indicators.liquidity;
+    const efficiency = indicators.efficiency;
+    const groups: FinancialSummaryGroup[] = [
+      {
+        title: 'Resultado',
+        gridClasses: this.indicatorGridClasses,
+        cards: [
+          this.currencyCard('Receitas totais', result.totalIncome, 'Receitas realizadas e em aberto.', 'trending-up', 'success'),
+          this.currencyCard('Despesas totais', result.totalExpense, 'Despesas realizadas e em aberto.', 'trending-down', 'danger'),
+          this.currencyCard('Resultado projetado', result.projectedResult, 'Receitas totais menos despesas totais.', 'wallet'),
+          this.percentageCard('Margem', result.marginPercentage, 'Resultado projetado em relação às receitas totais.'),
+          this.currencyCard('Receitas realizadas', result.realizedIncome, 'Receitas efetivamente recebidas.', 'circle-check', 'success'),
+          this.currencyCard('Despesas realizadas', result.realizedExpense, 'Despesas efetivamente pagas.', 'circle-check', 'danger'),
+          this.currencyCard('Resultado realizado', result.realizedResult, 'Receitas realizadas menos despesas realizadas.', 'chart-no-axes-combined'),
+        ],
+      },
+      {
+        title: 'Liquidez e compromissos',
+        gridClasses: this.indicatorGridClasses,
+        cards: [
+          this.currencyCard('Contas a receber', liquidity.accountsReceivable, 'Saldo em aberto a receber nos filtros selecionados.', 'circle-dollar-sign', 'success'),
+          this.currencyCard('Contas a pagar', liquidity.accountsPayable, 'Saldo em aberto a pagar nos filtros selecionados.', 'receipt-text', 'danger'),
+          this.currencyCard('Vencidos a receber', liquidity.overdueReceivable, 'Contas a receber abertas e vencidas.', 'triangle-alert', 'warning'),
+          this.currencyCard('Vencidos a pagar', liquidity.overduePayable, 'Contas a pagar abertas e vencidas.', 'triangle-alert', 'danger'),
+          this.percentageCard('Cobertura financeira', liquidity.coveragePercentage, 'Recursos disponíveis em relação às obrigações.', 'shield-check'),
+          this.currencyCard('Necessidade de caixa', liquidity.cashNeed, 'Obrigações menos recursos disponíveis.', 'wallet'),
+        ],
+      },
+      {
+        title: 'Eficiência',
+        gridClasses: this.indicatorGridClasses,
+        cards: [
+          this.percentageCard('Custo sobre receita', efficiency.costToIncomePercentage, 'Despesas totais em relação às receitas totais.'),
+          this.percentageCard('Retorno sobre custos', efficiency.returnOnCostsPercentage, 'Resultado realizado em relação às despesas realizadas.'),
+        ],
+      },
+    ];
+
+    if (indicators.ruralManagement) {
+      groups.push({
+        title: 'Gestão rural',
+        gridClasses: this.indicatorGridClasses,
+        cards: [
+          this.currencyCard('Receita por hectare', indicators.ruralManagement.incomePerHectare, `Área considerada: ${this.formatNumber(indicators.ruralManagement.areaHectares)} ha.`, 'sprout', 'success'),
+          this.currencyCard('Custo por hectare', indicators.ruralManagement.costPerHectare, `Área considerada: ${this.formatNumber(indicators.ruralManagement.areaHectares)} ha.`, 'sprout', 'danger'),
+          this.currencyCard('Resultado por hectare', indicators.ruralManagement.resultPerHectare, `Área considerada: ${this.formatNumber(indicators.ruralManagement.areaHectares)} ha.`, 'sprout'),
+        ],
+      });
+    }
+
+    groups.push(this.planningGroup(indicators.planning));
+    groups.push(this.highlightsGroup(report));
+    return groups;
+  });
 
   constructor() {
     effect((onCleanup) => {
@@ -457,10 +356,14 @@ export class FinancialReportPage {
   }
 
   protected applyFilters(): void {
+    if (this.filterForm.invalid) {
+      this.filterForm.markAllAsTouched();
+      return;
+    }
+
     const value = this.filterForm.getRawValue();
     const startDate = this.stringValue(value.startDate, DEFAULT_FILTERS.startDate);
     const endDate = this.stringValue(value.endDate, DEFAULT_FILTERS.endDate);
-    if (startDate > endDate) return;
     this.appliedFilters.set({
       startDate,
       endDate,
@@ -576,22 +479,18 @@ export class FinancialReportPage {
   protected categoryTransactionCountLabel(count: number): string {
     return `${count} ${count === 1 ? 'movimentação' : 'movimentações'}`;
   }
-  private realizedPercentage(realized: number, total: number): string {
-    return this.formatPercentage(total === 0 ? 0 : (realized / total) * 100);
+  protected dateFieldError(name: 'startDate' | 'endDate'): string | null {
+    return this.filterForm.controls[name].hasError('required') ? 'Informe a data.' : null;
   }
-  private overdueMeta(count: number): string {
-    if (count === 0) {
-      return 'Nenhum valor vencido';
+  protected periodError(): string | null {
+    if (!(this.filterForm.dirty || this.filterForm.touched)) return null;
+    if (this.filterForm.hasError('dateOrder')) {
+      return 'A data final deve ser igual ou posterior à data inicial.';
     }
-
-    return `${count} movimentação${count === 1 ? '' : 'ões'} vencida${count === 1 ? '' : 's'}`;
-  }
-  private coverageValue(receivable: number, payable: number): string {
-    if (payable === 0) {
-      return receivable > 0 ? 'Sem compromissos' : '—';
+    if (this.filterForm.hasError('maxPeriod')) {
+      return 'O período do relatório não pode ultrapassar 12 meses.';
     }
-
-    return `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(receivable / payable)}x`;
+    return null;
   }
   protected statusVariant(status: FinancialReportTransaction['paymentStatus']): BadgeVariant {
     return status === 'PAID' ? 'success' : status === 'OVERDUE' ? 'danger' : 'warning';
@@ -615,6 +514,166 @@ export class FinancialReportPage {
     }
 
     return 'neutral';
+  }
+  private currencyCard(
+    title: string,
+    value: number,
+    description: string,
+    icon: string,
+    tone?: FinancialSummaryCard['tone'],
+  ): FinancialSummaryCard {
+    return {
+      title,
+      value: this.formatCurrency(value),
+      description,
+      icon,
+      tone: tone ?? this.signedValueTone(value),
+    };
+  }
+  private percentageCard(
+    title: string,
+    value: number | null,
+    description: string,
+    icon = 'chart-no-axes-combined',
+  ): FinancialSummaryCard {
+    return {
+      title,
+      value: this.formatNullablePercentage(value),
+      description,
+      icon,
+      tone: value === null ? 'neutral' : this.signedValueTone(value),
+    };
+  }
+  private planningGroup(planning: FinancialPlanningIndicators): FinancialSummaryGroup {
+    const unavailableDescription = this.planningUnavailableDescription(planning.availability);
+    return {
+      title: 'Planejamento',
+      gridClasses: this.indicatorGridClasses,
+      cards: [
+        {
+          title: 'Execução do orçamento',
+          value:
+            planning.incomeExecutionPercentage === null
+              ? '—'
+              : `Receitas: ${this.formatPercentage(planning.incomeExecutionPercentage)}`,
+          meta:
+            planning.expenseExecutionPercentage === null
+              ? unavailableDescription
+              : `Despesas: ${this.formatPercentage(planning.expenseExecutionPercentage)}`,
+          description: 'Valores realizados em relação ao planejamento de cada tipo.',
+          icon: 'chart-spline',
+          tone: planning.availability === 'AVAILABLE' ? 'info' : 'neutral',
+        },
+        {
+          title: 'Desvio do orçamento',
+          value:
+            planning.incomeDeviation === null
+              ? '—'
+              : `Receitas: ${this.formatCurrency(planning.incomeDeviation)}`,
+          meta:
+            planning.expenseDeviation === null
+              ? unavailableDescription
+              : `Despesas: ${this.formatCurrency(planning.expenseDeviation)}`,
+          description: 'Valor realizado menos valor planejado, separado por tipo.',
+          icon: 'chart-no-axes-column-increasing',
+          tone: planning.availability === 'AVAILABLE' ? 'info' : 'neutral',
+        },
+      ],
+    };
+  }
+  private highlightsGroup(report: FinancialReportResponse): FinancialSummaryGroup {
+    const highlights = report.indicators;
+    return {
+      title: 'Destaques do período',
+      gridClasses: this.indicatorGridClasses,
+      cards: [
+        {
+          title: 'Período analisado',
+          value: `${highlights.analyzedMonthCount} meses`,
+          description: 'Quantidade de competências mensais analisadas.',
+          icon: 'calendar-days',
+          tone: 'neutral',
+        },
+        this.periodHighlightCard('Maior receita', highlights.highestIncomePeriod, 'trending-up', 'success'),
+        this.periodHighlightCard('Maior despesa', highlights.highestExpensePeriod, 'trending-down', 'danger'),
+        this.periodHighlightCard('Melhor resultado', highlights.bestBalancePeriod, 'chart-no-axes-combined', 'success'),
+        this.periodHighlightCard('Período crítico', highlights.criticalPeriod, 'triangle-alert', 'danger'),
+        {
+          title: 'Categoria com maior despesa',
+          value: highlights.highestExpenseCategory?.categoryName ?? '—',
+          meta: this.formatNullableCurrency(highlights.highestExpenseCategory?.amount ?? null),
+          description: 'Categoria com maior despesa dentro dos filtros.',
+          icon: 'tags',
+          tone: highlights.highestExpenseCategory ? 'danger' : 'neutral',
+        },
+        {
+          title: 'Safra mais lucrativa',
+          value: highlights.mostProfitableHarvest?.harvestSeasonName ?? '—',
+          meta: this.formatNullableCurrency(highlights.mostProfitableHarvest?.profit ?? null),
+          description: 'Safra com maior resultado dentro dos filtros.',
+          icon: 'sprout',
+          tone: highlights.mostProfitableHarvest ? 'success' : 'neutral',
+        },
+      ],
+    };
+  }
+  private periodHighlightCard(
+    title: string,
+    indicator: { label: string; amount: number } | null,
+    icon: string,
+    tone: FinancialSummaryCard['tone'],
+  ): FinancialSummaryCard {
+    return {
+      title,
+      value: this.formatNullableCurrency(indicator?.amount ?? null),
+      meta: indicator?.label ?? 'Indicador indisponível',
+      description: 'Destaque calculado dentro do período filtrado.',
+      icon,
+      tone: indicator ? tone : 'neutral',
+    };
+  }
+  private planningUnavailableDescription(
+    availability: FinancialPlanningIndicators['availability'],
+  ): string {
+    switch (availability) {
+      case 'HARVEST_REQUIRED':
+        return 'Selecione uma única Safra.';
+      case 'PARTIAL_PERIOD':
+        return 'O período deve abranger toda a Safra.';
+      case 'MISSING_PLANNING':
+        return 'Planejamento não cadastrado.';
+      default:
+        return 'Indicador indisponível.';
+    }
+  }
+  private formatNullableCurrency(value: number | null): string {
+    return value === null ? '—' : this.formatCurrency(value);
+  }
+  private formatNullablePercentage(value: number | null): string {
+    return value === null ? '—' : this.formatPercentage(value);
+  }
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value);
+  }
+  private reportPeriodValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const startDate = control.get('startDate')?.value;
+      const endDate = control.get('endDate')?.value;
+      if (typeof startDate !== 'string' || !startDate || typeof endDate !== 'string' || !endDate) {
+        return null;
+      }
+      if (endDate < startDate) return { dateOrder: true };
+      return endDate > this.addCalendarMonths(startDate, 12) ? { maxPeriod: true } : null;
+    };
+  }
+  private addCalendarMonths(value: string, months: number): string {
+    const [year, month, day] = value.split('-').map(Number);
+    const monthIndex = month - 1 + months;
+    const targetYear = year + Math.floor(monthIndex / 12);
+    const targetMonth = monthIndex % 12;
+    const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+    const targetDay = Math.min(day, lastDay);
+    return `${targetYear.toString().padStart(4, '0')}-${(targetMonth + 1).toString().padStart(2, '0')}-${targetDay.toString().padStart(2, '0')}`;
   }
   private request(farmId: number) {
     const filters = this.appliedFilters();

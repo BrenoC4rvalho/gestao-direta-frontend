@@ -48,10 +48,20 @@
             Ver todos os indicadores
           </gd-button>
         </div>
-        <ng-container
-          [ngTemplateOutlet]="indicatorGroups"
-          [ngTemplateOutletContext]="{ $implicit: consolidatedSummaryGroups(), headings: false }"
-        />
+        <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+          @for (card of primaryIndicatorCards(); track card.title) {
+            <gd-summary-card
+              class="h-full"
+              [title]="card.title"
+              [value]="card.value"
+              [description]="card.description"
+              [meta]="card.meta ?? null"
+              [icon]="card.icon"
+              [tone]="card.tone"
+              layout="metric"
+            />
+          }
+        </div>
       </section>
     }
     <gd-card class="block"
@@ -81,11 +91,15 @@
             label="Data inicial"
             type="date"
             [control]="control('startDate')"
+            [required]="true"
+            [errorMessage]="dateFieldError('startDate')"
           /><gd-input
             id="financial-report-end-date"
             label="Data final"
             type="date"
             [control]="control('endDate')"
+            [required]="true"
+            [errorMessage]="dateFieldError('endDate')"
           /><gd-select
             id="financial-report-basis"
             label="Regime"
@@ -107,11 +121,17 @@
             [options]="categoryOptions()"
           />
         </div>
+        @if (periodError(); as error) {
+          <p class="flex items-center gap-2 text-sm text-danger" role="alert">
+            <svg lucideIcon="alert-circle" class="size-4 shrink-0" aria-hidden="true"></svg>
+            {{ error }}
+          </p>
+        }
         <div
           class="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end"
         >
           <gd-button type="button" variant="outline" (click)="resetFilters()">Limpar</gd-button
-          ><gd-button type="submit">Aplicar filtros</gd-button>
+          ><gd-button type="submit" [disabled]="filterForm.invalid">Aplicar filtros</gd-button>
         </div>
       </form></gd-card
     >
@@ -365,8 +385,7 @@
           <div class="mt-5"><gd-financial-cash-flow-chart [points]="report.cashFlow.points" /></div>
         </section>
       </gd-card>
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <gd-card
+      <gd-card
           ><h2 class="text-lg font-semibold text-text-primary">Resumo por safra</h2>
           <div class="mt-4 space-y-4">
             @for (harvest of report.harvests; track harvest.harvestSeasonName) {
@@ -400,86 +419,7 @@
               <p class="text-sm text-text-muted">Nenhuma safra encontrada.</p>
             }
           </div></gd-card
-        ><gd-card
-          ><section aria-labelledby="report-indicators-title">
-            <h2 id="report-indicators-title" class="text-lg font-semibold text-text-primary">
-              Indicadores do relatório
-            </h2>
-            <dl class="mt-4 text-sm">
-              <div
-                class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-              >
-                <dt class="text-text-muted">Período analisado</dt>
-                <dd class="font-semibold text-text-primary sm:text-right">
-                  {{ report.indicators.analyzedMonthCount }} meses
-                </dd>
-              </div>
-
-              <div class="mt-4 border-t border-border pt-4">
-                <div class="space-y-3">
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Maior receita</dt>
-                    <dd class="font-semibold text-success sm:text-right">
-                      {{ report.indicators.highestIncomePeriod?.label ?? '—' }} ·
-                      {{ formatCurrency(report.indicators.highestIncomePeriod?.amount ?? 0) }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Maior despesa</dt>
-                    <dd class="font-semibold text-danger sm:text-right">
-                      {{ report.indicators.highestExpensePeriod?.label ?? '—' }} ·
-                      {{ formatCurrency(report.indicators.highestExpensePeriod?.amount ?? 0) }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Melhor resultado</dt>
-                    <dd class="font-semibold text-success sm:text-right">
-                      {{ report.indicators.bestBalancePeriod?.label ?? '—' }} ·
-                      {{ formatCurrency(report.indicators.bestBalancePeriod?.amount ?? 0) }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Mês crítico</dt>
-                    <dd class="font-semibold text-danger sm:text-right">
-                      {{ report.indicators.criticalPeriod?.label ?? '—' }} ·
-                      {{ formatCurrency(report.indicators.criticalPeriod?.amount ?? 0) }}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-4 border-t border-border pt-4">
-                <div class="space-y-3">
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Categoria com maior despesa</dt>
-                    <dd class="font-semibold text-text-primary sm:text-right">
-                      {{ report.indicators.highestExpenseCategory?.categoryName ?? '—' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <dt class="text-text-muted">Safra mais lucrativa</dt>
-                    <dd class="font-semibold text-success sm:text-right">
-                      {{ report.indicators.mostProfitableHarvest?.harvestSeasonName ?? '—' }}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-            </dl>
-          </section></gd-card
         >
-      </div>
       <gd-card
         ><section aria-labelledby="period-transactions-title">
           <div>
@@ -607,7 +547,7 @@
 <gd-drawer
   [open]="indicatorsDrawerOpen()"
   title="Indicadores financeiros"
-  description="Visão detalhada dos resultados e compromissos financeiros da fazenda."
+  description="Veja os principais indicadores calculados com base nos filtros selecionados."
   position="center"
   size="xl"
   [reserveScrollbarGutter]="true"
@@ -636,7 +576,7 @@
               [meta]="card.meta ?? null"
               [icon]="card.icon"
               [tone]="card.tone"
-              layout="metric"
+              density="compact"
             />
           }
         </div>

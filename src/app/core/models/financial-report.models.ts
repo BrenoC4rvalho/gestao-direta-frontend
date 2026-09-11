@@ -131,6 +131,52 @@ export interface FinancialReportIndicators {
   highestExpenseCategory: FinancialCategoryIndicator | null;
   mostProfitableHarvest: FinancialHarvestIndicator | null;
 }
+export type FinancialPlanningAvailability =
+  | 'AVAILABLE'
+  | 'HARVEST_REQUIRED'
+  | 'PARTIAL_PERIOD'
+  | 'MISSING_PLANNING';
+export interface FinancialResultIndicators {
+  totalIncome: number;
+  totalExpense: number;
+  projectedResult: number;
+  marginPercentage: number | null;
+  realizedIncome: number;
+  realizedExpense: number;
+  realizedResult: number;
+}
+export interface FinancialLiquidityIndicators {
+  accountsReceivable: number;
+  accountsPayable: number;
+  overdueReceivable: number;
+  overduePayable: number;
+  coveragePercentage: number | null;
+  cashNeed: number;
+}
+export interface FinancialEfficiencyIndicators {
+  costToIncomePercentage: number | null;
+  returnOnCostsPercentage: number | null;
+}
+export interface FinancialRuralManagementIndicators {
+  areaHectares: number;
+  incomePerHectare: number;
+  costPerHectare: number;
+  resultPerHectare: number;
+}
+export interface FinancialPlanningIndicators {
+  availability: FinancialPlanningAvailability;
+  incomeExecutionPercentage: number | null;
+  expenseExecutionPercentage: number | null;
+  incomeDeviation: number | null;
+  expenseDeviation: number | null;
+}
+export interface FinancialIndicators {
+  result: FinancialResultIndicators;
+  liquidity: FinancialLiquidityIndicators;
+  efficiency: FinancialEfficiencyIndicators;
+  ruralManagement: FinancialRuralManagementIndicators | null;
+  planning: FinancialPlanningIndicators;
+}
 export interface FinancialReportUnallocated {
   income: number;
   expense: number;
@@ -148,6 +194,7 @@ export interface FinancialReportResponse {
   cashFlow: FinancialCashFlow;
   categories: readonly FinancialCategorySummaryGroup[];
   harvests: readonly FinancialHarvestSummary[];
+  financialIndicators: FinancialIndicators;
   indicators: FinancialReportIndicators;
   unallocated: FinancialReportUnallocated;
 }
