@@ -431,6 +431,12 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Receitas');
     expect(fixture.nativeElement.textContent).toContain('Despesas');
     expect(fixture.nativeElement.textContent).toContain('Saldo do mês');
+    expect(fixture.nativeElement.textContent).toContain('Total de receitas no período');
+    expect(fixture.nativeElement.textContent).toContain('Total de despesas no período');
+    expect(fixture.nativeElement.textContent).toContain('Receitas menos despesas');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="monthly-non-default-indicator"]'),
+    ).toBeNull();
   });
 
   it('should not reload the monthly summary when changing only the page', () => {
@@ -497,6 +503,9 @@ describe('TransactionsPage', () => {
 
     expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
     expect(lastListParams()).toEqual(expect.objectContaining({ basis: 'CASH', page: 0 }));
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="monthly-non-default-indicator"]'),
+    ).toBeTruthy();
 
     clickButton('Filtros');
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));

@@ -1,51 +1,56 @@
 <section class="gd-fade-in-up space-y-6">
-  <nav
-    aria-label="Visualizações de movimentações financeiras"
-    class="inline-flex items-center gap-5 border-b border-border"
-  >
-    <button
-      type="button"
-      [class]="'relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeView() === 'transactions' ? 'font-semibold text-text-primary' : 'text-text-muted')"
-      [attr.aria-current]="activeView() === 'transactions' ? 'page' : null"
-      (click)="selectView('transactions')"
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <nav
+      aria-label="Visualizações de movimentações financeiras"
+      class="inline-flex items-center gap-5 border-b border-border"
     >
-      <svg lucideIcon="receipt-text" class="size-4" aria-hidden="true"></svg>
-      <span>Movimentações</span>
-      @if (activeView() === 'transactions') {
-        <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
-      }
-    </button>
-    <button
-      type="button"
-      [class]="'relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeView() === 'monthly' ? 'font-semibold text-text-primary' : 'text-text-muted')"
-      [attr.aria-current]="activeView() === 'monthly' ? 'page' : null"
-      (click)="selectView('monthly')"
-    >
-      <svg lucideIcon="calendar-days" class="size-4" aria-hidden="true"></svg>
-      <span>Mensal</span>
-      @if (activeView() === 'monthly') {
-        <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
-      }
-    </button>
-  </nav>
+      <button
+        type="button"
+        [class]="'relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeView() === 'transactions' ? 'font-semibold text-text-primary' : 'text-text-muted')"
+        [attr.aria-current]="activeView() === 'transactions' ? 'page' : null"
+        (click)="selectView('transactions')"
+      >
+        <svg lucideIcon="receipt-text" class="size-4" aria-hidden="true"></svg>
+        <span>Movimentações</span>
+        @if (activeView() === 'transactions') {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </button>
+      <button
+        type="button"
+        [class]="'relative inline-flex min-h-10 cursor-pointer items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ' + (activeView() === 'monthly' ? 'font-semibold text-text-primary' : 'text-text-muted')"
+        [attr.aria-current]="activeView() === 'monthly' ? 'page' : null"
+        (click)="selectView('monthly')"
+      >
+        <svg lucideIcon="calendar-days" class="size-4" aria-hidden="true"></svg>
+        <span>Mensal</span>
+        @if (activeView() === 'monthly') {
+          <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </button>
+    </nav>
 
-  @if (canViewTransactions() && !accessDenied()) {
-    <div class="flex flex-wrap justify-end gap-2">
-      @if (activeView() === 'transactions') {
-        <gd-button type="button" variant="outline" [loading]="exportingExcel()" [disabled]="!canExportTransactions()" (click)="exportExcel()">
-          <svg lucideIcon="file-spreadsheet" class="size-4" aria-hidden="true"></svg>
-          Exportar Excel
-        </gd-button>
-        <gd-button type="button" variant="outline" [loading]="exportingPdf()" [disabled]="!canExportTransactions()" (click)="exportPdf()">
-          <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
-          Imprimir PDF
-        </gd-button>
-      }
-      @if (canCreateTransaction()) {
-        <gd-button type="button" (click)="openCreateDrawer()">Nova movimentação</gd-button>
-      }
-    </div>
-  }
+    @if (canViewTransactions() && !accessDenied()) {
+      <div class="flex flex-wrap gap-2 sm:justify-end">
+        @if (activeView() === 'transactions') {
+          <gd-button type="button" variant="outline" [loading]="exportingExcel()" [disabled]="!canExportTransactions()" (click)="exportExcel()">
+            <svg lucideIcon="file-spreadsheet" class="size-4" aria-hidden="true"></svg>
+            Exportar Excel
+          </gd-button>
+          <gd-button type="button" variant="outline" [loading]="exportingPdf()" [disabled]="!canExportTransactions()" (click)="exportPdf()">
+            <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
+            Imprimir PDF
+          </gd-button>
+        }
+        @if (canCreateTransaction()) {
+          <gd-button type="button" (click)="openCreateDrawer()">
+            <svg lucideIcon="plus" class="size-4" aria-hidden="true"></svg>
+            Nova movimentação
+          </gd-button>
+        }
+      </div>
+    }
+  </div>
 
   @if (!selectedFarmName()) {
     <gd-empty-state
@@ -318,20 +323,38 @@
       (editRequested)="openEditDrawer($event)"
     />
   } @else if (selectedFarmStore.selectedFarmId() && activeView() === 'monthly') {
-    <gd-card (document:click)="closeMonthlyControlsMenuWhenClickingOutside($event)">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="flex items-center gap-2">
-          <gd-button type="button" variant="outline" [iconOnly]="true" ariaLabel="Mês anterior" title="Mês anterior" (click)="previousMonth()">
+    <div class="space-y-6">
+      <gd-card
+        class="block"
+        (document:click)="closeMonthlyControlsMenuWhenClickingOutside($event)"
+      >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-2.5">
+          <gd-button
+            type="button"
+            variant="outline"
+            [iconOnly]="true"
+            ariaLabel="Mês anterior"
+            title="Mês anterior"
+            (click)="previousMonth()"
+          >
             <svg lucideIcon="chevron-left" class="size-4" aria-hidden="true"></svg>
           </gd-button>
-          <p class="min-w-40 text-center text-base font-semibold text-text-primary">
+          <p class="min-w-40 text-center text-base font-semibold tracking-tight text-text-primary sm:text-lg">
             {{ monthLabel(monthlyMonth()) }} {{ monthlyYear() }}
           </p>
-          <gd-button type="button" variant="outline" [iconOnly]="true" ariaLabel="Próximo mês" title="Próximo mês" (click)="nextMonth()">
+          <gd-button
+            type="button"
+            variant="outline"
+            [iconOnly]="true"
+            ariaLabel="Próximo mês"
+            title="Próximo mês"
+            (click)="nextMonth()"
+          >
             <svg lucideIcon="chevron-right" class="size-4" aria-hidden="true"></svg>
           </gd-button>
         </div>
-        <div class="relative shrink-0">
+        <div class="relative shrink-0 self-end sm:self-auto">
           <gd-button
             type="button"
             variant="outline"
@@ -343,6 +366,13 @@
           >
             <svg lucideIcon="settings" class="size-4" aria-hidden="true"></svg>
             Filtros
+            @if (monthlyBasis() === 'CASH') {
+              <span
+                class="size-1.5 rounded-full bg-success"
+                aria-hidden="true"
+                data-testid="monthly-non-default-indicator"
+              ></span>
+            }
           </gd-button>
 
           @if (monthlyControlsMenuOpen()) {
@@ -362,7 +392,7 @@
           }
         </div>
       </div>
-    </gd-card>
+      </gd-card>
 
     @if (monthlySummaryLoading()) {
       <div class="gd-fade-in-up grid gap-4 md:grid-cols-3" aria-label="Carregando resumo mensal">
@@ -375,42 +405,76 @@
       </div>
     } @else if (monthlySummaryError()) {
       <gd-error-state
+        class="block"
         title="Não foi possível carregar o resumo mensal"
         description="Tente novamente para visualizar as receitas, despesas e saldo do mês."
         (retryRequested)="retry()"
       />
     } @else if (monthlySummary(); as summary) {
       <div class="gd-fade-in-up grid gap-4 md:grid-cols-3">
-        <gd-card>
-          <p class="text-sm font-medium text-text-muted">Receitas</p>
-          <p class="mt-2 text-2xl font-semibold text-success">{{ summary.income | brCurrency }}</p>
+        <gd-card padding="lg">
+          <div class="flex items-center gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-success/10 text-success"
+              aria-hidden="true"
+            >
+              <svg lucideIcon="trending-up" class="size-5"></svg>
+            </span>
+            <p class="text-sm font-medium text-text-muted">Receitas</p>
+          </div>
+          <p class="mt-6 text-2xl font-semibold tracking-tight text-success">
+            {{ summary.income | brCurrency }}
+          </p>
+          <p class="mt-2 text-sm text-text-muted">Total de receitas no período</p>
         </gd-card>
-        <gd-card>
-          <p class="text-sm font-medium text-text-muted">Despesas</p>
-          <p class="mt-2 text-2xl font-semibold text-danger">{{ summary.expense | brCurrency }}</p>
+        <gd-card padding="lg">
+          <div class="flex items-center gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger"
+              aria-hidden="true"
+            >
+              <svg lucideIcon="trending-down" class="size-5"></svg>
+            </span>
+            <p class="text-sm font-medium text-text-muted">Despesas</p>
+          </div>
+          <p class="mt-6 text-2xl font-semibold tracking-tight text-danger">
+            {{ summary.expense | brCurrency }}
+          </p>
+          <p class="mt-2 text-sm text-text-muted">Total de despesas no período</p>
         </gd-card>
-        <gd-card>
-          <p class="text-sm font-medium text-text-muted">Saldo do mês</p>
-          <p [class]="'mt-2 text-2xl font-semibold ' + (summary.balance >= 0 ? 'text-success' : 'text-danger')">
+        <gd-card padding="lg">
+          <div class="flex items-center gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-highlight-soft text-primary"
+              aria-hidden="true"
+            >
+              <svg lucideIcon="wallet" class="size-5"></svg>
+            </span>
+            <p class="text-sm font-medium text-text-muted">Saldo do mês</p>
+          </div>
+          <p [class]="'mt-6 text-2xl font-semibold tracking-tight ' + (summary.balance >= 0 ? 'text-success' : 'text-danger')">
             {{ summary.balance | brCurrency }}
           </p>
+          <p class="mt-2 text-sm text-text-muted">Receitas menos despesas</p>
         </gd-card>
       </div>
     }
 
-    <gd-transaction-list
-      [transactions]="monthlyTransactions()"
-      [page]="monthlyPage()"
-      [pageInfo]="monthlyPageInfo()"
-      [loading]="monthlyLoading()"
-      [error]="monthlyError()"
-      [emptyDescription]="monthlyEmptyStateDescription()"
-      [canManageTransactions]="canManageTransactions()"
-      (retryRequested)="retry()"
-      (previousPageRequested)="previousMonthlyPage()"
-      (nextPageRequested)="nextMonthlyPage()"
-      (editRequested)="openEditDrawer($event)"
-    />
+      <gd-transaction-list
+        class="block"
+        [transactions]="monthlyTransactions()"
+        [page]="monthlyPage()"
+        [pageInfo]="monthlyPageInfo()"
+        [loading]="monthlyLoading()"
+        [error]="monthlyError()"
+        [emptyDescription]="monthlyEmptyStateDescription()"
+        [canManageTransactions]="canManageTransactions()"
+        (retryRequested)="retry()"
+        (previousPageRequested)="previousMonthlyPage()"
+        (nextPageRequested)="nextMonthlyPage()"
+        (editRequested)="openEditDrawer($event)"
+      />
+    </div>
   }
 </section>
 
