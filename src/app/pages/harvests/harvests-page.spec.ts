@@ -544,7 +544,7 @@ describe('HarvestsPage', () => {
     expect(cards[0].getAttribute('role')).toBe('button');
     expect(cards[0].getAttribute('tabindex')).toBe('0');
     expect(cards[0].getAttribute('aria-label')).toBe('Abrir detalhes da safra Safra Soja 2026');
-    expect(cards[0].getAttribute('title')).toBe('Clique para ver detalhes da safra');
+    expect(cards[0].getAttribute('title')).toBeNull();
     expect(text()).not.toContain('Ver detalhes');
     expect(text()).not.toContain('Editar');
     expect(text()).not.toContain('Inativar');

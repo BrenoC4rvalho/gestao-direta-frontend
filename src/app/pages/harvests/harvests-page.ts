@@ -526,6 +526,64 @@ export class HarvestsPage {
     return 'text-text-muted';
   }
 
+  protected statusCardClass(status: HarvestSeasonStatus): string {
+    const accents: Record<HarvestSeasonStatus, string> = {
+      PLANNED: 'border-l-warning bg-surface',
+      IN_PROGRESS: 'border-l-primary bg-surface',
+      FINISHED: 'border-l-slate-400 bg-surface dark:border-l-slate-500',
+      INACTIVE: 'border-l-border bg-surface',
+    };
+
+    return [
+      'cursor-pointer rounded-app border border-border border-l-4 p-5 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:p-6',
+      accents[status],
+    ].join(' ');
+  }
+
+  protected variationChipClass(metric: HarvestPlanningComparisonMetric | null): string {
+    if (metric?.semantic === 'BETTER') {
+      return 'bg-success/10 text-success';
+    }
+
+    if (metric?.semantic === 'WORSE') {
+      return 'bg-danger/10 text-danger';
+    }
+
+    return 'bg-background text-text-muted';
+  }
+
+  protected overdueToneClass(amount: number | null | undefined): string {
+    return (amount ?? 0) > 0 ? 'bg-danger/10 text-danger' : 'bg-background text-text-muted';
+  }
+
+  protected conclusionIcon(metric: HarvestPlanningComparisonMetric | null): string {
+    if (metric?.semantic === 'BETTER') {
+      return 'trophy';
+    }
+
+    if (metric?.semantic === 'WORSE') {
+      return 'alert-triangle';
+    }
+
+    return 'circle-check';
+  }
+
+  protected plannedStartDescription(harvest: HarvestSeasonSummaryListItem): string | null {
+    return harvest.startDate
+      ? `A safra está planejada para começar em ${this.formatDate(harvest.startDate)}.`
+      : null;
+  }
+
+  protected finishedDescription(harvest: HarvestSeasonSummaryListItem): string | null {
+    const days = harvest.statusContext?.daysSinceEnd;
+
+    if (days === null || days === undefined) {
+      return null;
+    }
+
+    return days === 0 ? 'Ciclo concluído hoje.' : `Ciclo concluído há ${days} dias.`;
+  }
+
   protected plannedStartLabel(harvest: HarvestSeasonSummaryListItem): string | null {
     if (harvest.status !== 'PLANNED' || !harvest.startDate) {
       return null;
