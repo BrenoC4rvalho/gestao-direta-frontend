@@ -1,17 +1,25 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
 
+import { Tooltip } from '../tooltip/tooltip';
+
 export type SummaryCardTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 export type SummaryCardDensity = 'default' | 'compact';
 export type SummaryCardLayout = 'default' | 'metric';
 export type SummaryCardProminence = 'default' | 'primary' | 'secondary';
 export type SummaryCardContentSize = 'default' | 'large';
+export type SummaryCardComparisonSemantic = 'BETTER' | 'WORSE' | 'NEUTRAL';
+export interface SummaryCardComparison {
+  label: string;
+  tooltip: string;
+  semantic: SummaryCardComparisonSemantic;
+}
 
 let nextTooltipId = 0;
 
 @Component({
   selector: 'gd-summary-card',
-  imports: [LucideDynamicIcon],
+  imports: [LucideDynamicIcon, Tooltip],
   templateUrl: './summary-card.html',
   host: {
     class: 'block h-full',
@@ -31,6 +39,7 @@ export class SummaryCard {
   readonly layout = input<SummaryCardLayout>('default');
   readonly prominence = input<SummaryCardProminence>('default');
   readonly contentSize = input<SummaryCardContentSize>('default');
+  readonly comparison = input<SummaryCardComparison | null>(null);
 
   protected readonly tooltipOpen = signal(false);
   protected readonly tooltipId = `gd-summary-card-tooltip-${nextTooltipId++}`;
@@ -160,6 +169,28 @@ export class SummaryCard {
     };
 
     return tones[this.tone()];
+  }
+
+  protected comparisonClasses(): string {
+    const semantic = this.comparison()?.semantic;
+    if (semantic === 'BETTER') {
+      return 'bg-success/10 text-success';
+    }
+    if (semantic === 'WORSE') {
+      return 'bg-danger/10 text-danger';
+    }
+    return 'bg-background text-text-muted';
+  }
+
+  protected comparisonIcon(): string {
+    const semantic = this.comparison()?.semantic;
+    if (semantic === 'BETTER') {
+      return 'trending-up';
+    }
+    if (semantic === 'WORSE') {
+      return 'trending-down';
+    }
+    return 'minus';
   }
 
   private surfaceClasses(): string {

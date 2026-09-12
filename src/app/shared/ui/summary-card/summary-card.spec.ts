@@ -200,6 +200,63 @@ describe('SummaryCard', () => {
     expect(meta?.className).toContain('text-xs');
   });
 
+  it('should render an optional semantic comparison chip with its tooltip', async () => {
+    const fixture = await createComponent();
+    fixture.componentRef.setInput('comparison', {
+      label: '25,0% melhor',
+      tooltip: 'Período atual: 01/03/2026 a 07/03/2026\nValor anterior: R$ 800,00',
+      semantic: 'BETTER',
+    });
+    fixture.detectChanges();
+
+    const comparison = Array.from(
+      fixture.nativeElement.querySelectorAll('span') as NodeListOf<HTMLSpanElement>,
+    ).find((item) => item.textContent?.includes('25,0% melhor'));
+    const tooltip = fixture.nativeElement.querySelector('gd-tooltip [role="tooltip"]') as HTMLElement;
+
+    expect(comparison).toBeDefined();
+    expect(comparison?.className).toContain('bg-success/10');
+    expect(comparison?.className).toContain('text-success');
+    expect(tooltip.textContent).toContain('Período atual: 01/03/2026 a 07/03/2026');
+    expect(tooltip.textContent).toContain('Valor anterior: R$ 800,00');
+  });
+
+  it('should render neutral comparison states', async () => {
+    const fixture = await createComponent();
+    fixture.componentRef.setInput('comparison', {
+      label: 'Sem base de comparação',
+      tooltip: 'Não há movimentações realizadas no período anterior.',
+      semantic: 'NEUTRAL',
+    });
+    fixture.detectChanges();
+
+    const comparison = Array.from(
+      fixture.nativeElement.querySelectorAll('span') as NodeListOf<HTMLSpanElement>,
+    ).find((item) => item.textContent?.includes('Sem base de comparação'));
+
+    expect(comparison).toBeDefined();
+    expect(comparison?.className).toContain('bg-background');
+    expect(comparison?.className).toContain('text-text-muted');
+  });
+
+  it('should render unfavorable comparison states', async () => {
+    const fixture = await createComponent();
+    fixture.componentRef.setInput('comparison', {
+      label: '10,0% pior',
+      tooltip: 'Valor anterior: R$ 800,00',
+      semantic: 'WORSE',
+    });
+    fixture.detectChanges();
+
+    const comparison = Array.from(
+      fixture.nativeElement.querySelectorAll('span') as NodeListOf<HTMLSpanElement>,
+    ).find((item) => item.textContent?.includes('10,0% pior'));
+
+    expect(comparison).toBeDefined();
+    expect(comparison?.className).toContain('bg-danger/10');
+    expect(comparison?.className).toContain('text-danger');
+  });
+
   it('should apply visual prominence without changing the default appearance', async () => {
     const fixture = await createComponent();
     const article = fixture.nativeElement.querySelector('article') as HTMLElement;

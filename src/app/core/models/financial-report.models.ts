@@ -25,6 +25,24 @@ export interface FinancialReportSummary {
   projectedIncome: number;
   projectedExpense: number;
 }
+export type FinancialComparisonSemantic = 'BETTER' | 'WORSE' | 'NEUTRAL';
+export interface FinancialReportComparisonMetric {
+  currentValue: number;
+  previousValue: number | null;
+  difference: number | null;
+  percentageDifference: number | null;
+  semantic: FinancialComparisonSemantic;
+}
+export interface FinancialReportComparison {
+  currentStartDate: string;
+  currentEndDate: string;
+  previousStartDate: string;
+  previousEndDate: string;
+  previousDataAvailable: boolean;
+  realizedIncome: FinancialReportComparisonMetric;
+  realizedExpense: FinancialReportComparisonMetric;
+  realizedResult: FinancialReportComparisonMetric;
+}
 export interface FinancialReportCommitments {
   accountsReceivable: number;
   accountsPayable: number;
@@ -202,6 +220,7 @@ export interface FinancialReportResponse {
   endDate: string;
   basis: FinancialReportBasis;
   summary: FinancialReportSummary;
+  comparison?: FinancialReportComparison;
   commitments: FinancialReportCommitments;
   evolution: readonly FinancialEvolutionPoint[];
   realizedCumulativeEvolution: readonly FinancialCumulativeEvolutionPoint[];

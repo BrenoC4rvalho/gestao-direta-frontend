@@ -25,6 +25,8 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 import {
   FinancialReportBasis,
   FinancialCategorySummaryGroup,
+  FinancialReportComparison,
+  FinancialReportComparisonMetric,
   FinancialHarvestPlanningComparison,
   FinancialPlanningIndicators,
   FinancialReportGranularity,
@@ -47,6 +49,7 @@ import {
   ErrorState,
   Skeleton,
   SummaryCard,
+  SummaryCardComparison,
   Tooltip,
 } from '../../../shared/ui';
 import { Drawer } from '../../../shared/overlays';
@@ -68,6 +71,7 @@ interface FinancialSummaryCard {
   description: string;
   icon: string;
   meta?: string;
+  comparison?: SummaryCardComparison;
   tone: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 }
 
@@ -88,6 +92,7 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
 });
+const reportDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
 @Component({
   selector: 'gd-financial-report-page',
@@ -189,8 +194,10 @@ export class FinancialReportPage {
     this.report()?.categories.find((group) => group.type === this.categorySummaryType()) ?? null,
   );
   protected readonly primaryIndicatorCards = computed<readonly FinancialSummaryCard[]>(() => {
-    const indicators = this.report()?.financialIndicators;
-    if (!indicators) return [];
+    const report = this.report();
+    if (!report) return [];
+
+    const indicators = report.financialIndicators;
 
     return [
       this.currencyCard(
@@ -215,6 +222,7 @@ export class FinancialReportPage {
         description: 'Receitas efetivamente recebidas até a data de corte.',
         icon: 'circle-check',
         tone: 'success',
+        comparison: this.reportComparison(report.comparison, 'realizedIncome') ?? undefined,
       },
       {
         title: 'Despesas realizadas',
@@ -222,6 +230,7 @@ export class FinancialReportPage {
         description: 'Despesas efetivamente pagas até a data de corte.',
         icon: 'circle-check',
         tone: 'danger',
+        comparison: this.reportComparison(report.comparison, 'realizedExpense') ?? undefined,
       },
     ];
   });
@@ -242,9 +251,30 @@ export class FinancialReportPage {
           this.currencyCard('Despesas totais', result.totalExpense, 'Despesas realizadas e em aberto.', 'trending-down', 'danger'),
           this.currencyCard('Resultado projetado', result.projectedResult, 'Receitas totais menos despesas totais.', 'wallet'),
           this.percentageCard('Margem', result.marginPercentage, 'Resultado projetado em relação às receitas totais.'),
-          this.currencyCard('Receitas realizadas', result.realizedIncome, 'Receitas efetivamente recebidas.', 'circle-check', 'success'),
-          this.currencyCard('Despesas realizadas', result.realizedExpense, 'Despesas efetivamente pagas.', 'circle-check', 'danger'),
-          this.currencyCard('Resultado realizado', result.realizedResult, 'Receitas realizadas menos despesas realizadas.', 'chart-no-axes-combined'),
+          this.currencyCard(
+            'Receitas realizadas',
+            result.realizedIncome,
+            'Receitas efetivamente recebidas.',
+            'circle-check',
+            'success',
+            this.reportComparison(report.comparison, 'realizedIncome'),
+          ),
+          this.currencyCard(
+            'Despesas realizadas',
+            result.realizedExpense,
+            'Despesas efetivamente pagas.',
+            'circle-check',
+            'danger',
+            this.reportComparison(report.comparison, 'realizedExpense'),
+          ),
+          this.currencyCard(
+            'Resultado realizado',
+            result.realizedResult,
+            'Receitas realizadas menos despesas realizadas.',
+            'chart-no-axes-combined',
+            undefined,
+            this.reportComparison(report.comparison, 'realizedResult'),
+          ),
         ],
       },
       {
@@ -489,6 +519,7 @@ export class FinancialReportPage {
     description: string,
     icon: string,
     tone?: FinancialSummaryCard['tone'],
+    comparison?: SummaryCardComparison | null,
   ): FinancialSummaryCard {
     return {
       title,
@@ -496,7 +527,65 @@ export class FinancialReportPage {
       description,
       icon,
       tone: tone ?? this.signedValueTone(value),
+      comparison: comparison ?? undefined,
     };
+  }
+
+  private reportComparison(
+    comparison: FinancialReportComparison | undefined,
+    metricName: 'realizedIncome' | 'realizedExpense' | 'realizedResult',
+  ): SummaryCardComparison | null {
+    if (!comparison) {
+      return null;
+    }
+
+    const metric = comparison[metricName];
+    return {
+      label: this.reportComparisonLabel(comparison, metric),
+      tooltip: this.reportComparisonTooltip(comparison, metric),
+      semantic: metric.semantic,
+    };
+  }
+
+  private reportComparisonLabel(
+    comparison: FinancialReportComparison,
+    metric: FinancialReportComparisonMetric,
+  ): string {
+    if (!comparison.previousDataAvailable) {
+      return 'Sem base de comparação';
+    }
+
+    if (metric.percentageDifference === null) {
+      return 'Sem base percentual';
+    }
+
+    if (metric.semantic === 'NEUTRAL') {
+      return 'Sem variação';
+    }
+
+    const semanticLabel = metric.semantic === 'BETTER' ? 'melhor' : 'pior';
+    return `${this.formatPercentage(Math.abs(metric.percentageDifference))} ${semanticLabel}`;
+  }
+
+  private reportComparisonTooltip(
+    comparison: FinancialReportComparison,
+    metric: FinancialReportComparisonMetric,
+  ): string {
+    const currentPeriod = `${this.formatReportDate(comparison.currentStartDate)} a ${this.formatReportDate(comparison.currentEndDate)}`;
+    const previousPeriod = `${this.formatReportDate(comparison.previousStartDate)} a ${this.formatReportDate(comparison.previousEndDate)}`;
+    const previousValue =
+      metric.previousValue === null
+        ? 'Não disponível'
+        : this.formatCurrency(metric.previousValue);
+    const availability = comparison.previousDataAvailable
+      ? ''
+      : '\nNão há movimentações realizadas no período anterior.';
+
+    return `Período atual: ${currentPeriod}\nPeríodo anterior: ${previousPeriod}\nValor anterior: ${previousValue}${availability}`;
+  }
+
+  private formatReportDate(value: string): string {
+    return reportDateFormatter.format(new Date(`${value}T00:00:00Z`));
   }
   private percentageCard(
     title: string,

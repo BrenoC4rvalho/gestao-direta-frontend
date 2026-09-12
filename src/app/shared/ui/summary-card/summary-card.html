@@ -42,12 +42,34 @@
     <p [class]="valueClasses()">{{ value() }}</p>
     @if (metricLayout()) {
       <div [class]="metaSlotClasses()">
+        @if (comparison(); as comparisonValue) {
+          <gd-tooltip [ariaLabel]="'Comparação de ' + title()" [content]="comparisonValue.tooltip" width="narrow">
+            <span
+              [class]="'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ' + comparisonClasses()"
+            >
+              <svg [lucideIcon]="comparisonIcon()" class="size-3.5" aria-hidden="true"></svg>
+              {{ comparisonValue.label }}
+            </span>
+          </gd-tooltip>
+        }
         @if (meta(); as metaText) {
           <p [class]="metaClasses()">{{ metaText }}</p>
         }
       </div>
-    } @else if (meta(); as metaText) {
-      <p [class]="metaClasses()">{{ metaText }}</p>
+    } @else {
+      @if (comparison(); as comparisonValue) {
+        <gd-tooltip [ariaLabel]="'Comparação de ' + title()" [content]="comparisonValue.tooltip" width="narrow">
+          <span
+            [class]="'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ' + comparisonClasses()"
+          >
+            <svg [lucideIcon]="comparisonIcon()" class="size-3.5" aria-hidden="true"></svg>
+            {{ comparisonValue.label }}
+          </span>
+        </gd-tooltip>
+      }
+      @if (meta(); as metaText) {
+        <p [class]="metaClasses()">{{ metaText }}</p>
+      }
     }
   </div>
 </article>

@@ -22,6 +22,11 @@ interface SummaryCardViewModel {
   value: string;
   tone: string;
   meta?: string;
+  comparison?: {
+    label: string;
+    tooltip: string;
+    semantic: string;
+  };
 }
 
 interface SummaryGroupViewModel {
@@ -69,6 +74,34 @@ function report(overrides: Partial<FinancialReportResponse['summary']> = {}): Fi
       projectedIncome: 179500,
       projectedExpense: 89700,
       ...overrides,
+    },
+    comparison: {
+      currentStartDate: '2026-01-01',
+      currentEndDate: '2026-12-31',
+      previousStartDate: '2025-01-01',
+      previousEndDate: '2025-12-31',
+      previousDataAvailable: true,
+      realizedIncome: {
+        currentValue: 40500,
+        previousValue: 32400,
+        difference: 8100,
+        percentageDifference: 25,
+        semantic: 'BETTER',
+      },
+      realizedExpense: {
+        currentValue: 104600,
+        previousValue: 95000,
+        difference: 9600,
+        percentageDifference: 10.11,
+        semantic: 'WORSE',
+      },
+      realizedResult: {
+        currentValue: -64100,
+        previousValue: -62600,
+        difference: -1500,
+        percentageDifference: -2.4,
+        semantic: 'WORSE',
+      },
     },
     commitments: {
       accountsReceivable: 179500,
@@ -314,6 +347,82 @@ describe('FinancialReportPage', () => {
       'Receitas realizadas',
       'Despesas realizadas',
     ]);
+  });
+
+  it('should apply temporal comparison only to the requested realized indicators', () => {
+    expect(card('Margem').comparison).toBeUndefined();
+    expect(card('Receitas realizadas').comparison).toMatchObject({
+      label: '25,0% melhor',
+      semantic: 'BETTER',
+    });
+    expect(card('Despesas realizadas').comparison).toMatchObject({
+      label: '10,1% pior',
+      semantic: 'WORSE',
+    });
+    expect(card('Resultado realizado').comparison).toMatchObject({
+      label: '2,4% pior',
+      semantic: 'WORSE',
+    });
+
+    const consolidatedSection = fixture.nativeElement.querySelector(
+      'section[aria-label="Visão consolidada"]',
+    ) as HTMLElement;
+    expect(consolidatedSection.textContent).toContain('25,0% melhor');
+    expect(consolidatedSection.textContent).toContain('10,1% pior');
+    expect(consolidatedSection.textContent).not.toContain('2,4% pior');
+    expect(consolidatedSection.textContent).not.toContain('Sem base percentual');
+
+    button('Ver todos os indicadores').click();
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain('25,0% melhor');
+    expect(dialog.textContent).toContain('10,1% pior');
+    expect(dialog.textContent).toContain('2,4% pior');
+    expect(dialog.querySelectorAll('gd-tooltip').length).toBeGreaterThanOrEqual(3);
+    expect(dialog.textContent).toContain('Valor anterior: R$ 32.400,00');
+  });
+
+  it('should expose unavailable and zero-base comparison labels without calculating values', () => {
+    const value = report();
+    value.comparison = {
+      ...value.comparison!,
+      previousDataAvailable: false,
+      realizedIncome: {
+        ...value.comparison!.realizedIncome,
+        previousValue: null,
+        percentageDifference: null,
+        semantic: 'NEUTRAL',
+      },
+      realizedExpense: {
+        ...value.comparison!.realizedExpense,
+        previousValue: null,
+        percentageDifference: null,
+        semantic: 'NEUTRAL',
+      },
+      realizedResult: {
+        ...value.comparison!.realizedResult,
+        previousValue: null,
+        percentageDifference: null,
+        semantic: 'NEUTRAL',
+      },
+    };
+    setReport(value);
+
+    expect(card('Receitas realizadas').comparison?.label).toBe('Sem base de comparação');
+
+    value.comparison = {
+      ...value.comparison,
+      previousDataAvailable: true,
+      realizedIncome: {
+        ...value.comparison.realizedIncome,
+        previousValue: 0,
+      },
+    };
+    setReport(value);
+
+    expect(card('Receitas realizadas').comparison?.label).toBe('Sem base percentual');
+    expect(card('Receitas realizadas').comparison?.tooltip).toContain('Valor anterior: R$ 0,00');
   });
 
   it('should render detailed harvest summaries and a simplified unassigned group', () => {
