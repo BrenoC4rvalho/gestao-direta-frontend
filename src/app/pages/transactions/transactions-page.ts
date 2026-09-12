@@ -3,11 +3,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -20,6 +22,7 @@ import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
   CreateFinancialTransactionRequest,
   FinancialRecordStatus,
+  FinancialReportBasis,
   FinancialTransaction,
   FinancialTransactionExportParams,
   FinancialTransactionListParams,
@@ -53,6 +56,7 @@ interface TransactionLists {
 }
 
 type TransactionView = 'transactions' | 'monthly';
+type MonthlyFinancialView = FinancialReportBasis;
 
 interface TransactionFiltersControls {
   transactionDateStart: GdFormControl;
@@ -177,12 +181,20 @@ export class TransactionsPage {
   protected readonly cancelTarget = signal<FinancialTransaction | null>(null);
   protected readonly cancelSubmitting = signal(false);
   protected readonly showAdvancedFilters = signal(false);
+  private readonly monthlyControlsButton = viewChild('monthlyControlsButton', {
+    read: ElementRef<HTMLElement>,
+  });
+  private readonly monthlyControlsMenu = viewChild('monthlyControlsMenu', {
+    read: ElementRef<HTMLElement>,
+  });
 
   private readonly reloadTrigger = signal(0);
   private readonly monthlyReloadTrigger = signal(0);
   protected readonly activeView = signal<TransactionView>('transactions');
   protected readonly monthlyMonth = signal(INITIAL_MONTHLY_PERIOD.getMonth() + 1);
   protected readonly monthlyYear = signal(INITIAL_MONTHLY_PERIOD.getFullYear());
+  protected readonly monthlyBasis = signal<MonthlyFinancialView>('ACCRUAL');
+  protected readonly monthlyControlsMenuOpen = signal(false);
   private readonly draftTypeFilter = signal<TransactionType | null>(null);
   protected readonly selectedCategoryIds = signal<readonly number[]>([]);
   protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
@@ -550,6 +562,7 @@ export class TransactionsPage {
       const isAdmin = this.sessionStore.isAdmin();
       const month = this.monthlyMonth();
       const year = this.monthlyYear();
+      const basis = this.monthlyBasis();
       const page = this.monthlyPage();
       this.monthlyReloadTrigger();
 
@@ -570,6 +583,7 @@ export class TransactionsPage {
           farmId,
           transactionDateStart: this.monthStart(year, month),
           transactionDateEnd: this.monthEnd(year, month),
+          basis,
           page,
           size: 10,
           sort: 'transactionDate',
@@ -612,6 +626,37 @@ export class TransactionsPage {
     const currentDate = new Date(Date.UTC(this.monthlyYear(), this.monthlyMonth() - 1, 1));
     currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
     this.setMonthlyPeriod(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1);
+  }
+
+  protected toggleMonthlyControlsMenu(): void {
+    this.monthlyControlsMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected closeMonthlyControlsMenuWhenClickingOutside(event: MouseEvent): void {
+    const target = event.target as Node;
+    const clickedButton = this.monthlyControlsButton()?.nativeElement.contains(target) ?? false;
+    const clickedMenu = this.monthlyControlsMenu()?.nativeElement.contains(target) ?? false;
+
+    if (!clickedButton && !clickedMenu) {
+      this.monthlyControlsMenuOpen.set(false);
+    }
+  }
+
+  protected selectMonthlyBasis(basis: MonthlyFinancialView): void {
+    if (this.monthlyBasis() === basis) {
+      this.monthlyControlsMenuOpen.set(false);
+      return;
+    }
+
+    this.monthlyBasis.set(basis);
+    this.monthlyControlsMenuOpen.set(false);
+
+    if (this.monthlyPage() !== 0) {
+      this.monthlyPage.set(0);
+      return;
+    }
+
+    this.monthlyReloadTrigger.update((value) => value + 1);
   }
 
   protected previousMonthlyPage(): void {

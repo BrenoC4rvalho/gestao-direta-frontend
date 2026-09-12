@@ -17,6 +17,8 @@ export type PaymentMethod =
 
 export type FinancialRecordStatus = 'ACTIVE' | 'DELETED' | string;
 
+export type FinancialReportBasis = 'ACCRUAL' | 'CASH';
+
 export interface FinancialTransaction {
   id: number;
   description: string;
@@ -62,6 +64,7 @@ export interface FinancialTransactionListParams {
   createdByUserId?: number | null;
   minAmount?: number | null;
   maxAmount?: number | null;
+  basis?: FinancialReportBasis | null;
   page?: number;
   size?: number;
   sort?: string;

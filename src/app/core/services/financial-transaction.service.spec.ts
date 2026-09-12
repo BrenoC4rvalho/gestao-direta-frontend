@@ -92,6 +92,7 @@ describe('FinancialTransactionService', () => {
         minAmount: 99.99,
         maxAmount: 1000.5,
         harvestSeasonId: 10,
+        basis: 'CASH',
       })
       .subscribe((result) => expect(result).toEqual(response));
 
@@ -116,6 +117,7 @@ describe('FinancialTransactionService', () => {
     expect(request.request.params.get('minAmount')).toBe('99.99');
     expect(request.request.params.get('maxAmount')).toBe('1000.5');
     expect(request.request.params.get('harvestSeasonId')).toBe('10');
+    expect(request.request.params.get('basis')).toBe('CASH');
     request.flush(response);
   });
 
@@ -157,6 +159,7 @@ describe('FinancialTransactionService', () => {
     expect(request.request.params.has('minAmount')).toBe(false);
     expect(request.request.params.has('maxAmount')).toBe(false);
     expect(request.request.params.has('harvestSeasonId')).toBe(false);
+    expect(request.request.params.has('basis')).toBe(false);
     request.flush(response);
   });
 

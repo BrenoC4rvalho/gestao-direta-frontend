@@ -394,6 +394,12 @@ describe('TransactionsPage', () => {
 
     clickButton('Mensal');
 
+    expect(findSelectOrNull('#monthly-transaction-month')).toBeNull();
+    expect(findSelectOrNull('#monthly-transaction-year')).toBeNull();
+    expect(findButton(fixture.nativeElement, 'Filtros')).toBeTruthy();
+
+    clickButton('Filtros');
+
     const now = new Date();
     const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1))
       .toISOString()
@@ -412,6 +418,7 @@ describe('TransactionsPage', () => {
       size: 10,
       sort: 'transactionDate',
       direction: 'DESC',
+      basis: 'ACCRUAL',
     }));
   });
 
@@ -419,6 +426,7 @@ describe('TransactionsPage', () => {
     selectedFarmStore.setFarms([farm]);
     createPage();
     clickButton('Mensal');
+    clickButton('Filtros');
 
     setSelect('#monthly-transaction-month', '12');
     setSelect('#monthly-transaction-year', '2026');
@@ -437,6 +445,25 @@ describe('TransactionsPage', () => {
       transactionDateEnd: '2026-12-31',
       page: 0,
     }));
+  });
+
+  it('should switch the monthly view and close its filters popover', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Mensal');
+    clickButton('Filtros');
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeTruthy();
+    clickButton('Fluxo financeiro');
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
+    expect(lastListParams()).toEqual(expect.objectContaining({ basis: 'CASH', page: 0 }));
+
+    clickButton('Filtros');
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
   });
 
   it('should reload the monthly view for the selected farm and show its empty state', () => {

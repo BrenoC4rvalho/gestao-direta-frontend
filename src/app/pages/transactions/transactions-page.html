@@ -318,7 +318,7 @@
       (editRequested)="openEditDrawer($event)"
     />
   } @else if (selectedFarmStore.selectedFarmId() && activeView() === 'monthly') {
-    <gd-card>
+    <gd-card (document:click)="closeMonthlyControlsMenuWhenClickingOutside($event)">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex items-center gap-2">
           <gd-button type="button" variant="outline" [iconOnly]="true" ariaLabel="Mês anterior" title="Mês anterior" (click)="previousMonth()">
@@ -331,10 +331,36 @@
             <svg lucideIcon="chevron-right" class="size-4" aria-hidden="true"></svg>
           </gd-button>
         </div>
-        <form class="grid gap-4 sm:grid-cols-2" [formGroup]="monthlyForm">
-          <gd-select id="monthly-transaction-month" label="Mês" [control]="monthlyForm.controls.month" [options]="monthOptions" />
-          <gd-select id="monthly-transaction-year" label="Ano" [control]="monthlyForm.controls.year" [options]="yearOptions()" />
-        </form>
+        <div class="relative shrink-0">
+          <gd-button
+            type="button"
+            variant="outline"
+            #monthlyControlsButton
+            ariaLabel="Abrir filtros mensais"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="monthlyControlsMenuOpen()"
+            (click)="toggleMonthlyControlsMenu()"
+          >
+            <svg lucideIcon="settings" class="size-4" aria-hidden="true"></svg>
+            Filtros
+          </gd-button>
+
+          @if (monthlyControlsMenuOpen()) {
+            <div #monthlyControlsMenu class="absolute right-0 z-10 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-3 shadow-lg" role="menu" aria-label="Filtros mensais">
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Período</p>
+              <form class="mt-2 grid gap-3 sm:grid-cols-2" [formGroup]="monthlyForm">
+                <gd-select id="monthly-transaction-month" label="Mês" [control]="monthlyForm.controls.month" [options]="monthOptions" />
+                <gd-select id="monthly-transaction-year" label="Ano" [control]="monthlyForm.controls.year" [options]="yearOptions()" />
+              </form>
+
+              <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-text-muted">Visão</p>
+              <div class="mt-2 grid grid-cols-2 gap-1">
+                <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="monthlyBasis() === 'ACCRUAL'" [class.text-text-muted]="monthlyBasis() !== 'ACCRUAL'" [attr.aria-checked]="monthlyBasis() === 'ACCRUAL'" (click)="selectMonthlyBasis('ACCRUAL')">Movimentação</button>
+                <button type="button" role="menuitemradio" class="cursor-pointer rounded-md px-2 py-2 text-center text-sm font-medium transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [class.text-success]="monthlyBasis() === 'CASH'" [class.text-text-muted]="monthlyBasis() !== 'CASH'" [attr.aria-checked]="monthlyBasis() === 'CASH'" (click)="selectMonthlyBasis('CASH')">Fluxo financeiro</button>
+              </div>
+            </div>
+          }
+        </div>
       </div>
     </gd-card>
 
