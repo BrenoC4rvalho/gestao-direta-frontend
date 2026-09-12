@@ -24,6 +24,7 @@ import { finalize } from 'rxjs';
 
 import {
   HarvestSeasonFilters,
+  HarvestPlanningComparisonMetric,
   HarvestSeasonStatus,
   HarvestSeasonSummaryListItem,
   HarvestSeasonSummaryListParams,
@@ -474,12 +475,84 @@ export class HarvestsPage {
     return `${this.formatDate(harvest.startDate)} a ${endDate}`;
   }
 
-  protected estimatedProfit(harvest: HarvestSeasonSummaryListItem): number {
-    return harvest.expectedProfit ?? (harvest.expectedRevenue ?? 0) - (harvest.expectedCost ?? 0);
+  protected plannedCost(harvest: HarvestSeasonSummaryListItem): number | null {
+    return harvest.planning?.plannedCost ?? harvest.expectedCost ?? null;
   }
 
-  protected realizedProfitClass(harvest: HarvestSeasonSummaryListItem): string {
-    return (harvest.realizedProfit ?? 0) < 0 ? 'text-danger' : 'text-success';
+  protected plannedRevenue(harvest: HarvestSeasonSummaryListItem): number | null {
+    return harvest.planning?.plannedRevenue ?? harvest.expectedRevenue ?? null;
+  }
+
+  protected plannedProfit(harvest: HarvestSeasonSummaryListItem): number | null {
+    return harvest.planning?.plannedProfit ?? harvest.expectedProfit ?? null;
+  }
+
+  protected comparisonMetric(
+    harvest: HarvestSeasonSummaryListItem,
+    metric: 'cost' | 'revenue' | 'profit',
+  ): HarvestPlanningComparisonMetric | null {
+    return harvest.planningComparison?.state === 'READY'
+      ? harvest.planningComparison[metric]
+      : null;
+  }
+
+  protected signedPercentage(value: number | null | undefined): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    return `${value > 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR', {
+      maximumFractionDigits: 1,
+    }).format(value)}%`;
+  }
+
+  protected percentageLabel(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '—';
+    }
+
+    return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`;
+  }
+
+  protected semanticClass(metric: HarvestPlanningComparisonMetric | null): string {
+    if (metric?.semantic === 'BETTER') {
+      return 'text-success';
+    }
+
+    if (metric?.semantic === 'WORSE') {
+      return 'text-danger';
+    }
+
+    return 'text-text-muted';
+  }
+
+  protected plannedStartLabel(harvest: HarvestSeasonSummaryListItem): string | null {
+    if (harvest.status !== 'PLANNED' || !harvest.startDate) {
+      return null;
+    }
+
+    if (harvest.statusContext?.startDatePassed) {
+      return `Início previsto em ${this.formatDate(harvest.startDate)} — data de início já passou`;
+    }
+
+    const days = harvest.statusContext?.daysUntilStart;
+
+    if (days === 0) {
+      return 'Início hoje';
+    }
+
+    return days === null || days === undefined ? null : `Início em ${days} dias`;
+  }
+
+  protected finishedLabel(harvest: HarvestSeasonSummaryListItem): string | null {
+    if (harvest.status !== 'FINISHED' || !harvest.endDate) {
+      return null;
+    }
+
+    const days = harvest.statusContext?.daysSinceEnd;
+    const suffix = days === null || days === undefined ? '' : ` · Ciclo concluído há ${days} dias`;
+
+    return `Encerrada em ${this.formatDate(harvest.endDate)}${suffix}`;
   }
 
   protected areaLabel(harvest: HarvestSeasonSummaryListItem): string {

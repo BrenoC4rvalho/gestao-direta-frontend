@@ -126,98 +126,58 @@
               </div>
             </div>
 
-            <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div class="rounded-control border border-border bg-background/55 p-3">
-                <dt class="text-xs font-medium text-text-muted">Area</dt>
-                <dd class="mt-1 text-sm font-semibold text-text-primary">
-                  {{ areaLabel(harvest) }}
-                </dd>
-              </div>
-              <div class="rounded-control border border-border bg-background/55 p-3">
-                <dt class="text-xs font-medium text-text-muted">Custo planejado</dt>
-                <dd class="mt-1 text-sm font-semibold text-text-primary">
-                  {{ harvest.expectedCost ?? 0 | brCurrency }}
-                </dd>
-              </div>
-              <div class="rounded-control border border-border bg-background/55 p-3">
-                <dt class="text-xs font-medium text-text-muted">Receita planejada</dt>
-                <dd class="mt-1 text-sm font-semibold text-success">
-                  {{ harvest.expectedRevenue ?? 0 | brCurrency }}
-                </dd>
-              </div>
-              <div class="rounded-control border border-border bg-background/55 p-3">
-                <dt class="text-xs font-medium text-text-muted">Lucro planejado</dt>
-                <dd class="mt-1 text-sm font-semibold text-primary">
-                  {{ estimatedProfit(harvest) | brCurrency }}
-                </dd>
-              </div>
-            </dl>
-
-            <div class="mt-4 grid gap-3 lg:grid-cols-2">
-              <section
-                class="rounded-control border border-border bg-background/55 p-3"
-                aria-labelledby="harvest-financial-{{ harvest.id }}"
-              >
-                <h4
-                  id="harvest-financial-{{ harvest.id }}"
-                  class="text-xs font-semibold uppercase text-text-muted"
-                >
-                  Resultado financeiro
-                </h4>
-                <dl class="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Custo</dt>
-                    <dd class="mt-1 text-sm font-semibold text-text-primary">
-                      {{ harvest.realizedCost ?? 0 | brCurrency }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Receita</dt>
-                    <dd class="mt-1 text-sm font-semibold text-success">
-                      {{ harvest.realizedRevenue ?? 0 | brCurrency }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Lucro</dt>
-                    <dd [class]="'mt-1 text-sm font-semibold ' + realizedProfitClass(harvest)">
-                      {{ harvest.realizedProfit ?? 0 | brCurrency }}
-                    </dd>
-                  </div>
+            @if (harvest.status === 'PLANNED') {
+              @if (plannedStartLabel(harvest); as startLabel) {
+                <p class="mt-4 rounded-control bg-highlight-soft px-3 py-2 text-sm font-medium text-text-primary">
+                  {{ startLabel }}
+                </p>
+              }
+              <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs font-medium text-text-muted">Area</dt><dd class="mt-1 text-sm font-semibold text-text-primary">{{ areaLabel(harvest) }}</dd></div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs font-medium text-text-muted">Custo planejado</dt><dd class="mt-1 text-sm font-semibold text-text-primary">{{ plannedCost(harvest) ?? '—' | brCurrency }}</dd></div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs font-medium text-text-muted">Receita planejada</dt><dd class="mt-1 text-sm font-semibold text-success">{{ plannedRevenue(harvest) ?? '—' | brCurrency }}</dd></div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs font-medium text-text-muted">Lucro planejado</dt><dd class="mt-1 text-sm font-semibold text-primary">{{ plannedProfit(harvest) ?? '—' | brCurrency }}</dd></div>
+              </dl>
+              <section class="mt-4 rounded-control border border-border bg-background/55 p-3" aria-labelledby="planned-indicators-{{ harvest.id }}">
+                <h4 id="planned-indicators-{{ harvest.id }}" class="text-xs font-semibold uppercase text-text-muted">Indicadores do planejamento</h4>
+                <dl class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div><dt class="text-xs text-text-muted">Margem planejada</dt><dd class="mt-1 font-semibold">{{ percentageLabel(harvest.planning?.plannedMargin) }}</dd></div>
+                  <div><dt class="text-xs text-text-muted">Custo/ha</dt><dd class="mt-1 font-semibold">{{ harvest.plannedPerHectare?.cost ?? '—' | brCurrency }}</dd></div>
+                  <div><dt class="text-xs text-text-muted">Receita/ha</dt><dd class="mt-1 font-semibold">{{ harvest.plannedPerHectare?.revenue ?? '—' | brCurrency }}</dd></div>
+                  <div><dt class="text-xs text-text-muted">Resultado/ha</dt><dd class="mt-1 font-semibold">{{ harvest.plannedPerHectare?.result ?? '—' | brCurrency }}</dd></div>
                 </dl>
               </section>
-
-              <section
-                class="rounded-control border border-border bg-background/55 p-3"
-                aria-labelledby="harvest-alerts-{{ harvest.id }}"
-              >
-                <h4
-                  id="harvest-alerts-{{ harvest.id }}"
-                  class="text-xs font-semibold uppercase text-text-muted"
-                >
-                  Pendencias e movimentacoes
-                </h4>
-                <dl class="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Pendentes</dt>
-                    <dd class="mt-1 text-sm font-semibold text-text-primary">
-                      {{ harvest.pendingExpenses ?? 0 | brCurrency }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Atrasadas</dt>
-                    <dd class="mt-1 text-sm font-semibold text-danger">
-                      {{ harvest.overdueExpenses ?? 0 | brCurrency }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs font-medium text-text-muted">Movimentacoes</dt>
-                    <dd class="mt-1 text-sm font-semibold text-text-primary">
-                      {{ harvest.transactionCount ?? 0 }}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
-            </div>
+            } @else if (harvest.status === 'IN_PROGRESS') {
+              @if (harvest.periodProgress; as progress) {
+                <section class="mt-4" aria-labelledby="progress-{{ harvest.id }}">
+                  <div class="flex justify-between text-sm font-semibold"><h4 id="progress-{{ harvest.id }}">{{ progress.percentage }}% do período</h4><span>{{ progress.remainingDays }} dias restantes</span></div>
+                  <div class="mt-2 h-2 overflow-hidden rounded-full bg-border" role="progressbar" [attr.aria-valuenow]="progress.percentage" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="progress.percentage + '% do período'"><div class="h-full rounded-full bg-primary" [style.width.%]="progress.percentage"></div></div>
+                  <p class="mt-2 text-xs text-text-muted">{{ progress.elapsedDays }} de {{ progress.totalDays }} dias</p>
+                </section>
+              }
+              <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Area</dt><dd class="mt-1 font-semibold">{{ areaLabel(harvest) }}</dd></div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Custo projetado</dt><dd class="mt-1 font-semibold">{{ harvest.projection?.projectedCost | brCurrency }}</dd>@if (comparisonMetric(harvest, 'cost'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Receita projetada</dt><dd class="mt-1 font-semibold">{{ harvest.projection?.projectedRevenue | brCurrency }}</dd>@if (comparisonMetric(harvest, 'revenue'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Resultado projetado</dt><dd class="mt-1 font-semibold">{{ harvest.projection?.projectedProfit | brCurrency }}</dd>@if (comparisonMetric(harvest, 'profit'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+              </dl>
+              <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                <section class="rounded-control border border-border bg-background/55 p-3"><h4 class="text-xs font-semibold uppercase text-text-muted">Execução do orçamento (custos)</h4><p class="mt-3 text-sm font-semibold">{{ percentageLabel(harvest.budgetExecution?.percentage) }}</p><p class="mt-1 text-xs text-text-muted">{{ harvest.budgetExecution?.executedCost | brCurrency }} de {{ harvest.budgetExecution?.plannedCost | brCurrency }}</p></section>
+                <section class="rounded-control border border-border bg-background/55 p-3"><h4 class="text-xs font-semibold uppercase text-text-muted">Compromissos</h4><dl class="mt-3 grid grid-cols-3 gap-2 text-xs"><div><dt>A receber</dt><dd class="mt-1 font-semibold text-success">{{ harvest.commitments?.receivableAmount ?? '—' | brCurrency }}</dd></div><div><dt>A pagar</dt><dd class="mt-1 font-semibold">{{ harvest.commitments?.payableAmount ?? '—' | brCurrency }}</dd></div><div><dt>Em atraso</dt><dd class="mt-1 font-semibold text-danger">{{ harvest.commitments?.overduePayableAmount ?? '—' | brCurrency }}</dd></div></dl></section>
+                <section class="rounded-control border border-border bg-background/55 p-3"><h4 class="text-xs font-semibold uppercase text-text-muted">Movimentações</h4><p class="mt-3 text-lg font-semibold">{{ harvest.transactionCount ?? 0 }}</p><p class="text-xs text-text-muted">{{ harvest.incomeCount ?? 0 }} receitas · {{ harvest.expenseCount ?? 0 }} despesas</p></section>
+              </div>
+            } @else if (harvest.status === 'FINISHED') {
+              @if (finishedLabel(harvest); as finishLabel) {<p class="mt-4 rounded-control bg-background/55 px-3 py-2 text-sm font-medium">{{ finishLabel }}</p>}
+              <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Area</dt><dd class="mt-1 font-semibold">{{ areaLabel(harvest) }}</dd></div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Custo realizado</dt><dd class="mt-1 font-semibold">{{ harvest.realized?.realizedCost | brCurrency }}</dd>@if (comparisonMetric(harvest, 'cost'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Receita realizada</dt><dd class="mt-1 font-semibold">{{ harvest.realized?.realizedRevenue | brCurrency }}</dd>@if (comparisonMetric(harvest, 'revenue'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+                <div class="rounded-control border border-border bg-background/55 p-3"><dt class="text-xs text-text-muted">Resultado</dt><dd class="mt-1 font-semibold">{{ harvest.realized?.realizedProfit | brCurrency }}</dd>@if (comparisonMetric(harvest, 'profit'); as metric) {<p class="mt-1 text-xs text-text-muted">Planejado: {{ metric.planned | brCurrency }}</p>@if (signedPercentage(metric.percentageDifference); as difference) {<p [class]="'mt-1 text-xs font-semibold ' + semanticClass(metric)">{{ difference }}</p>}}</div>
+              </dl>
+              <div class="mt-4 grid gap-3 lg:grid-cols-2"><section class="rounded-control border border-border bg-background/55 p-3"><h4 class="text-xs font-semibold uppercase text-text-muted">Desempenho</h4><dl class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div><dt class="text-xs text-text-muted">Margem realizada</dt><dd class="mt-1 font-semibold">{{ percentageLabel(harvest.realized?.realizedMargin) }}</dd></div><div><dt class="text-xs text-text-muted">Custo/ha</dt><dd class="mt-1 font-semibold">{{ harvest.realizedPerHectare?.cost | brCurrency }}</dd></div><div><dt class="text-xs text-text-muted">Receita/ha</dt><dd class="mt-1 font-semibold">{{ harvest.realizedPerHectare?.revenue | brCurrency }}</dd></div><div><dt class="text-xs text-text-muted">Resultado/ha</dt><dd class="mt-1 font-semibold">{{ harvest.realizedPerHectare?.result | brCurrency }}</dd></div></dl></section><section class="rounded-control border border-border bg-background/55 p-3"><h4 class="text-xs font-semibold uppercase text-text-muted">Conclusão</h4>@if (comparisonMetric(harvest, 'profit'); as profit) {<p class="mt-3 text-sm font-semibold" [class]="semanticClass(profit)">Resultado {{ signedPercentage(profit.percentageDifference) ?? 'sem base percentual' }} {{ profit.position === 'ABOVE_PLANNED' ? 'acima' : profit.position === 'BELOW_PLANNED' ? 'abaixo' : 'dentro' }} do planejado.</p>} @else {<p class="mt-3 text-sm text-text-muted">Sem base suficiente para comparar com o planejamento.</p>}</section></div>
+            } @else {
+              <p class="mt-5 rounded-control border border-border bg-background/55 p-3 text-sm text-text-muted">Safra inativa. As informações financeiras contextuais não são exibidas.</p>
+            }
           </article>
         }
       </div>

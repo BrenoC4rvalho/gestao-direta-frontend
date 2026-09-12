@@ -47,6 +47,47 @@ export interface HarvestSeasonSummaryListItem {
   expenseCount?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  planning?: HarvestSeasonPlanningSummary | null;
+  projection?: HarvestSeasonProjectionSummary | null;
+  realized?: HarvestSeasonRealizedSummary | null;
+  planningComparison?: HarvestPlanningComparison | null;
+  plannedPerHectare?: HarvestSeasonPerHectareSummary | null;
+  realizedPerHectare?: HarvestSeasonPerHectareSummary | null;
+  periodProgress?: HarvestSeasonPeriodProgress | null;
+  budgetExecution?: HarvestSeasonBudgetExecution | null;
+  commitments?: HarvestSeasonCommitments | null;
+  statusContext?: HarvestSeasonStatusContext | null;
+}
+
+export interface HarvestSeasonPerHectareSummary {
+  cost: number | null;
+  revenue: number | null;
+  result: number | null;
+}
+
+export interface HarvestSeasonPeriodProgress {
+  percentage: number;
+  elapsedDays: number;
+  totalDays: number;
+  remainingDays: number;
+}
+
+export interface HarvestSeasonBudgetExecution {
+  executedCost: number;
+  plannedCost: number;
+  percentage: number | null;
+}
+
+export interface HarvestSeasonCommitments {
+  receivableAmount: number;
+  payableAmount: number;
+  overduePayableAmount: number;
+}
+
+export interface HarvestSeasonStatusContext {
+  daysUntilStart: number | null;
+  startDatePassed: boolean;
+  daysSinceEnd: number | null;
 }
 
 export interface DashboardHarvestFinancialValues {
