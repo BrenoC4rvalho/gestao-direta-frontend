@@ -59,6 +59,7 @@ import {
   ListFiltersConfig,
   ListFilterValues,
   Skeleton,
+  Tooltip,
 } from '../../shared/ui';
 import {
   brazilianMoneyToNumber,
@@ -95,6 +96,7 @@ interface HarvestFormControls {
     ReactiveFormsModule,
     Select,
     Skeleton,
+    Tooltip,
     Textarea,
   ],
   templateUrl: './harvests-page.html',
@@ -568,22 +570,6 @@ export class HarvestsPage {
     return 'circle-check';
   }
 
-  protected plannedStartDescription(harvest: HarvestSeasonSummaryListItem): string | null {
-    return harvest.startDate
-      ? `A safra está planejada para começar em ${this.formatDate(harvest.startDate)}.`
-      : null;
-  }
-
-  protected finishedDescription(harvest: HarvestSeasonSummaryListItem): string | null {
-    const days = harvest.statusContext?.daysSinceEnd;
-
-    if (days === null || days === undefined) {
-      return null;
-    }
-
-    return days === 0 ? 'Ciclo concluído hoje.' : `Ciclo concluído há ${days} dias.`;
-  }
-
   protected plannedStartLabel(harvest: HarvestSeasonSummaryListItem): string | null {
     if (harvest.status !== 'PLANNED' || !harvest.startDate) {
       return null;
@@ -602,15 +588,26 @@ export class HarvestsPage {
     return days === null || days === undefined ? null : `Início em ${days} dias`;
   }
 
-  protected finishedLabel(harvest: HarvestSeasonSummaryListItem): string | null {
+  protected finishedElapsedLabel(harvest: HarvestSeasonSummaryListItem): string | null {
     if (harvest.status !== 'FINISHED' || !harvest.endDate) {
       return null;
     }
 
     const days = harvest.statusContext?.daysSinceEnd;
-    const suffix = days === null || days === undefined ? '' : ` · Ciclo concluído há ${days} dias`;
 
-    return `Encerrada em ${this.formatDate(harvest.endDate)}${suffix}`;
+    if (days === null || days === undefined) {
+      return null;
+    }
+
+    return days === 0 ? 'Ciclo concluído hoje' : `Ciclo concluído há ${days} dias`;
+  }
+
+  protected plannedStartTooltip(harvest: HarvestSeasonSummaryListItem): string {
+    return `Início previsto para ${this.formatDate(harvest.startDate!)}`;
+  }
+
+  protected finishedTooltip(harvest: HarvestSeasonSummaryListItem): string {
+    return `Encerrada em ${this.formatDate(harvest.endDate!)}`;
   }
 
   protected areaLabel(harvest: HarvestSeasonSummaryListItem): string {

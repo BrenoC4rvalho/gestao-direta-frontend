@@ -124,21 +124,19 @@
               </div>
 
               @if (harvest.status === 'PLANNED' && plannedStartLabel(harvest); as startLabel) {
-                <section class="flex shrink-0 gap-3 rounded-control border border-warning/20 bg-warning/10 p-3 text-left xl:w-80">
-                  <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning/15 text-amber-700 dark:text-amber-300"><svg lucideIcon="calendar-days" class="size-4" aria-hidden="true"></svg></div>
-                  <div><h4 class="text-sm font-semibold text-text-primary">{{ startLabel }}</h4>@if (plannedStartDescription(harvest); as description) {<p class="mt-1 text-xs leading-5 text-text-muted">{{ description }}</p>}</div>
-                </section>
+                <gd-tooltip [ariaLabel]="plannedStartTooltip(harvest)" [content]="plannedStartTooltip(harvest)">
+                  <div class="flex shrink-0 items-center gap-2 text-left"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning/10 text-amber-700 dark:text-amber-300"><svg lucideIcon="calendar-days" class="size-4" aria-hidden="true"></svg></span><span class="text-sm font-semibold text-text-primary">{{ startLabel }}</span></div>
+                </gd-tooltip>
               } @else if (harvest.status === 'IN_PROGRESS' && harvest.periodProgress; as progress) {
                 <section class="w-full shrink-0 text-left xl:w-80" aria-labelledby="progress-{{ harvest.id }}">
                   <div class="flex items-center justify-between gap-3"><h4 id="progress-{{ harvest.id }}" class="text-sm font-semibold text-text-primary">{{ progress.percentage }}% do período</h4><span class="text-xs font-medium text-text-muted">{{ progress.remainingDays }} dias restantes</span></div>
                   <div class="mt-2 h-2 overflow-hidden rounded-full bg-border" role="progressbar" [attr.aria-valuenow]="progress.percentage" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="progress.percentage + '% do período'"><div class="h-full rounded-full bg-primary transition-[width] duration-200" [style.width.%]="progress.percentage"></div></div>
                   <p class="mt-2 text-xs text-text-muted">{{ progress.elapsedDays }} de {{ progress.totalDays }} dias · {{ progress.remainingDays }} dias restantes</p>
                 </section>
-              } @else if (harvest.status === 'FINISHED' && finishedLabel(harvest); as finishLabel) {
-                <section class="flex shrink-0 gap-3 rounded-control border border-border bg-surface p-3 text-left xl:w-80">
-                  <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100"><svg lucideIcon="check" class="size-4" aria-hidden="true"></svg></div>
-                  <div><h4 class="text-sm font-semibold text-text-primary">{{ finishLabel }}</h4>@if (finishedDescription(harvest); as description) {<p class="mt-1 text-xs leading-5 text-text-muted">{{ description }}</p>}</div>
-                </section>
+              } @else if (harvest.status === 'FINISHED' && finishedElapsedLabel(harvest); as finishLabel) {
+                <gd-tooltip [ariaLabel]="finishedTooltip(harvest)" [content]="finishedTooltip(harvest)">
+                  <div class="flex shrink-0 items-center gap-2 text-left"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-background text-text-muted"><svg lucideIcon="check" class="size-4" aria-hidden="true"></svg></span><span class="text-sm font-semibold text-text-primary">{{ finishLabel }}</span></div>
+                </gd-tooltip>
               }
             </div>
 
