@@ -384,41 +384,127 @@
           <div class="mt-5"><gd-financial-cash-flow-chart [points]="report.cashFlow.points" /></div>
         </section>
       </gd-card>
-      <gd-card
-          ><h2 class="text-lg font-semibold text-text-primary">Resumo por safra</h2>
-          <div class="mt-4 space-y-4">
-            @for (harvest of report.harvests; track harvest.harvestSeasonName) {
-              <div class="border-b border-border pb-3">
-                <p class="font-medium text-text-primary">{{ harvest.harvestSeasonName }}</p>
-                <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-                  <span
-                    >Receita
-                    <strong class="block text-success">{{
-                      formatCurrency(harvest.income)
-                    }}</strong></span
-                  ><span
-                    >Despesa
-                    <strong class="block text-danger">{{
-                      formatCurrency(harvest.expense)
-                    }}</strong></span
-                  ><span
-                    >Lucro
-                    <strong class="block" [class]="profitClasses(harvest.profit)">{{
-                      formatCurrency(harvest.profit)
-                    }}</strong></span
-                  ><span
-                    >Margem
-                    <strong class="block">{{
-                      formatPercentage(harvest.marginPercentage)
-                    }}</strong></span
-                  >
-                </div>
-              </div>
+      <gd-card class="block">
+        <section aria-labelledby="financial-harvest-summary-title">
+          <div>
+            <h2 id="financial-harvest-summary-title" class="text-lg font-semibold text-text-primary">
+              Resumo por safra
+            </h2>
+            <p class="mt-1 text-sm text-text-muted">
+              Desempenho das safras dentro dos filtros selecionados.
+            </p>
+          </div>
+          <div class="mt-4 space-y-3">
+            @for (harvest of report.harvests; track harvest.harvestSeasonId ?? harvest.harvestSeasonName) {
+              @if (harvest.harvestSeasonId === null) {
+                <article class="rounded-app border border-border bg-background p-4">
+                  <div class="flex items-start gap-3">
+                    <span
+                      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-text-muted"
+                      aria-hidden="true"
+                    >
+                      <svg lucideIcon="unlink" class="size-4"></svg>
+                    </span>
+                    <div>
+                      <h3 class="font-semibold text-text-primary">Sem safra</h3>
+                      <p class="mt-1 text-sm text-text-muted">
+                        Movimentações não vinculadas a uma safra.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Receita</p>
+                      <p class="mt-1 text-base font-semibold text-success">
+                        {{ formatCurrency(harvest.income) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Despesa</p>
+                      <p class="mt-1 text-base font-semibold text-danger">
+                        {{ formatCurrency(harvest.expense) }}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              } @else if (harvest.details; as details) {
+                <article class="rounded-app border border-border bg-surface p-4 sm:p-5">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary"
+                      aria-hidden="true"
+                    >
+                      <svg lucideIcon="sprout" class="size-4"></svg>
+                    </span>
+                    <h3 class="font-semibold text-text-primary">{{ harvest.harvestSeasonName }}</h3>
+                  </div>
+                  <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Receita</p>
+                      <p class="mt-1 text-lg font-semibold text-success">{{ formatCurrency(harvest.income) }}</p>
+                      @if (details.incomeComparison; as comparison) {
+                        <p class="mt-1 text-xs text-text-muted">Planejado: {{ formatCurrency(comparison.planned) }}</p>
+                        @if (comparison.percentageDifference !== null) {
+                          <span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" [class]="harvestComparisonClasses(comparison)">
+                            {{ harvestComparisonLabel(comparison) }}
+                          </span>
+                        }
+                      }
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Despesa</p>
+                      <p class="mt-1 text-lg font-semibold text-danger">{{ formatCurrency(harvest.expense) }}</p>
+                      @if (details.expenseComparison; as comparison) {
+                        <p class="mt-1 text-xs text-text-muted">Planejado: {{ formatCurrency(comparison.planned) }}</p>
+                        @if (comparison.percentageDifference !== null) {
+                          <span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" [class]="harvestComparisonClasses(comparison)">
+                            {{ harvestComparisonLabel(comparison) }}
+                          </span>
+                        }
+                      }
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Resultado</p>
+                      <p class="mt-1 text-lg font-semibold" [class]="profitClasses(harvest.profit)">{{ formatCurrency(harvest.profit) }}</p>
+                      @if (details.resultComparison; as comparison) {
+                        <p class="mt-1 text-xs text-text-muted">Planejado: {{ formatCurrency(comparison.planned) }}</p>
+                        @if (comparison.percentageDifference !== null) {
+                          <span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" [class]="harvestComparisonClasses(comparison)">
+                            {{ harvestComparisonLabel(comparison) }}
+                          </span>
+                        }
+                      }
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Margem</p>
+                      <p class="mt-1 text-lg font-semibold" [class]="profitClasses(harvest.marginPercentage)">{{ formatPercentage(harvest.marginPercentage) }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-5 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Resultado/ha</p>
+                      <p class="mt-1 text-base font-semibold" [class]="profitClasses(harvest.profit)">
+                        {{ formatNullableCurrency(details.resultPerHectare) }}
+                      </p>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Participação no período</p>
+                        <span class="text-sm font-semibold text-text-primary">{{ formatPercentage(details.periodRevenueShare) }} das receitas</span>
+                      </div>
+                      <div class="mt-2 h-2 overflow-hidden rounded-full bg-border" role="progressbar" [attr.aria-valuenow]="details.periodRevenueShare" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="formatPercentage(details.periodRevenueShare) + ' das receitas do período'">
+                        <div class="h-full rounded-full bg-primary transition-[width] duration-200" [style.width.%]="harvestShareWidth(details.periodRevenueShare)"></div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              }
             } @empty {
               <p class="text-sm text-text-muted">Nenhuma safra encontrada.</p>
             }
-          </div></gd-card
-        >
+          </div>
+        </section>
+      </gd-card>
     }
   }
 </section>

@@ -106,6 +106,20 @@ export interface FinancialHarvestSummary {
   profit: number;
   marginPercentage: number;
   transactionCount: number;
+  details: FinancialHarvestSummaryDetails | null;
+}
+export interface FinancialHarvestPlanningComparison {
+  planned: number;
+  difference: number;
+  percentageDifference: number | null;
+  semantic: 'BETTER' | 'WORSE' | 'NEUTRAL';
+}
+export interface FinancialHarvestSummaryDetails {
+  resultPerHectare: number | null;
+  periodRevenueShare: number;
+  incomeComparison: FinancialHarvestPlanningComparison | null;
+  expenseComparison: FinancialHarvestPlanningComparison | null;
+  resultComparison: FinancialHarvestPlanningComparison | null;
 }
 export interface FinancialPeriodIndicator {
   period: string;

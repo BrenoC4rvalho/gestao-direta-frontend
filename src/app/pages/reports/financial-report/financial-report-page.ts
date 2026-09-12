@@ -25,6 +25,7 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 import {
   FinancialReportBasis,
   FinancialCategorySummaryGroup,
+  FinancialHarvestPlanningComparison,
   FinancialPlanningIndicators,
   FinancialReportGranularity,
   FinancialReportResponse,
@@ -410,6 +411,29 @@ export class FinancialReportPage {
   protected formatPercentage(value: number): string {
     return `${percentageFormatter.format(value)}%`;
   }
+  protected harvestComparisonClasses(comparison: FinancialHarvestPlanningComparison): string {
+    if (comparison.semantic === 'BETTER') {
+      return 'bg-success/10 text-success';
+    }
+    if (comparison.semantic === 'WORSE') {
+      return 'bg-danger/10 text-danger';
+    }
+    return 'bg-background text-text-muted';
+  }
+  protected harvestComparisonLabel(comparison: FinancialHarvestPlanningComparison): string {
+    const percentage = comparison.percentageDifference;
+    if (percentage === null) return 'Sem variação percentual';
+    const suffix =
+      comparison.semantic === 'BETTER'
+        ? 'melhor'
+        : comparison.semantic === 'WORSE'
+          ? 'pior'
+          : '';
+    return `${this.formatPercentage(Math.abs(percentage))}${suffix ? ` ${suffix}` : ''}`;
+  }
+  protected harvestShareWidth(percentage: number): number {
+    return Math.max(percentage, 0);
+  }
   protected categorySummaryTitle(): string {
     return this.categorySummaryType() === 'EXPENSE' ? 'Despesas por categoria' : 'Receitas por categoria';
   }
@@ -590,7 +614,7 @@ export class FinancialReportPage {
         return 'Indicador indisponível.';
     }
   }
-  private formatNullableCurrency(value: number | null): string {
+  protected formatNullableCurrency(value: number | null): string {
     return value === null ? '—' : this.formatCurrency(value);
   }
   private formatNullablePercentage(value: number | null): string {

@@ -316,6 +316,67 @@ describe('FinancialReportPage', () => {
     ]);
   });
 
+  it('should render detailed harvest summaries and a simplified unassigned group', () => {
+    const reportWithHarvests = report();
+    reportWithHarvests.harvests = [
+      {
+        harvestSeasonId: 20,
+        harvestSeasonName: 'Safra de café',
+        income: 110000,
+        expense: 30000,
+        profit: 80000,
+        marginPercentage: 72.73,
+        transactionCount: 2,
+        details: {
+          resultPerHectare: 4000,
+          periodRevenueShare: 55,
+          incomeComparison: {
+            planned: 100000,
+            difference: 10000,
+            percentageDifference: 10,
+            semantic: 'BETTER',
+          },
+          expenseComparison: {
+            planned: 40000,
+            difference: -10000,
+            percentageDifference: -25,
+            semantic: 'BETTER',
+          },
+          resultComparison: {
+            planned: 60000,
+            difference: 20000,
+            percentageDifference: 33.33,
+            semantic: 'BETTER',
+          },
+        },
+      },
+      {
+        harvestSeasonId: null,
+        harvestSeasonName: 'Sem safra',
+        income: 0,
+        expense: 3650,
+        profit: -3650,
+        marginPercentage: 0,
+        transactionCount: 1,
+        details: null,
+      },
+    ];
+    fixture.componentInstance.report.set(reportWithHarvests);
+    fixture.detectChanges();
+
+    const harvestSummary = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="financial-harvest-summary-title"]',
+    ) as HTMLElement;
+
+    expect(harvestSummary.textContent).toContain('Safra de café');
+    expect(harvestSummary.textContent).toContain('Resultado/ha');
+    expect(harvestSummary.textContent).toContain('55,0% das receitas');
+    expect(harvestSummary.textContent).toContain('10,0% melhor');
+    expect(harvestSummary.querySelector('[role="progressbar"]')).not.toBeNull();
+    expect(harvestSummary.textContent).toContain('Movimentações não vinculadas a uma safra.');
+    expect(harvestSummary.textContent).not.toContain('Planejado: R$ 0,00');
+  });
+
   it('should show the PDF export action when the report is available', () => {
     const exportButton = button('Exportar PDF');
 
