@@ -28,10 +28,7 @@ import {
   FinancialPlanningIndicators,
   FinancialReportGranularity,
   FinancialReportResponse,
-  FinancialReportTransaction,
-  FinancialEvolutionPoint,
 } from '../../../core/models/financial-report.models';
-import { PageResponse } from '../../../core/models/page-response.model';
 import { FinancialCategoryService } from '../../../core/services/financial-category.service';
 import { FinancialService } from '../../../core/services/financial.service';
 import { HarvestSeasonService } from '../../../core/services/harvest-season.service';
@@ -43,7 +40,6 @@ import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../..
 import { BrCurrencyPipe } from '../../../shared/pipes/br-currency.pipe';
 import {
   Badge,
-  BadgeVariant,
   Button,
   Card,
   EmptyState,
@@ -128,12 +124,6 @@ export class FinancialReportPage {
   private currentFarmId: number | null = null;
   private readonly reload = signal(0);
   private readonly currencyPipe = new BrCurrencyPipe();
-  private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
-  private readonly periodFormatter = new Intl.DateTimeFormat('pt-BR', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
   private readonly indicatorGridClasses =
     'grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4';
 
@@ -142,15 +132,8 @@ export class FinancialReportPage {
   protected readonly exportingPdf = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
-  readonly selectedPeriod = signal<FinancialEvolutionPoint | null>(null);
   protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
   protected readonly categorySummaryType = signal<'EXPENSE' | 'INCOME'>('EXPENSE');
-  readonly transactions = signal<readonly FinancialReportTransaction[]>([]);
-  readonly transactionsLoading = signal(false);
-  readonly transactionsError = signal<string | null>(null);
-  protected readonly transactionPage = signal<PageResponse<FinancialReportTransaction> | null>(
-    null,
-  );
   protected readonly harvestOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly categoryOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly filterForm = new FormGroup({
@@ -201,10 +184,6 @@ export class FinancialReportPage {
       !this.exportingPdf() &&
       !this.reportError(),
   );
-  protected readonly movementsPeriod = computed(() => {
-    const period = this.selectedPeriod();
-    return period ? this.periodFormatter.format(this.utcDate(period.periodStart)) : null;
-  });
   protected readonly selectedCategorySummary = computed<FinancialCategorySummaryGroup | null>(() =>
     this.report()?.categories.find((group) => group.type === this.categorySummaryType()) ?? null,
   );
@@ -324,9 +303,6 @@ export class FinancialReportPage {
         .subscribe({
           next: (report) => {
             this.report.set(report);
-            const period = report.evolution.find((item) => item.transactionCount > 0) ?? null;
-            this.selectedPeriod.set(period);
-            if (period) this.loadTransactions(period, 0);
           },
           error: () => {
             this.report.set(null);
@@ -415,30 +391,13 @@ export class FinancialReportPage {
   protected closeIndicatorsDrawer(): void {
     this.indicatorsDrawerOpen.set(false);
   }
-  protected selectEvolutionPeriod(point: FinancialEvolutionPoint): void {
-    this.selectedPeriod.set(point);
-    this.loadTransactions(point, 0);
-  }
   protected selectEvolutionGranularity(granularity: FinancialReportGranularity): void {
     if (this.evolutionGranularity() === granularity) return;
     this.evolutionGranularity.set(granularity);
-    this.selectedPeriod.set(null);
-    this.transactions.set([]);
-    this.transactionPage.set(null);
     this.reload.update((value) => value + 1);
   }
   protected selectCategorySummaryType(type: 'EXPENSE' | 'INCOME'): void {
     this.categorySummaryType.set(type);
-  }
-  protected previousTransactionsPage(): void {
-    const page = this.transactionPage();
-    const period = this.selectedPeriod();
-    if (page && period && !page.first) this.loadTransactions(period, page.page - 1);
-  }
-  protected nextTransactionsPage(): void {
-    const page = this.transactionPage();
-    const period = this.selectedPeriod();
-    if (page && period && !page.last) this.loadTransactions(period, page.page + 1);
   }
   protected control(
     name: 'startDate' | 'endDate' | 'basis' | 'harvestSeasonId' | 'categoryId',
@@ -447,12 +406,6 @@ export class FinancialReportPage {
   }
   protected formatCurrency(value: number): string {
     return this.currencyPipe.transform(value);
-  }
-  protected formatDate(value: string): string {
-    return this.dateFormatter.format(this.utcDate(value));
-  }
-  protected transactionCountLabel(count: number): string {
-    return count === 1 ? '1 movimentação encontrada' : count + ' movimentações encontradas';
   }
   protected formatPercentage(value: number): string {
     return `${percentageFormatter.format(value)}%`;
@@ -491,15 +444,6 @@ export class FinancialReportPage {
       return 'O período do relatório não pode ultrapassar 12 meses.';
     }
     return null;
-  }
-  protected statusVariant(status: FinancialReportTransaction['paymentStatus']): BadgeVariant {
-    return status === 'PAID' ? 'success' : status === 'OVERDUE' ? 'danger' : 'warning';
-  }
-  protected statusLabel(status: FinancialReportTransaction['paymentStatus']): string {
-    return status === 'PAID' ? 'Pago' : status === 'OVERDUE' ? 'Vencido' : 'Pendente';
-  }
-  protected valueClasses(type: FinancialReportTransaction['type']): string {
-    return type === 'INCOME' ? 'font-semibold text-success' : 'font-semibold text-danger';
   }
   protected profitClasses(value: number): string {
     return value >= 0 ? 'text-success' : 'text-danger';
@@ -712,40 +656,9 @@ export class FinancialReportPage {
     const match = /filename="?([^";]+)"?/.exec(contentDisposition);
     return match?.[1] ?? 'relatorio-financeiro.pdf';
   }
-  private loadTransactions(period: FinancialEvolutionPoint, page: number): void {
-    const farmId = this.selectedFarmStore.selectedFarmId();
-    if (!farmId) return;
-    const filters = this.request(farmId);
-    this.transactionsLoading.set(true);
-    this.transactionsError.set(null);
-    this.transactions.set([]);
-    this.financialService
-      .getFinancialReportTransactions({
-        ...filters,
-        startDate: period.periodStart,
-        endDate: period.periodEnd,
-        page,
-        size: 6,
-        sort: 'referenceDate',
-        direction: 'DESC',
-      })
-      .pipe(finalize(() => this.transactionsLoading.set(false)))
-      .subscribe({
-        next: (response) => {
-          this.transactionPage.set(response);
-          this.transactions.set(response.content);
-        },
-        error: () =>
-          this.transactionsError.set('Não foi possível carregar as movimentações do período.'),
-      });
-  }
   private resetForFarmChange(): void {
     this.report.set(null);
     this.reportError.set(null);
-    this.selectedPeriod.set(null);
-    this.transactions.set([]);
-    this.transactionPage.set(null);
-    this.transactionsError.set(null);
     this.harvestOptions.set([]);
     this.categoryOptions.set([]);
     this.filterForm.patchValue({ harvestSeasonId: '', categoryId: '' });
@@ -756,8 +669,5 @@ export class FinancialReportPage {
   }
   private stringValue(value: GdFormValue, fallback: string): string {
     return typeof value === 'string' && value ? value : fallback;
-  }
-  private utcDate(value: string): Date {
-    return new Date(value + 'T00:00:00Z');
   }
 }
