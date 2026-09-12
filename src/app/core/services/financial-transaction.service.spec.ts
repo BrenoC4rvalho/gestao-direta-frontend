@@ -121,6 +121,28 @@ describe('FinancialTransactionService', () => {
     request.flush(response);
   });
 
+  it('should request the monthly summary with its financial context', () => {
+    service
+      .getMonthlySummary({
+        farmId: 1,
+        transactionDateStart: '2026-06-01',
+        transactionDateEnd: '2026-06-30',
+        basis: 'CASH',
+      })
+      .subscribe();
+
+    const request = http.expectOne(
+      (req) => req.url === apiUrl + '/financial/transactions/monthly-summary',
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('farmId')).toBe('1');
+    expect(request.request.params.get('transactionDateStart')).toBe('2026-06-01');
+    expect(request.request.params.get('transactionDateEnd')).toBe('2026-06-30');
+    expect(request.request.params.get('basis')).toBe('CASH');
+
+    request.flush({ income: 100, expense: 40, balance: 60 });
+  });
+
   it('should not send empty filter values', () => {
     service
       .listByFarm({

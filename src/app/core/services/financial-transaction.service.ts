@@ -9,6 +9,8 @@ import {
   FinancialTransactionExportParams,
   FinancialTransactionListParams,
   FinancialTransactionPage,
+  MonthlyFinancialSummary,
+  MonthlyFinancialSummaryParams,
   MarkFinancialTransactionAsPaidRequest,
   UpdateFinancialTransactionRequest,
 } from '../models/financial-transaction.models';
@@ -25,6 +27,22 @@ export class FinancialTransactionService {
     return this.http.get<FinancialTransactionPage>(`${this.apiUrl}/financial/transactions`, {
       params: this.buildListParams(params),
     });
+  }
+
+  getMonthlySummary(
+    params: MonthlyFinancialSummaryParams,
+  ): Observable<MonthlyFinancialSummary> {
+    let httpParams = new HttpParams()
+      .set('farmId', params.farmId)
+      .set('transactionDateStart', params.transactionDateStart)
+      .set('transactionDateEnd', params.transactionDateEnd);
+
+    httpParams = appendQueryParam(httpParams, 'basis', params.basis ?? 'ACCRUAL');
+
+    return this.http.get<MonthlyFinancialSummary>(
+      `${this.apiUrl}/financial/transactions/monthly-summary`,
+      { params: httpParams },
+    );
   }
 
   exportXlsx(params: FinancialTransactionExportParams): Observable<HttpResponse<Blob>> {

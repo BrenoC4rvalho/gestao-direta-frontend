@@ -26,6 +26,7 @@ import {
   FinancialTransaction,
   FinancialTransactionExportParams,
   FinancialTransactionListParams,
+  MonthlyFinancialSummary,
   PaymentMethod,
   PaymentStatus,
   TransactionType,
@@ -169,6 +170,9 @@ export class TransactionsPage {
   });
   protected readonly monthlyLoading = signal(false);
   protected readonly monthlyError = signal(false);
+  protected readonly monthlySummary = signal<MonthlyFinancialSummary | null>(null);
+  protected readonly monthlySummaryLoading = signal(false);
+  protected readonly monthlySummaryError = signal(false);
   protected readonly exportingExcel = signal(false);
   protected readonly exportingPdf = signal(false);
   protected readonly error = signal(false);
@@ -190,6 +194,7 @@ export class TransactionsPage {
 
   private readonly reloadTrigger = signal(0);
   private readonly monthlyReloadTrigger = signal(0);
+  private readonly monthlySummaryReloadTrigger = signal(0);
   protected readonly activeView = signal<TransactionView>('transactions');
   protected readonly monthlyMonth = signal(INITIAL_MONTHLY_PERIOD.getMonth() + 1);
   protected readonly monthlyYear = signal(INITIAL_MONTHLY_PERIOD.getFullYear());
@@ -605,11 +610,50 @@ export class TransactionsPage {
 
       onCleanup(() => subscription.unsubscribe());
     });
+
+    effect((onCleanup) => {
+      const activeView = this.activeView();
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      const isAdmin = this.sessionStore.isAdmin();
+      const month = this.monthlyMonth();
+      const year = this.monthlyYear();
+      const basis = this.monthlyBasis();
+      this.monthlySummaryReloadTrigger();
+
+      if (activeView !== 'monthly') {
+        return;
+      }
+
+      if (!farmId || (!isAdmin && (this.isAccessPending() || !this.canViewTransactions()))) {
+        this.clearMonthlySummaryState();
+        return;
+      }
+
+      this.monthlySummary.set(null);
+      this.monthlySummaryError.set(false);
+      this.monthlySummaryLoading.set(true);
+
+      const subscription = this.transactionService
+        .getMonthlySummary({
+          farmId,
+          transactionDateStart: this.monthStart(year, month),
+          transactionDateEnd: this.monthEnd(year, month),
+          basis,
+        })
+        .pipe(finalize(() => this.monthlySummaryLoading.set(false)))
+        .subscribe({
+          next: (summary) => this.monthlySummary.set(summary),
+          error: (error: unknown) => this.handleMonthlySummaryError(error),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
   }
 
   protected retry(): void {
     this.reloadTrigger.update((value) => value + 1);
     this.monthlyReloadTrigger.update((value) => value + 1);
+    this.monthlySummaryReloadTrigger.update((value) => value + 1);
   }
 
   protected selectView(view: TransactionView): void {
@@ -1327,6 +1371,12 @@ export class TransactionsPage {
     this.monthlyError.set(false);
   }
 
+  private clearMonthlySummaryState(): void {
+    this.monthlySummary.set(null);
+    this.monthlySummaryLoading.set(false);
+    this.monthlySummaryError.set(false);
+  }
+
   private handleMonthlyListError(error: unknown): void {
     this.monthlyTransactions.set([]);
     this.monthlyPageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
@@ -1337,6 +1387,17 @@ export class TransactionsPage {
     }
 
     this.monthlyError.set(true);
+  }
+
+  private handleMonthlySummaryError(error: unknown): void {
+    this.monthlySummary.set(null);
+
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      this.accessDenied.set(true);
+      return;
+    }
+
+    this.monthlySummaryError.set(true);
   }
 
   private nullableString(value: GdFormValue): string | null {

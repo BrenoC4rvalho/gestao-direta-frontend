@@ -218,6 +218,7 @@ describe('TransactionsPage', () => {
   let fixture: ComponentFixture<TransactionsPage>;
   let transactionService: {
     listByFarm: ReturnType<typeof vi.fn>;
+    getMonthlySummary: ReturnType<typeof vi.fn>;
     exportXlsx: ReturnType<typeof vi.fn>;
     exportPdf: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
@@ -246,6 +247,7 @@ describe('TransactionsPage', () => {
   beforeEach(async () => {
     transactionService = {
       listByFarm: vi.fn().mockReturnValue(of(pageResponse([transaction]))),
+      getMonthlySummary: vi.fn().mockReturnValue(of({ income: 100, expense: 40, balance: 60 })),
       exportXlsx: vi.fn().mockReturnValue(
         of(new HttpResponse({ body: new Blob(['xlsx']), headers: new HttpHeaders({ 'content-disposition': 'attachment; filename="movimentacoes.xlsx"' }) })),
       ),
@@ -420,6 +422,43 @@ describe('TransactionsPage', () => {
       direction: 'DESC',
       basis: 'ACCRUAL',
     }));
+    expect(transactionService.getMonthlySummary).toHaveBeenCalledWith({
+      farmId: 1,
+      transactionDateStart: start,
+      transactionDateEnd: end,
+      basis: 'ACCRUAL',
+    });
+    expect(fixture.nativeElement.textContent).toContain('Receitas');
+    expect(fixture.nativeElement.textContent).toContain('Despesas');
+    expect(fixture.nativeElement.textContent).toContain('Saldo do mês');
+  });
+
+  it('should not reload the monthly summary when changing only the page', () => {
+    transactionService.listByFarm.mockReturnValue(of({
+      ...pageResponse([transaction]),
+      totalPages: 2,
+      first: true,
+      last: false,
+    }));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Mensal');
+
+    const summaryCalls = transactionService.getMonthlySummary.mock.calls.length;
+    clickButton('Próxima');
+
+    expect(transactionService.getMonthlySummary).toHaveBeenCalledTimes(summaryCalls);
+    expect(lastListParams()).toEqual(expect.objectContaining({ page: 1 }));
+  });
+
+  it('should show the monthly summary error without displaying zero values', () => {
+    transactionService.getMonthlySummary.mockReturnValue(throwError(() => new Error('failed')));
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Mensal');
+
+    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar o resumo mensal');
+    expect(fixture.nativeElement.textContent).not.toContain('Saldo do mês');
   });
 
   it('should navigate the monthly view across year boundaries', () => {

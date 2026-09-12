@@ -71,6 +71,19 @@ export interface FinancialTransactionListParams {
   direction?: 'ASC' | 'DESC';
 }
 
+export interface MonthlyFinancialSummary {
+  income: number;
+  expense: number;
+  balance: number;
+}
+
+export interface MonthlyFinancialSummaryParams {
+  farmId: number;
+  transactionDateStart: string;
+  transactionDateEnd: string;
+  basis?: FinancialReportBasis | null;
+}
+
 export type FinancialTransactionExportParams = Omit<
   FinancialTransactionListParams,
   'page' | 'size' | 'sort' | 'direction'
