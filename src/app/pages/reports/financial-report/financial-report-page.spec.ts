@@ -536,6 +536,11 @@ describe('FinancialReportPage', () => {
     expect(dialog.textContent).toContain('Planejamento');
     expect(dialog.textContent).toContain('Destaques do período');
     expect(dialog.querySelectorAll('gd-summary-card').length).toBe(27);
+    const indicatorSections = Array.from(dialog.querySelectorAll('section[aria-label]'));
+    expect(indicatorSections[0].classList.contains('border-t')).toBe(false);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('border-t'))).toBe(true);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('border-border'))).toBe(true);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('pt-6'))).toBe(true);
     expect(
       summaryGroups().every((group) => group.gridClasses.includes('xl:grid-cols-4')),
     ).toBe(true);

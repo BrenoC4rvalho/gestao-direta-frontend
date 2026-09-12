@@ -525,9 +525,12 @@
 </gd-drawer>
 
 <ng-template #indicatorGroups let-groups let-headings="headings">
-  <div [class]="headings ? 'space-y-5' : ''">
+  <div [class]="headings ? 'space-y-6' : ''">
     @for (group of groups; track group.title) {
-      <section [attr.aria-label]="group.title">
+      <section
+        [attr.aria-label]="group.title"
+        [class]="headings && !$first ? 'border-t border-border pt-6' : ''"
+      >
         @if (headings) {
           <h2 class="mb-3 text-sm font-semibold text-text-primary">{{ group.title }}</h2>
         }
