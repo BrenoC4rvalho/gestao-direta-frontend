@@ -1,0 +1,151 @@
+@if (loading()) {
+  <div
+    class="gd-fade-in-up grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+    aria-label="Carregando movimentações"
+  >
+    @for (item of skeletons; track item) {
+      <gd-card variant="elevated">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 flex-1">
+            <gd-skeleton width="70%" height="1.25rem" />
+            <gd-skeleton class="mt-3 block" width="45%" height="0.875rem" />
+          </div>
+          <gd-skeleton width="6rem" height="1.25rem" />
+        </div>
+        <div class="mt-5 flex gap-2">
+          <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+          <gd-skeleton width="5rem" height="1.5rem" rounded="full" />
+        </div>
+        <gd-skeleton class="mt-5 block" height="4rem" />
+      </gd-card>
+    }
+  </div>
+} @else if (error()) {
+  <gd-error-state
+    title="Não foi possível carregar as movimentações"
+    description="Verifique sua conexão e tente novamente."
+    actionLabel="Tentar novamente"
+    (action)="requestRetry()"
+  />
+} @else if (transactions().length === 0) {
+  <gd-empty-state
+    title="Nenhuma movimentação encontrada"
+    [description]="emptyDescription()"
+    icon="receipt-text"
+  />
+} @else {
+  <div class="gd-fade-in-up grid gap-4 md:hidden">
+    @for (transaction of transactions(); track transaction.id) {
+      <gd-transaction-card
+        [transaction]="transaction"
+        [canEdit]="canEditTransaction(transaction)"
+        (editRequested)="requestEdit($event)"
+      />
+    }
+  </div>
+
+  <div
+    class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+  >
+    <table class="w-full border-collapse text-left text-sm">
+      <caption class="sr-only">
+        Movimentações financeiras da fazenda selecionada
+      </caption>
+      <thead class="border-b border-border bg-primary text-white">
+        <tr class="text-xs font-semibold uppercase tracking-wide text-white">
+          <th class="px-5 py-4" scope="col">Descrição</th>
+          <th class="px-5 py-4" scope="col">Safra</th>
+          <th class="px-5 py-4" scope="col">Status</th>
+          <th class="px-5 py-4" scope="col">Datas</th>
+          <th class="px-5 py-4 text-right" scope="col">Valor</th>
+          <th class="px-5 py-4" scope="col">
+            <span class="sr-only">Ações</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        @for (transaction of transactions(); track transaction.id) {
+          <tr class="transition-colors duration-200 hover:bg-background/60">
+            <td class="px-5 py-4">
+              <p class="font-semibold text-text-primary">{{ transaction.description }}</p>
+              <p class="mt-1 text-sm text-text-muted">
+                {{ transaction.categoryName ?? 'Sem categoria' }}
+              </p>
+              <p class="mt-1 text-xs text-text-muted">
+                {{ paymentMethodLabel(transaction.paymentMethod) }}
+              </p>
+            </td>
+            <td class="max-w-[12rem] px-5 py-4">
+              <span
+                [class]="'block max-w-[12rem] truncate whitespace-nowrap text-sm font-medium ' + (transaction.harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
+                [title]="transaction.harvestSeasonName ?? 'Sem safra'"
+              >
+                {{ transaction.harvestSeasonName ?? 'Sem safra' }}
+              </span>
+            </td>
+            <td class="px-5 py-4">
+              <gd-badge [variant]="statusVariant(transaction.status)" size="sm">
+                {{ statusLabel(transaction.status) }}
+              </gd-badge>
+            </td>
+            <td class="px-5 py-4 text-text-muted">
+              <p>Mov.: {{ formatDate(transaction.transactionDate) }}</p>
+              <p>Venc.: {{ formatDate(transaction.dueDate) }}</p>
+              <p>Pag.: {{ formatDate(transaction.paidAt) }}</p>
+            </td>
+            <td
+              [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(transaction.type)"
+            >
+              {{ amountPrefix(transaction.type) }}{{ transaction.amount | brCurrency }}
+            </td>
+            <td class="px-5 py-4">
+              @if (canEditTransaction(transaction)) {
+                <gd-button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  [iconOnly]="true"
+                  ariaLabel="Editar movimentação"
+                  title="Editar movimentação"
+                  (click)="requestEdit(transaction)"
+                >
+                  <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+                </gd-button>
+              } @else {
+                <p class="text-sm font-medium text-text-muted">Somente leitura</p>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <nav
+    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    aria-label="Paginação de movimentações"
+  >
+    <p class="text-sm text-text-muted">
+      Página {{ page() + 1 }} de {{ pageInfo().totalPages || 1 }} ·
+      {{ pageInfo().totalElements }} registros
+    </p>
+    <div class="grid gap-2 sm:grid-cols-2">
+      <gd-button
+        type="button"
+        variant="outline"
+        [disabled]="pageInfo().first"
+        (click)="requestPreviousPage()"
+      >
+        Anterior
+      </gd-button>
+      <gd-button
+        type="button"
+        variant="outline"
+        [disabled]="pageInfo().last"
+        (click)="requestNextPage()"
+      >
+        Próxima
+      </gd-button>
+    </div>
+  </nav>
+}

@@ -384,6 +384,78 @@ describe('TransactionsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('R$');
   });
 
+  it('should keep the current view active and load the selected month in the monthly view', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+
+    expect(findButton(fixture.nativeElement, 'Movimentações')).toBeTruthy();
+    expect(findButton(fixture.nativeElement, 'Mensal')).toBeTruthy();
+    expect(findSelectOrNull('#monthly-transaction-month')).toBeNull();
+
+    clickButton('Mensal');
+
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1))
+      .toISOString()
+      .slice(0, 10);
+    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0))
+      .toISOString()
+      .slice(0, 10);
+
+    expect(findSelect('#monthly-transaction-month')).toBeTruthy();
+    expect(findSelect('#monthly-transaction-year')).toBeTruthy();
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      farmId: 1,
+      transactionDateStart: start,
+      transactionDateEnd: end,
+      page: 0,
+      size: 10,
+      sort: 'transactionDate',
+      direction: 'DESC',
+    }));
+  });
+
+  it('should navigate the monthly view across year boundaries', () => {
+    selectedFarmStore.setFarms([farm]);
+    createPage();
+    clickButton('Mensal');
+
+    setSelect('#monthly-transaction-month', '12');
+    setSelect('#monthly-transaction-year', '2026');
+    clickButtonByAccessibleName('Próximo mês');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      transactionDateStart: '2027-01-01',
+      transactionDateEnd: '2027-01-31',
+      page: 0,
+    }));
+
+    clickButtonByAccessibleName('Mês anterior');
+
+    expect(lastListParams()).toEqual(expect.objectContaining({
+      transactionDateStart: '2026-12-01',
+      transactionDateEnd: '2026-12-31',
+      page: 0,
+    }));
+  });
+
+  it('should reload the monthly view for the selected farm and show its empty state', () => {
+    transactionService.listByFarm
+      .mockReturnValueOnce(of(pageResponse([transaction])))
+      .mockReturnValueOnce(of(pageResponse([])))
+      .mockReturnValue(of(pageResponse([])));
+    selectedFarmStore.setFarms([farm, secondFarm]);
+    createPage();
+    clickButton('Mensal');
+
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma movimentação encontrada em');
+
+    selectedFarmStore.selectFarmById(2);
+    fixture.detectChanges();
+
+    expect(lastListParams()).toEqual(expect.objectContaining({ farmId: 2, page: 0 }));
+  });
+
   it('should export with the applied filters without page or size', () => {
     transactionService.exportXlsx.mockReturnValueOnce(of(new HttpResponse({ body: null })));
     selectedFarmStore.setFarms([farm]);
@@ -1294,6 +1366,14 @@ describe('TransactionsPage', () => {
     return Array.from(
       fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>,
     ).find((item) => item.id === selector.slice(1)) as HTMLSelectElement;
+  }
+
+  function findSelectOrNull(selector: string): HTMLSelectElement | null {
+    const select = Array.from(
+      fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>,
+    ).find((item) => item.id === selector.slice(1));
+
+    return select ?? null;
   }
 
   function getSelectOptionTexts(selector: string): string[] {

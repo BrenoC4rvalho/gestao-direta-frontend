@@ -42,15 +42,17 @@ import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../..
 import { ConfirmDialog } from '../../shared/overlays';
 import { BrCurrencyPipe } from '../../shared/pipes/br-currency.pipe';
 import { brazilianMoneyToNumber, sanitizeBrazilianMoneyInput } from '../../shared/utils/money.utils';
-import { Badge, BadgeVariant, Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
-import { TransactionCard } from './components/transaction-card/transaction-card';
+import { Button, Card, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { TransactionFormDrawer } from './components/transaction-form-drawer/transaction-form-drawer';
+import { TransactionList, TransactionListPageInfo } from './components/transaction-list/transaction-list';
 
 interface TransactionLists {
   transactions: PageResponse<FinancialTransaction>;
   filterCategories: FinancialCategory[];
   formCategories: FinancialCategory[];
 }
+
+type TransactionView = 'transactions' | 'monthly';
 
 interface TransactionFiltersControls {
   transactionDateStart: GdFormControl;
@@ -109,13 +111,14 @@ const EMPTY_FILTER_FORM_VALUE = {
   maxAmount: '',
 };
 
+const INITIAL_MONTHLY_PERIOD = new Date();
+
 @Component({
   selector: 'gd-transactions-page',
   imports: [
-    Badge,
     Button,
-    Card,
     BrCurrencyPipe,
+    Card,
     ConfirmDialog,
     EmptyState,
     ErrorState,
@@ -124,8 +127,8 @@ const EMPTY_FILTER_FORM_VALUE = {
     ReactiveFormsModule,
     Select,
     Skeleton,
-    TransactionCard,
     TransactionFormDrawer,
+    TransactionList,
   ],
   templateUrl: './transactions-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -152,6 +155,16 @@ export class TransactionsPage {
   protected readonly page = signal(0);
   protected readonly pageInfo = signal({ totalPages: 0, totalElements: 0, first: true, last: true });
   protected readonly loading = signal(false);
+  protected readonly monthlyTransactions = signal<FinancialTransaction[]>([]);
+  protected readonly monthlyPage = signal(0);
+  protected readonly monthlyPageInfo = signal<TransactionListPageInfo>({
+    totalPages: 0,
+    totalElements: 0,
+    first: true,
+    last: true,
+  });
+  protected readonly monthlyLoading = signal(false);
+  protected readonly monthlyError = signal(false);
   protected readonly exportingExcel = signal(false);
   protected readonly exportingPdf = signal(false);
   protected readonly error = signal(false);
@@ -164,9 +177,12 @@ export class TransactionsPage {
   protected readonly cancelTarget = signal<FinancialTransaction | null>(null);
   protected readonly cancelSubmitting = signal(false);
   protected readonly showAdvancedFilters = signal(false);
-  protected readonly skeletons = [1, 2, 3, 4, 5, 6];
 
   private readonly reloadTrigger = signal(0);
+  private readonly monthlyReloadTrigger = signal(0);
+  protected readonly activeView = signal<TransactionView>('transactions');
+  protected readonly monthlyMonth = signal(INITIAL_MONTHLY_PERIOD.getMonth() + 1);
+  protected readonly monthlyYear = signal(INITIAL_MONTHLY_PERIOD.getFullYear());
   private readonly draftTypeFilter = signal<TransactionType | null>(null);
   protected readonly selectedCategoryIds = signal<readonly number[]>([]);
   protected readonly selectedPaymentStatuses = signal<readonly PaymentStatus[]>([]);
@@ -192,6 +208,10 @@ export class TransactionsPage {
     harvestSeasonId: new FormControl<GdFormValue>(''),
     minAmount: new FormControl<GdFormValue>(''),
     maxAmount: new FormControl<GdFormValue>(''),
+  });
+  protected readonly monthlyForm = new FormGroup({
+    month: new FormControl<GdFormValue>(this.monthlyMonth()),
+    year: new FormControl<GdFormValue>(this.monthlyYear()),
   });
 
   protected readonly selectedFarmName = computed(
@@ -309,6 +329,34 @@ export class TransactionsPage {
       ? 'Nenhuma movimentação encontrada para os filtros informados.'
       : 'As receitas e despesas da fazenda aparecerão aqui.',
   );
+  protected readonly monthlyEmptyStateDescription = computed(() => {
+    const month = this.monthLabel(this.monthlyMonth()).toLocaleLowerCase('pt-BR');
+
+    return `Nenhuma movimentação encontrada em ${month} de ${this.monthlyYear()}.`;
+  });
+  protected readonly monthOptions: readonly GdSelectOption[] = [
+    { label: 'Janeiro', value: 1 },
+    { label: 'Fevereiro', value: 2 },
+    { label: 'Março', value: 3 },
+    { label: 'Abril', value: 4 },
+    { label: 'Maio', value: 5 },
+    { label: 'Junho', value: 6 },
+    { label: 'Julho', value: 7 },
+    { label: 'Agosto', value: 8 },
+    { label: 'Setembro', value: 9 },
+    { label: 'Outubro', value: 10 },
+    { label: 'Novembro', value: 11 },
+    { label: 'Dezembro', value: 12 },
+  ];
+  protected readonly yearOptions = computed<readonly GdSelectOption[]>(() => {
+    const selectedYear = this.monthlyYear();
+
+    return Array.from({ length: 11 }, (_, index) => {
+      const year = selectedYear - 5 + index;
+
+      return { label: `${year}`, value: year };
+    });
+  });
   protected readonly createdByUserSelectDisabled = computed(() => {
     const farmId = this.selectedFarmStore.selectedFarmId();
 
@@ -358,14 +406,23 @@ export class TransactionsPage {
     { label: 'Outro', value: 'OTHER' },
   ];
 
-  private readonly dateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
-
   constructor() {
     this.filterForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.draftTypeFilter.set(
         this.nullableString(this.filterForm.controls.type.value) as TransactionType | null,
       );
       this.clearIncompatibleCategory();
+    });
+
+    this.monthlyForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const month = this.numberOrNull(this.monthlyForm.controls.month.value);
+      const year = this.numberOrNull(this.monthlyForm.controls.year.value);
+
+      if (!month || month < 1 || month > 12 || !year || year < 1) {
+        return;
+      }
+
+      this.setMonthlyPeriod(year, month, false);
     });
 
     effect((onCleanup) => {
@@ -486,10 +543,87 @@ export class TransactionsPage {
 
       onCleanup(() => subscription.unsubscribe());
     });
+
+    effect((onCleanup) => {
+      const activeView = this.activeView();
+      const farmId = this.selectedFarmStore.selectedFarmId();
+      const isAdmin = this.sessionStore.isAdmin();
+      const month = this.monthlyMonth();
+      const year = this.monthlyYear();
+      const page = this.monthlyPage();
+      this.monthlyReloadTrigger();
+
+      if (activeView !== 'monthly') {
+        return;
+      }
+
+      if (!farmId || (!isAdmin && (this.isAccessPending() || !this.canViewTransactions()))) {
+        this.clearMonthlyListState();
+        return;
+      }
+
+      this.monthlyError.set(false);
+      this.monthlyLoading.set(true);
+
+      const subscription = this.transactionService
+        .listByFarm({
+          farmId,
+          transactionDateStart: this.monthStart(year, month),
+          transactionDateEnd: this.monthEnd(year, month),
+          page,
+          size: 10,
+          sort: 'transactionDate',
+          direction: 'DESC',
+        })
+        .pipe(finalize(() => this.monthlyLoading.set(false)))
+        .subscribe({
+          next: (response) => {
+            this.monthlyTransactions.set(response.content);
+            this.monthlyPageInfo.set({
+              totalPages: response.totalPages,
+              totalElements: response.totalElements,
+              first: response.first,
+              last: response.last,
+            });
+          },
+          error: (error: unknown) => this.handleMonthlyListError(error),
+        });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
   }
 
   protected retry(): void {
     this.reloadTrigger.update((value) => value + 1);
+    this.monthlyReloadTrigger.update((value) => value + 1);
+  }
+
+  protected selectView(view: TransactionView): void {
+    this.activeView.set(view);
+  }
+
+  protected previousMonth(): void {
+    const currentDate = new Date(Date.UTC(this.monthlyYear(), this.monthlyMonth() - 1, 1));
+    currentDate.setUTCMonth(currentDate.getUTCMonth() - 1);
+    this.setMonthlyPeriod(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1);
+  }
+
+  protected nextMonth(): void {
+    const currentDate = new Date(Date.UTC(this.monthlyYear(), this.monthlyMonth() - 1, 1));
+    currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
+    this.setMonthlyPeriod(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1);
+  }
+
+  protected previousMonthlyPage(): void {
+    if (!this.monthlyPageInfo().first) {
+      this.monthlyPage.update((value) => Math.max(value - 1, 0));
+    }
+  }
+
+  protected nextMonthlyPage(): void {
+    if (!this.monthlyPageInfo().last) {
+      this.monthlyPage.update((value) => value + 1);
+    }
   }
 
   protected applyFilters(): void {
@@ -757,72 +891,6 @@ export class TransactionsPage {
     const count = this.activeAdvancedFiltersCount();
 
     return count > 0 ? `Filtros avançados (${count})` : 'Filtros avançados';
-  }
-
-  protected formatDate(value: string | null): string {
-    return value ? this.dateFormatter.format(new Date(value)) : 'Não informada';
-  }
-
-  protected typeLabel(type: TransactionType): string {
-    const labels: Record<string, string> = {
-      INCOME: 'Receita',
-      EXPENSE: 'Despesa',
-    };
-
-    return labels[type] ?? type;
-  }
-
-  protected typeVariant(type: TransactionType): BadgeVariant {
-    return type === 'INCOME' ? 'success' : 'danger';
-  }
-
-  protected statusLabel(status: PaymentStatus): string {
-    const labels: Record<string, string> = {
-      PENDING: 'Pendente',
-      PAID: 'Paga',
-      OVERDUE: 'Atrasada',
-      CANCELED: 'Cancelada',
-    };
-
-    return labels[status] ?? status;
-  }
-
-  protected statusVariant(status: PaymentStatus): BadgeVariant {
-    const variants: Record<string, BadgeVariant> = {
-      PENDING: 'warning',
-      PAID: 'success',
-      OVERDUE: 'danger',
-      CANCELED: 'neutral',
-    };
-
-    return variants[status] ?? 'neutral';
-  }
-
-  protected paymentMethodLabel(method: PaymentMethod | null): string {
-    if (!method) {
-      return 'Não informado';
-    }
-
-    const labels: Record<string, string> = {
-      PIX: 'Pix',
-      CASH: 'Dinheiro',
-      CREDIT_CARD: 'Cartão de crédito',
-      DEBIT_CARD: 'Cartão de débito',
-      BANK_TRANSFER: 'Transferência bancária',
-      BOLETO: 'Boleto',
-      CHECK: 'Cheque',
-      OTHER: 'Outro',
-    };
-
-    return labels[method] ?? method;
-  }
-
-  protected amountClasses(type: TransactionType): string {
-    return type === 'INCOME' ? 'text-success' : 'text-danger';
-  }
-
-  protected amountPrefix(type: TransactionType): string {
-    return type === 'INCOME' ? '+' : '-';
   }
 
   private createTransaction(payload: UpdateFinancialTransactionRequest): void {
@@ -1154,6 +1222,42 @@ export class TransactionsPage {
     this.toastStore.error('Você não tem permissão para realizar esta ação.');
   }
 
+  protected monthLabel(month: number): string {
+    return this.monthOptions.find((option) => option.value === month)?.label ?? '';
+  }
+
+  private setMonthlyPeriod(year: number, month: number, updateForm = true): void {
+    const periodChanged = this.monthlyYear() !== year || this.monthlyMonth() !== month;
+
+    if (updateForm) {
+      this.monthlyForm.setValue({ month, year }, { emitEvent: false });
+    }
+
+    this.monthlyMonth.set(month);
+    this.monthlyYear.set(year);
+
+    if (periodChanged && this.monthlyPage() !== 0) {
+      this.monthlyPage.set(0);
+      return;
+    }
+
+    if (periodChanged) {
+      this.monthlyReloadTrigger.update((value) => value + 1);
+    }
+  }
+
+  private monthStart(year: number, month: number): string {
+    return this.formatIsoDate(new Date(Date.UTC(year, month - 1, 1)));
+  }
+
+  private monthEnd(year: number, month: number): string {
+    return this.formatIsoDate(new Date(Date.UTC(year, month, 0)));
+  }
+
+  private formatIsoDate(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
   private resetDrawerState(): void {
     this.drawerOpen.set(false);
     this.editingTransaction.set(null);
@@ -1168,6 +1272,26 @@ export class TransactionsPage {
     this.loading.set(false);
     this.error.set(false);
     this.accessDenied.set(false);
+  }
+
+  private clearMonthlyListState(): void {
+    this.monthlyTransactions.set([]);
+    this.monthlyPage.set(0);
+    this.monthlyPageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
+    this.monthlyLoading.set(false);
+    this.monthlyError.set(false);
+  }
+
+  private handleMonthlyListError(error: unknown): void {
+    this.monthlyTransactions.set([]);
+    this.monthlyPageInfo.set({ totalPages: 0, totalElements: 0, first: true, last: true });
+
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      this.accessDenied.set(true);
+      return;
+    }
+
+    this.monthlyError.set(true);
   }
 
   private nullableString(value: GdFormValue): string | null {
