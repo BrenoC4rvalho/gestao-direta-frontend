@@ -527,6 +527,11 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(drawer.textContent).toContain('Projeção');
     expect(drawer.textContent).toContain('Realizado');
     expect(drawer.querySelectorAll('gd-summary-card').length).toBe(27);
+    const indicatorSections = Array.from(drawer.querySelectorAll('section[aria-label]'));
+    expect(indicatorSections[0].classList.contains('border-t')).toBe(false);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('border-t'))).toBe(true);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('border-border'))).toBe(true);
+    expect(indicatorSections.slice(1).every((section) => section.classList.contains('pt-6'))).toBe(true);
   });
 
   it('should close the detailed indicators drawer from its close button', async () => {
