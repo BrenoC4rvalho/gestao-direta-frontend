@@ -21,6 +21,7 @@ const frameDurationMs = 20;
       (closed)="close()"
     >
       Drawer content
+      <footer drawer-footer>Drawer footer</footer>
     </gd-drawer>
   `,
 })
@@ -67,6 +68,7 @@ describe('Drawer', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Drawer title');
     expect(fixture.nativeElement.textContent).toContain('Drawer content');
+    expect(fixture.nativeElement.textContent).toContain('Drawer footer');
     expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
 
     const content = fixture.nativeElement.querySelector('.overflow-y-auto') as HTMLElement;
@@ -206,6 +208,16 @@ describe('Drawer', () => {
     expect(content.classList.contains('px-4')).toBe(true);
     expect(content.classList.contains('pb-6')).toBe(true);
     expect(content.classList.contains('sm:px-5')).toBe(true);
+  });
+
+  it('should keep projected footer outside the scrollable viewport', () => {
+    openDrawer();
+
+    const viewport = fixture.nativeElement.querySelector('.overflow-y-auto') as HTMLElement;
+    const footer = fixture.nativeElement.querySelector('[drawer-footer]') as HTMLElement;
+
+    expect(viewport.contains(footer)).toBe(false);
+    expect(panel().contains(footer)).toBe(true);
   });
 
   it('should remove body scroll lock when destroyed while open', async () => {

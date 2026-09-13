@@ -1,7 +1,7 @@
 import { Component, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
@@ -11,6 +11,7 @@ import { HarvestSeasonService } from '../../core/services/harvest-season.service
 import { PendingFinancialTransactionService } from '../../core/services/pending-financial-transaction.service';
 import { ToastStore } from '../../core/stores/toast.store';
 import { ConfirmDialog } from '../../shared/overlays';
+import { TransactionForm } from '../transactions/components/transaction-form/transaction-form';
 
 import { PendingReviewDrawer } from './pending-review-drawer';
 
@@ -132,6 +133,83 @@ describe('PendingReviewDrawer', () => {
     expect(document.querySelector('#gd-confirm-dialog-title')).toBeNull();
   });
 
+  it('starts with movement data collapsed while approval and rejection actions remain available', () => {
+    const toggle = movementDataToggle();
+    const movementData = fixture.nativeElement.querySelector(
+      '#pending-movement-data',
+    ) as HTMLElement;
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(movementData.hidden).toBe(true);
+    expect(buttonNamed('Rejeitar')).toBeTruthy();
+    expect(buttonNamed('Aprovar')).toBeTruthy();
+  });
+
+  it('expands and collapses the movement data with the accessible toggle', () => {
+    const toggle = movementDataToggle();
+    const movementData = fixture.nativeElement.querySelector(
+      '#pending-movement-data',
+    ) as HTMLElement;
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(movementData.hidden).toBe(false);
+    expect(movementData.textContent).toContain('Descrição');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(movementData.hidden).toBe(true);
+  });
+
+  it('preserves form values when movement data is collapsed and expanded again', () => {
+    movementDataToggle().click();
+    fixture.detectChanges();
+    const description = fixture.nativeElement.querySelector(
+      '#transaction-description',
+    ) as HTMLInputElement;
+    description.value = 'Diesel para o trator';
+    description.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    movementDataToggle().click();
+    fixture.detectChanges();
+    movementDataToggle().click();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement.querySelector('#transaction-description') as HTMLInputElement).value,
+    ).toBe('Diesel para o trator');
+  });
+
+  it('approves valid data while the movement section is collapsed', () => {
+    clickButton('Aprovar');
+    fixture.detectChanges();
+
+    expect(movementDataToggle().getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.textContent).toContain('Aprovar movimentação?');
+  });
+
+  it('expands movement data when approval finds validation errors', () => {
+    movementDataToggle().click();
+    fixture.detectChanges();
+    const transactionForm = fixture.debugElement.query(By.directive(TransactionForm))
+      .componentInstance as unknown as { form: FormGroup };
+    transactionForm.form.get('description')?.setValue('');
+    fixture.detectChanges();
+    movementDataToggle().click();
+    fixture.detectChanges();
+
+    clickButton('Aprovar');
+    fixture.detectChanges();
+
+    expect(movementDataToggle().getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Informe a descrição.');
+  });
+
   it('cancels rejection without closing the drawer', () => {
     clickButton('Rejeitar');
     fixture.detectChanges();
@@ -193,6 +271,12 @@ describe('PendingReviewDrawer', () => {
   function buttonNamed(label: string): HTMLButtonElement {
     return [...fixture.nativeElement.querySelectorAll('button')].find(
       (button: HTMLButtonElement) => button.textContent?.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function movementDataToggle(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector(
+      'button[aria-controls="pending-movement-data"]',
     ) as HTMLButtonElement;
   }
 

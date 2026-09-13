@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
 
 import { FinancialCategory } from '../../core/models/financial-category.models';
@@ -44,6 +45,7 @@ import { TransactionForm } from '../transactions/components/transaction-form/tra
     ConfirmDialog,
     Drawer,
     ErrorState,
+    LucideDynamicIcon,
     Skeleton,
     Textarea,
     TransactionForm,
@@ -73,6 +75,7 @@ export class PendingReviewDrawer {
   protected readonly rejecting = signal(false);
   protected readonly approveConfirm = signal(false);
   protected readonly rejectionMode = signal(false);
+  protected readonly movementDataExpanded = signal(false);
   protected readonly approvalRequest = signal<ApprovePendingFinancialTransactionRequest | null>(
     null,
   );
@@ -126,6 +129,14 @@ export class PendingReviewDrawer {
 
   protected submitReview(): void {
     document.querySelector<HTMLFormElement>('gd-pending-review-drawer form')?.requestSubmit();
+  }
+
+  protected toggleMovementData(): void {
+    this.movementDataExpanded.update((expanded) => !expanded);
+  }
+
+  protected showMovementDataErrors(): void {
+    this.movementDataExpanded.set(true);
   }
 
   protected requestApproval(value: UpdateFinancialTransactionRequest): void {
@@ -188,6 +199,7 @@ export class PendingReviewDrawer {
     this.error.set(false);
     this.approvalRequest.set(null);
     this.rejectionMode.set(false);
+    this.movementDataExpanded.set(false);
     this.rejectionReason.reset('');
 
     this.service

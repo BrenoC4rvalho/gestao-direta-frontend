@@ -37,8 +37,10 @@
 
     <div #scrollViewport [class]="scrollViewportClasses()">
       <div #scrollContent [class]="scrollContentClasses()">
-        <ng-content />
+        <ng-content select=":not([drawer-footer])" />
       </div>
     </div>
+
+    <ng-content select="[drawer-footer]" />
   </section>
 }

@@ -19,7 +19,7 @@
       />
     </div>
   } @else if (detail(); as item) {
-    <div class="space-y-6 p-5">
+    <div class="space-y-6">
       <section class="text-sm">
         <h3 class="font-semibold text-text-primary">Dados de origem</h3>
         <dl class="mt-3 grid gap-3 sm:grid-cols-2">
@@ -83,57 +83,43 @@
                 [maxlength]="500"
               />
             </div>
-            <div
-              class="mt-4 flex flex-col gap-2 border-t border-danger/20 pt-4 sm:flex-row sm:justify-end"
-            >
-              <gd-button
-                type="button"
-                variant="outline"
-                [disabled]="rejecting()"
-                (click)="rejectionMode.set(false)"
-              >
-                Cancelar
-              </gd-button>
-              <gd-button type="button" variant="danger" [loading]="rejecting()" (click)="reject()">
-                Confirmar rejeição
-              </gd-button>
-            </div>
           </section>
         } @else {
-          <section>
-            <h3 class="font-semibold text-text-primary">Dados da movimentação</h3>
-            <p class="mt-1 text-sm text-text-muted">Revise e complete os dados identificados.</p>
-          </section>
-          <gd-transaction-form
-            [draft]="reviewDraft()"
-            [categories]="categories()"
-            [harvestSeasons]="harvestSeasons()"
-            [open]="open()"
-            [submitting]="approving()"
-            [showActions]="false"
-            [paymentStatuses]="approvalStatuses"
-            [missingFields]="item.missingFields"
-            (submitted)="requestApproval($event)"
-          />
-
-          <section class="border-t border-border pt-4">
-            <h3 class="font-semibold text-text-primary">Informações financeiras e observações</h3>
-            <p class="mt-1 text-sm text-text-muted">Categoria, pagamento, safra e observações podem ser ajustados no formulário.</p>
-          </section>
-
-          <div class="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <gd-button
+          <section class="border-y border-border">
+            <button
               type="button"
-              variant="danger"
-              [disabled]="approving()"
-              (click)="rejectionMode.set(true)"
+              class="flex w-full cursor-pointer items-center justify-between gap-4 px-1 py-4 text-left transition-colors hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              [attr.aria-expanded]="movementDataExpanded()"
+              aria-controls="pending-movement-data"
+              (click)="toggleMovementData()"
             >
-              Rejeitar
-            </gd-button>
-            <gd-button type="button" [loading]="approving()" (click)="submitReview()">
-              Aprovar
-            </gd-button>
-          </div>
+              <span>
+                <span class="block font-semibold text-text-primary">Dados da movimentação</span>
+                <span class="mt-1 block text-sm text-text-muted">
+                  Revise ou edite os dados identificados.
+                </span>
+              </span>
+              <svg
+                [lucideIcon]="movementDataExpanded() ? 'chevron-up' : 'chevron-down'"
+                class="size-5 shrink-0 text-text-muted"
+                aria-hidden="true"
+              ></svg>
+            </button>
+            <div id="pending-movement-data" [hidden]="!movementDataExpanded()" class="pb-4">
+              <gd-transaction-form
+                [draft]="reviewDraft()"
+                [categories]="categories()"
+                [harvestSeasons]="harvestSeasons()"
+                [open]="open()"
+                [submitting]="approving()"
+                [showActions]="false"
+                [paymentStatuses]="approvalStatuses"
+                [missingFields]="item.missingFields"
+                (submitted)="requestApproval($event)"
+                (invalidSubmitted)="showMovementDataErrors()"
+              />
+            </div>
+          </section>
         }
       } @else {
         <gd-badge [variant]="item.status === 'APPROVED' ? 'success' : 'danger'">
@@ -147,6 +133,39 @@
         }
       }
     </div>
+  }
+  @if (detail()?.status === 'PENDING_REVIEW') {
+    <footer drawer-footer class="shrink-0 border-t border-border bg-surface px-5 py-4">
+      @if (rejectionMode()) {
+        <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <gd-button
+            type="button"
+            variant="outline"
+            [disabled]="rejecting()"
+            (click)="rejectionMode.set(false)"
+          >
+            Cancelar
+          </gd-button>
+          <gd-button type="button" variant="danger" [loading]="rejecting()" (click)="reject()">
+            Confirmar rejeição
+          </gd-button>
+        </div>
+      } @else {
+        <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <gd-button
+            type="button"
+            variant="danger"
+            [disabled]="approving()"
+            (click)="rejectionMode.set(true)"
+          >
+            Rejeitar
+          </gd-button>
+          <gd-button type="button" [loading]="approving()" (click)="submitReview()">
+            Aprovar
+          </gd-button>
+        </div>
+      }
+    </footer>
   }
 </gd-drawer>
 

@@ -71,6 +71,7 @@ export class TransactionForm {
   readonly missingFields = input<readonly string[]>([]);
 
   readonly submitted = output<UpdateFinancialTransactionRequest>();
+  readonly invalidSubmitted = output<void>();
   readonly cancelled = output<void>();
 
   protected readonly selectedType = signal<TransactionType | null>('EXPENSE');
@@ -237,6 +238,7 @@ export class TransactionForm {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.invalidSubmitted.emit();
       return;
     }
 
