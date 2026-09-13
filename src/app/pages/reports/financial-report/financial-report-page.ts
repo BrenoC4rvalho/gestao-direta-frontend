@@ -389,6 +389,7 @@ export class FinancialReportPage {
   protected applyFilters(): void {
     if (this.filterForm.invalid) {
       this.filterForm.markAllAsTouched();
+      this.filtersDialogOpen.set(true);
       return;
     }
 
@@ -589,7 +590,7 @@ export class FinancialReportPage {
     }
 
     if (metric.percentageDifference === null) {
-      return 'Sem base percentual';
+      return 'Sem base de comparação';
     }
 
     if (metric.semantic === 'NEUTRAL') {

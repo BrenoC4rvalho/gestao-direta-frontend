@@ -270,8 +270,8 @@ describe('HarvestsPage', () => {
       fixture.nativeElement.querySelector('section[aria-label="Resumo financeiro das safras"]'),
     ).toBeNull();
     expect(text()).not.toContain('Safras ativas');
-    expect(text()).toContain('Resultado financeiro');
-    expect(text()).toContain('72.500,00');
+    expect(text()).toContain('Indicadores do planejamento');
+    expect(text()).toContain('60.000,00');
   });
 
   it('should finish loading after a successful PageResponse and avoid reloading in a loop', () => {

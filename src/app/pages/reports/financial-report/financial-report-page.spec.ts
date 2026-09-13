@@ -509,17 +509,18 @@ describe('FinancialReportPage', () => {
 
     expect(card('Receitas realizadas').comparison?.label).toBe('Sem base de comparação');
 
-    value.comparison = {
+    const comparisonWithZeroBase = {
       ...value.comparison,
       previousDataAvailable: true,
       realizedIncome: {
         ...value.comparison.realizedIncome,
         previousValue: 0,
+        percentageDifference: null,
       },
     };
-    setReport(value);
+    setReport({ ...value, comparison: comparisonWithZeroBase });
 
-    expect(card('Receitas realizadas').comparison?.label).toBe('Sem base percentual');
+    expect(card('Receitas realizadas').comparison?.label).toBe('Sem base de comparação');
     expect(card('Receitas realizadas').comparison?.tooltip).toContain('Valor anterior: R$ 0,00');
   });
 
@@ -872,6 +873,7 @@ describe('FinancialReportPage', () => {
     fixture.detectChanges();
     expect(component.filterForm.hasError('maxPeriod')).toBe(true);
     expect(financialService.getFinancialReport).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain(
       'O período do relatório não pode ultrapassar 12 meses.',
     );
@@ -890,6 +892,7 @@ describe('FinancialReportPage', () => {
 
     expect(component.filterForm.hasError('dateOrder')).toBe(true);
     expect(financialService.getFinancialReport).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain(
       'A data final deve ser igual ou posterior à data inicial.',
     );
