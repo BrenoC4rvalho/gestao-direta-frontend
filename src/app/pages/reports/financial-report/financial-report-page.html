@@ -16,7 +16,42 @@
       icon="alert-circle"
     />
   } @else {
-    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+    <gd-card class="block">
+      <section aria-labelledby="financial-report-applied-filters-title">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span
+                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary"
+                aria-hidden="true"
+              >
+                <svg lucideIcon="filter" class="size-4"></svg>
+              </span>
+              <h2 id="financial-report-applied-filters-title" class="text-base font-semibold text-text-primary">
+                Filtros aplicados
+              </h2>
+            </div>
+            <p class="mt-2 text-sm leading-5 text-text-muted">
+              Período, regime, safra e categoria do relatório.
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2" aria-label="Filtros atualmente aplicados">
+              @for (filter of appliedFilterChips(); track filter.label) {
+                <span class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-text-muted">
+                  <svg [lucideIcon]="filter.icon" class="size-3.5 shrink-0 text-primary" aria-hidden="true"></svg>
+                  <span class="truncate">{{ filter.label }}</span>
+                </span>
+              }
+            </div>
+          </div>
+          <gd-button type="button" variant="outline" (click)="openFiltersDialog()">
+            <svg lucideIcon="pencil" class="size-4" aria-hidden="true"></svg>
+            Editar filtros
+          </gd-button>
+        </div>
+      </section>
+    </gd-card>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
       <gd-button
         type="button"
         variant="outline"
@@ -27,7 +62,11 @@
         <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
         Exportar PDF
       </gd-button
-      ><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button>
+      ><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button
+      ><gd-button type="button" variant="outline" (click)="openIndicatorsDrawer()">
+        <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
+        Ver todos os indicadores
+      </gd-button>
     </div>
     @if (reportLoading()) {
       <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -41,13 +80,7 @@
       </div>
     } @else if (report(); as report) {
       <section aria-label="Visão consolidada">
-        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="text-sm font-semibold text-text-primary">Visão consolidada</h2>
-          <gd-button type="button" variant="outline" size="sm" (click)="openIndicatorsDrawer()">
-            <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
-            Ver todos os indicadores
-          </gd-button>
-        </div>
+        <h2 class="mb-3 text-sm font-semibold text-text-primary">Visão consolidada</h2>
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
           @for (card of primaryIndicatorCards(); track card.title) {
             <gd-summary-card
@@ -65,77 +98,6 @@
         </div>
       </section>
     }
-    <gd-card class="block"
-      ><form
-        class="space-y-5"
-        [formGroup]="filterForm"
-        (ngSubmit)="applyFilters()"
-        aria-label="Filtros do relatório financeiro"
-      >
-        <div class="flex min-w-0 items-start gap-3">
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-highlight-soft text-primary"
-            aria-hidden="true"
-          >
-            <svg lucideIcon="filter" class="size-5"></svg>
-          </span>
-          <div class="min-w-0">
-            <h2 class="text-base font-semibold text-text-primary">Filtros</h2>
-            <p class="mt-1 text-sm leading-5 text-text-muted">
-              Filtre o relatório por período, regime, safra e categoria.
-            </p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
-          <gd-input
-            id="financial-report-start-date"
-            label="Data inicial"
-            type="date"
-            [control]="control('startDate')"
-            [required]="true"
-            [errorMessage]="dateFieldError('startDate')"
-          /><gd-input
-            id="financial-report-end-date"
-            label="Data final"
-            type="date"
-            [control]="control('endDate')"
-            [required]="true"
-            [errorMessage]="dateFieldError('endDate')"
-          /><gd-select
-            id="financial-report-basis"
-            label="Regime"
-            labelTooltipAriaLabel="Entenda o regime financeiro"
-            [labelTooltip]="basisTooltip"
-            [control]="control('basis')"
-            [options]="basisOptions"
-          /><gd-select
-            id="financial-report-harvest"
-            label="Safra"
-            placeholder="Todas"
-            [control]="control('harvestSeasonId')"
-            [options]="harvestOptions()"
-          /><gd-select
-            id="financial-report-category"
-            label="Categoria"
-            placeholder="Todas"
-            [control]="control('categoryId')"
-            [options]="categoryOptions()"
-          />
-        </div>
-        @if (periodError(); as error) {
-          <p class="flex items-center gap-2 text-sm text-danger" role="alert">
-            <svg lucideIcon="alert-circle" class="size-4 shrink-0" aria-hidden="true"></svg>
-            {{ error }}
-          </p>
-        }
-        <div
-          class="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end"
-        >
-          <gd-button type="button" variant="outline" (click)="resetFilters()">Limpar</gd-button
-          ><gd-button type="submit" [disabled]="filterForm.invalid">Aplicar filtros</gd-button>
-        </div>
-      </form></gd-card
-    >
     @if (reportLoading()) {
       <div class="grid gap-6 xl:grid-cols-3">
         <gd-card class="xl:col-span-2"><gd-skeleton height="20rem" /></gd-card
@@ -509,6 +471,74 @@
     }
   }
 </section>
+
+<gd-dialog
+  [open]="filtersDialogOpen()"
+  title="Editar filtros do relatório"
+  description="Selecione os filtros para gerar o relatório."
+  size="md"
+  (closed)="closeFiltersDialog()"
+>
+  <form
+    class="space-y-5"
+    [formGroup]="filterForm"
+    (ngSubmit)="applyFilters()"
+    aria-label="Editar filtros do relatório financeiro"
+  >
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <gd-input
+        id="financial-report-start-date"
+        label="Data inicial"
+        type="date"
+        [control]="control('startDate')"
+        [required]="true"
+        [errorMessage]="dateFieldError('startDate')"
+      /><gd-input
+        id="financial-report-end-date"
+        label="Data final"
+        type="date"
+        [control]="control('endDate')"
+        [required]="true"
+        [errorMessage]="dateFieldError('endDate')"
+      />
+    </div>
+    <div class="grid grid-cols-1 gap-4">
+      <gd-select
+        id="financial-report-basis"
+        label="Regime"
+        labelTooltipAriaLabel="Entenda o regime financeiro"
+        [labelTooltip]="basisTooltip"
+        [control]="control('basis')"
+        [options]="basisOptions"
+      /><gd-select
+        id="financial-report-harvest"
+        label="Safra"
+        placeholder="Todas"
+        [control]="control('harvestSeasonId')"
+        [options]="harvestOptions()"
+      /><gd-select
+        id="financial-report-category"
+        label="Categoria"
+        placeholder="Todas"
+        [control]="control('categoryId')"
+        [options]="categoryOptions()"
+      />
+    </div>
+    @if (periodError(); as error) {
+      <p class="flex items-center gap-2 text-sm text-danger" role="alert">
+        <svg lucideIcon="alert-circle" class="size-4 shrink-0" aria-hidden="true"></svg>
+        {{ error }}
+      </p>
+    }
+    <div class="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <gd-button type="button" variant="ghost" (click)="resetFilters()">Limpar filtros</gd-button>
+      <div class="flex flex-col-reverse gap-2 sm:flex-row">
+        <gd-button type="button" variant="outline" (click)="closeFiltersDialog()">Cancelar</gd-button>
+        <gd-button type="submit" [disabled]="filterForm.invalid">Aplicar filtros</gd-button>
+      </div>
+    </div>
+  </form>
+</gd-dialog>
 
 <gd-drawer
   [open]="indicatorsDrawerOpen()"

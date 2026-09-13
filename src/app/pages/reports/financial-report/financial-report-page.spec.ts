@@ -349,6 +349,104 @@ describe('FinancialReportPage', () => {
     ]);
   });
 
+  it('should show applied filters in chips and discard modal edits when cancelled', () => {
+    const appliedFilters = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="financial-report-applied-filters-title"]',
+    ) as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      filterForm: FormGroup;
+      harvestOptions: { set: (value: readonly { label: string; value: number }[]) => void };
+      categoryOptions: { set: (value: readonly { label: string; value: number }[]) => void };
+    };
+
+    component.harvestOptions.set([{ label: 'Café 2026/2027', value: 7 }]);
+    component.categoryOptions.set([{ label: 'Insumos', value: 9 }]);
+
+    expect(appliedFilters.textContent).toContain('Filtros aplicados');
+    expect(appliedFilters.textContent).toContain('01/01/2026 a 31/12/2026');
+    expect(appliedFilters.textContent).toContain('Regime de caixa');
+    expect(appliedFilters.textContent).toContain('Todas as safras');
+    expect(appliedFilters.textContent).toContain('Todas as categorias');
+
+    button('Editar filtros').click();
+    fixture.detectChanges();
+    component.filterForm.patchValue({ startDate: '2026-03-01' });
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('gd-dialog [role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain('Editar filtros do relatório');
+    expect(dialog.textContent).toContain('Selecione os filtros para gerar o relatório.');
+
+    Array.from(dialog.querySelectorAll('button'))
+      .find((element) => element.textContent?.trim() === 'Cancelar')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(component.filterForm.controls['startDate'].value).toBe('2026-01-01');
+    expect(appliedFilters.textContent).toContain('01/01/2026 a 31/12/2026');
+  });
+
+  it('should apply modal filters, update chips and keep clear filters applied', () => {
+    const component = fixture.componentInstance as unknown as {
+      filterForm: FormGroup;
+      harvestOptions: { set: (value: readonly { label: string; value: number }[]) => void };
+      categoryOptions: { set: (value: readonly { label: string; value: number }[]) => void };
+    };
+
+    component.harvestOptions.set([{ label: 'Café 2026/2027', value: 7 }]);
+    component.categoryOptions.set([{ label: 'Insumos', value: 9 }]);
+
+    button('Editar filtros').click();
+    fixture.detectChanges();
+    component.filterForm.patchValue({
+      startDate: '2026-03-01',
+      endDate: '2026-03-31',
+      basis: 'ACCRUAL',
+      harvestSeasonId: 7,
+      categoryId: 9,
+    });
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('gd-dialog [role="dialog"]') as HTMLElement;
+    Array.from(dialog.querySelectorAll('button'))
+      .find((element) => element.textContent?.trim() === 'Aplicar filtros')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('01/03/2026 a 31/03/2026');
+    expect(fixture.nativeElement.textContent).toContain('Regime de competência');
+    expect(fixture.nativeElement.textContent).toContain('Café 2026/2027');
+    expect(fixture.nativeElement.textContent).toContain('Insumos');
+    expect(financialService.getFinancialReport).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        startDate: '2026-03-01',
+        endDate: '2026-03-31',
+        basis: 'ACCRUAL',
+        harvestSeasonIds: [7],
+        categoryIds: [9],
+      }),
+    );
+
+    button('Editar filtros').click();
+    fixture.detectChanges();
+    const clearDialog = fixture.nativeElement.querySelector('gd-dialog [role="dialog"]') as HTMLElement;
+    Array.from(clearDialog.querySelectorAll('button'))
+      .find((element) => element.textContent?.trim() === 'Limpar filtros')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('gd-dialog [role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('01/01/2026 a 31/12/2026');
+    expect(financialService.getFinancialReport).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        basis: 'CASH',
+        harvestSeasonIds: [],
+        categoryIds: [],
+      }),
+    );
+  });
+
   it('should apply temporal comparison only to the requested realized indicators', () => {
     expect(card('Margem').comparison).toBeUndefined();
     expect(card('Receitas realizadas').comparison).toMatchObject({

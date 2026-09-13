@@ -190,7 +190,7 @@ export class SummaryCard {
     if (semantic === 'WORSE') {
       return 'trending-down';
     }
-    return 'minus';
+    return 'circle-off';
   }
 
   private surfaceClasses(): string {

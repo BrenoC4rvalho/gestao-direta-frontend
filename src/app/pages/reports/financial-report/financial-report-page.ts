@@ -52,7 +52,7 @@ import {
   SummaryCardComparison,
   Tooltip,
 } from '../../../shared/ui';
-import { Drawer } from '../../../shared/overlays';
+import { Dialog, Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 import { FinancialCashFlowChart } from './components/financial-cash-flow-chart/financial-cash-flow-chart';
 import { FinancialIncomeExpenseChart } from './components/financial-income-expense-chart/financial-income-expense-chart';
@@ -93,6 +93,7 @@ const percentageFormatter = new Intl.NumberFormat('pt-BR', {
   minimumFractionDigits: 1,
 });
 const reportDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
+const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' });
 
 @Component({
   selector: 'gd-financial-report-page',
@@ -102,6 +103,7 @@ const reportDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }
     Card,
     EmptyState,
     ErrorState,
+    Dialog,
     Drawer,
     FinancialEvolutionChart,
     FinancialCashFlowChart,
@@ -136,6 +138,7 @@ export class FinancialReportPage {
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
   protected readonly exportingPdf = signal(false);
+  protected readonly filtersDialogOpen = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
   protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
@@ -165,6 +168,27 @@ export class FinancialReportPage {
     'Considera a data em que a movimentação foi registrada.',
   ].join('\n');
   private readonly appliedFilters = signal(DEFAULT_FILTERS);
+  protected readonly appliedFilterChips = computed(() => {
+    const filters = this.appliedFilters();
+    return [
+      {
+        icon: 'calendar-days',
+        label: `${this.formatAppliedFilterDate(filters.startDate)} a ${this.formatAppliedFilterDate(filters.endDate)}`,
+      },
+      {
+        icon: 'wallet',
+        label: filters.basis === 'ACCRUAL' ? 'Regime de competência' : 'Regime de caixa',
+      },
+      {
+        icon: 'sprout',
+        label: this.appliedOptionLabel(filters.harvestSeasonId, this.harvestOptions(), 'Todas as safras'),
+      },
+      {
+        icon: 'tags',
+        label: this.appliedOptionLabel(filters.categoryId, this.categoryOptions(), 'Todas as categorias'),
+      },
+    ];
+  });
   protected readonly canViewReport = computed(
     () =>
       this.sessionStore.isAdmin() ||
@@ -379,6 +403,7 @@ export class FinancialReportPage {
       categoryId: this.optionId(value.categoryId),
     });
     this.reload.update((value) => value + 1);
+    this.filtersDialogOpen.set(false);
   }
   protected resetFilters(): void {
     this.filterForm.reset({
@@ -390,6 +415,14 @@ export class FinancialReportPage {
     });
     this.appliedFilters.set(DEFAULT_FILTERS);
     this.reload.update((value) => value + 1);
+  }
+  protected openFiltersDialog(): void {
+    this.restoreDraftFilters();
+    this.filtersDialogOpen.set(true);
+  }
+  protected closeFiltersDialog(): void {
+    this.restoreDraftFilters();
+    this.filtersDialogOpen.set(false);
   }
   protected retry(): void {
     this.reload.update((value) => value + 1);
@@ -776,6 +809,33 @@ export class FinancialReportPage {
     this.categoryOptions.set([]);
     this.filterForm.patchValue({ harvestSeasonId: '', categoryId: '' });
     this.appliedFilters.update((value) => ({ ...value, harvestSeasonId: null, categoryId: null }));
+    this.filtersDialogOpen.set(false);
+  }
+
+  private restoreDraftFilters(): void {
+    const filters = this.appliedFilters();
+    this.filterForm.reset(
+      {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        basis: filters.basis,
+        harvestSeasonId: filters.harvestSeasonId ?? '',
+        categoryId: filters.categoryId ?? '',
+      },
+      { emitEvent: false },
+    );
+  }
+
+  private appliedOptionLabel(
+    id: number | null,
+    options: readonly GdSelectOption[],
+    fallback: string,
+  ): string {
+    return id === null ? fallback : options.find((option) => option.value === id)?.label ?? fallback;
+  }
+
+  private formatAppliedFilterDate(value: string): string {
+    return appliedFilterDateFormatter.format(new Date(`${value}T00:00:00Z`));
   }
   private optionId(value: GdFormValue): number | null {
     return typeof value === 'number' ? value : null;
