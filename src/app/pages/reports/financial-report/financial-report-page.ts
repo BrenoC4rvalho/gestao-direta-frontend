@@ -20,8 +20,10 @@ import {
   Validators,
 } from '@angular/forms';
 import { LucideDynamicIcon } from '@lucide/angular';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
+import { provideFinancialReportLucideIcons } from '../../../core/constants/lucide-icons';
 import {
   FinancialReportBasis,
   FinancialCategorySummaryGroup,
@@ -117,6 +119,7 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
     SummaryCard,
     Tooltip,
   ],
+  providers: [provideFinancialReportLucideIcons(), provideCharts(withDefaultRegisterables())],
   templateUrl: './financial-report-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

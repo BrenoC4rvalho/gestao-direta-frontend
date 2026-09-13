@@ -14,8 +14,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 
+import { provideDashboardLucideIcons } from '../../core/constants/lucide-icons';
 import { ParsedTransactionResponse } from '../../core/models/ai-transaction.models';
 import { FinancialCategory } from '../../core/models/financial-category.models';
 import {
@@ -80,6 +82,7 @@ interface SummaryCardViewModel {
 
 @Component({
   selector: 'gd-dashboard-page',
+  providers: [provideDashboardLucideIcons(), provideCharts(withDefaultRegisterables())],
   imports: [
     Badge,
     Button,

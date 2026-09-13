@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, finalize } from 'rxjs';
 
+import { provideAppLayoutLucideIcons } from '../../core/constants/lucide-icons';
 import { DashboardAiTransactionActionService } from '../../core/services/dashboard-ai-transaction-action.service';
 import { FarmAccessService } from '../../core/services/farm-access.service';
 import { FarmService } from '../../core/services/farm.service';
@@ -43,6 +44,7 @@ interface PageHeaderData {
     Badge,
     Skeleton,
   ],
+  providers: [provideAppLayoutLucideIcons()],
   templateUrl: './app-layout.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

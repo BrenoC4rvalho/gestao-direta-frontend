@@ -22,6 +22,7 @@ import { Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
+import { provideHarvestsLucideIcons } from '../../core/constants/lucide-icons';
 import {
   HarvestSeasonFilters,
   HarvestPlanningComparisonMetric,
@@ -99,6 +100,7 @@ interface HarvestFormControls {
     Tooltip,
     Textarea,
   ],
+  providers: [provideHarvestsLucideIcons()],
   templateUrl: './harvests-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

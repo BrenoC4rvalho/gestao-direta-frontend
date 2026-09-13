@@ -23,8 +23,10 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { finalize, Observable } from 'rxjs';
 
+import { provideHarvestsLucideIcons } from '../../core/constants/lucide-icons';
 import {
   HarvestSeason,
   HarvestSeasonBudget,
@@ -148,6 +150,7 @@ interface StatusTarget {
 
 @Component({
   selector: 'gd-harvest-season-details-page',
+  providers: [provideHarvestsLucideIcons(), provideCharts(withDefaultRegisterables())],
   imports: [
     Badge,
     BrCurrencyPipe,
