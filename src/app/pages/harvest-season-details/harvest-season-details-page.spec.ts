@@ -333,7 +333,7 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(text()).not.toContain('Custo planejado');
     expect(text()).not.toContain('Indicadores por hectare');
 
-    clickButton('Ver todos os indicadores');
+    clickButton('Indicadores');
 
     expect(text()).toContain('98.800,00');
     expect(sectionHeadingTexts()).toContain('Movimentações vinculadas · 3');
@@ -476,7 +476,7 @@ describe('HarvestSeasonDetailsPage', () => {
   it('should render pending and overdue amounts without counts', () => {
     setupUser('PRODUCER');
     createComponent();
-    clickButton('Ver todos os indicadores');
+    clickButton('Indicadores');
 
     const cards = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
@@ -494,7 +494,7 @@ describe('HarvestSeasonDetailsPage', () => {
   it('should use a positive tone for cost below planned', () => {
     setupUser('PRODUCER');
     createComponent();
-    clickButton('Ver todos os indicadores');
+    clickButton('Indicadores');
 
     const card = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('gd-summary-card'),
@@ -511,7 +511,7 @@ describe('HarvestSeasonDetailsPage', () => {
     setupUser('PRODUCER');
     createComponent();
 
-    clickButton('Ver todos os indicadores');
+    clickButton('Indicadores');
 
     const drawer = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
 
@@ -537,7 +537,7 @@ describe('HarvestSeasonDetailsPage', () => {
   it('should close the detailed indicators drawer from its close button', async () => {
     setupUser('PRODUCER');
     createComponent();
-    clickButton('Ver todos os indicadores');
+    clickButton('Indicadores');
 
     (
       fixture.nativeElement.querySelector('[aria-label="Fechar drawer"]') as HTMLButtonElement

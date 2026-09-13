@@ -470,7 +470,7 @@ describe('FinancialReportPage', () => {
     expect(consolidatedSection.textContent).not.toContain('2,4% pior');
     expect(consolidatedSection.textContent).not.toContain('Sem base percentual');
 
-    button('Ver todos os indicadores').click();
+    button('Indicadores').click();
     fixture.detectChanges();
 
     const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
@@ -589,6 +589,13 @@ describe('FinancialReportPage', () => {
 
     expect(exportButton.disabled).toBe(false);
     expect(exportButton.textContent).toContain('Exportar PDF');
+  });
+
+  it('should show an enabled spreadsheet export action when the report is available', () => {
+    const exportButton = button('Exportar planilha');
+
+    expect(exportButton.disabled).toBe(false);
+    expect(exportButton.textContent).toContain('Exportar planilha');
   });
 
   it('should switch evolution granularity without reloading the page', () => {
@@ -726,7 +733,7 @@ describe('FinancialReportPage', () => {
   });
 
   it('should open the detailed indicators dialog with every summary group', () => {
-    button('Ver todos os indicadores').click();
+    button('Indicadores').click();
     fixture.detectChanges();
 
     const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
@@ -770,7 +777,7 @@ describe('FinancialReportPage', () => {
   });
 
   it('should close the detailed indicators dialog from its close button and Escape', async () => {
-    button('Ver todos os indicadores').click();
+    button('Indicadores').click();
     fixture.detectChanges();
 
     closeButton().click();
@@ -779,7 +786,7 @@ describe('FinancialReportPage', () => {
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
 
-    button('Ver todos os indicadores').click();
+    button('Indicadores').click();
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();

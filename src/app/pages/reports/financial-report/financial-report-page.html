@@ -51,23 +51,6 @@
       </section>
     </gd-card>
 
-    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-      <gd-button
-        type="button"
-        variant="outline"
-        [loading]="exportingPdf()"
-        [disabled]="!canExportPdf()"
-        (click)="exportPdf()"
-      >
-        <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
-        Exportar PDF
-      </gd-button
-      ><gd-button variant="outline" [disabled]="true">Baixar planilha</gd-button
-      ><gd-button type="button" variant="outline" (click)="openIndicatorsDrawer()">
-        <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
-        Ver todos os indicadores
-      </gd-button>
-    </div>
     @if (reportLoading()) {
       <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         @for (item of [1, 2, 3, 4]; track item) {
@@ -80,7 +63,32 @@
       </div>
     } @else if (report(); as report) {
       <section aria-label="Visão consolidada">
-        <h2 class="mb-3 text-sm font-semibold text-text-primary">Visão consolidada</h2>
+        <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <h2 class="flex items-center gap-2 text-lg font-semibold text-text-primary">
+            <svg lucideIcon="layout-dashboard" class="size-5 text-primary" aria-hidden="true"></svg>
+            Visão consolidada
+          </h2>
+          <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+            <gd-button
+              type="button"
+              variant="outline"
+              [loading]="exportingPdf()"
+              [disabled]="!canExportPdf()"
+              (click)="exportPdf()"
+            >
+              <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
+              Exportar PDF
+            </gd-button>
+            <gd-button type="button" variant="outline">
+              <svg lucideIcon="file-spreadsheet" class="size-4" aria-hidden="true"></svg>
+              Exportar planilha
+            </gd-button>
+            <gd-button type="button" variant="outline" (click)="openIndicatorsDrawer()">
+              <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
+              Indicadores
+            </gd-button>
+          </div>
+        </div>
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
           @for (card of primaryIndicatorCards(); track card.title) {
             <gd-summary-card
