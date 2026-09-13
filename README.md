@@ -28,7 +28,6 @@ Esta SPA Angular consome a API do Gestão Direta. Ela possui uma landing page p�
 | Chart.js / ng2-charts | `4.5.1` / `10.0.0` | Gráficos financeiros. |
 | Vitest | `4.0.8` | Testes unitários via Angular CLI. |
 | ESLint | `9.39.5` | Análise estática. |
-| Playwright | `1.62.1` | Roteiro de vídeo demonstrativo. |
 
 ## Arquitetura do frontend
 
@@ -154,14 +153,6 @@ Os testes unitários usam o Angular CLI com Vitest:
 ```bash
 npm test
 ```
-
-O projeto também possui configuração Playwright e um roteiro de vídeo:
-
-```bash
-npm run demo:video
-```
-
-Esse roteiro exige backend, credenciais e uma fazenda de demonstração; cria e atualiza uma atividade com prefixo `[DEMO]`. Leia `demo/README.md` antes de executá-lo.
 
 ## Qualidade e build
 
