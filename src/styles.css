@@ -41,14 +41,14 @@
 
 .dark {
   color-scheme: dark;
-  --gd-background: #0b1410;
-  --gd-background-secondary: #111c17;
-  --gd-surface: #16231d;
-  --gd-border: #263a30;
-  --gd-highlight-soft: #143d25;
-  --gd-primary-hover: #16a34a;
-  --gd-text-primary: #e5e7eb;
-  --gd-text-muted: #9ca3af;
+  --gd-background: #101418;
+  --gd-background-secondary: #151b20;
+  --gd-surface: #1b2329;
+  --gd-border: #303b43;
+  --gd-highlight-soft: #173a2a;
+  --gd-primary-hover: #168052;
+  --gd-text-primary: #edf2f5;
+  --gd-text-muted: #a6b3bc;
   --gd-shadow-soft: 0 12px 32px rgb(0 0 0 / 0.28);
 }
 
