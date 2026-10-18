@@ -60,6 +60,7 @@ import { Dialog, Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 import { FinancialCashFlowChart } from './components/financial-cash-flow-chart/financial-cash-flow-chart';
 import { FinancialCommitmentStatusComponent } from './components/financial-commitment-status/financial-commitment-status';
+import { FinancialHarvestSummaryChart } from './components/financial-harvest-summary-chart/financial-harvest-summary-chart';
 
 interface AppliedReportFilters {
   startDate: string;
@@ -111,6 +112,7 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
     FinancialEvolutionChart,
     FinancialCashFlowChart,
     FinancialCommitmentStatusComponent,
+    FinancialHarvestSummaryChart,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
@@ -150,6 +152,7 @@ export class FinancialReportPage {
   readonly commitmentStatusError = signal(false);
   protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
   protected readonly categorySummaryType = signal<'EXPENSE' | 'INCOME'>('EXPENSE');
+  protected readonly harvestViewMode = signal<'cards' | 'chart'>('cards');
   protected readonly harvestOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly categoryOptions = signal<readonly GdSelectOption[]>([]);
   protected readonly filterForm = new FormGroup({
@@ -530,6 +533,9 @@ export class FinancialReportPage {
   }
   protected harvestShareWidth(percentage: number): number {
     return Math.max(percentage, 0);
+  }
+  protected setHarvestViewMode(mode: 'cards' | 'chart'): void {
+    this.harvestViewMode.set(mode);
   }
   protected categorySummaryTitle(): string {
     return this.categorySummaryType() === 'EXPENSE' ? 'Despesas por categoria' : 'Receitas por categoria';

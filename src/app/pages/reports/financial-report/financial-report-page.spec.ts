@@ -607,6 +607,48 @@ describe('FinancialReportPage', () => {
     expect(harvestSummary.textContent).not.toContain('Planejado: R$ 0,00');
   });
 
+  it('should toggle between the preserved harvest cards and the chart without another request', () => {
+    const reportWithHarvest = report();
+    reportWithHarvest.harvests = [
+      {
+        harvestSeasonId: 20,
+        harvestSeasonName: 'Safra de café',
+        income: 110000,
+        expense: 30000,
+        profit: 80000,
+        marginPercentage: 72.73,
+        transactionCount: 2,
+        details: null,
+      },
+    ];
+    setReport(reportWithHarvest);
+    financialService.getFinancialReport.mockClear();
+
+    const summary = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="financial-harvest-summary-title"]',
+    ) as HTMLElement;
+    const cardsButton = summary.querySelector('[aria-label="Visualizar cards"]') as HTMLButtonElement;
+    const chartButton = summary.querySelector('[aria-label="Visualizar gráfico"]') as HTMLButtonElement;
+
+    expect(cardsButton.getAttribute('aria-pressed')).toBe('true');
+    expect(chartButton.getAttribute('aria-pressed')).toBe('false');
+    expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
+
+    chartButton.click();
+    fixture.detectChanges();
+
+    expect(chartButton.getAttribute('aria-pressed')).toBe('true');
+    expect(cardsButton.getAttribute('aria-pressed')).toBe('false');
+    expect(summary.querySelector('gd-financial-harvest-summary-chart')).not.toBeNull();
+    expect(financialService.getFinancialReport).not.toHaveBeenCalled();
+
+    cardsButton.click();
+    fixture.detectChanges();
+
+    expect(cardsButton.getAttribute('aria-pressed')).toBe('true');
+    expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
+  });
+
   it('should show the PDF export action when the report is available', () => {
     const exportButton = button('Exportar PDF');
 

@@ -1,0 +1,39 @@
+<section aria-labelledby="financial-harvest-chart-title">
+  <h3 id="financial-harvest-chart-title" class="sr-only">Comparativo financeiro por safra</h3>
+  @if (hasData()) {
+    <div class="overflow-x-auto overscroll-x-contain">
+      <div class="h-80 min-w-full" [style.width]="chartWidth()">
+        <canvas
+          baseChart
+          [type]="chartType"
+          [data]="chartData()"
+          [options]="chartOptions()"
+          role="img"
+          [attr.aria-label]="ariaLabel()"
+        ></canvas>
+      </div>
+    </div>
+
+    <div
+      class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
+      aria-label="Legenda do gráfico por safra"
+    >
+      <span class="inline-flex items-center gap-2">
+        <span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>
+        Receita
+      </span>
+      <span class="inline-flex items-center gap-2">
+        <span class="size-2.5 rounded-full bg-danger" aria-hidden="true"></span>
+        Despesa
+      </span>
+      <span class="inline-flex items-center gap-2">
+        <span class="size-2.5 rounded-full bg-info" aria-hidden="true"></span>
+        Resultado
+      </span>
+    </div>
+  } @else {
+    <p id="financial-harvest-chart-title" class="py-8 text-center text-sm text-text-muted">
+      Nenhuma safra encontrada.
+    </p>
+  }
+</section>
