@@ -95,7 +95,7 @@ export class PendingReviewDrawer {
       status: 'PAID',
       paymentMethod: item.paymentMethod ?? null,
       transactionDate: item.transactionDate,
-      dueDate: null,
+      dueDate: item.dueDate,
       paidAt: item.transactionDate,
       notes: item.notes ?? null,
       categoryId: item.categoryId,

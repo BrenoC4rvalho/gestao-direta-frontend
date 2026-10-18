@@ -1,0 +1,121 @@
+<section aria-labelledby="financial-commitment-status-title" class="space-y-5">
+  <div>
+    <h2 id="financial-commitment-status-title" class="text-lg font-semibold text-text-primary">
+      Situação dos compromissos
+    </h2>
+    <p class="mt-1 text-sm text-text-muted">
+      Pontualidade e acompanhamento de obrigações financeiras.
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Carregando situação dos compromissos">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <div class="min-h-24 animate-pulse rounded-app border border-border bg-background"></div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="rounded-app border border-danger/30 bg-danger/5 p-4">
+      <p class="text-sm text-text-primary">Não foi possível carregar a situação dos compromissos.</p>
+      <button
+        type="button"
+        class="mt-3 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        (click)="retry.emit()"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (status(); as status) {
+    <div class="space-y-5">
+      <div>
+        <h3 class="text-sm font-semibold text-text-primary">Histórico de pontualidade</h3>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <button type="button" class="commitment-metric text-left" (click)="select('PAID_ON_TIME')" aria-label="Consultar despesas pagas no prazo">
+            <span class="text-xs text-text-muted">Pagas no prazo</span>
+            <strong class="mt-2 block text-2xl text-success">{{ status.history.expensesOnTime }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">Despesas liquidadas até o vencimento</span>
+          </button>
+          <button type="button" class="commitment-metric text-left" (click)="select('PAID_LATE')" aria-label="Consultar despesas pagas com atraso">
+            <span class="text-xs text-text-muted">Pagas com atraso</span>
+            <strong class="mt-2 block text-2xl text-danger">{{ status.history.expensesLate }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">Despesas liquidadas após o vencimento</span>
+          </button>
+          <button type="button" class="commitment-metric text-left" (click)="select('RECEIVED_ON_TIME')" aria-label="Consultar receitas recebidas no prazo">
+            <span class="text-xs text-text-muted">Recebidas no prazo</span>
+            <strong class="mt-2 block text-2xl text-success">{{ status.history.incomesOnTime }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">Receitas recebidas até o vencimento</span>
+          </button>
+          <button type="button" class="commitment-metric text-left" (click)="select('RECEIVED_LATE')" aria-label="Consultar receitas recebidas com atraso">
+            <span class="text-xs text-text-muted">Recebidas com atraso</span>
+            <strong class="mt-2 block text-2xl text-danger">{{ status.history.incomesLate }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">Receitas recebidas após o vencimento</span>
+          </button>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-medium text-text-primary">Pontualidade dos pagamentos</span>
+              <strong class="text-sm text-text-primary" [title]="'Pagamentos no prazo dividido pelo total de pagamentos classificados.'">{{ formatRate(status.history.expenseOnTimeRate) }}</strong>
+            </div>
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Pontualidade dos pagamentos" [attr.aria-valuenow]="status.history.expenseOnTimeRate" aria-valuemin="0" aria-valuemax="100">
+              <div class="h-full rounded-full bg-success transition-[width]" [style.width.%]="progressWidth(status.history.expenseOnTimeRate)"></div>
+            </div>
+            @if (status.history.unclassifiableExpenses > 0) {
+              <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
+                <span>{{ status.history.unclassifiableExpenses }} pagamentos não puderam ser avaliados por falta de informações de prazo.</span>
+                <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" (click)="select('UNCLASSIFIABLE_EXPENSE')">Ver movimentações</button>
+              </div>
+            }
+          </div>
+          <div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-medium text-text-primary">Pontualidade dos recebimentos</span>
+              <strong class="text-sm text-text-primary" [title]="'Recebimentos no prazo dividido pelo total de recebimentos classificados.'">{{ formatRate(status.history.incomeOnTimeRate) }}</strong>
+            </div>
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Pontualidade dos recebimentos" [attr.aria-valuenow]="status.history.incomeOnTimeRate" aria-valuemin="0" aria-valuemax="100">
+              <div class="h-full rounded-full bg-success transition-[width]" [style.width.%]="progressWidth(status.history.incomeOnTimeRate)"></div>
+            </div>
+            @if (status.history.unclassifiableIncomes > 0) {
+              <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
+                <span>{{ status.history.unclassifiableIncomes }} recebimentos não puderam ser avaliados por falta de informações de prazo.</span>
+                <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" (click)="select('UNCLASSIFIABLE_RECEIVABLE')">Ver movimentações</button>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-sm font-semibold text-text-primary">Pendências atuais</h3>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button type="button" class="commitment-metric text-left" (click)="select('OVERDUE_PAYABLE')" aria-label="Consultar contas a pagar vencidas">
+            <span class="text-xs text-text-muted">Contas a pagar vencidas</span>
+            <strong class="mt-2 block text-xl text-danger">{{ formatCurrency(status.current.overduePayables.amount) }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">{{ status.current.overduePayables.count }} compromisso(s) em aberto</span>
+          </button>
+          <button type="button" class="commitment-metric text-left" (click)="select('OVERDUE_RECEIVABLE')" aria-label="Consultar contas a receber vencidas">
+            <span class="text-xs text-text-muted">Contas a receber vencidas</span>
+            <strong class="mt-2 block text-xl text-warning">{{ formatCurrency(status.current.overdueReceivables.amount) }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">{{ status.current.overdueReceivables.count }} compromisso(s) em aberto</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-sm font-semibold text-text-primary">Próximos 7 dias</h3>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button type="button" class="commitment-metric text-left" (click)="select('UPCOMING_PAYABLE')" aria-label="Consultar contas a pagar nos próximos sete dias">
+            <span class="text-xs text-text-muted">A pagar</span>
+            <strong class="mt-2 block text-xl text-danger">{{ formatCurrency(status.upcoming.payables.amount) }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">{{ status.upcoming.payables.count }} compromisso(s) em aberto</span>
+          </button>
+          <button type="button" class="commitment-metric text-left" (click)="select('UPCOMING_RECEIVABLE')" aria-label="Consultar contas a receber nos próximos sete dias">
+            <span class="text-xs text-text-muted">A receber</span>
+            <strong class="mt-2 block text-xl text-success">{{ formatCurrency(status.upcoming.receivables.amount) }}</strong>
+            <span class="mt-1 block text-xs text-text-muted">{{ status.upcoming.receivables.count }} compromisso(s) em aberto</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

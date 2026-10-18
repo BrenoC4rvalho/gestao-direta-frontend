@@ -14,6 +14,7 @@ import {
 import { PageResponse } from '../models/page-response.model';
 import {
   FinancialReportRequest,
+  FinancialCommitmentStatus,
   FinancialReportResponse,
   FinancialReportTransaction,
   FinancialReportTransactionsRequest,
@@ -62,6 +63,15 @@ export class FinancialService {
     return this.http.get<FinancialReportResponse>(`${this.apiUrl}/financial/reports`, {
       params: this.buildReportParams(filters),
     });
+  }
+
+  getFinancialCommitmentStatus(
+    filters: FinancialReportRequest,
+  ): Observable<FinancialCommitmentStatus> {
+    return this.http.get<FinancialCommitmentStatus>(
+      `${this.apiUrl}/financial/reports/commitment-status`,
+      { params: this.buildReportParams(filters) },
+    );
   }
 
   exportFinancialReportPdf(filters: FinancialReportRequest): Observable<HttpResponse<Blob>> {

@@ -54,6 +54,46 @@ export interface FinancialReportCommitments {
   next30DaysReceivable: number | null;
   next30DaysPayable: number | null;
 }
+export interface FinancialCommitmentAmount {
+  count: number;
+  amount: number;
+}
+export interface FinancialCommitmentHistory {
+  expensesOnTime: number;
+  expensesLate: number;
+  incomesOnTime: number;
+  incomesLate: number;
+  expenseOnTimeRate: number | null;
+  incomeOnTimeRate: number | null;
+  unclassifiableExpenses: number;
+  unclassifiableIncomes: number;
+}
+export interface FinancialCommitmentCurrent {
+  referenceDate: string;
+  overduePayables: FinancialCommitmentAmount;
+  overdueReceivables: FinancialCommitmentAmount;
+}
+export interface FinancialCommitmentUpcoming {
+  days: number;
+  payables: FinancialCommitmentAmount;
+  receivables: FinancialCommitmentAmount;
+}
+export interface FinancialCommitmentStatus {
+  history: FinancialCommitmentHistory;
+  current: FinancialCommitmentCurrent;
+  upcoming: FinancialCommitmentUpcoming;
+}
+export type FinancialCommitmentSegment =
+  | 'PAID_ON_TIME'
+  | 'PAID_LATE'
+  | 'RECEIVED_ON_TIME'
+  | 'RECEIVED_LATE'
+  | 'UNCLASSIFIABLE_EXPENSE'
+  | 'UNCLASSIFIABLE_RECEIVABLE'
+  | 'OVERDUE_PAYABLE'
+  | 'OVERDUE_RECEIVABLE'
+  | 'UPCOMING_PAYABLE'
+  | 'UPCOMING_RECEIVABLE';
 export interface FinancialEvolutionPoint {
   period: string;
   label: string;

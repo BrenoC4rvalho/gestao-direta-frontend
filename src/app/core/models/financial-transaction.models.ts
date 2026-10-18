@@ -3,6 +3,17 @@ import { PageResponse } from './page-response.model';
 export type TransactionType = 'INCOME' | 'EXPENSE' | string;
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELED' | string;
+export type FinancialCommitmentSegment =
+  | 'PAID_ON_TIME'
+  | 'PAID_LATE'
+  | 'RECEIVED_ON_TIME'
+  | 'RECEIVED_LATE'
+  | 'UNCLASSIFIABLE_EXPENSE'
+  | 'UNCLASSIFIABLE_RECEIVABLE'
+  | 'OVERDUE_PAYABLE'
+  | 'OVERDUE_RECEIVABLE'
+  | 'UPCOMING_PAYABLE'
+  | 'UPCOMING_RECEIVABLE';
 
 export type PaymentMethod =
   | 'PIX'

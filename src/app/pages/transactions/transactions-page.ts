@@ -24,6 +24,7 @@ import {
   FinancialRecordStatus,
   FinancialReportBasis,
   FinancialTransaction,
+  FinancialCommitmentSegment,
   FinancialTransactionExportParams,
   FinancialTransactionListParams,
   MonthlyFinancialSummary,
@@ -208,7 +209,21 @@ export class TransactionsPage {
   private readonly initialHarvestSeasonId = this.queryParamNumber(
     this.route.snapshot.queryParamMap.get('harvestSeasonId'),
   );
+  private readonly initialCommitmentSegment = this.queryParamValue(
+    this.route.snapshot.queryParamMap.get('commitmentSegment'),
+  ) as FinancialCommitmentSegment | null;
+  private readonly initialCommitmentStartDate = this.queryParamDate(
+    this.route.snapshot.queryParamMap.get('startDate'),
+  );
+  private readonly initialCommitmentEndDate = this.queryParamDate(
+    this.route.snapshot.queryParamMap.get('endDate'),
+  );
+  private readonly initialCommitmentCategoryId = this.queryParamNumber(
+    this.route.snapshot.queryParamMap.get('categoryIds'),
+  );
   private initialHarvestSeasonApplied = false;
+  private initialCommitmentFilterApplied = false;
+  private readonly commitmentSegment = signal<FinancialCommitmentSegment | null>(null);
 
   protected readonly filterForm = new FormGroup<TransactionFiltersControls>({
     transactionDateStart: new FormControl<GdFormValue>(''),
@@ -450,6 +465,7 @@ export class TransactionsPage {
         this.resetCreatedByUserFilterState();
         this.resetHarvestSeasonFilterState();
         this.applyInitialHarvestSeasonFilter(farmId);
+        this.applyInitialCommitmentFilter(farmId);
         this.createdByUsers.set([]);
       });
 
@@ -1041,15 +1057,29 @@ export class TransactionsPage {
   }
 
   private buildListRequest(farmId: number, page: number): Observable<TransactionLists> {
+    const commitmentSegment = this.commitmentSegment();
+    const transactionRequest = commitmentSegment
+      ? this.transactionService.listCommitmentSegment({
+          farmId,
+          segment: commitmentSegment,
+          startDate: this.initialCommitmentStartDate,
+          endDate: this.initialCommitmentEndDate,
+          categoryIds: this.selectedCategoryIds(),
+          harvestSeasonId: this.appliedFilters().harvestSeasonId,
+          page,
+          size: 10,
+        })
+      : this.transactionService.listByFarm({
+          farmId,
+          page,
+          size: 10,
+          sort: 'transactionDate',
+          direction: 'DESC',
+          ...this.appliedFilters(),
+        });
+
     return forkJoin({
-      transactions: this.transactionService.listByFarm({
-        farmId,
-        page,
-        size: 10,
-        sort: 'transactionDate',
-        direction: 'DESC',
-        ...this.appliedFilters(),
-      }),
+      transactions: transactionRequest,
       filterCategories: this.categoryService.listUsedInTransactions(farmId).pipe(
         catchError((error: unknown) => {
           this.handleFilterCategoriesError(error);
@@ -1267,6 +1297,35 @@ export class TransactionsPage {
     const number = Number(value);
 
     return Number.isInteger(number) && number > 0 ? number : null;
+  }
+
+  private queryParamValue(value: string | null): string | null {
+    return value?.trim() || null;
+  }
+
+  private queryParamDate(value: string | null): string | null {
+    return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+  }
+
+  private applyInitialCommitmentFilter(farmId: number | null): void {
+    if (this.initialCommitmentFilterApplied || !farmId || !this.initialCommitmentSegment) {
+      return;
+    }
+
+    this.commitmentSegment.set(this.initialCommitmentSegment);
+    if (this.initialCommitmentCategoryId !== null) {
+      this.selectedCategoryIds.set([this.initialCommitmentCategoryId]);
+      this.filterForm.controls.categoryId.setValue(this.initialCommitmentCategoryId, {
+        emitEvent: false,
+      });
+    }
+    this.appliedFilters.update((filters) => ({
+      ...filters,
+      categoryIds:
+        this.initialCommitmentCategoryId === null ? [] : [this.initialCommitmentCategoryId],
+    }));
+    this.showAdvancedFilters.set(true);
+    this.initialCommitmentFilterApplied = true;
   }
 
   private handleFilterCategoriesError(_error: unknown): void {

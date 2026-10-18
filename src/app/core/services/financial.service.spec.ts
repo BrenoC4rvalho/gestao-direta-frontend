@@ -143,6 +143,29 @@ describe('FinancialService report endpoints', () => {
     request.flush({});
   });
 
+  it('builds the commitment status request with the report dimensions', () => {
+    service
+      .getFinancialCommitmentStatus({
+        farmId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        basis: 'CASH',
+        harvestSeasonIds: [25],
+        categoryIds: [4],
+      })
+      .subscribe();
+
+    const request = http.expectOne(
+      (item) => item.url === `${apiUrl}/financial/reports/commitment-status`,
+    );
+    expect(request.request.params.get('farmId')).toBe('8');
+    expect(request.request.params.get('startDate')).toBe('2026-01-01');
+    expect(request.request.params.get('endDate')).toBe('2026-12-31');
+    expect(request.request.params.get('harvestSeasonIds')).toBe('25');
+    expect(request.request.params.get('categoryIds')).toBe('4');
+    request.flush({});
+  });
+
   it('omits empty filters and sends transaction pagination', () => {
     service
       .getFinancialReportTransactions({

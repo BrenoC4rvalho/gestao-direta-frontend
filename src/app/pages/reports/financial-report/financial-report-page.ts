@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   AbstractControl,
@@ -33,6 +34,8 @@ import {
   FinancialPlanningIndicators,
   FinancialReportGranularity,
   FinancialReportResponse,
+  FinancialCommitmentSegment,
+  FinancialCommitmentStatus,
 } from '../../../core/models/financial-report.models';
 import { FinancialCategoryService } from '../../../core/services/financial-category.service';
 import { FinancialService } from '../../../core/services/financial.service';
@@ -56,6 +59,7 @@ import {
 import { Dialog, Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 import { FinancialCashFlowChart } from './components/financial-cash-flow-chart/financial-cash-flow-chart';
+import { FinancialCommitmentStatusComponent } from './components/financial-commitment-status/financial-commitment-status';
 
 interface AppliedReportFilters {
   startDate: string;
@@ -106,6 +110,7 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
     Drawer,
     FinancialEvolutionChart,
     FinancialCashFlowChart,
+    FinancialCommitmentStatusComponent,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
@@ -128,6 +133,7 @@ export class FinancialReportPage {
   protected readonly farmAccessStore = inject(FarmAccessStore);
   protected readonly sessionStore = inject(SessionStore);
   private readonly toastStore = inject(ToastStore);
+  private readonly router = inject(Router);
   private currentFarmId: number | null = null;
   private readonly reload = signal(0);
   private readonly currencyPipe = new BrCurrencyPipe();
@@ -140,6 +146,8 @@ export class FinancialReportPage {
   protected readonly filtersDialogOpen = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
+  readonly commitmentStatus = signal<FinancialCommitmentStatus | null>(null);
+  readonly commitmentStatusError = signal(false);
   protected readonly evolutionGranularity = signal<FinancialReportGranularity>('MONTHLY');
   protected readonly categorySummaryType = signal<'EXPENSE' | 'INCOME'>('EXPENSE');
   protected readonly harvestOptions = signal<readonly GdSelectOption[]>([]);
@@ -350,16 +358,26 @@ export class FinancialReportPage {
       if (!farmId || !this.canViewReport()) return;
       this.reportLoading.set(true);
       this.reportError.set(null);
+      this.commitmentStatusError.set(false);
       this.report.set(null);
-      const subscription = this.financialService
-        .getFinancialReport(this.request(farmId))
+      this.commitmentStatus.set(null);
+      const filters = this.request(farmId);
+      const subscription = forkJoin({
+        report: this.financialService.getFinancialReport(filters),
+        commitmentStatus: this.financialService
+          .getFinancialCommitmentStatus(filters)
+          .pipe(catchError(() => of(null))),
+      })
         .pipe(finalize(() => this.reportLoading.set(false)))
         .subscribe({
-          next: (report) => {
+          next: ({ report, commitmentStatus }) => {
             this.report.set(report);
+            this.commitmentStatus.set(commitmentStatus);
+            this.commitmentStatusError.set(commitmentStatus === null);
           },
           error: () => {
             this.report.set(null);
+            this.commitmentStatus.set(null);
             this.reportError.set('Não foi possível carregar o relatório financeiro.');
           },
         });
@@ -462,6 +480,22 @@ export class FinancialReportPage {
   }
   protected selectCategorySummaryType(type: 'EXPENSE' | 'INCOME'): void {
     this.categorySummaryType.set(type);
+  }
+  protected openCommitmentSegment(segment: FinancialCommitmentSegment): void {
+    const filters = this.appliedFilters();
+    const historical =
+      segment.startsWith('PAID_') ||
+      segment.startsWith('RECEIVED_') ||
+      segment.startsWith('UNCLASSIFIABLE_');
+    void this.router.navigate(['/transactions'], {
+      queryParams: {
+        commitmentSegment: segment,
+        startDate: historical ? filters.startDate : null,
+        endDate: historical ? filters.endDate : null,
+        categoryIds: filters.categoryId === null ? null : filters.categoryId,
+        harvestSeasonId: filters.harvestSeasonId,
+      },
+    });
   }
   protected control(
     name: 'startDate' | 'endDate' | 'basis' | 'harvestSeasonId' | 'categoryId',

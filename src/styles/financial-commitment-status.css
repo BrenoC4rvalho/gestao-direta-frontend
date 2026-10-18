@@ -1,0 +1,19 @@
+.commitment-metric {
+  min-height: 6.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-app);
+  background: var(--color-background);
+  padding: 1rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.commitment-metric:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0.25rem 0.75rem rgb(21 128 61 / 0.08);
+  transform: translateY(-1px);
+}
+
+.commitment-metric:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

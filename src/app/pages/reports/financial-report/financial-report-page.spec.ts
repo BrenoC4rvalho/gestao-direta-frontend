@@ -216,12 +216,37 @@ describe('FinancialReportPage', () => {
   let fixture: ComponentFixture<FinancialReportPage>;
   let financialService: {
     getFinancialReport: ReturnType<typeof vi.fn>;
+    getFinancialCommitmentStatus: ReturnType<typeof vi.fn>;
     getFinancialReportTransactions: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     financialService = {
       getFinancialReport: vi.fn(() => of(report())),
+      getFinancialCommitmentStatus: vi.fn(() =>
+        of({
+          history: {
+            expensesOnTime: 0,
+            expensesLate: 0,
+            incomesOnTime: 0,
+            incomesLate: 0,
+            expenseOnTimeRate: null,
+            incomeOnTimeRate: null,
+            unclassifiableExpenses: 0,
+            unclassifiableIncomes: 0,
+          },
+          current: {
+            referenceDate: '2026-10-18',
+            overduePayables: { count: 0, amount: 0 },
+            overdueReceivables: { count: 0, amount: 0 },
+          },
+          upcoming: {
+            days: 7,
+            payables: { count: 0, amount: 0 },
+            receivables: { count: 0, amount: 0 },
+          },
+        }),
+      ),
       getFinancialReportTransactions: vi.fn(() => of(harvests)),
     };
     await TestBed.configureTestingModule({

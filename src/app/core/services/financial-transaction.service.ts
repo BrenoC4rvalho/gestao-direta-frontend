@@ -8,6 +8,7 @@ import {
   FinancialTransaction,
   FinancialTransactionExportParams,
   FinancialTransactionListParams,
+  FinancialCommitmentSegment,
   FinancialTransactionPage,
   MonthlyFinancialSummary,
   MonthlyFinancialSummaryParams,
@@ -27,6 +28,35 @@ export class FinancialTransactionService {
     return this.http.get<FinancialTransactionPage>(`${this.apiUrl}/financial/transactions`, {
       params: this.buildListParams(params),
     });
+  }
+
+  listCommitmentSegment(params: {
+    farmId: number;
+    segment: FinancialCommitmentSegment;
+    startDate?: string | null;
+    endDate?: string | null;
+    categoryIds?: readonly number[];
+    harvestSeasonId?: number | null;
+    page?: number;
+    size?: number;
+  }): Observable<FinancialTransactionPage> {
+    let httpParams = new HttpParams()
+      .set('farmId', params.farmId)
+      .set('segment', params.segment)
+      .set('page', params.page ?? 0)
+      .set('size', params.size ?? 10)
+      .set('sort', 'dueDate')
+      .set('direction', 'ASC');
+    httpParams = appendQueryParam(httpParams, 'startDate', params.startDate);
+    httpParams = appendQueryParam(httpParams, 'endDate', params.endDate);
+    httpParams = appendQueryParam(httpParams, 'harvestSeasonId', params.harvestSeasonId);
+    if (params.categoryIds?.length) {
+      httpParams = appendQueryParam(httpParams, 'categoryIds', params.categoryIds);
+    }
+    return this.http.get<FinancialTransactionPage>(
+      `${this.apiUrl}/financial/transactions/commitments`,
+      { params: httpParams },
+    );
   }
 
   getMonthlySummary(

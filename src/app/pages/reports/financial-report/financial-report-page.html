@@ -255,6 +255,15 @@
           </div>
         </section>
       </gd-card>
+      <gd-card class="mb-6 block">
+        <gd-financial-commitment-status
+          [status]="commitmentStatus()"
+          [loading]="reportLoading()"
+          [error]="commitmentStatusError()"
+          (retry)="retry()"
+          (segmentSelected)="openCommitmentSegment($event)"
+        />
+      </gd-card>
       <gd-card class="block">
         <section aria-labelledby="financial-harvest-summary-title">
           <div>
