@@ -4,10 +4,7 @@ import { of } from 'rxjs';
 
 import { provideGestaoDiretaIcons } from '../../../core/constants/lucide-icons';
 import { Farm } from '../../../core/models/farm.models';
-import {
-  FinancialCumulativeEvolutionPoint,
-  FinancialReportResponse,
-} from '../../../core/models/financial-report.models';
+import { FinancialReportResponse } from '../../../core/models/financial-report.models';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { FinancialCategoryService } from '../../../core/services/financial-category.service';
 import { FinancialService } from '../../../core/services/financial.service';
@@ -613,22 +610,11 @@ describe('FinancialReportPage', () => {
     expect(quarterlyButton.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('should render the realized cumulative income and expense chart', () => {
-    const realizedCumulativeEvolution = [cumulativeEvolutionPoint()];
-    setReport({ ...report(), realizedCumulativeEvolution });
-    const section = fixture.nativeElement.querySelector(
-      'section[aria-labelledby="financial-income-expense-title"]',
-    ) as HTMLElement;
-    const chart = section.querySelector('gd-financial-income-expense-chart') as HTMLElement;
-
-    expect(section.textContent).toContain('Receitas e despesas acumuladas');
-    expect(section.textContent).toContain(
-      'Acompanhe a evolução acumulada das entradas e saídas ao longo do período selecionado.',
-    );
-    expect(chart).not.toBeNull();
-    expect(chart.textContent).toContain('Receitas acumuladas');
-    expect(chart.textContent).toContain('Despesas acumuladas');
-    expect(chart.textContent).not.toContain('Resultado');
+  it('should not render the removed cumulative income and expense chart', () => {
+    expect(fixture.nativeElement.querySelector('gd-financial-income-expense-chart')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Receitas e despesas acumuladas');
+    expect(fixture.nativeElement.querySelector('gd-financial-evolution-chart')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('gd-financial-cash-flow-chart')).not.toBeNull();
   });
 
   it('should reload both charts with the shared report filters and granularity', () => {
@@ -993,14 +979,4 @@ describe('FinancialReportPage', () => {
     }).format(value);
   }
 
-  function cumulativeEvolutionPoint(): FinancialCumulativeEvolutionPoint {
-    return {
-      period: '2026-01',
-      label: 'Jan',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-01-31',
-      cumulativeIncome: 100000,
-      cumulativeExpense: 80000,
-    };
-  }
 });

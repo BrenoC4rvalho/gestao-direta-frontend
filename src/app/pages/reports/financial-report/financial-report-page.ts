@@ -44,7 +44,6 @@ import { ToastStore } from '../../../core/stores/toast.store';
 import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../../shared/forms';
 import { BrCurrencyPipe } from '../../../shared/pipes/br-currency.pipe';
 import {
-  Badge,
   Button,
   Card,
   EmptyState,
@@ -57,7 +56,6 @@ import {
 import { Dialog, Drawer } from '../../../shared/overlays';
 import { FinancialEvolutionChart } from './components/financial-evolution-chart/financial-evolution-chart';
 import { FinancialCashFlowChart } from './components/financial-cash-flow-chart/financial-cash-flow-chart';
-import { FinancialIncomeExpenseChart } from './components/financial-income-expense-chart/financial-income-expense-chart';
 
 interface AppliedReportFilters {
   startDate: string;
@@ -100,7 +98,6 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
 @Component({
   selector: 'gd-financial-report-page',
   imports: [
-    Badge,
     Button,
     Card,
     EmptyState,
@@ -109,7 +106,6 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
     Drawer,
     FinancialEvolutionChart,
     FinancialCashFlowChart,
-    FinancialIncomeExpenseChart,
     Input,
     LucideDynamicIcon,
     ReactiveFormsModule,
