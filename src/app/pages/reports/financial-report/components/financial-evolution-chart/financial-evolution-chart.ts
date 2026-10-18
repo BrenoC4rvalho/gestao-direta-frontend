@@ -37,9 +37,9 @@ const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
 });
 const MONTH_WIDTH = 88;
 const QUARTER_WIDTH = 112;
-const BAR_THICKNESS = 28;
-const BAR_CATEGORY_PERCENTAGE = 0.78;
-const BAR_PERCENTAGE = 0.92;
+const MAX_BAR_THICKNESS = 34;
+const BAR_CATEGORY_PERCENTAGE = 0.72;
+const BAR_PERCENTAGE = 0.8;
 
 interface ChartThemeColors {
   muted: string;
@@ -485,8 +485,7 @@ export class FinancialEvolutionChart {
       backgroundColor,
       borderColor: state === 'OVERDUE' ? colors.warning : baseColor,
       borderWidth: state === 'REALIZED' ? 0 : 1,
-      barThickness: BAR_THICKNESS,
-      maxBarThickness: BAR_THICKNESS,
+      maxBarThickness: MAX_BAR_THICKNESS,
       categoryPercentage: BAR_CATEGORY_PERCENTAGE,
       barPercentage: BAR_PERCENTAGE,
       grouped: true,

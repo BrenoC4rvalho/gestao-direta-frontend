@@ -189,8 +189,31 @@ describe('FinancialEvolutionChart', () => {
     expect(datasets[2].borderWidth).toBeGreaterThan(0);
     expect(datasets[2].backgroundColor).toBe('#F59E0B');
     expect(datasets[5].backgroundColor).toBe('#F59E0B');
-    expect(datasets.map((dataset) => dataset.barThickness)).toEqual([28, 28, 28, 28, 28, 28]);
-    expect(datasets.map((dataset) => dataset.maxBarThickness)).toEqual([28, 28, 28, 28, 28, 28]);
+    expect(datasets.map((dataset) => dataset.barThickness)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(datasets.map((dataset) => dataset.maxBarThickness)).toEqual([34, 34, 34, 34, 34, 34]);
+    expect(datasets.map((dataset) => dataset.categoryPercentage)).toEqual([
+      0.72,
+      0.72,
+      0.72,
+      0.72,
+      0.72,
+      0.72,
+    ]);
+    expect(datasets.map((dataset) => dataset.barPercentage)).toEqual([
+      0.8,
+      0.8,
+      0.8,
+      0.8,
+      0.8,
+      0.8,
+    ]);
     expect(datasets.every((dataset) => dataset.grouped === true)).toBe(true);
     expect((datasets[0].borderRadius as readonly unknown[])[0]).toBe(0);
     expect((datasets[2].borderRadius as readonly unknown[])[0]).toMatchObject({
