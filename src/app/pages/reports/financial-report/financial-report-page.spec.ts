@@ -597,8 +597,15 @@ describe('FinancialReportPage', () => {
   });
 
   it('should switch evolution granularity without reloading the page', () => {
-    const monthlyButton = button('Mensal');
-    const quarterlyButton = button('Trimestral');
+    const settingsButton = fixture.nativeElement.querySelector(
+      '[aria-label="Abrir configurações da evolução financeira"]',
+    ) as HTMLButtonElement;
+    settingsButton.click();
+    fixture.detectChanges();
+
+    const settings = document.body.querySelector('#financial-evolution-settings') as HTMLElement;
+    const monthlyButton = settings.querySelector('button:first-of-type') as HTMLButtonElement;
+    const quarterlyButton = settings.querySelector('button:last-of-type') as HTMLButtonElement;
 
     expect(monthlyButton.getAttribute('aria-pressed')).toBe('true');
     expect(quarterlyButton.getAttribute('aria-pressed')).toBe('false');
