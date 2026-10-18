@@ -1,19 +1,54 @@
 .commitment-metric {
+  display: block;
   min-height: 6.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-app);
-  background: var(--color-background);
-  padding: 1rem;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  padding: 0.75rem 1rem;
+  transition: opacity 160ms ease, color 160ms ease;
 }
 
 .commitment-metric:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 0.25rem 0.75rem rgb(21 128 61 / 0.08);
-  transform: translateY(-1px);
+  opacity: 0.78;
 }
 
 .commitment-metric:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.commitment-section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commitment-section-divider {
+  height: 1px;
+  width: 100%;
+  background: var(--color-border);
+}
+
+.commitment-grid--two > .commitment-metric + .commitment-metric,
+.commitment-rate-grid > div + div {
+  border-top: 1px solid var(--color-border);
+}
+
+.commitment-rate-grid > div {
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .commitment-grid--history > .commitment-metric:nth-child(even) {
+    border-left: 1px solid var(--color-border);
+  }
+
+  .commitment-grid--two > .commitment-metric + .commitment-metric,
+  .commitment-rate-grid > div + div {
+    border-left: 1px solid var(--color-border);
+    border-top: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .commitment-grid--history > .commitment-metric:not(:first-child) {
+    border-left: 1px solid var(--color-border);
+  }
 }

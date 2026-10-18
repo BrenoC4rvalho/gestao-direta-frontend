@@ -46,6 +46,21 @@ describe('FinancialCommitmentStatusComponent', () => {
     expect(text).toContain('R$');
   });
 
+  it('uses a flat layout with section dividers instead of nested metric cards', () => {
+    const metrics = fixture.nativeElement.querySelectorAll('.commitment-metric');
+
+    expect(metrics.length).toBe(8);
+    expect(fixture.nativeElement.querySelectorAll('.commitment-section-divider').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.commitment-grid--history').length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('.commitment-grid--two').length).toBe(2);
+
+    for (const metric of Array.from(metrics) as HTMLElement[]) {
+      expect(metric.classList.contains('rounded-app')).toBe(false);
+      expect(metric.classList.contains('border')).toBe(false);
+      expect(metric.classList.contains('bg-background')).toBe(false);
+    }
+  });
+
   it('emits the selected commitment segment', () => {
     const selected: string[] = [];
     fixture.componentInstance.segmentSelected.subscribe((segment) => selected.push(segment));
