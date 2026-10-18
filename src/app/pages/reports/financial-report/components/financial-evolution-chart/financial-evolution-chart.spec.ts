@@ -2,9 +2,12 @@ import { Directive, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BaseChartDirective } from 'ng2-charts';
 
+import { provideFinancialReportLucideIcons } from '../../../../../core/constants/lucide-icons';
+import {
+  FinancialEvolutionPoint,
+  FinancialReportGranularity,
+} from '../../../../../core/models/financial-report.models';
 import { ThemeStore } from '../../../../../core/stores/theme.store';
-import { FinancialEvolutionPoint } from '../../../../../core/models/financial-report.models';
-
 import { FinancialEvolutionChart } from './financial-evolution-chart';
 
 @Directive({ selector: 'canvas[baseChart]' })
@@ -12,87 +15,128 @@ class BaseChartStubDirective {
   readonly type = input();
   readonly data = input();
   readonly options = input();
+
+  update(): void {}
 }
 
-const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-const points: readonly FinancialEvolutionPoint[] = labels.map((label, index) => ({
-  period: `2026-${String(index + 1).padStart(2, '0')}`,
-  label,
-  periodStart: `2026-${String(index + 1).padStart(2, '0')}-01`,
-  periodEnd: `2026-${String(index + 1).padStart(2, '0')}-28`,
-  income: (index + 5) * 1000,
-  expense: (index + 2) * 1000,
-  netBalance: index === 1 ? -2000 : (index + 3) * 1000,
-  transactionCount: index + 1,
-  realizedIncome: (index + 3) * 1000,
-  projectedIncome: 1000,
-  overdueIncome: index === 1 ? 500 : 0,
-  overdueIncomeCount: index === 1 ? 1 : 0,
-  realizedExpense: (index + 1) * 1000,
-  projectedExpense: 500,
-  overdueExpense: 0,
-  overdueExpenseCount: 0,
-  realizedResult: (index + 2) * 1000,
-  currentPeriod: index === 7,
-}));
+const monthlyPoints: readonly FinancialEvolutionPoint[] = [
+  {
+    period: '2026-01',
+    label: 'Jan',
+    periodStart: '2026-01-01',
+    periodEnd: '2026-01-31',
+    income: 30000,
+    expense: 18500,
+    netBalance: 11500,
+    transactionCount: 7,
+    realizedIncome: 10000,
+    projectedIncome: 5000,
+    overdueIncome: 2000,
+    overdueIncomeCount: 1,
+    realizedExpense: 8000,
+    projectedExpense: 3000,
+    overdueExpense: 1000,
+    overdueExpenseCount: 1,
+    realizedResult: 2000,
+    currentPeriod: true,
+  },
+  {
+    period: '2026-02',
+    label: 'Fev',
+    periodStart: '2026-02-01',
+    periodEnd: '2026-02-28',
+    income: 0,
+    expense: 0,
+    netBalance: 0,
+    transactionCount: 0,
+    realizedIncome: 0,
+    projectedIncome: 0,
+    overdueIncome: 0,
+    overdueIncomeCount: 0,
+    realizedExpense: 0,
+    projectedExpense: 0,
+    overdueExpense: 0,
+    overdueExpenseCount: 0,
+    realizedResult: 0,
+    currentPeriod: false,
+  },
+];
+
+interface ChartDataset {
+  label?: string;
+  data: unknown[];
+  stack?: string;
+  type?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  barThickness?: number;
+  maxBarThickness?: number;
+  categoryPercentage?: number;
+  barPercentage?: number;
+  grouped?: boolean;
+  order?: number;
+  borderRadius?: unknown;
+}
 
 interface TestApi {
   chartType: 'bar';
-  chartData: () => {
-    labels?: unknown[];
-    datasets: {
-      type?: string;
-      label?: string;
-      data: unknown[];
-      stack?: string;
-      order?: number;
-      borderColor?: string;
-      backgroundColor?: string;
-      borderWidth?: number;
-      tension?: number;
-      fill?: boolean;
-      pointRadius?: number;
-      pointHoverRadius?: number;
-      borderDash?: number[];
-      borderSkipped?: boolean;
-      borderRadius?: unknown;
-      inflateAmount?: number;
-    }[];
-  };
+  fullscreen: () => boolean;
+  viewMode: () => 'ALL' | 'REALIZED';
+  chartWidth: () => number;
+  chartData: () => { labels?: unknown[]; datasets: ChartDataset[] };
   chartOptions: () => {
     plugins?: {
-      legend?: { display?: boolean; position?: string };
+      legend?: { display?: boolean };
       tooltip?: {
         backgroundColor?: string;
         callbacks?: {
-          label?: (context: {
-            dataset: { label?: string };
+          title?: (items: { dataIndex: number }[]) => string;
+          label?: (item: {
+            dataset: { label?: string; stack?: string };
+            dataIndex: number;
             parsed: { y: number };
-          }) => string | string[] | void;
+          }) => string[];
         };
       };
     };
     scales?: {
-      x?: {
-        stacked?: boolean;
-        ticks?: { color?: (context: { index: number }) => string };
-      };
+      x?: { stacked?: boolean; position?: string; offset?: boolean };
       y?: {
         stacked?: boolean;
+        beginAtZero?: boolean;
         min?: number;
-        grid?: {
-          color?: (context: { tick: { value: number } }) => string;
-          lineWidth?: (context: { tick: { value: number } }) => number;
+        max?: number;
+        bounds?: string;
+        ticks?: {
+          display?: boolean;
+          stepSize?: number;
+          maxTicksLimit?: number;
+          crossAlign?: string;
         };
-        ticks?: { callback?: (value: number) => string | string[]; stepSize?: number };
       };
     };
   };
-  selectPeriod: (event: { active?: object[] }) => void;
+  toggleFullscreen: () => void;
+  closeFullscreen: () => void;
+  setViewMode: (mode: 'ALL' | 'REALIZED') => void;
+  settingsOpen: () => boolean;
+  toggleSettings: () => void;
+  setOnlyRealized: (event: Event) => void;
+  selectGranularity: (granularity: FinancialReportGranularity) => void;
+  granularityChange: {
+    subscribe: (listener: (value: FinancialReportGranularity) => void) => unknown;
+  };
+  handleEscape: (event: Event) => void;
 }
 
-async function createComponent(): Promise<ComponentFixture<FinancialEvolutionChart>> {
-  await TestBed.configureTestingModule({ imports: [FinancialEvolutionChart] })
+async function createComponent(
+  points: readonly FinancialEvolutionPoint[] = monthlyPoints,
+): Promise<ComponentFixture<FinancialEvolutionChart>> {
+  await TestBed.configureTestingModule({
+    imports: [FinancialEvolutionChart],
+    providers: [provideFinancialReportLucideIcons()],
+  })
     .overrideComponent(FinancialEvolutionChart, {
       remove: { imports: [BaseChartDirective] },
       add: { imports: [BaseChartStubDirective] },
@@ -101,161 +145,325 @@ async function createComponent(): Promise<ComponentFixture<FinancialEvolutionCha
 
   const fixture = TestBed.createComponent(FinancialEvolutionChart);
   fixture.componentRef.setInput('points', points);
+  fixture.componentRef.setInput('granularity', 'MONTHLY');
   fixture.detectChanges();
   return fixture;
 }
 
 describe('FinancialEvolutionChart', () => {
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    document.body.classList.remove('gd-overlay-open');
+    TestBed.resetTestingModule();
+  });
 
-  it('maps Jan–Dez into one segmented financial column with a blue realized result line', async () => {
+  it('renders six positive bar datasets in two independent stacks', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const chartData = component.chartData();
 
     expect(component.chartType).toBe('bar');
-    expect(chartData.labels).toEqual(labels);
-    expect(chartData.datasets.map(({ type, label }) => ({ type, label }))).toEqual([
-      { type: 'bar', label: 'Receitas realizadas' },
-      { type: 'bar', label: 'Receitas projetadas' },
-      { type: 'bar', label: 'Receitas vencidas' },
-      { type: 'bar', label: 'Despesas realizadas' },
-      { type: 'bar', label: 'Despesas projetadas' },
-      { type: 'bar', label: 'Despesas vencidas' },
-      { type: 'line', label: 'Resultado realizado' },
+    expect(chartData.labels).toEqual(['Jan', 'Fev']);
+    expect(chartData.datasets.map(({ label, stack, type }) => ({ label, stack, type }))).toEqual([
+      { label: 'Receitas realizadas', stack: 'income', type: undefined },
+      { label: 'Receitas projetadas', stack: 'income', type: undefined },
+      { label: 'Receitas vencidas', stack: 'income', type: undefined },
+      { label: 'Despesas realizadas', stack: 'expense', type: undefined },
+      { label: 'Despesas projetadas', stack: 'expense', type: undefined },
+      { label: 'Despesas vencidas', stack: 'expense', type: undefined },
     ]);
-    expect(chartData.datasets[0].data).toEqual(points.map((point) => point.realizedIncome));
-    expect(chartData.datasets[3].data).toEqual(points.map((point) => -point.realizedExpense));
-    expect(chartData.datasets[6].data).toEqual(points.map((point) => point.realizedResult));
-    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.stack)).toEqual(
-      Array(6).fill('financial'),
+    expect(chartData.datasets.map((dataset) => dataset.data[0])).toEqual([
+      10000, 5000, 2000, 8000, 3000, 1000,
+    ]);
+    expect(chartData.datasets.every((dataset) => dataset.data.every((value) => Number(value) >= 0))).toBe(
+      true,
     );
-    expect(chartData.datasets[0].backgroundColor).toBe('#22C55E');
-    expect(chartData.datasets[3].backgroundColor).toBe('#DC2626');
-    expect(chartData.datasets[1].backgroundColor).toBe('rgba(34, 197, 94, 0.28)');
-    expect(chartData.datasets[2].backgroundColor).toBe('rgba(34, 197, 94, 0.52)');
-    expect(chartData.datasets[4].backgroundColor).toBe('rgba(220, 38, 38, 0.28)');
-    expect(chartData.datasets[5].backgroundColor).toBe('rgba(220, 38, 38, 0.52)');
-    expect(chartData.datasets[0].order).toBe(1);
-    expect(chartData.datasets[1].order).toBe(1);
-    expect(chartData.datasets[6].order).toBe(0);
-    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.borderWidth)).toEqual(
-      Array(6).fill(0),
-    );
-    expect(chartData.datasets.slice(0, 6).map((dataset) => dataset.inflateAmount)).toEqual(
-      Array(6).fill(0),
-    );
-    expect(chartData.datasets[6]).toMatchObject({
-      borderColor: '#2563EB',
-      backgroundColor: '#2563EB',
-      borderWidth: 2,
-      tension: 0.25,
-      fill: false,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-    });
-    expect(points[1].expense).toBe(3000);
   });
 
-  it('rounds only the outer ends of continuous stacked bars', async () => {
+  it('keeps realized at the base, projected in the middle and overdue at the top', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
     const datasets = component.chartData().datasets;
-    const overdueIncomeRadius = datasets[2].borderRadius as readonly unknown[];
-    const projectedExpenseRadius = datasets[4].borderRadius as readonly unknown[];
 
-    expect(datasets.slice(0, 6).map((dataset) => dataset.borderSkipped)).toEqual(
-      Array(6).fill(false),
-    );
-    expect(overdueIncomeRadius[1]).toEqual({
-      topLeft: 3,
-      topRight: 3,
-      bottomLeft: 0,
-      bottomRight: 0,
+    expect(datasets.slice(0, 3).map((dataset) => dataset.order)).toEqual([0, 1, 2]);
+    expect(datasets.slice(3).map((dataset) => dataset.order)).toEqual([0, 1, 2]);
+    expect(datasets[0].borderWidth).toBe(0);
+    expect(datasets[1].borderWidth).toBeGreaterThan(0);
+    expect(datasets[2].borderWidth).toBeGreaterThan(0);
+    expect(datasets[2].backgroundColor).toBe('#F59E0B');
+    expect(datasets[5].backgroundColor).toBe('#F59E0B');
+    expect(datasets.map((dataset) => dataset.barThickness)).toEqual([28, 28, 28, 28, 28, 28]);
+    expect(datasets.map((dataset) => dataset.maxBarThickness)).toEqual([28, 28, 28, 28, 28, 28]);
+    expect(datasets.every((dataset) => dataset.grouped === true)).toBe(true);
+    expect((datasets[0].borderRadius as readonly unknown[])[0]).toBe(0);
+    expect((datasets[2].borderRadius as readonly unknown[])[0]).toMatchObject({
+      topLeft: 4,
+      topRight: 4,
     });
-    expect(projectedExpenseRadius[0]).toEqual({
-      topLeft: 0,
-      topRight: 0,
-      bottomLeft: 3,
-      bottomRight: 3,
-    });
-    expect((datasets[0].borderRadius as readonly unknown[])[1]).toBe(0);
   });
 
-  it('uses a shared fixed scale with an emphasized zero grid line', async () => {
-    const component = (await createComponent()).componentInstance as unknown as TestApi;
-    const options = component.chartOptions();
-    const grid = options.scales?.y?.grid;
-
-    expect(options.plugins?.legend?.display).toBe(false);
-    expect(options.scales?.x?.stacked).toBe(true);
-    expect(options.scales?.y?.stacked).toBe(true);
-    expect(options.scales?.y?.min).toBeDefined();
-    expect(options.scales?.y?.ticks?.stepSize).toBeGreaterThan(0);
-    expect(grid?.lineWidth?.({ tick: { value: 0 } })).toBeGreaterThan(
-      grid?.lineWidth?.({ tick: { value: 1 } }) ?? 0,
-    );
-    expect(grid?.color?.({ tick: { value: 0 } })).not.toBe(grid?.color?.({ tick: { value: 1 } }));
-  });
-
-  it('reserves the fixed y-axis width from the complete formatted tick labels', async () => {
+  it('configures grouped stacks side by side on positive axes', async () => {
     const fixture = await createComponent();
-    fixture.componentRef.setInput(
-      'points',
-      points.map((point, index) =>
-        index === 0
-          ? {
-              ...point,
-              realizedIncome: 1_500_000,
-              realizedExpense: 1_500_000,
-              realizedResult: -1_500_000,
-            }
-          : point,
-      ),
-    );
-    fixture.detectChanges();
-    const axis = fixture.nativeElement.querySelector(
-      '[data-testid="financial-evolution-y-axis"]',
-    ) as HTMLDivElement;
-    const visibleLabels = Array.from(axis.querySelectorAll('span.absolute'));
-    const measurementLabels = Array.from(axis.querySelectorAll('div.invisible span'));
+    const component = fixture.componentInstance as unknown as TestApi;
+    const options = component.chartOptions();
 
-    expect(axis.classList).toContain('w-max');
-    expect(axis.classList).toContain('shrink-0');
-    expect(axis.classList).toContain('pl-1');
-    expect(axis.classList).toContain('pr-3');
-    expect(visibleLabels).toHaveLength(measurementLabels.length);
-    expect(measurementLabels.map((label) => label.textContent?.trim())).toEqual(
-      visibleLabels.map((label) => label.textContent?.trim()),
-    );
-    expect(measurementLabels.some((label) => label.textContent?.includes('-R$'))).toBe(true);
-    expect(measurementLabels.some((label) => label.textContent?.includes('1.000.000'))).toBe(true);
-    expect(visibleLabels.every((label) => label.classList.contains('whitespace-nowrap'))).toBe(true);
+    expect(options.scales?.x?.stacked).toBe(true);
+    expect(options.scales?.x?.position).toBe('bottom');
+    expect(options.scales?.x?.offset).toBe(true);
+    expect(options.scales?.y?.stacked).toBe(true);
+    expect(options.scales?.y?.beginAtZero).toBe(true);
+    expect(options.scales?.y?.min).toBe(0);
+    expect(options.scales?.y?.bounds).toBe('ticks');
+    expect(options.scales?.y?.ticks?.display).toBe(true);
+    expect(options.scales?.y?.ticks?.crossAlign).toBe('far');
+    expect(options.scales?.y?.ticks?.stepSize).toBeGreaterThan(0);
+    expect(fixture.nativeElement.querySelector('[data-testid="financial-evolution-y-axis"]')).toBeNull();
   });
 
-  it('colors only the current period x-axis label in blue', async () => {
+  it('groups the hovered bar tooltip by financial type and includes all states and total', async () => {
     const component = (await createComponent()).componentInstance as unknown as TestApi;
-    const color = component.chartOptions().scales?.x?.ticks?.color;
+    const callbacks = component.chartOptions().plugins?.tooltip?.callbacks;
+    const incomeRows = callbacks?.label?.({
+      dataset: { label: 'Receitas realizadas', stack: 'income' },
+      dataIndex: 0,
+      parsed: { y: 10000 },
+    });
+    const expenseRows = callbacks?.label?.({
+      dataset: { label: 'Despesas vencidas', stack: 'expense' },
+      dataIndex: 0,
+      parsed: { y: 1000 },
+    });
 
-    expect(color?.({ index: 7 })).toBe('#2563EB');
-    expect(color?.({ index: 6 })).toBe('#6B7280');
+    expect(callbacks?.title?.([{ dataIndex: 0 }])).toContain('Jan');
+    expect(incomeRows?.[0]).toBe('Tipo: Receita');
+    expect(incomeRows).toContain('Realizado: R$ 10.000,00');
+    expect(incomeRows).toContain('Projetado: R$ 5.000,00');
+    expect(incomeRows).toContain('Vencido: R$ 2.000,00');
+    expect(incomeRows).toContain('Total: R$ 17.000,00');
+    expect(expenseRows?.[0]).toBe('Tipo: Despesa');
+    expect(expenseRows).toContain('Total: R$ 12.000,00');
   });
 
-  it('renders an accessible compact legend with a state information tooltip', async () => {
+  it('switches between all states and realized values without changing the source data', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+    const allScale = component.chartOptions().scales?.y?.max;
+
+    expect(component.viewMode()).toBe('ALL');
+    expect(component.chartData().datasets).toHaveLength(6);
+
+    component.setViewMode('REALIZED');
+    fixture.detectChanges();
+
+    expect(component.viewMode()).toBe('REALIZED');
+    expect(component.chartData().datasets.map((dataset) => dataset.data[0])).toEqual([10000, 8000]);
+    expect(component.chartData().datasets.map((dataset) => dataset.stack)).toEqual([
+      'income',
+      'expense',
+    ]);
+    expect(component.chartOptions().scales?.y?.max).toBeLessThan(allScale ?? Number.POSITIVE_INFINITY);
+
+    component.setViewMode('ALL');
+    fixture.detectChanges();
+
+    expect(component.chartData().datasets).toHaveLength(6);
+    expect(component.chartData().datasets[2].data[0]).toBe(2000);
+  });
+
+  it('preserves monthly and quarterly labels and widths', async () => {
+    const quarterlyPoints = monthlyPoints.map((point, index) => ({
+      ...point,
+      period: `2026-Q${index + 1}`,
+      label: `${index + 1}º tri`,
+    }));
+    const component = (await createComponent(quarterlyPoints)).componentInstance as unknown as TestApi;
+
+    expect(component.chartData().labels).toEqual(['1º tri', '2º tri']);
+    expect(component.chartWidth()).toBe(520);
+  });
+
+  it('renders grouped legends without a visual container or header controls', async () => {
     const fixture = await createComponent();
     const legend = fixture.nativeElement.querySelector(
       '[aria-label="Legenda do gráfico de evolução financeira"]',
-    ) as HTMLDivElement;
+    ) as HTMLElement;
 
     expect(legend.textContent).toContain('Receitas');
     expect(legend.textContent).toContain('Despesas');
-    expect(legend.textContent).toContain('Resultado realizado');
-    expect(legend.querySelectorAll(':scope > span')).toHaveLength(3);
-    expect(legend.querySelector('gd-tooltip')).not.toBeNull();
+    expect(legend.textContent).toContain('Realizado');
+    expect(legend.textContent).toContain('Projetado');
+    expect(legend.textContent).toContain('Vencido');
+    expect(legend.textContent).not.toContain('Resultado');
+    expect(legend.querySelector('[aria-label="Receitas"]')?.textContent).toContain('Realizado');
+    expect(legend.querySelector('[aria-label="Despesas"]')?.textContent).toContain('Vencido');
+    expect(legend.className).not.toContain('border-border');
+    expect(legend.className).not.toContain('bg-background');
+
+    expect(fixture.nativeElement.querySelector('#financial-evolution-only-realized')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Granularidade da evolução financeira"]')).toBeNull();
+
+    const settingsButton = fixture.nativeElement.querySelector(
+      '[aria-label="Abrir configurações da evolução financeira"]',
+    ) as HTMLButtonElement;
+    expect(settingsButton).not.toBeNull();
+    settingsButton.click();
+    fixture.detectChanges();
+
+    const checkbox = document.body.querySelector(
+      '#financial-evolution-only-realized',
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+
+    const component = fixture.componentInstance as unknown as TestApi;
+    component.setViewMode('REALIZED');
+    fixture.detectChanges();
+    expect(checkbox.checked).toBe(true);
+    expect(legend.textContent).not.toContain('Projetado');
+    expect(legend.textContent).not.toContain('Vencido');
+
+    (fixture.componentInstance as unknown as TestApi).toggleSettings();
+    fixture.detectChanges();
   });
 
-  it('does not render a current-period background plugin', async () => {
-    const component = (await createComponent()).componentInstance;
+  it('toggles the realized-only mode through the checkbox in the settings popover', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+    component.toggleSettings();
+    fixture.detectChanges();
 
-    expect('currentPeriodPlugin' in component).toBe(false);
+    const checkbox = document.body.querySelector(
+      '#financial-evolution-only-realized',
+    ) as HTMLInputElement;
+
+    checkbox.click();
+    fixture.detectChanges();
+    expect(component.viewMode()).toBe('REALIZED');
+    expect(component.chartData().datasets).toHaveLength(2);
+
+    checkbox.click();
+    fixture.detectChanges();
+    expect(component.viewMode()).toBe('ALL');
+    expect(component.chartData().datasets).toHaveLength(6);
+  });
+
+  it('closes the settings popover with Escape and preserves its selections', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+
+    component.toggleSettings();
+    fixture.detectChanges();
+    const checkbox = document.body.querySelector('#financial-evolution-only-realized') as HTMLInputElement;
+    checkbox.click();
+    fixture.detectChanges();
+
+    component.handleEscape(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(component.settingsOpen()).toBe(false);
+    expect(document.body.querySelector('#financial-evolution-settings')).toBeNull();
+    expect(component.viewMode()).toBe('REALIZED');
+  });
+
+  it('closes the settings popover when clicking outside it', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+
+    component.toggleSettings();
+    fixture.detectChanges();
+    expect(component.settingsOpen()).toBe(true);
+
+    const backdrop = document.body.querySelector('.cdk-overlay-backdrop') as HTMLElement;
+    backdrop.click();
+    fixture.detectChanges();
+
+    expect(component.settingsOpen()).toBe(false);
+    expect(document.body.querySelector('#financial-evolution-settings')).toBeNull();
+  });
+
+  it('keeps the selected granularity control inside the settings popover', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+    const selected: FinancialReportGranularity[] = [];
+    component.granularityChange.subscribe((value) => selected.push(value));
+
+    component.toggleSettings();
+    fixture.detectChanges();
+
+    const popover = document.body.querySelector('#financial-evolution-settings') as HTMLElement;
+    expect(popover.textContent).toContain('Mensal');
+    expect(popover.textContent).toContain('Trimestral');
+    expect(popover.querySelector('[aria-pressed="true"]')?.textContent).toContain('Mensal');
+
+    (popover.querySelector('button:last-child') as HTMLButtonElement).click();
+    expect(selected).toEqual(['QUARTERLY']);
+  });
+
+  it('does not attach a click handler or period selection output', async () => {
+    const fixture = await createComponent();
+
+    expect(fixture.nativeElement.querySelector('canvas')?.getAttribute('(chartClick)')).toBeNull();
+    expect((fixture.componentInstance as unknown as Record<string, unknown>)['periodSelected']).toBeUndefined();
+  });
+
+  it('opens and closes fullscreen while preserving the complete chart', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+
+    component.toggleFullscreen();
+    fixture.detectChanges();
+
+    expect(component.fullscreen()).toBe(true);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(true);
+    expect(document.body.querySelector('.cdk-overlay-container [role="dialog"]')).not.toBeNull();
+    expect(component.chartData().datasets).toHaveLength(6);
+
+    component.toggleFullscreen();
+    fixture.detectChanges();
+
+    expect(component.fullscreen()).toBe(false);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+    expect(component.chartData().datasets).toHaveLength(6);
+    expect(document.body.querySelector('.cdk-overlay-container [role="dialog"]')).toBeNull();
+  });
+
+  it('closes fullscreen with Escape', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+
+    component.toggleFullscreen();
+    fixture.detectChanges();
+    component.handleEscape(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(component.fullscreen()).toBe(false);
+    expect(document.body.classList.contains('gd-overlay-open')).toBe(false);
+  });
+
+  it('preserves the realized-only mode while fullscreen is open', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
+
+    component.setViewMode('REALIZED');
+    fixture.detectChanges();
+    component.toggleFullscreen();
+    fixture.detectChanges();
+
+    expect(component.viewMode()).toBe('REALIZED');
+    expect(component.chartData().datasets).toHaveLength(2);
+    expect(document.body.querySelector('.cdk-overlay-container [role="dialog"]')).not.toBeNull();
+
+    component.closeFullscreen();
+    fixture.detectChanges();
+    expect(component.viewMode()).toBe('REALIZED');
+    expect(component.chartData().datasets).toHaveLength(2);
+  });
+
+  it('keeps zero-valued periods and does not duplicate their values', async () => {
+    const component = (await createComponent([monthlyPoints[1]])).componentInstance as unknown as TestApi;
+    const datasets = component.chartData().datasets;
+
+    expect(datasets).toHaveLength(6);
+    expect(datasets.map((dataset) => dataset.data)).toEqual(
+      [[0], [0], [0], [0], [0], [0]],
+    );
+    expect(component.chartOptions().scales?.y?.min).toBe(0);
   });
 
   it('updates chart colors for light and dark themes', async () => {
@@ -267,27 +475,5 @@ describe('FinancialEvolutionChart', () => {
     themeStore.setTheme('dark');
     fixture.detectChanges();
     expect(component.chartOptions().plugins?.tooltip?.backgroundColor).toBe('#16231D');
-  });
-
-  it('shows overdue counts and realized result in the detailed tooltip', async () => {
-    const component = (await createComponent()).componentInstance as unknown as TestApi;
-    const rows = (component as unknown as { tooltipRows: (index: number) => string[] }).tooltipRows(1);
-
-    expect(rows.join('\n')).toContain('Receitas vencidas');
-    expect(rows.join('\n')).toContain('1 movimentação');
-    expect(rows.join('\n')).toContain('Resultado realizado');
-  });
-
-  it('emits the original period for clicks on every dataset index', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance as unknown as TestApi;
-    const emitted: FinancialEvolutionPoint[] = [];
-    fixture.componentInstance.periodSelected.subscribe((point) => emitted.push(point));
-
-    component.selectPeriod({ active: [{ index: 1, datasetIndex: 0 }] });
-    component.selectPeriod({ active: [{ index: 1, datasetIndex: 1 }] });
-    component.selectPeriod({ active: [{ index: 1, datasetIndex: 2 }] });
-
-    expect(emitted).toEqual([points[1], points[1], points[1]]);
   });
 });

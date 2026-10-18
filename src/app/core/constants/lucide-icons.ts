@@ -42,7 +42,9 @@ import {
   LucideLock,
   LucideLogOut,
   LucideMail,
+  LucideMaximize2,
   LucideMenu,
+  LucideMinimize2,
   LucideMessageCircle,
   LucideMic,
   LucideMoon,
@@ -255,10 +257,13 @@ export function provideFinancialReportLucideIcons(): Provider {
     LucideInfo,
     LucideLayoutDashboard,
     LucideLink,
+    LucideMaximize2,
+    LucideMinimize2,
     LucidePencil,
     LucidePrinter,
     LucideReceiptText,
     LucideShieldCheck,
+    LucideSettings,
     LucideSprout,
     LucideTags,
     LucideTractor,
@@ -266,6 +271,7 @@ export function provideFinancialReportLucideIcons(): Provider {
     LucideTrendingUp,
     LucideUnlink,
     LucideWallet,
+    LucideX,
   );
 }
 

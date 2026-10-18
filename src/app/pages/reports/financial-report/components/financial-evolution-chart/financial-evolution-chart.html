@@ -1,66 +1,197 @@
-<div class="flex h-72 w-full overflow-hidden lg:h-80">
-  <div
-    class="relative w-max shrink-0 pb-8 pl-1 pr-3"
-    data-testid="financial-evolution-y-axis"
-    aria-hidden="true"
-  >
-    <div class="invisible flex w-max flex-col items-end text-right text-xs">
-      @for (tick of scale().ticks; track tick) {
-        <span class="whitespace-nowrap" [class.font-medium]="tick === 0">
-          {{ formatCurrency(tick) }}
-        </span>
-      }
-    </div>
-    @for (tick of scale().ticks; track tick) {
-      <span
-        class="absolute right-3 -translate-y-1/2 whitespace-nowrap text-right text-xs text-text-muted"
-        [class.font-medium]="tick === 0"
-        [style.top.%]="axisPosition(tick)"
-      >
-        {{ formatCurrency(tick) }}
-      </span>
-    }
-  </div>
-  <div class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain">
-    <div class="h-full" [style.width.px]="chartWidth()">
-      <canvas
-        baseChart
-        [type]="chartType"
-        [data]="chartData()"
-        [options]="chartOptions()"
-        role="img"
-        aria-label="Gráfico de evolução financeira com receitas, despesas e resultado realizado"
-        (chartClick)="selectPeriod($event)"
-      ></canvas>
-    </div>
-  </div>
-</div>
+<ng-template #chartPanel>
+  <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="financial-evolution-title">
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <h2 id="financial-evolution-title" class="text-lg font-semibold text-text-primary">
+          Evolução financeira
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">
+          Comparativo de receitas e despesas por período.
+        </p>
+      </div>
 
-<div
-  class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-text-muted"
-  aria-label="Legenda do gráfico de evolução financeira"
->
-  <span class="inline-flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#22C55E]"></span>Receitas</span>
-  <span class="inline-flex items-center gap-2"><span class="size-2.5 rounded-full bg-[#DC2626]"></span>Despesas</span>
-  <span class="inline-flex items-center gap-2"><span class="h-0.5 w-4 bg-[#2563EB]"></span>Resultado realizado</span>
-  <gd-tooltip
-    class="cursor-help text-text-muted transition-colors hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-    ariaLabel="Entenda os estilos de realizado, projetado e vencido"
-    [content]="stateLegendTooltip"
-  >
-    <span
-      class="flex size-4 items-center justify-center rounded-full border border-current text-[10px] font-semibold"
-      aria-hidden="true"
+      <div class="flex shrink-0 items-center gap-1">
+        <button
+          #settingsButton
+          type="button"
+          class="inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Abrir configurações da evolução financeira"
+          title="Configurações do gráfico"
+          aria-haspopup="dialog"
+          aria-controls="financial-evolution-settings"
+          [attr.aria-expanded]="settingsOpen()"
+          (click)="toggleSettings()"
+        >
+          <svg lucideIcon="settings" class="size-4" aria-hidden="true"></svg>
+        </button>
+
+        <button
+          #fullscreenCloseButton
+          type="button"
+          class="inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-control px-2 text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-2.5"
+          [attr.aria-label]="fullscreen() ? 'Fechar tela cheia' : 'Expandir gráfico para tela cheia'"
+          [attr.title]="fullscreen() ? 'Fechar tela cheia' : 'Expandir gráfico para tela cheia'"
+          [attr.aria-expanded]="fullscreen()"
+          (click)="toggleFullscreen()"
+        >
+          @if (fullscreen()) {
+            <svg lucideIcon="x" class="size-4" aria-hidden="true"></svg>
+            <span class="text-xs font-medium sm:text-sm">Fechar</span>
+          } @else {
+            <svg lucideIcon="maximize-2" class="size-4" aria-hidden="true"></svg>
+          }
+        </button>
+      </div>
+    </header>
+
+    <div class="mt-4 flex min-h-0 w-full flex-1 overflow-hidden">
+      <div class="gd-financial-evolution-scroll min-w-0 flex-1 overflow-x-auto overscroll-x-contain">
+        <div
+          class="h-72 min-h-0 w-full lg:h-80"
+          [style.height]="fullscreen() ? '100%' : null"
+          [style.min-width.px]="chartWidth()"
+        >
+          <canvas
+            baseChart
+            [type]="chartType"
+            [data]="chartData()"
+            [options]="chartOptions()"
+            role="img"
+            [attr.aria-label]="ariaLabel()"
+          ></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-1 text-sm text-text-muted"
+      aria-label="Legenda do gráfico de evolução financeira"
     >
-      i
-    </span>
-  </gd-tooltip>
-</div>
+      <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2" aria-label="Receitas">
+        <span class="font-semibold text-text-primary">Receitas</span>
+        <span class="inline-flex items-center gap-1.5">
+          <span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>
+          Realizado
+        </span>
+        @if (viewMode() === 'ALL') {
+          <span class="inline-flex items-center gap-1.5">
+            <span class="size-2.5 rounded-full bg-success/40" aria-hidden="true"></span>
+            Projetado
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="size-2.5 rounded-full bg-warning" aria-hidden="true"></span>
+            Vencido
+          </span>
+        }
+      </div>
 
-<ul class="sr-only" aria-label="Dados da evolução financeira">
-  @for (point of points(); track point.period) {
-    <li>
-      {{ point.label }}{{ point.currentPeriod ? ', período atual' : '' }}: receitas realizadas {{ formatCurrency(point.realizedIncome) }}, receitas projetadas {{ formatCurrency(point.projectedIncome) }}, receitas vencidas {{ formatCurrency(point.overdueIncome) }}, despesas realizadas {{ formatCurrency(point.realizedExpense) }}, despesas projetadas {{ formatCurrency(point.projectedExpense) }}, despesas vencidas {{ formatCurrency(point.overdueExpense) }}, resultado realizado {{ formatCurrency(point.realizedResult) }}
-    </li>
-  }
-</ul>
+      <span class="hidden h-5 w-px bg-border sm:block" aria-hidden="true"></span>
+
+      <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2" aria-label="Despesas">
+        <span class="font-semibold text-text-primary">Despesas</span>
+        <span class="inline-flex items-center gap-1.5">
+          <span class="size-2.5 rounded-full bg-danger" aria-hidden="true"></span>
+          Realizado
+        </span>
+        @if (viewMode() === 'ALL') {
+          <span class="inline-flex items-center gap-1.5">
+            <span class="size-2.5 rounded-full bg-danger/40" aria-hidden="true"></span>
+            Projetado
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="size-2.5 rounded-full bg-warning" aria-hidden="true"></span>
+            Vencido
+          </span>
+        }
+      </div>
+    </div>
+
+    <ul class="sr-only" aria-label="Dados da evolução financeira">
+      @for (point of points(); track point.period) {
+        <li>
+          {{ point.label }}{{ point.currentPeriod ? ', período atual' : '' }}:
+          receitas — realizado {{ formatCurrency(point.realizedIncome) }}, projetado
+          {{ formatCurrency(point.projectedIncome) }}, vencido {{ formatCurrency(point.overdueIncome) }},
+          total {{ formatCurrency(totalFor(point, 'INCOME')) }}; despesas — realizado
+          {{ formatCurrency(point.realizedExpense) }}, projetado {{ formatCurrency(point.projectedExpense) }},
+          vencido {{ formatCurrency(point.overdueExpense) }}, total
+          {{ formatCurrency(totalFor(point, 'EXPENSE')) }}.
+        </li>
+      }
+    </ul>
+  </section>
+</ng-template>
+
+<ng-template #settingsTemplate>
+  <div
+    id="financial-evolution-settings"
+    role="dialog"
+    aria-label="Configurações da evolução financeira"
+    class="w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-3 text-text-primary shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Visualização</p>
+    <label
+      for="financial-evolution-only-realized"
+      class="mt-2 flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm text-text-primary hover:bg-background"
+    >
+      <input
+        #settingsOnlyRealized
+        id="financial-evolution-only-realized"
+        type="checkbox"
+        class="size-4 cursor-pointer rounded border-border accent-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        [checked]="viewMode() === 'REALIZED'"
+        (change)="setOnlyRealized($event)"
+      />
+      <span>Somente realizados</span>
+    </label>
+
+    <div class="mt-3 border-t border-border pt-3">
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Período</p>
+      <div
+        class="mt-2 grid grid-cols-2 gap-1 rounded-md bg-background p-1"
+        role="group"
+        aria-label="Granularidade da evolução financeira"
+      >
+        <button
+          type="button"
+          class="cursor-pointer rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+          [class.bg-surface]="granularity() === 'MONTHLY'"
+          [class.text-primary]="granularity() === 'MONTHLY'"
+          [class.text-text-muted]="granularity() !== 'MONTHLY'"
+          [attr.aria-pressed]="granularity() === 'MONTHLY'"
+          (click)="selectGranularity('MONTHLY')"
+        >
+          Mensal
+        </button>
+        <button
+          type="button"
+          class="cursor-pointer rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+          [class.bg-surface]="granularity() === 'QUARTERLY'"
+          [class.text-primary]="granularity() === 'QUARTERLY'"
+          [class.text-text-muted]="granularity() !== 'QUARTERLY'"
+          [attr.aria-pressed]="granularity() === 'QUARTERLY'"
+          (click)="selectGranularity('QUARTERLY')"
+        >
+          Trimestral
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #fullscreenTemplate>
+  <div class="flex h-full w-full min-h-0 bg-black/45 p-3 sm:p-5" role="presentation">
+    <section
+      class="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-app border border-border bg-surface p-4 text-text-primary shadow-soft sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Evolução financeira em tela cheia"
+    >
+      <ng-container [ngTemplateOutlet]="chartPanel" />
+    </section>
+  </div>
+</ng-template>
+
+@if (!fullscreen()) {
+  <ng-container [ngTemplateOutlet]="chartPanel" />
+}

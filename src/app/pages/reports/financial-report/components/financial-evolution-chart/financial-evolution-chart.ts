@@ -1,23 +1,45 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  ElementRef,
+  TemplateRef,
+  ViewContainerRef,
   computed,
   effect,
   inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
-import { ChartConfiguration, ChartEvent } from 'chart.js';
+import { NgTemplateOutlet } from '@angular/common';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
+import { LucideDynamicIcon } from '@lucide/angular';
+import { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
-import { FinancialEvolutionPoint } from '../../../../../core/models/financial-report.models';
+import {
+  FinancialEvolutionPoint,
+  FinancialReportGranularity,
+} from '../../../../../core/models/financial-report.models';
 import { ThemeStore } from '../../../../../core/stores/theme.store';
-import { Tooltip } from '../../../../../shared/ui';
+import { lockOverlayScroll } from '../../../../../shared/overlays/overlay-scroll-lock';
+import { OverlayStack } from '../../../../../shared/overlays/overlay-stack';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const MONTH_WIDTH = 72;
-const QUARTER_WIDTH = 96;
+const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+const MONTH_WIDTH = 88;
+const QUARTER_WIDTH = 112;
+const BAR_THICKNESS = 28;
+const BAR_CATEGORY_PERCENTAGE = 0.78;
+const BAR_PERCENTAGE = 0.92;
 
 interface ChartThemeColors {
   muted: string;
@@ -26,6 +48,10 @@ interface ChartThemeColors {
   surface: string;
   foreground: string;
   border: string;
+  info: string;
+  warning: string;
+  income: string;
+  expense: string;
 }
 
 interface AxisScale {
@@ -37,99 +63,128 @@ interface AxisScale {
 
 type FinancialState = 'REALIZED' | 'PROJECTED' | 'OVERDUE';
 type FinancialDirection = 'INCOME' | 'EXPENSE';
+type ViewMode = 'ALL' | 'REALIZED';
+
+const stateLabels: Record<FinancialState, string> = {
+  REALIZED: 'Realizado',
+  PROJECTED: 'Projetado',
+  OVERDUE: 'Vencido',
+};
+
+const directionLabels: Record<FinancialDirection, string> = {
+  INCOME: 'Receita',
+  EXPENSE: 'Despesa',
+};
 
 @Component({
   selector: 'gd-financial-evolution-chart',
-  imports: [BaseChartDirective, Tooltip],
+  imports: [BaseChartDirective, LucideDynamicIcon, NgTemplateOutlet],
   templateUrl: './financial-evolution-chart.html',
+  host: {
+    '(document:keydown.escape)': 'handleEscape($event)',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialEvolutionChart {
   readonly points = input.required<readonly FinancialEvolutionPoint[]>();
-  readonly periodSelected = output<FinancialEvolutionPoint>();
+  readonly granularity = input.required<FinancialReportGranularity>();
+  readonly granularityChange = output<FinancialReportGranularity>();
 
   private readonly themeStore = inject(ThemeStore);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly overlayStack = inject(OverlayStack);
+  private readonly overlay = inject(Overlay);
+  private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly chartDirective = viewChild(BaseChartDirective);
+  private readonly settingsButton = viewChild<ElementRef<HTMLButtonElement>>('settingsButton');
+  private readonly settingsOnlyRealized = viewChild<ElementRef<HTMLInputElement>>('settingsOnlyRealized');
+  private readonly settingsTemplate = viewChild<TemplateRef<unknown>>('settingsTemplate');
+  private readonly fullscreenCloseButton = viewChild<ElementRef<HTMLButtonElement>>('fullscreenCloseButton');
+  private readonly fullscreenTemplate = viewChild<TemplateRef<unknown>>('fullscreenTemplate');
+  private readonly overlayId = signal<number | null>(null);
+  private readonly settingsOverlayId = signal<number | null>(null);
+  protected readonly settingsOpen = signal(false);
+  private fullscreenOverlayRef: OverlayRef | null = null;
+  private settingsOverlayRef: OverlayRef | null = null;
+  private previouslyFocusedElement: HTMLElement | null = null;
 
   protected readonly chartType = 'bar' as const;
-  protected readonly stateLegendTooltip =
-    'Sólido: realizado. Translúcido: projetado. Tom mais intenso: vencido.';
+  protected readonly fullscreen = signal(false);
+  protected readonly viewMode = signal<ViewMode>('ALL');
+
   protected readonly chartWidth = computed(() => {
     const width = this.points().some((point) => point.period.includes('Q'))
       ? QUARTER_WIDTH
       : MONTH_WIDTH;
     return Math.max(this.points().length * width, 520);
   });
-  protected readonly scale = computed(() => this.createScale(this.points()));
-  protected readonly chartData = computed<ChartConfiguration<'bar' | 'line'>['data']>(() => ({
-    labels: this.points().map((point) => point.label),
-    datasets: [
+  protected readonly scale = computed(() => this.createScale(this.points(), this.viewMode()));
+  protected readonly chartData = computed<ChartConfiguration<'bar'>['data']>(() => {
+    const colors = this.themeColors();
+    const datasets = [
       this.barDataset(
         'Receitas realizadas',
         (point) => point.realizedIncome,
-        '#22C55E',
+        'income',
         'INCOME',
         'REALIZED',
+        colors,
       ),
       this.barDataset(
         'Receitas projetadas',
         (point) => point.projectedIncome,
-        'rgba(34, 197, 94, 0.28)',
+        'income',
         'INCOME',
         'PROJECTED',
+        colors,
       ),
       this.barDataset(
         'Receitas vencidas',
         (point) => point.overdueIncome,
-        'rgba(34, 197, 94, 0.52)',
+        'income',
         'INCOME',
         'OVERDUE',
+        colors,
       ),
       this.barDataset(
         'Despesas realizadas',
-        (point) => -point.realizedExpense,
-        '#DC2626',
+        (point) => point.realizedExpense,
+        'expense',
         'EXPENSE',
         'REALIZED',
+        colors,
       ),
       this.barDataset(
         'Despesas projetadas',
-        (point) => -point.projectedExpense,
-        'rgba(220, 38, 38, 0.28)',
+        (point) => point.projectedExpense,
+        'expense',
         'EXPENSE',
         'PROJECTED',
+        colors,
       ),
       this.barDataset(
         'Despesas vencidas',
-        (point) => -point.overdueExpense,
-        'rgba(220, 38, 38, 0.52)',
+        (point) => point.overdueExpense,
+        'expense',
         'EXPENSE',
         'OVERDUE',
+        colors,
       ),
-      {
-        type: 'line',
-        label: 'Resultado realizado',
-        data: this.points().map((point) => point.realizedResult),
-        order: 0,
-        borderColor: '#2563EB',
-        backgroundColor: '#2563EB',
-        borderWidth: 2,
-        tension: 0.25,
-        fill: false,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointHitRadius: 16,
-      },
-    ],
-  }));
-  protected readonly chartOptions = computed<ChartConfiguration<'bar' | 'line'>['options']>(() => {
+    ];
+
+    return {
+      labels: this.points().map((point) => point.label),
+      datasets: this.viewMode() === 'REALIZED' ? [datasets[0], datasets[3]] : datasets,
+    };
+  });
+  protected readonly chartOptions = computed<ChartConfiguration<'bar'>['options']>(() => {
     const colors = this.themeColors();
     const scale = this.scale();
 
     return {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { intersect: false, mode: 'index' },
+      interaction: { intersect: true, mode: 'nearest' },
       layout: { padding: { left: 4, right: 12 } },
       plugins: {
         legend: { display: false },
@@ -142,29 +197,44 @@ export class FinancialEvolutionChart {
           padding: 12,
           callbacks: {
             title: (contexts) => this.tooltipTitle(contexts[0]?.dataIndex ?? 0),
-            label: () => '',
-            afterBody: (contexts) => this.tooltipRows(contexts[0]?.dataIndex ?? 0),
+            label: (context) =>
+              this.tooltipRows(
+                context.dataIndex,
+                context.dataset.stack === 'expense' ? 'EXPENSE' : 'INCOME',
+              ),
           },
         },
       },
       scales: {
         x: {
+          position: 'bottom',
           stacked: true,
+          offset: true,
           border: { display: false },
           grid: { display: false },
           ticks: {
             color: (context) =>
-              this.points()[context.index]?.currentPeriod ? '#2563EB' : colors.muted,
+              this.points()[context.index]?.currentPeriod ? colors.info : colors.muted,
             padding: 10,
             maxRotation: 0,
             autoSkip: false,
           },
         },
         y: {
+          position: 'left',
           stacked: true,
-          min: scale.min,
+          beginAtZero: true,
+          min: 0,
           max: scale.max,
-          ticks: { display: false, stepSize: scale.step },
+          bounds: 'ticks',
+          ticks: {
+            display: true,
+            stepSize: scale.step,
+            maxTicksLimit: 6,
+            padding: 8,
+            crossAlign: 'far',
+            callback: (value) => this.formatAxisCurrency(Number(value)),
+          },
           border: { display: false },
           grid: {
             color: (context) => (context.tick.value === 0 ? colors.zeroGrid : colors.grid),
@@ -175,48 +245,256 @@ export class FinancialEvolutionChart {
       },
     };
   });
+
+  private readonly fullscreenEffect = effect((onCleanup) => {
+    if (!this.fullscreen()) {
+      return;
+    }
+
+    this.previouslyFocusedElement = this.activeElement();
+    const overlayId = this.overlayStack.register();
+    this.overlayId.set(overlayId);
+    const unlockScroll = lockOverlayScroll();
+    const template = this.fullscreenTemplate();
+    const overlayRef = this.overlay.create({
+      positionStrategy: this.overlay
+        .position()
+        .global()
+        .top('0')
+        .left('0')
+        .width('100vw')
+        .height('100vh'),
+      scrollStrategy: this.overlay.scrollStrategies.noop(),
+      disposeOnNavigation: true,
+    });
+
+    if (template) {
+      overlayRef.attach(new TemplatePortal(template, this.viewContainerRef));
+    }
+
+    this.fullscreenOverlayRef = overlayRef;
+
+    queueMicrotask(() => {
+      this.fullscreenCloseButton()?.nativeElement.focus();
+      this.resizeChart();
+    });
+
+    onCleanup(() => {
+      overlayRef.dispose();
+      this.overlayStack.release(overlayId);
+      unlockScroll();
+
+      if (this.overlayId() === overlayId) {
+        this.overlayId.set(null);
+      }
+
+      if (this.fullscreenOverlayRef === overlayRef) {
+        this.fullscreenOverlayRef = null;
+      }
+
+      queueMicrotask(() => {
+        this.resizeChart();
+        this.previouslyFocusedElement?.focus();
+      });
+    });
+  });
+
   constructor() {
+    this.destroyRef.onDestroy(() => this.closeSettingsPopover(false));
+
     effect(() => {
       this.themeStore.theme();
+      this.chartData();
       this.chartOptions();
-      queueMicrotask(() => this.chartDirective()?.update());
+      queueMicrotask(() => this.resizeChart());
     });
   }
 
-  protected selectPeriod(event: { event?: ChartEvent; active?: object[] }): void {
-    const active = event.active?.[0] as { index?: unknown } | undefined;
-    if (typeof active?.index !== 'number') return;
-    const point = this.points()[active.index];
-    if (point) this.periodSelected.emit(point);
+  protected setViewMode(mode: ViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  protected setOnlyRealized(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    this.setViewMode(target.checked ? 'REALIZED' : 'ALL');
+  }
+
+  protected toggleSettings(): void {
+    if (this.settingsOpen()) {
+      this.closeSettingsPopover(true);
+      return;
+    }
+
+    const trigger = this.settingsButton();
+    const template = this.settingsTemplate();
+    if (!trigger || !template) {
+      return;
+    }
+
+    const settingsOverlayId = this.overlayStack.register();
+    const overlayRef = this.overlay.create({
+      positionStrategy: this.overlay
+        .position()
+        .flexibleConnectedTo(trigger.nativeElement)
+        .withPositions([
+          {
+            originX: 'end',
+            originY: 'bottom',
+            overlayX: 'end',
+            overlayY: 'top',
+            offsetY: 8,
+          },
+          {
+            originX: 'end',
+            originY: 'top',
+            overlayX: 'end',
+            overlayY: 'bottom',
+            offsetY: -8,
+          },
+        ])
+        .withFlexibleDimensions(false)
+        .withPush(true),
+      scrollStrategy: this.overlay.scrollStrategies.reposition(),
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-transparent-backdrop',
+      panelClass: 'gd-financial-evolution-settings-pane',
+    });
+    overlayRef.overlayElement.style.zIndex = '1001';
+
+    overlayRef.backdropClick().subscribe(() => this.closeSettingsPopover(false));
+    overlayRef.attach(new TemplatePortal(template, this.viewContainerRef));
+
+    this.settingsOverlayRef = overlayRef;
+    this.settingsOverlayId.set(settingsOverlayId);
+    this.settingsOpen.set(true);
+
+    queueMicrotask(() => this.settingsOnlyRealized()?.nativeElement.focus());
+  }
+
+  protected selectGranularity(granularity: FinancialReportGranularity): void {
+    if (this.granularity() !== granularity) {
+      this.granularityChange.emit(granularity);
+    }
+  }
+
+  protected toggleFullscreen(): void {
+    this.closeSettingsPopover(false);
+    this.fullscreen.update((value) => !value);
+  }
+
+  protected closeFullscreen(): void {
+    if (this.fullscreen()) {
+      this.fullscreen.set(false);
+    }
+  }
+
+  protected handleEscape(event: Event): void {
+    const settingsOverlayId = this.settingsOverlayId();
+    if (
+      this.settingsOpen() &&
+      settingsOverlayId !== null &&
+      !this.overlayStack.hasHandledEscape(event) &&
+      this.overlayStack.isTop(settingsOverlayId)
+    ) {
+      event.preventDefault();
+      this.overlayStack.markEscapeHandled(event);
+      this.closeSettingsPopover(true);
+      return;
+    }
+
+    const overlayId = this.overlayId();
+    if (!this.fullscreen() || overlayId === null) {
+      return;
+    }
+
+    if (this.overlayStack.hasHandledEscape(event) || !this.overlayStack.isTop(overlayId)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.overlayStack.markEscapeHandled(event);
+    this.closeFullscreen();
+  }
+
+  private closeSettingsPopover(restoreFocus: boolean): void {
+    const overlayId = this.settingsOverlayId();
+    this.settingsOverlayRef?.dispose();
+    this.settingsOverlayRef = null;
+    this.settingsOpen.set(false);
+
+    if (overlayId !== null) {
+      this.overlayStack.release(overlayId);
+      this.settingsOverlayId.set(null);
+    }
+
+    if (restoreFocus) {
+      queueMicrotask(() => this.settingsButton()?.nativeElement.focus());
+    }
   }
 
   protected formatCurrency(value: number): string {
     return currencyFormatter.format(value);
   }
 
-  protected axisPosition(value: number): number {
-    const scale = this.scale();
-    return ((scale.max - value) / (scale.max - scale.min)) * 100;
+  protected formatAxisCurrency(value: number): string {
+    return compactCurrencyFormatter.format(value);
+  }
+
+  protected totalFor(
+    point: FinancialEvolutionPoint,
+    direction: FinancialDirection,
+    mode: ViewMode = 'ALL',
+  ): number {
+    const values =
+      direction === 'INCOME'
+        ? [point.realizedIncome, point.projectedIncome, point.overdueIncome]
+        : [point.realizedExpense, point.projectedExpense, point.overdueExpense];
+
+    return mode === 'REALIZED' ? values[0] : values.reduce((sum, value) => sum + value, 0);
+  }
+
+  protected ariaLabel(): string {
+    return this.viewMode() === 'REALIZED'
+      ? 'Gráfico de evolução financeira com receitas e despesas realizadas'
+      : 'Gráfico de evolução financeira com receitas e despesas agrupadas por estado';
   }
 
   private barDataset(
     label: string,
     value: (point: FinancialEvolutionPoint) => number,
-    backgroundColor: string,
+    stack: 'income' | 'expense',
     direction: FinancialDirection,
     state: FinancialState,
+    colors: ChartThemeColors,
   ) {
+    const baseColor = direction === 'INCOME' ? colors.income : colors.expense;
+    const backgroundColor =
+      state === 'REALIZED'
+        ? baseColor
+        : state === 'PROJECTED'
+          ? this.withAlpha(baseColor, 0.42)
+          : colors.warning;
+
     return {
-      type: 'bar' as const,
       label,
       data: this.points().map(value),
       backgroundColor,
-      borderWidth: 0,
-      order: 1,
-      stack: 'financial',
-      categoryPercentage: 0.7,
-      barPercentage: 0.78,
-      borderRadius: this.points().map((point) => this.segmentRadius(point, direction, state)),
+      borderColor: state === 'OVERDUE' ? colors.warning : baseColor,
+      borderWidth: state === 'REALIZED' ? 0 : 1,
+      barThickness: BAR_THICKNESS,
+      maxBarThickness: BAR_THICKNESS,
+      categoryPercentage: BAR_CATEGORY_PERCENTAGE,
+      barPercentage: BAR_PERCENTAGE,
+      grouped: true,
+      stack,
+      order: state === 'REALIZED' ? 0 : state === 'PROJECTED' ? 1 : 2,
+      borderRadius: this.points().map((point) =>
+        this.segmentRadius(point, direction, state),
+      ),
       borderSkipped: false,
       inflateAmount: 0,
     };
@@ -227,45 +505,23 @@ export class FinancialEvolutionChart {
     direction: FinancialDirection,
     state: FinancialState,
   ) {
-    if (!this.isOuterSegment(point, direction, state)) {
-      return 0;
-    }
+    const values =
+      direction === 'INCOME'
+        ? {
+            realized: point.realizedIncome,
+            projected: point.projectedIncome,
+            overdue: point.overdueIncome,
+          }
+        : {
+            realized: point.realizedExpense,
+            projected: point.projectedExpense,
+            overdue: point.overdueExpense,
+          };
+    const outerState = values.overdue > 0 ? 'OVERDUE' : values.projected > 0 ? 'PROJECTED' : 'REALIZED';
 
-    return direction === 'INCOME'
-      ? { topLeft: 3, topRight: 3, bottomLeft: 0, bottomRight: 0 }
-      : { topLeft: 0, topRight: 0, bottomLeft: 3, bottomRight: 3 };
-  }
-
-  private isOuterSegment(
-    point: FinancialEvolutionPoint,
-    direction: FinancialDirection,
-    state: FinancialState,
-  ): boolean {
-    if (direction === 'INCOME') {
-      if (state === 'OVERDUE') {
-        return point.overdueIncome > 0;
-      }
-
-      if (state === 'PROJECTED') {
-        return point.projectedIncome > 0 && point.overdueIncome === 0;
-      }
-
-      return (
-        point.realizedIncome > 0 && point.projectedIncome === 0 && point.overdueIncome === 0
-      );
-    }
-
-    if (state === 'OVERDUE') {
-      return point.overdueExpense > 0;
-    }
-
-    if (state === 'PROJECTED') {
-      return point.projectedExpense > 0 && point.overdueExpense === 0;
-    }
-
-    return (
-      point.realizedExpense > 0 && point.projectedExpense === 0 && point.overdueExpense === 0
-    );
+    return state === outerState
+      ? { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }
+      : 0;
   }
 
   private tooltipTitle(index: number): string {
@@ -274,25 +530,26 @@ export class FinancialEvolutionChart {
     return `${point.label} · ${this.periodRange(point)}`;
   }
 
-  private tooltipRows(index: number): string[] {
+  private tooltipRows(index: number, direction: FinancialDirection): string[] {
     const point = this.points()[index];
     if (!point) return [];
-    const rows = [
-      this.tooltipRow('Receitas realizadas', point.realizedIncome),
-      this.tooltipRow('Receitas projetadas', point.projectedIncome),
-      this.tooltipRow('Receitas vencidas', point.overdueIncome, point.overdueIncomeCount),
-      this.tooltipRow('Despesas realizadas', point.realizedExpense),
-      this.tooltipRow('Despesas projetadas', point.projectedExpense),
-      this.tooltipRow('Despesas vencidas', point.overdueExpense, point.overdueExpenseCount),
-    ].filter((row): row is string => row !== null);
-    rows.push(`Resultado realizado: ${currencyFormatter.format(point.realizedResult)}`);
-    return rows;
-  }
 
-  private tooltipRow(label: string, value: number, count?: number): string | null {
-    if (value === 0 && !count) return null;
-    const suffix = count ? ` · ${count} movimentação${count === 1 ? '' : 'ões'}` : '';
-    return `${label}: ${currencyFormatter.format(value)}${suffix}`;
+    const values = this.stateValues(point, direction);
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const rows = [`Tipo: ${directionLabels[direction]}`];
+
+    if (this.viewMode() === 'REALIZED') {
+      rows.push(`${stateLabels.REALIZED}: ${this.formatCurrency(values[0])}`);
+    } else {
+      rows.push(
+        `${stateLabels.REALIZED}: ${this.formatCurrency(values[0])}`,
+        `${stateLabels.PROJECTED}: ${this.formatCurrency(values[1])}`,
+        `${stateLabels.OVERDUE}: ${this.formatCurrency(values[2])}`,
+      );
+    }
+
+    rows.push(`Total: ${this.formatCurrency(total)}`);
+    return rows;
   }
 
   private periodRange(point: FinancialEvolutionPoint): string {
@@ -302,49 +559,88 @@ export class FinancialEvolutionChart {
     return start === end ? start : `${start} – ${end}`;
   }
 
-  private createScale(points: readonly FinancialEvolutionPoint[]): AxisScale {
-    const maximum = Math.max(
-      1,
-      ...points.map((point) => point.realizedIncome + point.projectedIncome + point.overdueIncome),
-      ...points.map((point) => point.realizedResult),
-    );
-    const minimum = Math.min(
-      -1,
-      ...points.map((point) => -(point.realizedExpense + point.projectedExpense + point.overdueExpense)),
-      ...points.map((point) => point.realizedResult),
-    );
-    const step = this.niceStep((maximum - minimum) / 5);
-    const min = Math.floor(minimum / step) * step;
-    const max = Math.ceil(maximum / step) * step;
+  private createScale(points: readonly FinancialEvolutionPoint[], mode: ViewMode): AxisScale {
+    const values = points.flatMap((point) => [
+      this.totalFor(point, 'INCOME', mode),
+      this.totalFor(point, 'EXPENSE', mode),
+    ]);
+    const maximum = Math.max(0, ...values);
+    const paddedMaximum = maximum > 0 ? maximum * 1.08 : 1;
+    const step = this.niceStep(paddedMaximum / 5);
+    const max = Math.max(step, Math.ceil(paddedMaximum / step) * step);
     const ticks: number[] = [];
-    for (let value = max; value >= min; value -= step) ticks.push(value);
-    return { min, max, step, ticks };
+
+    for (let value = max; value >= 0; value -= step) {
+      ticks.push(value);
+    }
+
+    return { min: 0, max, step, ticks };
   }
 
   private niceStep(value: number): number {
-    const exponent = Math.pow(10, Math.floor(Math.log10(value)));
-    const fraction = value / exponent;
+    const safeValue = Math.max(value, 1);
+    const exponent = 10 ** Math.floor(Math.log10(safeValue));
+    const fraction = safeValue / exponent;
     const factor = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
     return factor * exponent;
   }
 
+  private withAlpha(color: string, alpha: number): string {
+    const match = /^#([\da-f]{6})$/i.exec(color);
+    if (!match) return color;
+
+    const red = Number.parseInt(match[1].slice(0, 2), 16);
+    const green = Number.parseInt(match[1].slice(2, 4), 16);
+    const blue = Number.parseInt(match[1].slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
   private themeColors(): ChartThemeColors {
-    return this.themeStore.isDark()
-      ? {
-          muted: '#9CA3AF',
-          grid: 'rgba(229, 231, 235, 0.12)',
-          zeroGrid: 'rgba(229, 231, 235, 0.32)',
-          surface: '#16231D',
-          foreground: '#E5E7EB',
-          border: '#263A30',
-        }
-      : {
-          muted: '#6B7280',
-          grid: 'rgba(31, 41, 55, 0.10)',
-          zeroGrid: 'rgba(31, 41, 55, 0.26)',
-          surface: '#FFFFFF',
-          foreground: '#1F2937',
-          border: '#DDE5DD',
-        };
+    const dark = this.themeStore.isDark();
+
+    return {
+      muted: dark ? '#9CA3AF' : '#6B7280',
+      grid: dark ? 'rgba(229, 231, 235, 0.12)' : 'rgba(31, 41, 55, 0.10)',
+      zeroGrid: dark ? 'rgba(229, 231, 235, 0.32)' : 'rgba(31, 41, 55, 0.26)',
+      surface: dark ? '#16231D' : '#FFFFFF',
+      foreground: dark ? '#E5E7EB' : '#1F2937',
+      border: dark ? '#263A30' : '#DDE5DD',
+      info: this.cssColor('--color-info', '#2563EB'),
+      warning: this.cssColor('--color-warning', '#F59E0B'),
+      income: this.cssColor('--color-success', '#16A34A'),
+      expense: this.cssColor('--color-danger', '#DC2626'),
+    };
+  }
+
+  private cssColor(variable: string, fallback: string): string {
+    if (typeof document === 'undefined') {
+      return fallback;
+    }
+
+    return getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback;
+  }
+
+  private activeElement(): HTMLElement | null {
+    return typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  }
+
+  private stateValues(
+    point: FinancialEvolutionPoint,
+    direction: FinancialDirection,
+  ): number[] {
+    const values =
+      direction === 'INCOME'
+        ? [point.realizedIncome, point.projectedIncome, point.overdueIncome]
+        : [point.realizedExpense, point.projectedExpense, point.overdueExpense];
+
+    return this.viewMode() === 'REALIZED' ? [values[0]] : values;
+  }
+
+  private resizeChart(): void {
+    const chart = this.chartDirective()?.chart;
+    chart?.resize();
+    this.chartDirective()?.update();
   }
 }
