@@ -32,6 +32,9 @@
           <h3 class="text-sm font-semibold text-text-primary">Histórico de pontualidade</h3>
           <div class="commitment-section-divider" aria-hidden="true"></div>
         </div>
+        <p class="mt-1 text-xs text-text-muted">
+          Liquidações efetivas entre {{ formatDate(historyStartDate()) }} e {{ formatDate(historyEndDate()) }}.
+        </p>
         <div class="commitment-grid commitment-grid--history mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           <button type="button" class="commitment-metric text-left" (click)="select('PAID_ON_TIME')" aria-label="Consultar despesas pagas no prazo">
             <span class="text-xs text-text-muted">Pagas no prazo</span>
@@ -54,13 +57,16 @@
             <span class="mt-1 block text-xs text-text-muted">Receitas recebidas após o vencimento</span>
           </button>
         </div>
+        <p class="mt-4 text-xs text-text-muted">
+          Cumprimento considera liquidações no período selecionado e compromissos vencidos ainda em aberto na data de referência.
+        </p>
         <div class="commitment-rate-grid mt-4 grid grid-cols-1 md:grid-cols-2">
           <div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-sm font-medium text-text-primary">Pontualidade dos pagamentos</span>
-              <strong class="text-sm text-text-primary" [title]="'Pagamentos no prazo dividido pelo total de pagamentos classificados.'">{{ formatRate(status.history.expenseOnTimeRate) }}</strong>
+              <span class="text-sm font-medium text-text-primary">Cumprimento dos pagamentos</span>
+              <strong class="text-sm text-text-primary" [title]="'Pagamentos no prazo dividido pelo total de pagamentos liquidados no período e vencidos em aberto.'">{{ formatRate(status.history.expenseOnTimeRate) }}</strong>
             </div>
-            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Pontualidade dos pagamentos" [attr.aria-valuenow]="status.history.expenseOnTimeRate" aria-valuemin="0" aria-valuemax="100">
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Cumprimento dos pagamentos" [attr.aria-valuenow]="status.history.expenseOnTimeRate" aria-valuemin="0" aria-valuemax="100">
               <div class="h-full rounded-full bg-success transition-[width]" [style.width.%]="progressWidth(status.history.expenseOnTimeRate)"></div>
             </div>
             @if (status.history.unclassifiableExpenses > 0) {
@@ -72,10 +78,10 @@
           </div>
           <div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-sm font-medium text-text-primary">Pontualidade dos recebimentos</span>
-              <strong class="text-sm text-text-primary" [title]="'Recebimentos no prazo dividido pelo total de recebimentos classificados.'">{{ formatRate(status.history.incomeOnTimeRate) }}</strong>
+              <span class="text-sm font-medium text-text-primary">Cumprimento dos recebimentos</span>
+              <strong class="text-sm text-text-primary" [title]="'Recebimentos no prazo dividido pelo total de recebimentos liquidados no período e vencidos em aberto.'">{{ formatRate(status.history.incomeOnTimeRate) }}</strong>
             </div>
-            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Pontualidade dos recebimentos" [attr.aria-valuenow]="status.history.incomeOnTimeRate" aria-valuemin="0" aria-valuemax="100">
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-label="Cumprimento dos recebimentos" [attr.aria-valuenow]="status.history.incomeOnTimeRate" aria-valuemin="0" aria-valuemax="100">
               <div class="h-full rounded-full bg-success transition-[width]" [style.width.%]="progressWidth(status.history.incomeOnTimeRate)"></div>
             </div>
             @if (status.history.unclassifiableIncomes > 0) {
@@ -93,6 +99,7 @@
           <h3 class="text-sm font-semibold text-text-primary">Pendências atuais</h3>
           <div class="commitment-section-divider" aria-hidden="true"></div>
         </div>
+        <p class="mt-1 text-xs text-text-muted">Compromissos em aberto vencidos na data de referência.</p>
         <div class="commitment-grid commitment-grid--two mt-3 grid grid-cols-1 sm:grid-cols-2">
           <button type="button" class="commitment-metric text-left" (click)="select('OVERDUE_PAYABLE')" aria-label="Consultar contas a pagar vencidas">
             <span class="text-xs text-text-muted">Contas a pagar vencidas</span>
@@ -112,6 +119,7 @@
           <h3 class="text-sm font-semibold text-text-primary">Próximos 7 dias</h3>
           <div class="commitment-section-divider" aria-hidden="true"></div>
         </div>
+        <p class="mt-1 text-xs text-text-muted">Compromissos em aberto a partir da data de referência, inclusive.</p>
         <div class="commitment-grid commitment-grid--two mt-3 grid grid-cols-1 sm:grid-cols-2">
           <button type="button" class="commitment-metric text-left" (click)="select('UPCOMING_PAYABLE')" aria-label="Consultar contas a pagar nos próximos sete dias">
             <span class="text-xs text-text-muted">A pagar</span>

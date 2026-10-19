@@ -706,6 +706,7 @@ describe('FinancialReportPage', () => {
 
   it('should reload both charts with the shared report filters and granularity', () => {
     financialService.getFinancialReport.mockClear();
+    financialService.getFinancialCommitmentStatus.mockClear();
     const component = fixture.componentInstance as unknown as {
       filterForm: {
         setValue: (value: {
@@ -738,11 +739,29 @@ describe('FinancialReportPage', () => {
       categoryIds: [7],
       granularity: 'MONTHLY',
     });
+    expect(financialService.getFinancialCommitmentStatus).toHaveBeenLastCalledWith({
+      farmId: 10,
+      startDate: '2026-03-15',
+      endDate: '2026-08-20',
+      basis: 'ACCRUAL',
+      harvestSeasonIds: [25],
+      categoryIds: [7],
+      granularity: 'MONTHLY',
+    });
 
     component.selectEvolutionGranularity('QUARTERLY');
     fixture.detectChanges();
 
     expect(financialService.getFinancialReport).toHaveBeenLastCalledWith({
+      farmId: 10,
+      startDate: '2026-03-15',
+      endDate: '2026-08-20',
+      basis: 'ACCRUAL',
+      harvestSeasonIds: [25],
+      categoryIds: [7],
+      granularity: 'QUARTERLY',
+    });
+    expect(financialService.getFinancialCommitmentStatus).toHaveBeenLastCalledWith({
       farmId: 10,
       startDate: '2026-03-15',
       endDate: '2026-08-20',

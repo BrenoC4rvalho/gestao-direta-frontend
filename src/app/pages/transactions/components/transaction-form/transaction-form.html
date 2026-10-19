@@ -73,7 +73,14 @@
 
     <gd-input id="transaction-due-date" label="Vencimento" type="date" [control]="form.controls.dueDate" />
 
-    <gd-input id="transaction-paid-at" label="Data de pagamento" type="date" [control]="form.controls.paidAt" />
+    <gd-input
+      id="transaction-paid-at"
+      label="Data efetiva de pagamento ou recebimento"
+      type="date"
+      [control]="form.controls.paidAt"
+      [required]="statusRequiresPaidAt()"
+      [errorMessage]="paidAtErrorMessage()"
+    />
 
     <gd-select
       id="transaction-status"

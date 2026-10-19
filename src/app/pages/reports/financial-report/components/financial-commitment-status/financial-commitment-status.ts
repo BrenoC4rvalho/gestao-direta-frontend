@@ -19,6 +19,8 @@ import { BrCurrencyPipe } from '../../../../../shared/pipes/br-currency.pipe';
 })
 export class FinancialCommitmentStatusComponent {
   readonly status = input<FinancialCommitmentStatus | null>(null);
+  readonly historyStartDate = input<string | null>(null);
+  readonly historyEndDate = input<string | null>(null);
   readonly loading = input(false);
   readonly error = input(false);
   readonly retry = output<void>();
@@ -31,6 +33,13 @@ export class FinancialCommitmentStatusComponent {
 
   protected formatRate(value: number | null): string {
     return value === null ? 'Sem dados' : `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+  }
+
+  protected formatDate(value: string | null): string {
+    if (!value) return 'período selecionado';
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(
+      new Date(`${value}T00:00:00Z`),
+    );
   }
 
   protected progressWidth(value: number | null): number {

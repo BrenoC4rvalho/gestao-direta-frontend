@@ -44,6 +44,7 @@ class TransactionFormDrawerHost {
     status: 'PAID',
     paymentMethod: 'PIX',
     transactionDate: '2026-07-06',
+    paidAt: '2026-07-06',
     categoryId: 1,
   };
   submittedCount = 0;

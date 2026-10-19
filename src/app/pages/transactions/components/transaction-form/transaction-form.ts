@@ -179,6 +179,10 @@ export class TransactionForm {
         this.clearCategoryIfIncompatible(type);
       });
 
+    this.form.controls.status.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.updatePaidAtValidation(this.stringValue(value)));
+
     effect(() => {
       if (!this.open()) {
         return;
@@ -202,6 +206,7 @@ export class TransactionForm {
         notes: transaction?.notes ?? draft?.notes ?? '',
       });
       this.clearCategoryIfIncompatible(type);
+      this.updatePaidAtValidation(this.stringValue(this.form.controls.status.value));
     });
 
     effect(() => {
@@ -318,6 +323,16 @@ export class TransactionForm {
     return this.form.controls.status.hasError('required') ? 'Selecione o status.' : null;
   }
 
+  protected paidAtErrorMessage(): string | null {
+    return this.form.controls.paidAt.hasError('required')
+      ? 'Informe a data efetiva de pagamento ou recebimento.'
+      : null;
+  }
+
+  protected statusRequiresPaidAt(): boolean {
+    return this.stringValue(this.form.controls.status.value) === 'PAID';
+  }
+
   private validateRequiredFields(
     description: string,
     type: string,
@@ -351,6 +366,14 @@ export class TransactionForm {
     if (!status) {
       this.form.controls.status.setErrors({ required: true });
     }
+
+    this.updatePaidAtValidation(status);
+  }
+
+  private updatePaidAtValidation(status: string): void {
+    const paidAtControl = this.form.controls.paidAt;
+    paidAtControl.setValidators(status === 'PAID' ? [Validators.required] : []);
+    paidAtControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private sanitizeAmount(value: GdFormValue): void {

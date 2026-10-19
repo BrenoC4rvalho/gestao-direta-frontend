@@ -16,8 +16,8 @@ describe('FinancialCommitmentStatusComponent', () => {
         expensesLate: 1,
         incomesOnTime: 3,
         incomesLate: 2,
-        expenseOnTimeRate: 80,
-        incomeOnTimeRate: 60,
+        expenseOnTimeRate: 57.14,
+        incomeOnTimeRate: 50,
         unclassifiableExpenses: 0,
         unclassifiableIncomes: 1,
       },
@@ -32,6 +32,8 @@ describe('FinancialCommitmentStatusComponent', () => {
         receivables: { count: 2, amount: 1400 },
       },
     });
+    fixture.componentRef.setInput('historyStartDate', '2026-10-01');
+    fixture.componentRef.setInput('historyEndDate', '2026-10-31');
     fixture.detectChanges();
   });
 
@@ -42,8 +44,14 @@ describe('FinancialCommitmentStatusComponent', () => {
     expect(text).toContain('Recebidas com atraso');
     expect(text).toContain('Pendências atuais');
     expect(text).toContain('Próximos 7 dias');
-    expect(text).toContain('80%');
+    expect(text).toContain('Cumprimento dos pagamentos');
+    expect(text).toContain('Cumprimento dos recebimentos');
+    expect(text).toContain('liquidações no período selecionado');
+    expect(text).toContain('57,14%');
     expect(text).toContain('R$');
+    expect(text).toContain('01/10/2026');
+    expect(text).toContain('31/10/2026');
+    expect(text).toContain('Compromissos em aberto a partir da data de referência');
   });
 
   it('uses a flat layout with section dividers instead of nested metric cards', () => {

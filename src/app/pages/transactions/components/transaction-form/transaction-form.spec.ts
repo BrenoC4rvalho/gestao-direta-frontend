@@ -168,6 +168,25 @@ describe('TransactionForm', () => {
     });
   });
 
+  it('should require the effective settlement date for paid transactions', () => {
+    fillRequiredFields();
+    setSelect('#transaction-category', '1');
+    setSelect('#transaction-status', 'PAID');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Informe a data efetiva de pagamento ou recebimento.',
+    );
+
+    setInput('#transaction-paid-at', '2026-06-22');
+    submitForm();
+
+    expect(fixture.componentInstance.submitted).toEqual(
+      expect.objectContaining({ status: 'PAID', paidAt: '2026-06-22' }),
+    );
+  });
+
   it('should prefill create form from draft', () => {
     const draftFixture = TestBed.createComponent(TransactionFormHost);
     draftFixture.componentInstance.draft = {

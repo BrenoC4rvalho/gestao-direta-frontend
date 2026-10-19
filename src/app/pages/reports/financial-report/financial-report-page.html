@@ -258,6 +258,8 @@
       <gd-card class="mb-6 block">
         <gd-financial-commitment-status
           [status]="commitmentStatus()"
+          [historyStartDate]="report.startDate"
+          [historyEndDate]="report.endDate"
           [loading]="reportLoading()"
           [error]="commitmentStatusError()"
           (retry)="retry()"
