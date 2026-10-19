@@ -300,9 +300,25 @@
               >
                 <svg lucideIcon="chart-no-axes-column-increasing" class="size-4" aria-hidden="true"></svg>
               </button>
+              <button
+                type="button"
+                class="inline-flex size-8 cursor-pointer items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                [class.bg-surface]="harvestViewMode() === 'participation'"
+                [class.text-primary]="harvestViewMode() === 'participation'"
+                aria-label="Visualizar participação"
+                title="Visualizar participação"
+                [attr.aria-pressed]="harvestViewMode() === 'participation'"
+                (click)="setHarvestViewMode('participation')"
+              >
+                <svg lucideIcon="chart-pie" class="size-4" aria-hidden="true"></svg>
+              </button>
             </div>
           </div>
-          @if (harvestViewMode() === 'chart') {
+          @if (harvestViewMode() === 'participation') {
+            <div class="mt-5">
+              <gd-financial-harvest-participation [harvests]="report.harvests" />
+            </div>
+          } @else if (harvestViewMode() === 'chart') {
             <div class="mt-5">
               <gd-financial-harvest-summary-chart [harvests]="report.harvests" />
               @for (harvest of report.harvests; track harvest.harvestSeasonId ?? harvest.harvestSeasonName) {

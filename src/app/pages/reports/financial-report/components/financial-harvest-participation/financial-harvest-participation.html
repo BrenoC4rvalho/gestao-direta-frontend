@@ -1,0 +1,58 @@
+<section aria-labelledby="financial-harvest-participation-title">
+  <h3 id="financial-harvest-participation-title" class="sr-only">Participação financeira por safra</h3>
+
+  @if (hasAnyValue()) {
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      @for (definition of chartDefinitions(); track definition.title) {
+        <article class="min-w-0">
+          <h4 class="text-center text-sm font-semibold text-text-primary">{{ definition.title }}</h4>
+          @if (definition.entries.length > 0) {
+            <div class="mx-auto mt-3 h-56 max-w-xs">
+              <canvas
+                baseChart
+                [type]="chartType"
+                [data]="definition.data"
+                [options]="definition.options"
+                role="img"
+                [attr.aria-label]="ariaLabel(definition.title)"
+              ></canvas>
+            </div>
+            <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-text-muted">
+              @for (entry of definition.entries; track entry.label) {
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="size-2.5 rounded-full" [style.background-color]="entry.color" aria-hidden="true"></span>
+                  <span>{{ entry.label }} — {{ formatPercentage(entry.percentage) }}</span>
+                </span>
+              }
+            </div>
+          } @else {
+            <p class="py-16 text-center text-sm text-text-muted">Sem valores positivos para esta métrica.</p>
+          }
+        </article>
+      }
+    </div>
+
+    @if (negativeProfits().length > 0) {
+      <aside class="mt-6 border-t border-border pt-4" aria-labelledby="financial-harvest-negative-title">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h4 id="financial-harvest-negative-title" class="text-sm font-semibold text-text-primary">Resultados negativos</h4>
+            <p class="mt-1 text-xs text-text-muted">Prejuízos não são convertidos em fatias positivas.</p>
+          </div>
+          <p class="text-sm font-semibold text-danger">Resultado líquido: {{ formatCurrency(netProfit()) }}</p>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-danger">
+          @for (loss of negativeProfits(); track loss.label) {
+            <span>{{ loss.label }}: {{ formatCurrency(loss.value) }}</span>
+          }
+        </div>
+      </aside>
+    } @else {
+      <p class="mt-6 border-t border-border pt-4 text-center text-sm text-text-muted">
+        Resultado líquido: {{ formatCurrency(netProfit()) }}
+      </p>
+    }
+  } @else {
+    <p class="py-8 text-center text-sm text-text-muted">Nenhuma movimentação encontrada para os filtros selecionados.</p>
+  }
+</section>

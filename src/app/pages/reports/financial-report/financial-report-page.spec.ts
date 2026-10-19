@@ -629,9 +629,11 @@ describe('FinancialReportPage', () => {
     ) as HTMLElement;
     const cardsButton = summary.querySelector('[aria-label="Visualizar cards"]') as HTMLButtonElement;
     const chartButton = summary.querySelector('[aria-label="Visualizar gráfico"]') as HTMLButtonElement;
+    const participationButton = summary.querySelector('[aria-label="Visualizar participação"]') as HTMLButtonElement;
 
     expect(cardsButton.getAttribute('aria-pressed')).toBe('true');
     expect(chartButton.getAttribute('aria-pressed')).toBe('false');
+    expect(participationButton.getAttribute('aria-pressed')).toBe('false');
     expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
 
     chartButton.click();
@@ -642,10 +644,21 @@ describe('FinancialReportPage', () => {
     expect(summary.querySelector('gd-financial-harvest-summary-chart')).not.toBeNull();
     expect(financialService.getFinancialReport).not.toHaveBeenCalled();
 
+    participationButton.click();
+    fixture.detectChanges();
+
+    expect(participationButton.getAttribute('aria-pressed')).toBe('true');
+    expect(chartButton.getAttribute('aria-pressed')).toBe('false');
+    expect(summary.querySelector('gd-financial-harvest-participation')).not.toBeNull();
+    expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
+
     cardsButton.click();
     fixture.detectChanges();
 
     expect(cardsButton.getAttribute('aria-pressed')).toBe('true');
+    expect(participationButton.getAttribute('aria-pressed')).toBe('false');
+    expect(financialService.getFinancialReport).not.toHaveBeenCalled();
+    expect(summary.querySelector('gd-financial-harvest-participation')).toBeNull();
     expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
   });
 
