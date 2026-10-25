@@ -351,6 +351,15 @@ describe('FinancialTransactionService', () => {
     request.flush({ ...transaction, status: 'CANCELED' });
   });
 
+  it('should reopen a transaction', () => {
+    service.reopen(1).subscribe((result) => expect(result.status).toBe('PENDING'));
+
+    const request = http.expectOne(apiUrl + '/financial/transactions/1/reopen');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({});
+    request.flush({ ...transaction, status: 'PENDING', paidAt: null, paymentMethod: null });
+  });
+
   it('should send repeated plural quick filter params and preserve other filters', () => {
     service
       .listByFarm({

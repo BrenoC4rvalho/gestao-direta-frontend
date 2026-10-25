@@ -491,6 +491,18 @@
   (closed)="closeDrawer()"
 >
   @if (editingTransaction(); as transaction) {
+    @if (canReopenTransaction(transaction)) {
+      <div class="mt-4 border-t border-border pt-4">
+        <gd-button
+          type="button"
+          variant="secondary"
+          [fullWidth]="true"
+          (click)="requestReopen(transaction)"
+        >
+          Reabrir movimentação paga
+        </gd-button>
+      </div>
+    }
     @if (canCancelTransaction(transaction)) {
       <div class="mt-4 border-t border-border pt-4">
         <gd-button
@@ -518,6 +530,19 @@
   (confirmed)="confirmMarkAsPaid()"
   (cancelled)="closePaidConfirmation()"
   (closed)="closePaidConfirmation()"
+/>
+
+<gd-confirm-dialog
+  [open]="reopenTarget() !== null"
+  title="Reabrir movimentação paga?"
+  description="A movimentação deixará de ser considerada paga e voltará às pendências financeiras, quando aplicável."
+  confirmLabel="Reabrir movimentação"
+  cancelLabel="Voltar"
+  variant="warning"
+  [loading]="reopenSubmitting()"
+  (confirmed)="confirmReopen()"
+  (cancelled)="closeReopenConfirmation()"
+  (closed)="closeReopenConfirmation()"
 />
 
 <gd-confirm-dialog

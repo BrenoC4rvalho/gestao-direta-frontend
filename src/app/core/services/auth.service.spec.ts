@@ -91,23 +91,29 @@ describe('AuthService', () => {
 
   it('should call password recovery options endpoint', () => {
     service.passwordRecoveryOptions('maria@example.com').subscribe((response) => {
-      expect(response).toEqual({ telegramAvailable: true });
+      expect(response).toEqual({
+        message:
+          'Se existir uma conta associada a este e-mail, você receberá as orientações de recuperação pelos canais disponíveis.',
+      });
     });
 
     const request = http.expectOne(apiUrl + '/auth/password-recovery/options');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ email: 'maria@example.com' });
-    request.flush({ telegramAvailable: true });
+    request.flush({
+      message:
+        'Se existir uma conta associada a este e-mail, você receberá as orientações de recuperação pelos canais disponíveis.',
+    });
   });
 
   it('should call Telegram password recovery endpoint', () => {
     service.requestTelegramPasswordRecovery('maria@example.com').subscribe((response) => {
-      expect(response).toBeTruthy();
+      expect(response).toBeNull();
     });
 
     const request = http.expectOne(apiUrl + '/auth/password-recovery/telegram');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ email: 'maria@example.com' });
-    request.flush('accepted');
+    request.flush(null);
   });
 });

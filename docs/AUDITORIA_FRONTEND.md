@@ -2,21 +2,21 @@
 
 **Sistema:** Gestão Direta
 
-**Data de referência:** 18/10/2026
+**Data de referência:** 24/10/2026
 **Escopo:** código Angular deste repositório, contratos consumidos e verificações automatizadas disponíveis. O relatório descreve a auditoria já realizada; os testes de aplicação não foram repetidos durante a geração desta documentação.
 
 ## 1. Resumo executivo
 
-A auditoria cobriu autenticação e navegação protegida, serviços HTTP, formulários financeiros, estado de sessão e fazenda, dashboard, movimentações, pendências de IA e o Relatório Financeiro que já existe no código. Não foi reproduzida vulnerabilidade de acesso a dados de outra conta pelo frontend; essa garantia é responsabilidade e foi testada no backend.
+A auditoria cobriu autenticação e navegação protegida, serviços HTTP, formulários financeiros, estado de sessão e fazenda, dashboard, movimentações, pendências de IA e o Relatório Financeiro que já existe no código. Nesta etapa também foram adaptados os contratos de recuperação de senha e as ações financeiras de reabertura/cancelamento. Não foi reproduzida vulnerabilidade de acesso a dados de outra conta pelo frontend; essa garantia é responsabilidade e foi testada no backend.
 
-Foi atualizado o conjunto de dependências Angular de produção para versões corrigidas dentro da linha 21. A auditoria de produção reportou zero alertas. Permanecem 13 alertas no grafo completo, todos associados a dependências de desenvolvimento, incluindo um alerta crítico atribuído a tar; isso não demonstra exposição do pacote em produção, mas mantém risco para o ambiente de build/CI. Os resultados de teste previamente obtidos foram 942 testes aprovados, lint aprovado e build aprovado com aviso de orçamento.
+As pendências FE-DEP-002 e FE-SEC-001 foram corrigidas e validadas. A auditoria de produção e a auditoria completa de dependências agora reportam zero alertas. O frontend continua usando cookie de sessão HttpOnly, sem persistência de JWT no navegador. A suíte Angular passou com 952 testes, o lint passou e o build passou com aviso de orçamento do bundle inicial.
 
 | Situação frontend | Quantidade | Observação |
 |---|---:|---|
 | Achado corrigido | 1 | Atualização de dependências de produção Angular/Tailwind/PostCSS. |
-| Achados pendentes | 2 | Alertas no grafo de desenvolvimento; tratamento global uniforme de 401. |
+| Achados pendentes | 0 | As pendências de dependências e tratamento global de 401 foram corrigidas. |
 | Vulnerabilidade XSS confirmada | 0 | Não foram encontrados sinks explícitos de HTML confiável nas superfícies pesquisadas; isso não equivale a prova de ausência de XSS em toda entrada possível. |
-| Divergência financeira confirmada na interface | 0 | Os componentes analisados exibem dados do contrato de relatório e passaram nos testes registrados; não houve reconciliação com base de produção. |
+| Divergência financeira confirmada na interface | 0 | A interface consome os novos estados de reabertura/cancelamento e passou nos testes; não houve reconciliação com base de produção. |
 
 ## 2. Arquitetura e módulos analisados
 
@@ -38,14 +38,14 @@ Aplicação Angular standalone com rotas lazy-loaded, HttpClient, serviços por 
 - O cliente usa cookie de sessão HttpOnly gerenciado pela API; não recebe nem persiste JWT no localStorage/sessionStorage. O estado de usuário do [SessionStore](../src/app/core/stores/session.store.ts) permanece em memória. A preferência de tema é persistida separadamente e não contém credenciais.
 - O [credentialsInterceptor](../src/app/core/interceptors/credentials.interceptor.ts) adiciona withCredentials: true a cada requisição. O teste [credentials.interceptor.spec.ts](../src/app/core/interceptors/credentials.interceptor.spec.ts) verifica esse contrato.
 - O authGuard consulta /auth/session quando o estado ainda não foi inicializado e limpa o store/redireciona em falha. Os guards melhoram a navegação, mas não são controles de autorização: o servidor precisa validar cada recurso.
-- O interceptor atual não centraliza a reação a respostas 401 posteriores à inicialização. Algumas páginas exibem mensagens locais de sessão expirada; não há um único mecanismo que limpe o store e redirecione em todos os fluxos. Não foi demonstrado acesso indevido à API, mas o estado visual pode ficar desatualizado até nova navegação/login.
+- O interceptor de autenticação agora trata 401 posteriores ao bootstrap em um único fluxo, limpa o estado de sessão e o contexto de fazenda em memória, exibe uma notificação única e redireciona para login. Login, recuperação de senha, consulta inicial de sessão e logout permanecem fora desse redirecionamento global.
 - Logout chama o endpoint da API e limpa o estado local. A invalidação/revogação do token é uma responsabilidade do backend, descrita no relatório backend.
 
 ### XSS, erros e autorização visual
 
 Angular interpola conteúdo como texto por padrão; a busca nas superfícies examinadas não encontrou uso explícito de innerHTML ou DomSanitizer.bypassSecurityTrust*. Respostas de IA/Telegram devem continuar sendo exibidas como texto, sem conversão em HTML confiável.
 
-Mensagens 400/401/403/404 e falhas genéricas são tratadas principalmente por página/feature; a página de movimentações, por exemplo, mapeia esses códigos para mensagens não técnicas em [transactions-page.ts](../src/app/pages/transactions/transactions-page.ts#L1353). Há feedback de permissão 403, mas a ausência de um tratamento 401 global uniforme é a pendência FE-SEC-001. Guards de perfil administrativo só ocultam/protegem rotas no cliente e não substituem @PreAuthorize/controle contextual no backend.
+Mensagens 400/401/403/404 e falhas genéricas continuam sendo tratadas por página/feature quando necessário; o interceptor global encerra a sessão somente para 401 de endpoints autenticados. A resposta 403 não é confundida com sessão expirada e guards de perfil administrativo só ocultam/protegem rotas no cliente, sem substituir @PreAuthorize/controle contextual no backend.
 
 Não foi feito teste de penetração contra domínio implantado. A segurança efetiva de cookie, CORS e SameSite depende também da topologia e dos domínios de produção.
 
@@ -93,7 +93,7 @@ Participação por safra preserva os valores não alocados, separa receitas/desp
 
 ## 9. Dependências vulneráveis e atualizações
 
-As dependências Angular de produção foram atualizadas dentro da linha major 21; Tailwind/PostCSS também receberam versões corrigidas. Alterações em [package.json](../package.json) e package-lock.json fazem parte da auditoria. A auditoria npm foi novamente consultada durante a elaboração deste documento: produção segue sem alertas; o grafo completo mantém 13 alertas, todos associados a dependências de desenvolvimento segundo o resultado registrado na auditoria.
+As dependências Angular de produção foram atualizadas dentro da linha major 21; Tailwind/PostCSS também receberam versões corrigidas. Alterações em [package.json](../package.json) e package-lock.json fazem parte da auditoria. Na validação desta implementação, `npm audit --omit=dev` e `npm audit` retornaram zero alertas.
 
 | Dependência | Versão anterior declarada | Versão declarada após auditoria |
 |---|---:|---:|
@@ -120,58 +120,56 @@ As dependências Angular de produção foram atualizadas dentro da linha major 2
 | undici | Alta | Transitiva de desenvolvimento. |
 | vitest | Moderada | Dependência direta de desenvolvimento. |
 
-O resultado indicou correção disponível para os 13 alertas. Eles não foram atualizados automaticamente nesta auditoria para evitar ampliar o escopo/toolchain sem verificar compatibilidade. A classificação de impacto da aplicação considera que o scan de produção é limpo; severidade upstream não significa exploração confirmada no runtime.
+Na validação de 24/10/2026, `npm audit --omit=dev` e `npm audit` retornaram zero alertas. As atualizações não-forçadas mantiveram Angular na linha 21, incluindo `@angular/build`/CLI 21.2.28, Vitest 4.1.12 e os pacotes transitivos corrigidos. O pacote `undici` usado pelo build permanecia fixado em 7.29.1 pelo pacote pai; foi aplicado override explícito para 7.30.1. O `node-gyp` recebeu override separado para `undici` 6.29.1, compatível com sua faixa 6.x. O override evita o `npm audit fix --force`, que sugeria downgrade incompatível para Angular 20.
+
+As cadeias principais verificadas foram `@angular/build -> undici/vite`, `@angular/cli -> @modelcontextprotocol/sdk -> ip-address`, `@angular-devkit/core -> ajv -> fast-uri`, `@angular/build -> sass -> immutable`, `@angular/cli -> pacote -> node-gyp -> tar/undici` e `eslint -> js-yaml/brace-expansion`. A severidade upstream não demonstra exploração no runtime do navegador; todo o grafo vulnerável era de desenvolvimento/build.
 
 ## 10. Bugs encontrados e correções aplicadas
 
 | ID | Severidade | Módulo | Evidência e impacto | Correção/recomendação | Testes relacionados | Estado |
 |---|---|---|---|---|---|---|
 | FE-DEP-001 | Alto (cadeia de build) | Dependências Angular | O grafo de produção possuía advisories em componentes Angular/toolchain. | Atualizadas dependências Angular, CDK, build/CLI e Tailwind/PostCSS dentro das linhas compatíveis; produção agora retorna zero alertas no scan repetido. | 942 testes, lint, build e npm audit --omit=dev aprovados no registro da auditoria; o scan omitindo dev foi repetido nesta etapa. | Corrigido |
-| FE-DEP-002 | Médio | Dependências de desenvolvimento | npm audit lista os 13 pacotes da tabela acima; um aviso upstream é crítico, mas está no grafo dev. | Atualizar dependências afetadas em mudança dedicada, validar toolchain e reexecutar suíte/build/scan. | npm audit consultado nesta etapa; suíte completa não foi repetida. | Pendente |
-| FE-SEC-001 | Médio | Sessão e tratamento de erros | O interceptor configura credenciais, mas não centraliza 401 posteriores ao bootstrap; stores/feedback podem não convergir imediatamente. | Adicionar tratamento global de 401 que limpe sessão, sem interceptar endpoints públicos indevidamente, e teste de regressão. | Guard/interceptor cobertos por testes existentes; cenário global de 401 pós-login não foi demonstrado por teste dedicado. | Pendente |
+| FE-DEP-002 | Médio | Dependências de desenvolvimento | O grafo anterior possuía advisories em Vitest, Angular CLI/build e dependências transitivas, incluindo `tar` crítico e `undici` alto. | Atualizadas dependências compatíveis na linha Angular 21 e aplicados overrides justificados para `undici`, sem `--force`. | `npm audit`, `npm audit --omit=dev`, `npm ls`, suíte completa, lint e build aprovados. | Corrigido |
+| FE-SEC-001 | Médio | Sessão e tratamento de erros | O interceptor de credenciais não centralizava 401 posteriores ao bootstrap. | Adicionados interceptor global, reset centralizado de sessão/contexto e proteção contra notificações/redirecionamentos concorrentes; endpoints públicos foram excluídos. | Testes dedicados para 401 concorrente, endpoints públicos, 403, 500, credenciais, logout e reconstrução após novo login. | Corrigido |
 
 Nenhum bug financeiro exclusivo do frontend foi confirmado como causador de valor persistido incorreto. A falha de escala monetária observada na integração foi corrigida no backend, com validação da API mesmo que o cliente seja contornado.
 
+## 10. Correções implementadas nesta etapa
+
+- A recuperação de senha deixou de consultar ou exibir `telegramAvailable` e `phoneLastFour`. O Angular envia o e-mail, exibe apenas confirmação genérica e segue para a etapa de código; o Telegram continua sendo acionado internamente pela API.
+- O serviço de movimentações agora consome `PATCH /financial/transactions/{id}/reopen`. A tela apresenta confirmação para reabrir uma movimentação paga, atualiza a listagem e trata conflitos `409`.
+- O cancelamento de movimentações pagas continua disponível com confirmação explícita e mensagem de impacto nos totais. Erros 404 de categoria/safra são apresentados como recurso indisponível para a fazenda, sem mensagens técnicas.
+- O contrato de movimentação passou a aceitar a versão retornada pela API para acompanhar concorrência otimista, sem transformar o cliente em autoridade de autorização.
+
+Os testes de serviço Angular foram atualizados para o contrato genérico de recuperação e para a chamada de reabertura. A suíte de página/serviços continua cobrindo loading, erros, confirmações e atualização após operações.
+
 ## 11. Testes executados e resultados
 
-Resultados de aplicação abaixo são os da auditoria anterior. Não foram repetidos durante a criação do relatório; apenas npm audit e npm audit --omit=dev foram consultados novamente para conferir dependências.
+Resultados abaixo foram executados após esta etapa.
 
 | Verificação | Resultado | Observações |
 |---|---|---|
-| Testes Angular (npm test -- --watch=false) | Aprovado | 105 arquivos / 942 testes; avisos do JSDOM/Canvas/Chart.js sem falhas. |
+| Testes Angular (npm test -- --watch=false) | Aprovado | 106 arquivos / 952 testes; avisos do JSDOM/Canvas/Chart.js sem falhas. |
 | Lint (npm run lint) | Aprovado | ESLint. |
-| Build (npm run build) | Aprovado com aviso | Bundle inicial 545,63 kB; 45,63 kB acima do orçamento de aviso de 500 kB, abaixo do limite de erro. |
+| Build (npm run build) | Aprovado com aviso | Bundle inicial 548,70 kB; 48,70 kB acima do orçamento de aviso de 500 kB, abaixo do limite de erro. As páginas continuam em chunks lazy-loaded; o orçamento não foi aumentado. |
 | Auditoria de produção (npm audit --omit=dev) | Aprovado | 0 alertas; conferida novamente durante esta documentação. |
-| Auditoria completa (npm audit) | Parcial | 13 alertas no grafo de desenvolvimento: 1 crítico, 8 altos, 3 moderados e 1 baixo; todos indicavam correção disponível. Conferida novamente nesta etapa. |
+| Auditoria completa (npm audit) | Aprovado | 0 alertas após atualização transitiva e overrides compatíveis; nenhuma mudança major ou `--force` foi usada. |
 | Testes de integração com backend real | Não executado | Sem ambiente de integração/produção utilizado para esta documentação. |
+| Revisão de acessibilidade | Parcialmente validada | Revisão estática das telas principais, mensagens de erro, gráficos, overlays e foco; não houve execução AXE em navegador real. |
 
 ## 12. Problemas pendentes
 
-- Os 13 advisories do grafo de desenvolvimento requerem atualização e validação do toolchain, apesar do scan de produção limpo.
-- Tratamento global de sessão expirada deve ser padronizado para evitar store visual desatualizado após 401 emitido durante uso.
-- Não houve auditoria visual automatizada AXE completa em navegadores/dispositivos nem teste E2E contra backend implantado; os testes unitários não substituem essas verificações.
+- Não há pendências de código confirmadas nesta auditoria. Ainda não houve auditoria visual automatizada AXE completa em navegadores/dispositivos nem teste E2E contra backend implantado; os testes unitários não substituem essas verificações.
 - Confirmação de origem CORS, SameSite e Secure depende de configuração de produção e domínio implantado, não acessível nesta etapa.
 
 ## Plano de ação recomendado
 
-### Crítica
+### Próximas validações recomendadas
 
-- Nenhuma vulnerabilidade crítica de runtime frontend foi confirmada. O tar reportado como crítico está no grafo de desenvolvimento; manter CI isolado e tratar a atualização de dependência com prioridade alta.
-
-### Alta
-
-- Atualizar, em mudança controlada, os pacotes vulneráveis de desenvolvimento — incluindo o caminho transitivo de tar — e executar novamente testes, lint, build e npm audit; afeta package.json/lockfile e pipeline CI.
-- Testar a interface em staging com a API para confirmar cookies, CORS e expiração de sessão nos domínios reais; afeta configuração de ambiente e fluxo de autenticação.
-
-### Média
-
-- Implementar e testar reação uniforme a 401 pós-login para limpar SessionStore, notificar e redirecionar; afeta interceptor, auth store e rotas.
-- Executar axe/E2E em viewport móvel e desktop nas áreas autenticadas e revisar foco/contraste com a aplicação implantada.
-
-### Baixa
-
-- Considerar orçamento do bundle inicial de produção: reduzir/chunkificar o excedente de aviso se o crescimento continuar; não é falha de build atual.
+- Executar AXE/E2E em viewport móvel e desktop nas áreas autenticadas e revisar foco/contraste com a aplicação implantada.
+- Testar em staging com a API para confirmar cookies, CORS, SameSite, Secure e expiração de sessão nos domínios reais.
+- Monitorar o bundle inicial; o warning atual permanece abaixo do limite de erro e não foi mascarado aumentando o orçamento.
 
 ## 13. Limitações da auditoria
 
-Não foram usados dados financeiros reais, credenciais, serviços Telegram/Gemini externos, domínio de produção ou API em produção. Não foram reexecutados os 942 testes, lint ou build durante a geração deste arquivo. O relatório cobre o código e os testes inspecionados na auditoria registrada; não declara ausência total de vulnerabilidades ou bugs.
+Não foram usados dados financeiros reais, credenciais, serviços Telegram/Gemini externos, domínio de produção ou API em produção. A validação local foi executada em 24/10/2026; os avisos do JSDOM/Canvas/Chart.js não causaram falhas. O relatório não declara ausência total de vulnerabilidades ou bugs e não substitui validação AXE/E2E em navegador e ambiente implantado.

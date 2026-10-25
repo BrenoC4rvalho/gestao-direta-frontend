@@ -1249,7 +1249,7 @@ describe('TransactionsPage', () => {
   });
 
   it('should keep the page working and show a toast when created-by options fail to load', () => {
-    farmUserService.listUserOptions.mockReturnValueOnce(
+    farmUserService.listUserOptions.mockImplementation(() =>
       throwError(() => new HttpErrorResponse({ status: 500 })),
     );
     selectedFarmStore.setFarms([farm]);

@@ -32,6 +32,7 @@ export type FinancialReportBasis = 'ACCRUAL' | 'CASH';
 
 export interface FinancialTransaction {
   id: number;
+  version?: number;
   description: string;
   amount: number;
   type: TransactionType;

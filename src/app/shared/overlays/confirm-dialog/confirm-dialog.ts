@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -8,6 +9,7 @@ import {
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
 
@@ -23,6 +25,7 @@ export type ConfirmDialogVariant = 'danger' | 'warning' | 'info' | 'success';
   templateUrl: './confirm-dialog.html',
   host: {
     '(document:keydown.escape)': 'handleEscape($event)',
+    '(document:keydown.tab)': 'handleTab($event)',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -34,6 +37,7 @@ export class ConfirmDialog {
   private visibilityFrameId: number | ReturnType<typeof setTimeout> | null = null;
   private visibilityFrameUsesTimeout = false;
   private closeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private previouslyFocusedElement: HTMLElement | null = null;
   readonly open = input(false);
   readonly title = input.required<string>();
   readonly description = input.required<string>();
@@ -49,8 +53,14 @@ export class ConfirmDialog {
   protected readonly titleId = 'gd-confirm-dialog-title';
   protected readonly rendered = signal(false);
   protected readonly visible = signal(false);
+  private readonly panelElement = viewChild<ElementRef<HTMLElement>>('panel');
+  private readonly closeButtonElement = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
   private readonly renderStateEffect = effect((onCleanup) => {
     if (this.open()) {
+      if (!untracked(() => this.rendered())) {
+        this.previouslyFocusedElement = this.activeElement();
+      }
+
       this.clearCloseTimeout();
       this.rendered.set(true);
       this.scheduleVisibleState();
@@ -66,9 +76,10 @@ export class ConfirmDialog {
     }
 
     this.clearCloseTimeout();
-    this.closeTimeoutId = setTimeout(() => {
-      this.rendered.set(false);
-      this.closeTimeoutId = null;
+      this.closeTimeoutId = setTimeout(() => {
+        this.rendered.set(false);
+        this.restoreFocus();
+        this.closeTimeoutId = null;
     }, this.animationDurationMs);
 
     onCleanup(() => this.clearCloseTimeout());
@@ -95,6 +106,23 @@ export class ConfirmDialog {
 
     const unlock = lockOverlayScroll();
     onCleanup(unlock);
+  });
+  private readonly initialFocusEffect = effect(() => {
+    if (!this.open() || !this.rendered()) {
+      return;
+    }
+
+    const closeButton = this.closeButtonElement()?.nativeElement;
+
+    if (!closeButton) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      if (this.open() && closeButton.isConnected) {
+        closeButton.focus();
+      }
+    });
   });
 
   protected readonly backdropClasses = computed(() =>
@@ -172,6 +200,46 @@ export class ConfirmDialog {
     this.cancel();
   }
 
+  protected handleTab(event: Event): void {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    const overlayId = this.overlayId();
+    const panel = this.panelElement()?.nativeElement;
+
+    if (!this.open() || overlayId === null || !this.overlayStack.isTop(overlayId) || !panel) {
+      return;
+    }
+
+    const focusableElements = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => !element.hasAttribute('hidden'));
+
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      panel.focus();
+      return;
+    }
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement = focusableElements[focusableElements.length - 1];
+    const activeElement = this.activeElement();
+
+    if (event.shiftKey && (activeElement === firstFocusableElement || !panel.contains(activeElement))) {
+      event.preventDefault();
+      lastFocusableElement.focus();
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === lastFocusableElement) {
+      event.preventDefault();
+      firstFocusableElement.focus();
+    }
+  }
+
   private scheduleVisibleState(): void {
     this.clearVisibilityFrame();
 
@@ -214,6 +282,18 @@ export class ConfirmDialog {
 
     clearTimeout(this.closeTimeoutId);
     this.closeTimeoutId = null;
+  }
+
+  private activeElement(): HTMLElement | null {
+    return document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+
+  private restoreFocus(): void {
+    if (this.previouslyFocusedElement?.isConnected) {
+      this.previouslyFocusedElement.focus();
+    }
+
+    this.previouslyFocusedElement = null;
   }
 
   private panelVariantClasses(): string {

@@ -5,6 +5,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { SessionResetService } from '../../core/services/session-reset.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -30,6 +31,7 @@ import { getVisibleNavItems, MAIN_NAV_ITEMS } from '../layout-navigation';
 export class MobileHeader {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly sessionReset = inject(SessionResetService);
   private readonly toastStore = inject(ToastStore);
 
   protected readonly sessionStore = inject(SessionStore);
@@ -45,6 +47,7 @@ export class MobileHeader {
     }),
   );
   protected readonly isMenuOpen = signal(false);
+  protected readonly loggingOut = signal(false);
 
   protected openMenu(): void {
     this.isMenuOpen.set(true);
@@ -55,15 +58,19 @@ export class MobileHeader {
   }
 
   protected logout(): void {
+    if (this.loggingOut()) {
+      return;
+    }
+
     this.closeMenu();
+    this.loggingOut.set(true);
 
     this.authService
       .logout()
       .pipe(
         finalize(() => {
-          this.sessionStore.clear();
-          this.selectedFarmStore.clear();
-          this.farmAccessStore.clear();
+          this.sessionReset.clear();
+          this.loggingOut.set(false);
           void this.router.navigate(['/login']);
         }),
       )

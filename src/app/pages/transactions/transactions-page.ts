@@ -185,6 +185,8 @@ export class TransactionsPage {
   protected readonly paidSubmitting = signal(false);
   protected readonly cancelTarget = signal<FinancialTransaction | null>(null);
   protected readonly cancelSubmitting = signal(false);
+  protected readonly reopenTarget = signal<FinancialTransaction | null>(null);
+  protected readonly reopenSubmitting = signal(false);
   protected readonly showAdvancedFilters = signal(false);
   private readonly monthlyControlsButton = viewChild('monthlyControlsButton', {
     read: ElementRef<HTMLElement>,
@@ -960,6 +962,51 @@ export class TransactionsPage {
       });
   }
 
+  protected requestReopen(transaction: FinancialTransaction): void {
+    if (!this.canReopenTransaction(transaction)) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.reopenTarget.set(transaction);
+  }
+
+  protected closeReopenConfirmation(): void {
+    if (!this.reopenSubmitting()) {
+      this.reopenTarget.set(null);
+    }
+  }
+
+  protected confirmReopen(): void {
+    const transaction = this.reopenTarget();
+
+    if (!transaction || this.reopenSubmitting()) {
+      return;
+    }
+
+    if (!this.canReopenTransaction(transaction)) {
+      this.showPermissionError();
+      return;
+    }
+
+    this.reopenSubmitting.set(true);
+    this.transactionService
+      .reopen(transaction.id)
+      .pipe(
+        finalize(() => this.reopenSubmitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.reopenTarget.set(null);
+          this.resetDrawerState();
+          this.toastStore.success('Movimentação reaberta com sucesso.');
+          this.retry();
+        },
+        error: (error: unknown) => this.showOperationError(error),
+      });
+  }
+
   protected canCreateTransaction(): boolean {
     return this.selectedFarmStore.selectedFarmId() !== null && this.canManageTransactions();
   }
@@ -978,6 +1025,10 @@ export class TransactionsPage {
 
   protected canCancelTransaction(transaction: FinancialTransaction): boolean {
     return this.canManageTransactions() && transaction.status !== 'CANCELED';
+  }
+
+  protected canReopenTransaction(transaction: FinancialTransaction): boolean {
+    return this.canManageTransactions() && transaction.status === 'PAID';
   }
 
   protected categoryChipClasses(categoryId: number | null): string {
@@ -1361,7 +1412,17 @@ export class TransactionsPage {
       401: 'Sua sessão expirou. Faça login novamente.',
       403: 'Você não tem permissão para realizar esta ação.',
       404: 'Movimentação não encontrada.',
+      409: 'A movimentação foi alterada por outra ação. Recarregue a lista e tente novamente.',
     };
+
+    if (
+      error.status === 404 &&
+      (error.error?.message === 'Financial category not found' ||
+        error.error?.message === 'Harvest season not found')
+    ) {
+      this.toastStore.error('Categoria ou safra não encontrada ou indisponível para esta fazenda.');
+      return;
+    }
 
     this.toastStore.error(messages[error.status] ?? 'Não foi possível concluir a operação.');
   }

@@ -47,6 +47,20 @@ export class ToastStore {
   }
 
   add(type: ToastType, title: string, options: ToastOptions = {}): string {
+    const duplicate =
+      type === 'error'
+        ? this.messages().find(
+            (message) =>
+              message.type === type &&
+              message.state !== 'leaving' &&
+              this.normalizeTitle(message.title) === this.normalizeTitle(title),
+          )
+        : undefined;
+
+    if (duplicate) {
+      return duplicate.id;
+    }
+
     const id = `toast-${++this.nextId}`;
     const toast: ToastMessage = {
       id,
@@ -137,5 +151,13 @@ export class ToastStore {
 
     clearTimeout(timer);
     this.transitionTimers.delete(id);
+  }
+
+  private normalizeTitle(title: string): string {
+    return title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLocaleLowerCase();
   }
 }

@@ -85,6 +85,14 @@ describe('ToastStore', () => {
     expect(store.toasts()).toHaveLength(0);
   });
 
+  it('should reuse an active toast with the same normalized message', () => {
+    const firstId = store.error('Sua sessão expirou. Faça login novamente.', undefined, 0);
+    const secondId = store.error('Sua sessao expirou. Faca login novamente.', undefined, 0);
+
+    expect(secondId).toBe(firstId);
+    expect(store.toasts()).toHaveLength(1);
+  });
+
   it('should clear toasts and timers immediately', () => {
     store.success('Primeiro', undefined, 500);
     store.error('Segundo', undefined, 1000);

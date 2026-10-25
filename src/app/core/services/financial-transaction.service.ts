@@ -133,6 +133,13 @@ export class FinancialTransactionService {
     );
   }
 
+  reopen(id: number): Observable<FinancialTransaction> {
+    return this.http.patch<FinancialTransaction>(
+      `${this.apiUrl}/financial/transactions/${id}/reopen`,
+      {},
+    );
+  }
+
   private buildListParams(params: FinancialTransactionListParams): HttpParams {
     let httpParams = new HttpParams()
       .set('farmId', params.farmId)

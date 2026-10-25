@@ -18,7 +18,6 @@ export class ForgotPasswordPage {
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
-  protected readonly telegramAvailable = signal<boolean | null>(null);
   protected readonly requestFailed = signal(false);
   protected readonly form = new FormGroup<{ email: GdFormControl }>({
     email: new FormControl<GdFormValue>('', {
@@ -38,34 +37,15 @@ export class ForgotPasswordPage {
       .passwordRecoveryOptions(this.email())
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (response) => this.telegramAvailable.set(response.telegramAvailable),
-        error: () => this.requestFailed.set(true),
-      });
-  }
-
-  protected requestTelegramCode(): void {
-    this.loading.set(true);
-    this.requestFailed.set(false);
-    this.authService
-      .requestTelegramPasswordRecovery(this.email())
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: (response) => {
-          if (!response.phoneLastFour) {
-            this.requestFailed.set(true);
-            return;
-          }
-
+        next: () =>
           void this.router.navigate(['/forgot-password/verify'], {
-            state: { email: this.email(), phoneLastFour: response.phoneLastFour },
-          });
-        },
+            state: { email: this.email() },
+          }),
         error: () => this.requestFailed.set(true),
       });
   }
 
   protected startOver(): void {
-    this.telegramAvailable.set(null);
     this.requestFailed.set(false);
   }
 

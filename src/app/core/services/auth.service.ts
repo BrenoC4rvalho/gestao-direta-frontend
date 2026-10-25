@@ -8,7 +8,6 @@ import {
   ChangePasswordRequest,
   LoginRequest,
   PasswordRecoveryOptionsResponse,
-  PasswordRecoveryTelegramResponse,
   PasswordRecoveryVerifyResponse,
 } from '../models/auth.models';
 
@@ -26,8 +25,8 @@ export class AuthService {
     );
   }
 
-  requestTelegramPasswordRecovery(email: string): Observable<PasswordRecoveryTelegramResponse> {
-    return this.http.post<PasswordRecoveryTelegramResponse>(
+  requestTelegramPasswordRecovery(email: string): Observable<void> {
+    return this.http.post<void>(
       `${this.apiUrl}/auth/password-recovery/telegram`,
       { email },
     );

@@ -1,10 +1,11 @@
 import { NgOptimizedImage } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { SessionResetService } from '../../core/services/session-reset.service';
 import { FarmAccessStore } from '../../core/stores/farm-access.store';
 import { SelectedFarmStore } from '../../core/stores/selected-farm.store';
 import { SessionStore } from '../../core/stores/session.store';
@@ -22,12 +23,14 @@ import { getVisibleNavItems, MAIN_NAV_ITEMS } from '../layout-navigation';
 export class DesktopSidebar {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly sessionReset = inject(SessionResetService);
   private readonly toastStore = inject(ToastStore);
 
   protected readonly sessionStore = inject(SessionStore);
   private readonly farmAccessStore = inject(FarmAccessStore);
   private readonly selectedFarmStore = inject(SelectedFarmStore);
   protected readonly pendingTransactions = inject(PendingFinancialTransactionsStore);
+  protected readonly loggingOut = signal(false);
   protected readonly navItems = computed(() =>
     getVisibleNavItems(MAIN_NAV_ITEMS, {
       userType: this.sessionStore.userType(),
@@ -38,13 +41,17 @@ export class DesktopSidebar {
   );
 
   protected logout(): void {
+    if (this.loggingOut()) {
+      return;
+    }
+
+    this.loggingOut.set(true);
     this.authService
       .logout()
       .pipe(
         finalize(() => {
-          this.sessionStore.clear();
-          this.selectedFarmStore.clear();
-          this.farmAccessStore.clear();
+          this.sessionReset.clear();
+          this.loggingOut.set(false);
           void this.router.navigate(['/login']);
         }),
       )

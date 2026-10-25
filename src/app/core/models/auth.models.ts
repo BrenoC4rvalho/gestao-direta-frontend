@@ -5,15 +5,7 @@ export interface LoginRequest {
 }
 
 export interface PasswordRecoveryOptionsResponse {
-  telegramAvailable: boolean;
-}
-
-export interface PasswordRecoveryTelegramResponse {
-  phoneLastFour: string | null;
-}
-
-export interface PasswordRecoveryTelegramResponse {
-  phoneLastFour: string | null;
+  message: string;
 }
 
 export interface PasswordRecoveryVerifyResponse {
