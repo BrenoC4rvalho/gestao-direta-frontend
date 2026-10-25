@@ -116,6 +116,9 @@ export class HarvestCategoryAnalysis {
   protected readonly chartHeight = computed(() =>
     `${Math.max(192, this.categories().length * (this.analysisMode() === 'comparison' ? 64 : 48))}px`,
   );
+  protected readonly chartMinWidth = computed(() =>
+    this.analysisMode() === 'comparison' ? 560 : 480,
+  );
   protected readonly chartData = computed<ChartConfiguration<'bar'>['data']>(() => {
     if (this.analysisMode() === 'comparison') {
       const isExpense = this.selectedType() === 'EXPENSE';

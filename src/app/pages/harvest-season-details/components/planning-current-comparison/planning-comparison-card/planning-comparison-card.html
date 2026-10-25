@@ -1,4 +1,4 @@
-<gd-card padding="md" class="flex h-full flex-col">
+<gd-card padding="md" class="block h-full w-full min-w-0 max-w-full">
   <div class="flex items-start gap-2">
     <div
       class="flex size-8 shrink-0 items-center justify-center rounded-control bg-background text-text-muted"
@@ -11,15 +11,22 @@
     </div>
   </div>
 
-  <div class="relative mt-4 h-52 min-h-52" role="img" [attr.aria-label]="accessibleDescription()">
-    <canvas
-      baseChart
-      [type]="chartType"
-      [data]="chartData()"
-      [options]="chartOptions()"
-      [plugins]="chartPlugins()"
-      aria-hidden="true"
-    ></canvas>
+  <div
+    class="mt-4 w-full min-w-0 max-w-full overflow-x-auto"
+    role="img"
+    [attr.aria-label]="accessibleDescription()"
+  >
+    <div class="relative h-52 min-h-52 w-full min-w-[560px]">
+      <canvas
+        class="block h-full w-full"
+        baseChart
+        [type]="chartType"
+        [data]="chartData()"
+        [options]="chartOptions()"
+        [plugins]="chartPlugins()"
+        aria-hidden="true"
+      ></canvas>
+    </div>
   </div>
 
   <dl class="sr-only">

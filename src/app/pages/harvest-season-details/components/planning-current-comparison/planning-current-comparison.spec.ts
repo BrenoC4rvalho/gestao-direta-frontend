@@ -48,6 +48,24 @@ describe('PlanningCurrentComparison', () => {
     expect(fixture.nativeElement.querySelectorAll('gd-planning-comparison-card')).toHaveLength(4);
     expect(fixture.nativeElement.querySelector('gd-tooltip')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.text-success')).not.toBeNull();
+
+    const comparisonSection = fixture.nativeElement.querySelector(
+      'section[aria-labelledby="planning-current-comparison-heading"]',
+    ) as HTMLElement;
+    const comparisonGrid = comparisonSection.querySelector('.sm\\:grid-cols-2') as HTMLElement;
+    const comparisonCard = comparisonSection.querySelector(
+      'gd-planning-comparison-card',
+    ) as HTMLElement;
+    const chartScrollContainer = comparisonCard.querySelector('.overflow-x-auto') as HTMLElement;
+
+    expect(comparisonSection.classList.contains('min-w-0')).toBe(true);
+    expect(comparisonGrid.classList.contains('min-w-0')).toBe(true);
+    expect(comparisonCard.classList.contains('min-w-0')).toBe(true);
+    expect(chartScrollContainer).not.toBeNull();
+    expect(chartScrollContainer.classList.contains('min-w-0')).toBe(true);
+    expect(chartScrollContainer.classList.contains('max-w-full')).toBe(true);
+    expect(chartScrollContainer.querySelector('canvas')).not.toBeNull();
+    expect(chartScrollContainer.querySelector('.border-t')).toBeNull();
   });
 
   it('should render realized labeling without the projection tooltip', async () => {

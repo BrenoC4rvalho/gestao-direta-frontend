@@ -48,6 +48,7 @@ const compactFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:
 
 @Component({
   selector: 'gd-planning-comparison-card',
+  host: { class: 'block w-full min-w-0 max-w-full' },
   imports: [BaseChartDirective, Card, LucideDynamicIcon],
   templateUrl: './planning-comparison-card.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

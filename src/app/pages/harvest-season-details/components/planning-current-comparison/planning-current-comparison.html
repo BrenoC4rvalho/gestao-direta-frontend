@@ -1,5 +1,5 @@
-<gd-card>
-  <section aria-labelledby="planning-current-comparison-heading">
+<gd-card class="block w-full min-w-0 max-w-full">
+  <section class="w-full min-w-0 max-w-full" aria-labelledby="planning-current-comparison-heading">
     <div class="flex items-center gap-2">
       <h2 id="planning-current-comparison-heading" class="text-lg font-semibold text-text-primary">
         {{ title() }}
@@ -20,9 +20,10 @@
         <p class="mt-1 text-sm text-text-muted">
           Compare o planejamento financeiro com os valores atuais da Safra.
         </p>
-        <div class="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+        <div class="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
           @for (card of cards(); track card.title) {
             <gd-planning-comparison-card
+              class="block w-full min-w-0 max-w-full"
               [card]="card"
               [currentLabel]="currentLabel()"
               [basis]="comparison().basis!"

@@ -80,8 +80,16 @@
       />
     } @else {
       @if (viewMode() === 'chart') {
-        <div class="relative mt-4" [style.height]="chartHeight()" role="img" [attr.aria-label]="analysisMode() === 'comparison' ? 'Planejado x realizado por categoria' : 'Movimentações por categoria'">
-          <canvas baseChart [type]="chartType" [data]="chartData()" [options]="chartOptions()" aria-hidden="true"></canvas>
+        <div
+          class="mt-4 w-full min-w-0 overflow-x-auto"
+          role="img"
+          [attr.aria-label]="analysisMode() === 'comparison' ? 'Planejado x realizado por categoria' : 'Movimentações por categoria'"
+        >
+          <div class="min-w-0 w-full" [style.min-width.px]="chartMinWidth()">
+            <div class="relative w-full" [style.height]="chartHeight()">
+              <canvas baseChart [type]="chartType" [data]="chartData()" [options]="chartOptions()" aria-hidden="true"></canvas>
+            </div>
+          </div>
         </div>
       } @else if (analysisMode() === 'movements') {
         <div class="mt-4">

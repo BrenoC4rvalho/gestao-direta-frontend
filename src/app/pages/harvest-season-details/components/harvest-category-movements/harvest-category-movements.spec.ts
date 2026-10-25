@@ -107,6 +107,7 @@ const comparison: HarvestCategoryComparison = {
 
 interface ComponentTestApi {
   chartData: () => { datasets: { data: unknown[] }[] };
+  chartMinWidth: () => number;
   chartOptions: () => { indexAxis?: 'x' | 'y'; plugins?: { legend?: { display?: boolean } } };
 }
 
@@ -140,6 +141,8 @@ describe('HarvestCategoryAnalysis', () => {
     expect(service.getCategoryComparison).not.toHaveBeenCalled();
     expect(component.chartOptions().indexAxis).toBe('y');
     expect(component.chartData().datasets[0].data).toEqual([1000, 250]);
+    expect(component.chartMinWidth()).toBe(480);
+    expect(fixture.nativeElement.querySelector('.overflow-x-auto')).not.toBeNull();
   });
 
   it('aligns and centers distribution list columns from the small breakpoint', async () => {
@@ -178,6 +181,13 @@ describe('HarvestCategoryAnalysis', () => {
     expect(component.chartData().datasets[0].data).toEqual([25000, null, 2000]);
     expect(component.chartData().datasets[1].data).toEqual([26000, 8000, 0]);
     expect(component.chartOptions().plugins?.legend?.display).toBe(true);
+    expect(component.chartMinWidth()).toBe(560);
+
+    const chartWrapper = fixture.nativeElement.querySelector(
+      '.overflow-x-auto > div',
+    ) as HTMLElement;
+    expect(chartWrapper.className).toContain('min-w-0');
+    expect(chartWrapper.style.minWidth).toBe('560px');
 
     selectOption(fixture, 'Receitas');
     selectOption(fixture, 'Lista');

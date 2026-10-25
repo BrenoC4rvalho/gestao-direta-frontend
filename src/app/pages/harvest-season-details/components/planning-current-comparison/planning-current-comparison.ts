@@ -13,7 +13,7 @@ import {
 
 @Component({
   selector: 'gd-planning-current-comparison',
-  host: { class: 'block' },
+  host: { class: 'block w-full min-w-0 max-w-full' },
   imports: [Card, EmptyState, LucideDynamicIcon, PlanningComparisonCard, Tooltip],
   templateUrl: './planning-current-comparison.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
