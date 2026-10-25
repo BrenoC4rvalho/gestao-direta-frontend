@@ -34,7 +34,7 @@
     icon="receipt-text"
   />
 } @else {
-  <div class="gd-fade-in-up grid gap-4 md:hidden">
+  <div class="gd-fade-in-up grid min-w-0 gap-4 lg:hidden">
     @for (transaction of transactions(); track transaction.id) {
       <gd-transaction-card
         [transaction]="transaction"
@@ -45,20 +45,28 @@
   </div>
 
   <div
-    class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft md:block"
+    class="gd-fade-in-up hidden overflow-hidden rounded-app border border-border bg-surface shadow-soft lg:block"
   >
-    <table class="w-full border-collapse text-left text-sm">
+    <table class="w-full table-fixed border-collapse text-left text-sm">
       <caption class="sr-only">
         Movimentações financeiras da fazenda selecionada
       </caption>
+      <colgroup>
+        <col class="w-[30%]" />
+        <col class="w-[14%]" />
+        <col class="w-[15%]" />
+        <col class="w-[18%]" />
+        <col class="w-[15%]" />
+        <col class="w-[8%]" />
+      </colgroup>
       <thead class="border-b border-border bg-primary text-white">
         <tr class="text-xs font-semibold uppercase tracking-wide text-white">
-          <th class="px-5 py-4" scope="col">Descrição</th>
-          <th class="px-5 py-4" scope="col">Safra</th>
-          <th class="px-5 py-4" scope="col">Status</th>
-          <th class="px-5 py-4" scope="col">Datas</th>
-          <th class="px-5 py-4 text-right" scope="col">Valor</th>
-          <th class="px-5 py-4" scope="col">
+          <th class="px-3 py-4 lg:px-5" scope="col">Descrição</th>
+          <th class="px-3 py-4 lg:px-5" scope="col">Safra</th>
+          <th class="px-3 py-4 lg:px-5" scope="col">Status</th>
+          <th class="px-3 py-4 lg:px-5" scope="col">Datas</th>
+          <th class="px-3 py-4 text-right lg:px-5" scope="col">Valor</th>
+          <th class="px-3 py-4 lg:px-5" scope="col">
             <span class="sr-only">Ações</span>
           </th>
         </tr>
@@ -66,16 +74,16 @@
       <tbody class="divide-y divide-border">
         @for (transaction of transactions(); track transaction.id) {
           <tr class="transition-colors duration-200 hover:bg-background/60">
-            <td class="px-5 py-4">
-              <p class="font-semibold text-text-primary">{{ transaction.description }}</p>
-              <p class="mt-1 text-sm text-text-muted">
+            <td class="min-w-0 px-3 py-4 lg:px-5">
+              <p class="max-w-full font-semibold text-text-primary [overflow-wrap:anywhere]">{{ transaction.description }}</p>
+              <p class="mt-1 max-w-full text-sm text-text-muted [overflow-wrap:anywhere]">
                 {{ transaction.categoryName ?? 'Sem categoria' }}
               </p>
-              <p class="mt-1 text-xs text-text-muted">
+              <p class="mt-1 max-w-full text-xs text-text-muted [overflow-wrap:anywhere]">
                 {{ paymentMethodLabel(transaction.paymentMethod) }}
               </p>
             </td>
-            <td class="max-w-[12rem] px-5 py-4">
+            <td class="max-w-[12rem] min-w-0 px-3 py-4 lg:px-5">
               <span
                 [class]="'block max-w-[12rem] truncate whitespace-nowrap text-sm font-medium ' + (transaction.harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
                 [title]="transaction.harvestSeasonName ?? 'Sem safra'"
@@ -83,22 +91,22 @@
                 {{ transaction.harvestSeasonName ?? 'Sem safra' }}
               </span>
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-4 lg:px-5">
               <gd-badge [variant]="statusVariant(transaction.status)" size="sm">
                 {{ statusLabel(transaction.status) }}
               </gd-badge>
             </td>
-            <td class="px-5 py-4 text-text-muted">
-              <p>Mov.: {{ formatDate(transaction.transactionDate) }}</p>
-              <p>Venc.: {{ formatDate(transaction.dueDate) }}</p>
-              <p>Pag.: {{ formatDate(transaction.paidAt) }}</p>
+            <td class="px-3 py-4 text-text-muted lg:px-5">
+              <p class="[overflow-wrap:anywhere]">Mov.: {{ formatDate(transaction.transactionDate) }}</p>
+              <p class="[overflow-wrap:anywhere]">Venc.: {{ formatDate(transaction.dueDate) }}</p>
+              <p class="[overflow-wrap:anywhere]">Pag.: {{ formatDate(transaction.paidAt) }}</p>
             </td>
             <td
-              [class]="'px-5 py-4 text-right font-semibold ' + amountClasses(transaction.type)"
+              [class]="'px-3 py-4 text-right font-semibold whitespace-nowrap lg:px-5 ' + amountClasses(transaction.type)"
             >
               {{ amountPrefix(transaction.type) }}{{ transaction.amount | brCurrency }}
             </td>
-            <td class="px-5 py-4">
+            <td class="px-3 py-4 lg:px-5">
               @if (canEditTransaction(transaction)) {
                 <gd-button
                   type="button"

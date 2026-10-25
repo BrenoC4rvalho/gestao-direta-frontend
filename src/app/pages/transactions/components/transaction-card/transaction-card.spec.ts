@@ -85,6 +85,59 @@ describe('TransactionCard', () => {
     expect(harvestSeason.classList.contains('whitespace-nowrap')).toBe(true);
   });
 
+  it('should keep long descriptions available without truncating the mobile card', () => {
+    const longDescription =
+      'Compra de insumos para plantio da safra 2026/2027 com fertilizantes e sementes selecionadas';
+    fixture = TestBed.createComponent(TransactionCardHost);
+    fixture.componentInstance.transaction = {
+      ...transaction,
+      description: longDescription,
+    };
+    fixture.detectChanges();
+
+    const description = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-description"]',
+    ) as HTMLElement;
+
+    expect(description.textContent?.trim()).toBe(longDescription);
+    expect(description.classList.contains('truncate')).toBe(false);
+    expect(description.classList.contains('[overflow-wrap:anywhere]')).toBe(true);
+  });
+
+  it('should protect the card from descriptions without whitespace', () => {
+    fixture = TestBed.createComponent(TransactionCardHost);
+    fixture.componentInstance.transaction = {
+      ...transaction,
+      description: 'A'.repeat(300),
+    };
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('article') as HTMLElement;
+    const description = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-description"]',
+    ) as HTMLElement;
+
+    expect(card.classList.contains('min-w-0')).toBe(true);
+    expect(description.classList.contains('[overflow-wrap:anywhere]')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('A'.repeat(300));
+  });
+
+  it('should place the description before the value and category on mobile', () => {
+    const description = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-description"]',
+    ) as HTMLElement;
+    const summary = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-value-category"]',
+    ) as HTMLElement;
+    const amount = summary.querySelector('[data-testid="transaction-amount"]') as HTMLElement;
+    const category = summary.querySelector('[data-testid="transaction-category"]') as HTMLElement;
+
+    expect(description.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(amount.textContent).toContain('-R$');
+    expect(category.textContent).toContain('Insumos');
+    expect(summary.classList.contains('min-[360px]:grid-cols-2')).toBe(true);
+  });
+
   it('should render Sem safra when transaction has no harvest season', () => {
     fixture = TestBed.createComponent(TransactionCardHost);
     fixture.componentInstance.transaction = {

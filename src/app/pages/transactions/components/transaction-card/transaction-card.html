@@ -1,19 +1,35 @@
-<article [attr.aria-label]="'Movimentação ' + transaction().description">
+<article class="min-w-0" [attr.aria-label]="'Movimentação ' + transaction().description">
   <gd-card variant="elevated" padding="none">
-    <div class="flex min-h-full flex-col p-5">
-      <div class="flex items-start justify-between gap-3">
+    <div class="flex min-h-full min-w-0 flex-col p-5">
+      <h3
+        data-testid="transaction-description"
+        class="max-w-full whitespace-normal text-lg font-semibold text-text-primary [overflow-wrap:anywhere]"
+      >
+        {{ transaction().description }}
+      </h3>
+
+      <div
+        data-testid="transaction-value-category"
+        class="mt-3 grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2"
+      >
         <div class="min-w-0">
-          <h3 class="truncate text-lg font-semibold text-text-primary">
-            {{ transaction().description }}
-          </h3>
-          <p class="mt-1 truncate text-sm text-text-muted">
+          <span class="sr-only">Valor</span>
+          <p
+            data-testid="transaction-amount"
+            [class]="'max-w-full text-base font-semibold [overflow-wrap:anywhere] ' + amountClasses()"
+          >
+            {{ amountPrefix() }}{{ transaction().amount | brCurrency }}
+          </p>
+        </div>
+        <div class="min-w-0">
+          <span class="sr-only">Categoria</span>
+          <p
+            data-testid="transaction-category"
+            class="max-w-full text-sm text-text-muted [overflow-wrap:anywhere]"
+          >
             {{ transaction().categoryName ?? 'Sem categoria' }}
           </p>
         </div>
-
-        <p [class]="'shrink-0 text-base font-semibold ' + amountClasses()">
-          {{ amountPrefix() }}{{ transaction().amount | brCurrency }}
-        </p>
       </div>
 
       <div class="mt-5 flex flex-wrap gap-2">
@@ -21,19 +37,19 @@
       </div>
 
       <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-        <div>
+        <div class="min-w-0">
           <dt class="text-text-muted">Movimentação</dt>
-          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().transactionDate) }}</dd>
+          <dd class="mt-1 max-w-full font-medium text-text-primary [overflow-wrap:anywhere]">{{ formatDate(transaction().transactionDate) }}</dd>
         </div>
-        <div>
+        <div class="min-w-0">
           <dt class="text-text-muted">Vencimento</dt>
-          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().dueDate) }}</dd>
+          <dd class="mt-1 max-w-full font-medium text-text-primary [overflow-wrap:anywhere]">{{ formatDate(transaction().dueDate) }}</dd>
         </div>
-        <div>
+        <div class="min-w-0">
           <dt class="text-text-muted">Pagamento</dt>
-          <dd class="mt-1 font-medium text-text-primary">{{ formatDate(transaction().paidAt) }}</dd>
+          <dd class="mt-1 max-w-full font-medium text-text-primary [overflow-wrap:anywhere]">{{ formatDate(transaction().paidAt) }}</dd>
         </div>
-        <div>
+        <div class="min-w-0">
           <dt class="text-text-muted">Safra</dt>
           <dd
             [class]="'mt-1 block max-w-full truncate whitespace-nowrap font-medium ' + (transaction().harvestSeasonName ? 'text-text-primary' : 'text-text-muted')"
@@ -42,14 +58,14 @@
             {{ transaction().harvestSeasonName ?? 'Sem safra' }}
           </dd>
         </div>
-        <div>
+        <div class="min-w-0">
           <dt class="text-text-muted">Método</dt>
-          <dd class="mt-1 font-medium text-text-primary">{{ paymentMethodLabel() }}</dd>
+          <dd class="mt-1 max-w-full font-medium text-text-primary [overflow-wrap:anywhere]">{{ paymentMethodLabel() }}</dd>
         </div>
       </dl>
 
       @if (transaction().notes; as notes) {
-        <p class="mt-4 border-t border-border pt-4 text-sm leading-6 text-text-muted">
+        <p class="mt-4 max-w-full border-t border-border pt-4 text-sm leading-6 text-text-muted [overflow-wrap:anywhere]">
           {{ notes }}
         </p>
       }
