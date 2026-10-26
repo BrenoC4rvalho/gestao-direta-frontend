@@ -6,16 +6,17 @@
   size="xl"
   (closed)="close()"
 >
-  <div class="space-y-5">
-    <div class="flex justify-end">
+  <div data-testid="comparison-content" class="w-full min-w-0 max-w-full space-y-5">
+    <div class="flex min-w-0 justify-end">
       <gd-button type="button" variant="outline" size="sm" [loading]="exportingPdf()" [disabled]="!comparison()" (click)="exportPdf()">
         <svg lucideIcon="download" class="size-4" aria-hidden="true"></svg>
         Exportar PDF
       </gd-button>
     </div>
-    <div class="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
+    <div class="grid w-full min-w-0 max-w-full items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <gd-select
         id="harvest-comparison-a"
+        class="block w-full min-w-0 max-w-full"
         label="Safra A"
         placeholder="Selecione a Safra A"
         [control]="harvestAControl"
@@ -25,6 +26,7 @@
       <span class="hidden pb-3 text-sm font-semibold text-text-muted sm:block" aria-hidden="true">vs</span>
       <gd-select
         id="harvest-comparison-b"
+        class="block w-full min-w-0 max-w-full"
         label="Safra B"
         placeholder="Selecione a Safra B"
         [control]="harvestBControl"
@@ -59,42 +61,45 @@
       <section aria-labelledby="comparison-matrix-title">
         <h3 id="comparison-matrix-title" class="sr-only">Matriz comparativa de indicadores das Safras</h3>
 
-        <div class="mb-5 grid gap-4 sm:grid-cols-2">
+        <div class="mb-5 grid w-full min-w-0 max-w-full gap-4 sm:grid-cols-2">
           @for (harvest of [currentComparison.harvestA, currentComparison.harvestB]; track harvest.id; let index = $index) {
-            <article class="rounded-control border border-border bg-surface p-4">
+            <article class="w-full min-w-0 max-w-full rounded-control border border-border bg-surface p-4">
               <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Safra {{ index === 0 ? 'A' : 'B' }}
               </p>
               <div class="mt-1 flex flex-wrap items-center gap-2">
-                <h4 class="text-base font-semibold text-text-primary">{{ harvest.name }}</h4>
-                <gd-badge [variant]="statusVariant(harvest.status)" size="sm">
+                <h4 class="min-w-0 max-w-full text-base font-semibold text-text-primary [overflow-wrap:anywhere]">{{ harvest.name }}</h4>
+                <gd-badge class="shrink-0" [variant]="statusVariant(harvest.status)" size="sm">
                   {{ statusLabel(harvest.status) }}
                 </gd-badge>
               </div>
               <dl class="mt-3 grid gap-2 text-sm">
-                <div class="flex justify-between gap-3">
-                  <dt class="text-text-muted">Atividade</dt>
-                  <dd class="text-right text-text-primary">{{ harvest.productionActivityName }}</dd>
+                <div class="flex min-w-0 justify-between gap-3">
+                  <dt class="shrink-0 text-text-muted">Atividade</dt>
+                  <dd class="min-w-0 flex-1 text-right text-text-primary [overflow-wrap:anywhere]">{{ harvest.productionActivityName }}</dd>
                 </div>
-                <div class="flex justify-between gap-3">
-                  <dt class="text-text-muted">Área</dt>
-                  <dd class="text-right text-text-primary">{{ formatArea(harvest.areaHectares) }}</dd>
+                <div class="flex min-w-0 justify-between gap-3">
+                  <dt class="shrink-0 text-text-muted">Área</dt>
+                  <dd class="min-w-0 flex-1 text-right text-text-primary [overflow-wrap:anywhere]">{{ formatArea(harvest.areaHectares) }}</dd>
                 </div>
-                <div class="flex justify-between gap-3">
-                  <dt class="text-text-muted">Período</dt>
-                  <dd class="text-right text-text-primary">{{ formatPeriod(harvest.startDate, harvest.endDate) }}</dd>
+                <div class="flex min-w-0 justify-between gap-3">
+                  <dt class="shrink-0 text-text-muted">Período</dt>
+                  <dd class="min-w-0 flex-1 text-right text-text-primary [overflow-wrap:anywhere]">{{ formatPeriod(harvest.startDate, harvest.endDate) }}</dd>
                 </div>
-                <div class="flex justify-between gap-3">
-                  <dt class="text-text-muted">Duração</dt>
-                  <dd class="text-right text-text-primary">{{ formatDuration(harvest.startDate, harvest.endDate) }}</dd>
+                <div class="flex min-w-0 justify-between gap-3">
+                  <dt class="shrink-0 text-text-muted">Duração</dt>
+                  <dd class="min-w-0 flex-1 text-right text-text-primary [overflow-wrap:anywhere]">{{ formatDuration(harvest.startDate, harvest.endDate) }}</dd>
                 </div>
               </dl>
             </article>
           }
         </div>
 
-        <div class="overflow-x-auto overscroll-x-contain rounded-app border border-border">
-          <table class="min-w-[44rem] w-full border-collapse text-sm">
+        <div
+          data-testid="comparison-table-scroll"
+          class="block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-app border border-border"
+        >
+          <table class="w-full min-w-[44rem] border-collapse text-sm">
             <caption class="sr-only">
               Indicadores financeiros e produtivos de {{ currentComparison.harvestA.name }} e
               {{ currentComparison.harvestB.name }}

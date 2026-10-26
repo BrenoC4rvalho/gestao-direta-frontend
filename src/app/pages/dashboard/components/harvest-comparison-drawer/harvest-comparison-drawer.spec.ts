@@ -209,6 +209,41 @@ describe('HarvestComparisonDrawer', () => {
     expect(text).not.toContain('Diferença');
   });
 
+  it('should contain long season content and isolate horizontal scrolling to the comparison table', async () => {
+    const longComparison: HarvestSeasonComparison = {
+      ...comparison,
+      harvestA: {
+        ...comparison.harvestA,
+        name: 'Safra Café Especial de Exportação 2025/2026 com Identificação Complementar',
+        productionActivityName: 'Produção de café arábica de alta qualidade para exportação',
+      },
+      harvestB: {
+        ...comparison.harvestB,
+        name: 'Safra Café Especial de Exportação 2026/2027 com Identificação Complementar',
+        productionActivityName: 'Produção de café arábica de alta qualidade para exportação',
+      },
+    };
+    const { fixture } = await createComponent(of(longComparison));
+    selectHarvests(fixture);
+
+    const content = fixture.nativeElement.querySelector('[data-testid="comparison-content"]') as HTMLElement;
+    const selectors = fixture.nativeElement.querySelectorAll('gd-select') as NodeListOf<HTMLElement>;
+    const cards = fixture.nativeElement.querySelectorAll('article') as NodeListOf<HTMLElement>;
+    const tableScroll = fixture.nativeElement.querySelector(
+      '[data-testid="comparison-table-scroll"]',
+    ) as HTMLElement;
+
+    expect(content.className).toContain('min-w-0');
+    expect(content.className).toContain('max-w-full');
+    expect(Array.from(selectors).every((selector) => selector.classList.contains('min-w-0'))).toBe(true);
+    expect(Array.from(cards).every((card) => card.classList.contains('min-w-0'))).toBe(true);
+    expect(tableScroll.className).toContain('overflow-x-auto');
+    expect(tableScroll.className).toContain('min-w-0');
+    expect(tableScroll.querySelector('table')?.className).toContain('min-w-[44rem]');
+    expect(normalizedText(fixture.nativeElement)).toContain('Safra Café Especial de Exportação 2025/2026');
+    expect(normalizedText(fixture.nativeElement)).toContain('Produção de café arábica de alta qualidade');
+  });
+
   it('should render the Trophy icon only for the Harvest Season marked as best by the backend', async () => {
     const comparisonWithBest: HarvestSeasonComparison = {
       ...comparison,
