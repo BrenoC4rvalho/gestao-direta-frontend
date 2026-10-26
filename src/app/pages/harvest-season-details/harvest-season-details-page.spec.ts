@@ -879,6 +879,90 @@ describe('HarvestSeasonDetailsPage', () => {
     expect(harvestService.deleteBudgetItem).toHaveBeenCalledWith(1, 9);
   });
 
+  it('should preserve long planned item content in a mobile-safe layout', () => {
+    const longExpenseCategory =
+      'Insumos e manutenção de equipamentos agrícolas para preparação da safra';
+    const longIncomeCategory = 'Comercialização de produção agrícola e receitas complementares';
+    const longExpenseDescription =
+      'Aquisição de fertilizantes, sementes e defensivos para toda a área produtiva da safra';
+    const longIncomeDescription =
+      'Venda programada da produção com condições comerciais e período de recebimento estendido';
+
+    harvestService.getBudgetItems.mockReturnValue(
+      of({
+        ...budget,
+        plannedExpense: 1234567.89,
+        plannedRevenue: 9876543.21,
+        plannedResult: 8641975.32,
+        expenses: [
+          {
+            categoryId: 3,
+            categoryName: longExpenseCategory,
+            type: 'EXPENSE',
+            itemCount: 1,
+            plannedAmount: 1234567.89,
+            items: [
+              {
+                id: 9,
+                harvestSeasonId: 1,
+                categoryId: 3,
+                categoryName: longExpenseCategory,
+                type: 'EXPENSE',
+                description: longExpenseDescription,
+                plannedAmount: 1234567.89,
+              },
+            ],
+          },
+        ],
+        incomes: [
+          {
+            categoryId: 4,
+            categoryName: longIncomeCategory,
+            type: 'INCOME',
+            itemCount: 1,
+            plannedAmount: 9876543.21,
+            items: [
+              {
+                id: 10,
+                harvestSeasonId: 1,
+                categoryId: 4,
+                categoryName: longIncomeCategory,
+                type: 'INCOME',
+                description: longIncomeDescription,
+                plannedAmount: 9876543.21,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    setupUser('PRODUCER');
+    createComponent();
+
+    clickButton('Planejamento financeiro');
+    clickBudgetCategory(longExpenseCategory);
+    clickBudgetCategory(longIncomeCategory);
+
+    const items = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
+        '[data-testid="budget-item"]',
+      ),
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.className).toContain('grid');
+    expect(items[0]?.className).toContain('min-w-0');
+    expect(items[0]?.querySelector('.truncate')).toBeNull();
+    expect(items[0]?.textContent).toContain(longExpenseDescription);
+    expect(items[0]?.textContent).toContain(longExpenseCategory);
+    expect(items[1]?.textContent).toContain(longIncomeDescription);
+    expect(items[1]?.textContent).toContain(longIncomeCategory);
+    expect(fixture.nativeElement.querySelectorAll('[aria-label="Editar"]')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelectorAll('[aria-label="Remover"]')).toHaveLength(2);
+    expect(summaryCardText('Despesas planejadas')).toContain('1.234.567,89');
+    expect(summaryCardText('Receitas planejadas')).toContain('9.876.543,21');
+  });
+
   it('should show planning create actions only to users that can manage the harvest', () => {
     setupUser('PRODUCER');
     createComponent();

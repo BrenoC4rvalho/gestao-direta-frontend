@@ -387,11 +387,11 @@
 
           <div class="mt-6 grid gap-6 xl:grid-cols-2">
             @for (section of budgetSections(); track section.type) {
-              <gd-card class="h-full" padding="sm">
+              <gd-card class="h-full min-w-0" padding="sm">
                 <div
-                  class="flex items-center justify-between gap-3 border-b border-border px-3 pb-4 pt-3"
+                  class="flex min-w-0 flex-col items-start gap-2 border-b border-border px-3 pb-4 pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                 >
-                  <div class="flex min-w-0 items-center gap-2">
+                  <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                     <span
                       class="flex size-8 shrink-0 items-center justify-center rounded-full"
                       [class.bg-danger]="section.type === 'EXPENSE'"
@@ -405,10 +405,12 @@
                         aria-hidden="true"
                       ></svg>
                     </span>
-                    <h3 class="truncate font-semibold text-text-primary">{{ section.title }}</h3>
+                    <h3 class="min-w-0 break-words font-semibold text-text-primary">
+                      {{ section.title }}
+                    </h3>
                   </div>
                   <p
-                    class="shrink-0 text-sm font-semibold"
+                    class="self-end text-sm font-semibold sm:shrink-0 sm:self-auto"
                     [class.text-success]="section.type === 'INCOME'"
                     [class.text-danger]="section.type === 'EXPENSE'"
                   >
@@ -443,12 +445,12 @@
                     <article [class]="'px-3 py-4' + (!$last ? ' border-b border-border' : '')">
                       <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-control text-left transition-colors hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        class="flex w-full min-w-0 cursor-pointer flex-col items-stretch gap-2 rounded-control text-left transition-colors hover:bg-background/60 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                         [attr.aria-expanded]="isBudgetGroupExpanded(section.type, group)"
                         [attr.aria-controls]="budgetGroupContentId(section.type, group)"
                         (click)="toggleBudgetGroup(section.type, group)"
                       >
-                        <span class="flex min-w-0 items-center gap-2">
+                        <span class="flex min-w-0 items-start gap-2">
                           <svg
                             [lucideIcon]="
                               isBudgetGroupExpanded(section.type, group)
@@ -459,7 +461,9 @@
                             aria-hidden="true"
                           ></svg>
                           <span class="min-w-0">
-                            <span class="block truncate font-semibold text-text-primary">{{
+                            <span
+                              class="block break-words font-semibold text-text-primary [overflow-wrap:anywhere]"
+                            >{{
                               group.categoryName
                             }}</span>
                             <span class="mt-1 block text-xs text-text-muted"
@@ -468,7 +472,9 @@
                             >
                           </span>
                         </span>
-                        <span class="shrink-0 whitespace-nowrap font-semibold text-text-primary">{{
+                        <span
+                          class="self-end whitespace-nowrap font-semibold text-text-primary sm:shrink-0 sm:self-auto"
+                        >{{
                           group.plannedAmount | brCurrency
                         }}</span>
                       </button>
@@ -480,49 +486,64 @@
                           [attr.aria-label]="'Itens de ' + group.categoryName"
                         >
                           @for (item of group.items; track item.id) {
-                            <div class="flex items-center gap-3 py-3 text-sm">
-                              <span class="min-w-0 flex-1 break-words text-text-muted">{{
+                            <div
+                              data-testid="budget-item"
+                              class="grid min-w-0 gap-2 py-3 text-sm sm:flex sm:items-center sm:gap-3"
+                            >
+                              <span
+                                class="min-w-0 break-words text-text-muted [overflow-wrap:anywhere] sm:flex-1"
+                              >{{
                                 item.description
                               }}</span>
-                              <div class="flex shrink-0 items-center gap-1.5">
-                                <span class="mr-1 font-medium text-text-primary">{{
+                              <div
+                                class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-1 sm:flex sm:shrink-0 sm:items-center sm:gap-1.5"
+                              >
+                                <span class="font-semibold text-text-primary sm:mr-1 sm:font-medium">{{
                                   item.plannedAmount | brCurrency
                                 }}</span>
-                                @if (canManageBudget()) {
-                                  <div data-testid="budget-item-actions" class="flex gap-1">
-                                    <gd-button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      [iconOnly]="true"
-                                      ariaLabel="Editar"
-                                      title="Editar"
-                                      (click)="openEditBudgetItem(item)"
-                                    >
-                                      <svg
-                                        lucideIcon="pencil"
-                                        class="size-4"
-                                        aria-hidden="true"
-                                      ></svg>
-                                    </gd-button>
-                                    <gd-button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      [iconOnly]="true"
-                                      ariaLabel="Remover"
-                                      title="Remover"
-                                      (click)="requestDeleteBudgetItem(item)"
-                                    >
-                                      <svg
-                                        lucideIcon="trash-2"
-                                        class="size-4"
-                                        aria-hidden="true"
-                                      ></svg>
-                                    </gd-button>
-                                  </div>
-                                }
+                                <span
+                                  class="min-w-0 break-words text-xs text-text-muted [overflow-wrap:anywhere] sm:hidden"
+                                >
+                                  {{ group.categoryName }}
+                                </span>
                               </div>
+                              @if (canManageBudget()) {
+                                <div
+                                  data-testid="budget-item-actions"
+                                  class="flex justify-end gap-1 sm:shrink-0"
+                                >
+                                  <gd-button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    [iconOnly]="true"
+                                    ariaLabel="Editar"
+                                    title="Editar"
+                                    (click)="openEditBudgetItem(item)"
+                                  >
+                                    <svg
+                                      lucideIcon="pencil"
+                                      class="size-4"
+                                      aria-hidden="true"
+                                    ></svg>
+                                  </gd-button>
+                                  <gd-button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    [iconOnly]="true"
+                                    ariaLabel="Remover"
+                                    title="Remover"
+                                    (click)="requestDeleteBudgetItem(item)"
+                                  >
+                                    <svg
+                                      lucideIcon="trash-2"
+                                      class="size-4"
+                                      aria-hidden="true"
+                                    ></svg>
+                                  </gd-button>
+                                </div>
+                              }
                             </div>
                           }
                         </div>
