@@ -218,6 +218,8 @@ describe('FinancialReportPage', () => {
     getFinancialReport: ReturnType<typeof vi.fn>;
     getFinancialCommitmentStatus: ReturnType<typeof vi.fn>;
     getFinancialReportTransactions: ReturnType<typeof vi.fn>;
+    exportFinancialReportPdf: ReturnType<typeof vi.fn>;
+    exportFinancialReportXlsx: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -248,6 +250,8 @@ describe('FinancialReportPage', () => {
         }),
       ),
       getFinancialReportTransactions: vi.fn(() => of(harvests)),
+      exportFinancialReportPdf: vi.fn(),
+      exportFinancialReportXlsx: vi.fn(),
     };
     await TestBed.configureTestingModule({
       imports: [FinancialReportPage],
@@ -662,18 +666,30 @@ describe('FinancialReportPage', () => {
     expect(summary.querySelector('gd-financial-harvest-summary-chart')).toBeNull();
   });
 
-  it('should show the PDF export action when the report is available', () => {
-    const exportButton = button('Exportar PDF');
+  it('should show the export menu when the report is available', () => {
+    const exportButton = button('Exportar');
 
     expect(exportButton.disabled).toBe(false);
-    expect(exportButton.textContent).toContain('Exportar PDF');
+    expect(exportButton.textContent).toContain('Exportar');
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
+
+    exportButton.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="menu"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Exportar PDF');
+    expect(fixture.nativeElement.textContent).toContain('Exportar Excel (.xlsx)');
   });
 
-  it('should show an enabled spreadsheet export action when the report is available', () => {
-    const exportButton = button('Exportar planilha');
+  it('should keep export actions available in the menu', () => {
+    const exportButton = button('Exportar');
+    exportButton.click();
+    fixture.detectChanges();
 
-    expect(exportButton.disabled).toBe(false);
-    expect(exportButton.textContent).toContain('Exportar planilha');
+    const pdfAction = button('Exportar PDF');
+    const excelAction = button('Exportar Excel (.xlsx)');
+    expect(pdfAction.disabled).toBe(false);
+    expect(excelAction.disabled).toBe(false);
   });
 
   it('should switch evolution granularity without reloading the page', () => {

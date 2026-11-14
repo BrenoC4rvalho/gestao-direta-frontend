@@ -125,6 +125,9 @@ const appliedFilterDateFormatter = new Intl.DateTimeFormat('pt-BR', { timeZone: 
     Tooltip,
   ],
   providers: [provideFinancialReportLucideIcons(), provideCharts(withDefaultRegisterables())],
+  host: {
+    '(document:keydown.escape)': 'closeExportMenu()',
+  },
   templateUrl: './financial-report-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -147,6 +150,8 @@ export class FinancialReportPage {
   readonly report = signal<FinancialReportResponse | null>(null);
   readonly reportLoading = signal(false);
   protected readonly exportingPdf = signal(false);
+  protected readonly exportingExcel = signal(false);
+  protected readonly exportMenuOpen = signal(false);
   protected readonly filtersDialogOpen = signal(false);
   protected readonly indicatorsDrawerOpen = signal(false);
   readonly reportError = signal<string | null>(null);
@@ -224,6 +229,16 @@ export class FinancialReportPage {
       this.canViewReport() &&
       !this.reportLoading() &&
       !this.exportingPdf() &&
+      !this.exportingExcel() &&
+      !this.reportError(),
+  );
+  protected readonly canExport = computed(
+    () =>
+      this.selectedFarmStore.selectedFarmId() !== null &&
+      this.canViewReport() &&
+      !this.reportLoading() &&
+      !this.exportingPdf() &&
+      !this.exportingExcel() &&
       !this.reportError(),
   );
   protected readonly selectedCategorySummary = computed<FinancialCategorySummaryGroup | null>(() =>
@@ -452,10 +467,11 @@ export class FinancialReportPage {
   }
   protected exportPdf(): void {
     const farmId = this.selectedFarmStore.selectedFarmId();
-    if (!farmId || !this.canExportPdf()) {
+    if (!farmId || !this.canExport()) {
       return;
     }
 
+    this.closeExportMenu();
     const pdfWindow = window.open('', '_blank');
     this.exportingPdf.set(true);
     this.financialService
@@ -471,6 +487,50 @@ export class FinancialReportPage {
           this.toastStore.error('Não foi possível gerar o relatório em PDF.');
         },
       });
+  }
+  protected exportExcel(): void {
+    const farmId = this.selectedFarmStore.selectedFarmId();
+    if (!farmId || !this.canExport()) {
+      return;
+    }
+
+    this.closeExportMenu();
+    this.exportingExcel.set(true);
+    this.financialService
+      .exportFinancialReportXlsx(this.request(farmId))
+      .pipe(
+        finalize(() => this.exportingExcel.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (response) => this.downloadFile(response, 'xlsx'),
+        error: () => this.toastStore.error('Não foi possível gerar o arquivo Excel.'),
+      });
+  }
+  protected toggleExportMenu(event: Event): void {
+    event.stopPropagation();
+    if (!this.canExport()) return;
+    this.exportMenuOpen.update((open) => !open);
+  }
+  protected closeExportMenu(): void {
+    this.exportMenuOpen.set(false);
+  }
+  private downloadFile(response: HttpResponse<Blob>, extension: string): void {
+    if (!response.body) {
+      this.toastStore.error(`Não foi possível gerar o arquivo ${extension.toUpperCase()}.`);
+      return;
+    }
+    const url = URL.createObjectURL(response.body);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.exportFilename(response, extension);
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  private exportFilename(response: HttpResponse<Blob>, extension: string): string {
+    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(contentDisposition);
+    return match?.[1] ?? `relatorio-financeiro.${extension}`;
   }
   protected openIndicatorsDrawer(): void {
     this.indicatorsDrawerOpen.set(true);

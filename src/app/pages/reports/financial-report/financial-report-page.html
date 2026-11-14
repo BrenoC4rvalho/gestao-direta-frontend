@@ -69,20 +69,49 @@
             Visão consolidada
           </h2>
           <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
-            <gd-button
-              type="button"
-              variant="outline"
-              [loading]="exportingPdf()"
-              [disabled]="!canExportPdf()"
-              (click)="exportPdf()"
-            >
-              <svg lucideIcon="printer" class="size-4" aria-hidden="true"></svg>
-              Exportar PDF
-            </gd-button>
-            <gd-button type="button" variant="outline">
-              <svg lucideIcon="file-spreadsheet" class="size-4" aria-hidden="true"></svg>
-              Exportar planilha
-            </gd-button>
+            <div class="relative" (click)="$event.stopPropagation()">
+              <gd-button
+                type="button"
+                variant="outline"
+                [loading]="exportingPdf() || exportingExcel()"
+                [disabled]="!canExport()"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="exportMenuOpen()"
+                (click)="toggleExportMenu($event)"
+              >
+                <svg lucideIcon="download" class="size-4" aria-hidden="true"></svg>
+                Exportar
+                <svg lucideIcon="chevron-down" class="size-4" aria-hidden="true"></svg>
+              </gd-button>
+              @if (exportMenuOpen()) {
+                <div
+                  class="absolute right-0 z-20 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-1 shadow-lg"
+                  role="menu"
+                  aria-label="Formatos de exportação"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-text-primary transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    [disabled]="exportingPdf() || exportingExcel()"
+                    (click)="exportPdf()"
+                  >
+                    <svg lucideIcon="file-down" class="size-4 text-primary" aria-hidden="true"></svg>
+                    <span>Exportar PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-text-primary transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    [disabled]="exportingPdf() || exportingExcel()"
+                    (click)="exportExcel()"
+                  >
+                    <svg lucideIcon="file-spreadsheet" class="size-4 text-success" aria-hidden="true"></svg>
+                    <span>Exportar Excel (.xlsx)</span>
+                  </button>
+                </div>
+              }
+            </div>
             <gd-button type="button" variant="outline" (click)="openIndicatorsDrawer()">
               <svg lucideIcon="chart-no-axes-combined" class="size-4" aria-hidden="true"></svg>
               Indicadores

@@ -222,4 +222,25 @@ describe('FinancialService report endpoints', () => {
     expect(request.request.params.get('granularity')).toBe('QUARTERLY');
     request.flush(new Blob(['%PDF']));
   });
+
+  it('exports the financial report Excel workbook with the applied report filters', () => {
+    service
+      .exportFinancialReportXlsx({
+        farmId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-03-31',
+        basis: 'CASH',
+        harvestSeasonIds: [],
+        categoryIds: [],
+        granularity: 'MONTHLY',
+      })
+      .subscribe();
+
+    const request = http.expectOne((item) => item.url === `${apiUrl}/financial/reports/export/xlsx`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    expect(request.request.params.get('basis')).toBe('CASH');
+    expect(request.request.params.get('granularity')).toBe('MONTHLY');
+    request.flush(new Blob(['PK']));
+  });
 });

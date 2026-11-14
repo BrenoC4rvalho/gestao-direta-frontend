@@ -82,6 +82,14 @@ export class FinancialService {
     });
   }
 
+  exportFinancialReportXlsx(filters: FinancialReportRequest): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/financial/reports/export/xlsx`, {
+      params: this.buildReportParams(filters),
+      observe: 'response',
+      responseType: 'blob',
+    });
+  }
+
   getFinancialReportTransactions(
     filters: FinancialReportTransactionsRequest,
   ): Observable<PageResponse<FinancialReportTransaction>> {
