@@ -10,12 +10,9 @@ curl -I http://127.0.0.1:8088/
 docker stop gestao-direta-frontend-test
 ```
 
-The container's /api upstream requires the backend DNS alias `gestao-direta-api`
-on the same Docker network. If you test the standalone container without that
-network/backend, Nginx will fail startup because the upstream hostname cannot
-be resolved. For a full integration test, use the production Compose network
-with the backend running, or provide a temporary test container on the same
-network using that alias.
+The static UI can be tested standalone. API requests require the backend DNS
+alias `gestao-direta-api` on the Docker `proxy` network. Nginx resolves that
+hostname at request time, so the static UI starts even without the backend.
 
 ## VPS deployment
 
