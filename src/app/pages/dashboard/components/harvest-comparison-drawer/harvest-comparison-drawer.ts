@@ -19,6 +19,7 @@ import {
   HarvestSeason,
   HarvestSeasonComparison,
   HarvestSeasonComparisonMetric,
+  HarvestSeasonComparisonSemantic,
 } from '../../../../core/models/harvest-season.models';
 import { HarvestSeasonService } from '../../../../core/services/harvest-season.service';
 import { ToastStore } from '../../../../core/stores/toast.store';
@@ -35,6 +36,9 @@ interface ComparisonRow {
   bestA: boolean;
   bestB: boolean;
   format: 'currency' | 'percentage';
+  difference: number | null;
+  percentageDifference: number | null;
+  semantic: HarvestSeasonComparisonSemantic | null;
 }
 
 type ComparisonGroup = 'planning' | 'projection' | 'realized' | 'perHectare';
@@ -208,6 +212,36 @@ export class HarvestComparisonDrawer {
     return new BrCurrencyPipe().transform(value);
   }
 
+  protected formatDifference(row: ComparisonRow): string {
+    if (row.difference === null) return '—';
+
+    const value = this.format(row.difference, row.format);
+    return row.difference > 0 ? `+${value}` : value;
+  }
+
+  protected formatPercentageDifference(value: number | null): string {
+    if (value === null) return '—';
+
+    const formatted = value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${value > 0 ? '+' : ''}${formatted}%`;
+  }
+
+  protected differenceClasses(semantic: HarvestSeasonComparisonSemantic | null): string {
+    if (semantic === 'BETTER') return 'text-success';
+    if (semantic === 'WORSE') return 'text-danger';
+    return 'text-text-muted';
+  }
+
+  protected semanticLabel(semantic: HarvestSeasonComparisonSemantic | null): string | null {
+    if (semantic === 'BETTER') return 'Melhor';
+    if (semantic === 'WORSE') return 'Pior';
+    if (semantic === 'NEUTRAL') return 'Neutro';
+    return null;
+  }
+
   protected formatArea(areaHectares: number | null): string {
     if (areaHectares === null) return 'Área não informada';
     return `${areaHectares.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ha`;
@@ -296,6 +330,7 @@ export class HarvestComparisonDrawer {
         (comparison.harvestA[group] as Record<string, number | null> | null)?.[field] ?? null;
       const valueB =
         (comparison.harvestB[group] as Record<string, number | null> | null)?.[field] ?? null;
+      const difference = comparison.differences.find((item) => item.metric === metric);
 
       return {
         label,
@@ -305,6 +340,9 @@ export class HarvestComparisonDrawer {
         bestA: valueA !== null && this.isBestFromBackend(comparison, metric, comparison.harvestA.id),
         bestB: valueB !== null && this.isBestFromBackend(comparison, metric, comparison.harvestB.id),
         format,
+        difference: difference?.difference ?? null,
+        percentageDifference: difference?.percentageDifference ?? null,
+        semantic: difference?.semantic ?? null,
       };
     });
   }

@@ -209,6 +209,38 @@ describe('HarvestComparisonDrawer', () => {
     expect(text).not.toContain('Diferença');
   });
 
+  it('should render mobile comparison cards with backend-provided differences', async () => {
+    const comparisonWithDifferences: HarvestSeasonComparison = {
+      ...comparison,
+      differences: [
+        {
+          metric: 'PLANNED_COST',
+          difference: -10000,
+          percentageDifference: -5.49,
+          semantic: 'BETTER',
+        },
+        {
+          metric: 'PLANNED_REVENUE',
+          difference: 12000,
+          percentageDifference: 5.04,
+          semantic: 'BETTER',
+        },
+      ],
+    };
+    const { fixture } = await createComponent(of(comparisonWithDifferences));
+    selectHarvests(fixture);
+
+    const mobileCards = fixture.nativeElement.querySelector('[data-testid="comparison-mobile-cards"]') as HTMLElement;
+    const desktopTable = fixture.nativeElement.querySelector('[data-testid="comparison-table-scroll"]') as HTMLElement;
+
+    expect(mobileCards.className).toContain('md:hidden');
+    expect(mobileCards.querySelectorAll('[data-testid="comparison-mobile-card"]')).toHaveLength(21);
+    expect(normalizedText(mobileCards)).toContain('-R$ 10.000,00');
+    expect(normalizedText(mobileCards)).toContain('-5,49%');
+    expect(normalizedText(mobileCards)).toContain('Melhor');
+    expect(desktopTable.className).toContain('md:block');
+  });
+
   it('should contain long season content and isolate horizontal scrolling to the comparison table', async () => {
     const longComparison: HarvestSeasonComparison = {
       ...comparison,
