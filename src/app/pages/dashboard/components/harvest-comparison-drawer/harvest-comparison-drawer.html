@@ -97,7 +97,7 @@
 
         <div
           data-testid="comparison-mobile-cards"
-          class="grid min-w-0 gap-4 md:hidden"
+          class="grid min-w-0 gap-4 lg:hidden"
         >
           @for (section of comparisonSections(); track section.id) {
             <section class="min-w-0 rounded-control border border-border bg-surface p-3" [attr.aria-labelledby]="'comparison-mobile-section-' + section.id">
@@ -134,7 +134,13 @@
                         <p class="mt-1 break-words text-base font-semibold tabular-nums text-text-primary">
                           {{ format(row.valueA, row.format) }}
                           @if (row.bestA) {
-                            <svg lucideIcon="trophy" data-testid="comparison-best-trophy-mobile" class="ml-1 inline size-4 text-warning" aria-label="Melhor resultado"></svg>
+                            <gd-tooltip
+                              [useOverlay]="true"
+                              ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
+                              content="Melhor resultado entre as Safras comparadas neste indicador."
+                            >
+                              <svg lucideIcon="trophy" data-testid="comparison-best-trophy-mobile" class="size-4 text-warning" aria-hidden="true"></svg>
+                            </gd-tooltip>
                           }
                         </p>
                       </div>
@@ -143,7 +149,13 @@
                         <p class="mt-1 break-words text-base font-semibold tabular-nums text-text-primary">
                           {{ format(row.valueB, row.format) }}
                           @if (row.bestB) {
-                            <svg lucideIcon="trophy" data-testid="comparison-best-trophy-mobile" class="ml-1 inline size-4 text-warning" aria-label="Melhor resultado"></svg>
+                            <gd-tooltip
+                              [useOverlay]="true"
+                              ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
+                              content="Melhor resultado entre as Safras comparadas neste indicador."
+                            >
+                              <svg lucideIcon="trophy" data-testid="comparison-best-trophy-mobile" class="size-4 text-warning" aria-hidden="true"></svg>
+                            </gd-tooltip>
                           }
                         </p>
                       </div>
@@ -171,10 +183,10 @@
         </div>
 
         <div
-          data-testid="comparison-table-scroll"
-          class="hidden w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-app border border-border md:block"
+          data-testid="comparison-table"
+          class="hidden w-full min-w-0 max-w-full rounded-app border border-border lg:block"
         >
-          <table class="w-full min-w-[44rem] border-collapse text-sm">
+          <table class="w-full min-w-0 table-fixed border-collapse text-sm">
             <caption class="sr-only">
               Indicadores financeiros e produtivos de {{ currentComparison.harvestA.name }} e
               {{ currentComparison.harvestB.name }}
@@ -183,14 +195,14 @@
               <tr class="text-xs font-semibold uppercase tracking-wide text-white">
                 <th
                   scope="col"
-                  class="sticky left-0 z-10 min-w-52 bg-primary px-4 py-3"
+                  class="w-[34%] bg-primary px-3 py-3 break-words [overflow-wrap:anywhere] sm:px-4"
                 >
                   Indicador
                 </th>
-                <th scope="col" class="min-w-60 px-4 py-3 text-right">
+                <th scope="col" class="w-[33%] px-3 py-3 text-right break-words [overflow-wrap:anywhere] sm:px-4">
                   {{ currentComparison.harvestA.name }}
                 </th>
-                <th scope="col" class="min-w-60 px-4 py-3 text-right">
+                <th scope="col" class="w-[33%] px-3 py-3 text-right break-words [overflow-wrap:anywhere] sm:px-4">
                   {{ currentComparison.harvestB.name }}
                 </th>
               </tr>
@@ -212,9 +224,9 @@
                   <tr class="group border-b border-border transition-colors last:border-b-0 hover:bg-background">
                     <th
                       scope="row"
-                      class="sticky left-0 z-10 bg-surface px-4 py-2.5 text-left font-medium text-text-primary transition-colors group-hover:bg-background"
+                      class="bg-surface px-3 py-2.5 text-left font-medium text-text-primary transition-colors group-hover:bg-background sm:px-4"
                     >
-                      <span class="inline-flex items-center gap-1.5">
+                      <span class="inline-flex max-w-full flex-wrap items-center gap-1.5 break-words [overflow-wrap:anywhere]">
                         {{ row.label }}
                         @if (tooltipContent) {
                           <gd-tooltip [ariaLabel]="tooltipContent" [content]="tooltipContent" width="narrow">
@@ -223,11 +235,12 @@
                         }
                       </span>
                     </th>
-                    <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
-                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                    <td class="px-3 py-2.5 text-right tabular-nums text-text-primary sm:px-4">
+                      <span class="inline-flex max-w-full flex-wrap items-center justify-end gap-1 text-right [overflow-wrap:anywhere]">
                         {{ format(row.valueA, row.format) }}
                         @if (row.bestA) {
                           <gd-tooltip
+                            [useOverlay]="true"
                             ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
                             content="Melhor resultado entre as Safras comparadas neste indicador."
                           >
@@ -241,11 +254,12 @@
                         }
                       </span>
                     </td>
-                    <td class="px-4 py-2.5 text-right tabular-nums text-text-primary">
-                      <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                    <td class="px-3 py-2.5 text-right tabular-nums text-text-primary sm:px-4">
+                      <span class="inline-flex max-w-full flex-wrap items-center justify-end gap-1 text-right [overflow-wrap:anywhere]">
                         {{ format(row.valueB, row.format) }}
                         @if (row.bestB) {
                           <gd-tooltip
+                            [useOverlay]="true"
                             ariaLabel="Melhor resultado entre as Safras comparadas neste indicador."
                             content="Melhor resultado entre as Safras comparadas neste indicador."
                           >

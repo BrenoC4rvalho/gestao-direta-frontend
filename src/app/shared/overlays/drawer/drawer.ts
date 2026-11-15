@@ -145,13 +145,13 @@ export class Drawer {
   );
   protected readonly scrollViewportClasses = computed(() =>
     [
-      'min-h-0 flex-1 overflow-y-auto',
+      'min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-clip overflow-y-auto',
       this.reserveScrollbarGutter() ? '[scrollbar-gutter:stable]' : '',
     ].join(' '),
   );
   protected readonly scrollContentClasses = computed(() =>
     [
-      'min-w-0',
+      'min-w-0 w-full max-w-full',
       this.reserveScrollbarGutter() ? 'px-4 py-4 pb-6 sm:px-5' : 'px-5 py-4',
     ].join(' '),
   );

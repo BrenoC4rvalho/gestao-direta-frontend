@@ -73,6 +73,10 @@ describe('Drawer', () => {
 
     const content = fixture.nativeElement.querySelector('.overflow-y-auto') as HTMLElement;
     expect(content.classList.contains('min-h-0')).toBe(true);
+    expect(content.classList.contains('min-w-0')).toBe(true);
+    expect(content.classList.contains('w-full')).toBe(true);
+    expect(content.classList.contains('max-w-full')).toBe(true);
+    expect(content.classList.contains('overflow-x-clip')).toBe(true);
     expect(content.classList.contains('flex-1')).toBe(true);
 
     expect(panel().classList.contains('translate-x-full')).toBe(true);
@@ -203,8 +207,11 @@ describe('Drawer', () => {
 
     expect(viewport.classList.contains('[scrollbar-gutter:stable]')).toBe(true);
     expect(viewport.classList.contains('min-h-0')).toBe(true);
+    expect(viewport.classList.contains('overflow-x-clip')).toBe(true);
     expect(content.classList.contains('overflow-y-auto')).toBe(false);
     expect(content.classList.contains('min-w-0')).toBe(true);
+    expect(content.classList.contains('w-full')).toBe(true);
+    expect(content.classList.contains('max-w-full')).toBe(true);
     expect(content.classList.contains('px-4')).toBe(true);
     expect(content.classList.contains('pb-6')).toBe(true);
     expect(content.classList.contains('sm:px-5')).toBe(true);

@@ -108,6 +108,10 @@ body.gd-overlay-open {
   background: var(--gd-border);
 }
 
+.gd-tooltip-overlay-pane {
+  z-index: 1001;
+}
+
 button,
 input,
 select,

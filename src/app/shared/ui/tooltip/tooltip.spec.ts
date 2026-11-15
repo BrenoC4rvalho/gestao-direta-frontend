@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Tooltip } from './tooltip';
@@ -6,12 +6,15 @@ import { Tooltip } from './tooltip';
 @Component({
   imports: [Tooltip],
   template: `
-    <gd-tooltip ariaLabel="Detalhes financeiros" content="Linha um\nLinha dois" width="narrow">
+    <gd-tooltip [useOverlay]="useOverlay" ariaLabel="Detalhes financeiros" content="Linha um\nLinha dois" width="narrow">
       <span>Indicador</span>
     </gd-tooltip>
   `,
 })
-class TooltipHost {}
+class TooltipHost {
+  @Input()
+  useOverlay = false;
+}
 
 describe('Tooltip', () => {
   let fixture: ComponentFixture<TooltipHost>;
@@ -44,5 +47,27 @@ describe('Tooltip', () => {
     expect(trigger.className).toContain('focus-within:z-[1000]');
     expect(tooltip.className).toContain('w-64');
     expect(tooltip.className).toContain('whitespace-normal');
+  });
+
+  it('should render overlay tooltips outside clipped containers and dispose them on mouseleave', () => {
+    fixture.componentRef.setInput('useOverlay', true);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('gd-tooltip') as HTMLElement;
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+
+    const tooltip = document.body.querySelector('.cdk-overlay-container [role="tooltip"]') as HTMLElement | null;
+    const pane = document.body.querySelector('.gd-tooltip-overlay-pane') as HTMLElement | null;
+
+    expect(tooltip).not.toBeNull();
+    expect(tooltip?.id).toBe(trigger.getAttribute('aria-describedby'));
+    expect(tooltip?.className).not.toContain('absolute');
+    expect(pane).not.toBeNull();
+
+    trigger.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(document.body.querySelector('.cdk-overlay-container [role="tooltip"]')).toBeNull();
   });
 });

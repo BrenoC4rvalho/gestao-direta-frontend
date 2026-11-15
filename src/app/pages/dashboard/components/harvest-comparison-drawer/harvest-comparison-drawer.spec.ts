@@ -231,17 +231,17 @@ describe('HarvestComparisonDrawer', () => {
     selectHarvests(fixture);
 
     const mobileCards = fixture.nativeElement.querySelector('[data-testid="comparison-mobile-cards"]') as HTMLElement;
-    const desktopTable = fixture.nativeElement.querySelector('[data-testid="comparison-table-scroll"]') as HTMLElement;
+    const desktopTable = fixture.nativeElement.querySelector('[data-testid="comparison-table"]') as HTMLElement;
 
-    expect(mobileCards.className).toContain('md:hidden');
+    expect(mobileCards.className).toContain('lg:hidden');
     expect(mobileCards.querySelectorAll('[data-testid="comparison-mobile-card"]')).toHaveLength(21);
     expect(normalizedText(mobileCards)).toContain('-R$ 10.000,00');
     expect(normalizedText(mobileCards)).toContain('-5,49%');
     expect(normalizedText(mobileCards)).toContain('Melhor');
-    expect(desktopTable.className).toContain('md:block');
+    expect(desktopTable.className).toContain('lg:block');
   });
 
-  it('should contain long season content and isolate horizontal scrolling to the comparison table', async () => {
+  it('should fit long season content into the desktop table without horizontal scrolling', async () => {
     const longComparison: HarvestSeasonComparison = {
       ...comparison,
       harvestA: {
@@ -261,17 +261,20 @@ describe('HarvestComparisonDrawer', () => {
     const content = fixture.nativeElement.querySelector('[data-testid="comparison-content"]') as HTMLElement;
     const selectors = fixture.nativeElement.querySelectorAll('gd-select') as NodeListOf<HTMLElement>;
     const cards = fixture.nativeElement.querySelectorAll('article') as NodeListOf<HTMLElement>;
-    const tableScroll = fixture.nativeElement.querySelector(
-      '[data-testid="comparison-table-scroll"]',
+    const table = fixture.nativeElement.querySelector(
+      '[data-testid="comparison-table"]',
     ) as HTMLElement;
 
     expect(content.className).toContain('min-w-0');
     expect(content.className).toContain('max-w-full');
     expect(Array.from(selectors).every((selector) => selector.classList.contains('min-w-0'))).toBe(true);
     expect(Array.from(cards).every((card) => card.classList.contains('min-w-0'))).toBe(true);
-    expect(tableScroll.className).toContain('overflow-x-auto');
-    expect(tableScroll.className).toContain('min-w-0');
-    expect(tableScroll.querySelector('table')?.className).toContain('min-w-[44rem]');
+    expect(table.className).toContain('min-w-0');
+    expect(table.className).not.toContain('overflow-x-auto');
+    expect(table.className).toContain('lg:block');
+    expect(table.querySelector('table')?.className).toContain('table-fixed');
+    expect(table.querySelector('table')?.className).toContain('w-full');
+    expect(table.querySelector('table')?.className).not.toContain('min-w-[44rem]');
     expect(normalizedText(fixture.nativeElement)).toContain('Safra Café Especial de Exportação 2025/2026');
     expect(normalizedText(fixture.nativeElement)).toContain('Produção de café arábica de alta qualidade');
   });
@@ -314,6 +317,11 @@ describe('HarvestComparisonDrawer', () => {
     expect(trophies[0].closest('gd-tooltip')).not.toBeNull();
     expect(cells[0].querySelector('[data-testid="comparison-best-trophy"]')).toBeNull();
     expect(cells[1].querySelector('[data-testid="comparison-best-trophy"]')).not.toBeNull();
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="comparison-best-trophy-mobile"]')
+        ?.closest('gd-tooltip'),
+    ).not.toBeNull();
     expect(trophies[0].closest('gd-tooltip')?.getAttribute('aria-label')).toBe(
       'Melhor resultado entre as Safras comparadas neste indicador.',
     );

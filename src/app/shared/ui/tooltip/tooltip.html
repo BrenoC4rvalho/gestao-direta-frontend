@@ -1,9 +1,17 @@
 <ng-content />
 
-<span
-  [id]="tooltipId"
-  role="tooltip"
-  [class]="tooltipClasses()"
->
-  {{ content() }}
-</span>
+@if (!useOverlay()) {
+  <span
+    [id]="tooltipId"
+    role="tooltip"
+    [class]="tooltipClasses()"
+  >
+    {{ content() }}
+  </span>
+}
+
+<ng-template #tooltipTemplate>
+  <span [id]="tooltipId" role="tooltip" [class]="tooltipClasses()">
+    {{ content() }}
+  </span>
+</ng-template>
