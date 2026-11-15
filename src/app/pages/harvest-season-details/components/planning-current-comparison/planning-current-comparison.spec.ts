@@ -56,16 +56,17 @@ describe('PlanningCurrentComparison', () => {
     const comparisonCard = comparisonSection.querySelector(
       'gd-planning-comparison-card',
     ) as HTMLElement;
-    const chartScrollContainer = comparisonCard.querySelector('.overflow-x-auto') as HTMLElement;
+    const chartContainer = comparisonCard.querySelector('.overflow-hidden') as HTMLElement;
 
     expect(comparisonSection.classList.contains('min-w-0')).toBe(true);
     expect(comparisonGrid.classList.contains('min-w-0')).toBe(true);
     expect(comparisonCard.classList.contains('min-w-0')).toBe(true);
-    expect(chartScrollContainer).not.toBeNull();
-    expect(chartScrollContainer.classList.contains('min-w-0')).toBe(true);
-    expect(chartScrollContainer.classList.contains('max-w-full')).toBe(true);
-    expect(chartScrollContainer.querySelector('canvas')).not.toBeNull();
-    expect(chartScrollContainer.querySelector('.border-t')).toBeNull();
+    expect(chartContainer).not.toBeNull();
+    expect(chartContainer.classList.contains('min-w-0')).toBe(true);
+    expect(chartContainer.classList.contains('max-w-full')).toBe(true);
+    expect(chartContainer.querySelector('canvas')).not.toBeNull();
+    expect(comparisonCard.querySelector('.min-w-\\[560px\\]')).toBeNull();
+    expect(chartContainer.querySelector('.border-t')).toBeNull();
   });
 
   it('should render realized labeling without the projection tooltip', async () => {
