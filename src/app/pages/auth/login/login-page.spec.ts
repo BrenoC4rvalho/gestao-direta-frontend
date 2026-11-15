@@ -103,10 +103,10 @@ describe('LoginPage', () => {
     ).toContain('/assets/img/login-farm-mobile.png');
   });
 
-  it('should render desktop and mobile titles and subtitles', () => {
+  it('should render desktop and mobile titles without the removed image subtitle', () => {
     expect(textContent()).toContain('Bem-vindo ao');
     expect(textContent()).toContain('Gestão Direta');
-    expect(textContent()).toContain('Controle financeiro simples e confiável para sua propriedade.');
+    expect(textContent()).not.toContain('Controle financeiro simples e confiável para sua propriedade.');
     expect(textContent()).toContain('Entrar na sua conta');
     expect(textContent()).toContain('Acesse sua gestão financeira rural com segurança.');
     expect(textContent()).toContain('Acompanhe saldo, safras e movimentações em um só lugar.');
