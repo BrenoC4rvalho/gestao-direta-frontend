@@ -1,0 +1,17 @@
+name: gestao-direta-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gestao-direta-frontend:1.0.0
+    restart: unless-stopped
+    networks:
+      proxy:
+        aliases:
+          - gestao-direta-frontend
+
+networks:
+  proxy:
+    external: true
