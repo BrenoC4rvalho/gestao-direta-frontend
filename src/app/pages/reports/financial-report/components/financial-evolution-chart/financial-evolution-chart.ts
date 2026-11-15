@@ -35,11 +35,16 @@ const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
   notation: 'compact',
   maximumFractionDigits: 1,
 });
+const periodFormatter = new Intl.DateTimeFormat('pt-BR', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 const MONTH_WIDTH = 88;
 const QUARTER_WIDTH = 112;
-const MAX_BAR_THICKNESS = 34;
-const BAR_CATEGORY_PERCENTAGE = 0.72;
-const BAR_PERCENTAGE = 0.8;
+const MAX_BAR_THICKNESS = 46;
+const BAR_CATEGORY_PERCENTAGE = 0.78;
+const BAR_PERCENTAGE = 0.86;
 
 interface ChartThemeColors {
   muted: string;
@@ -111,16 +116,43 @@ export class FinancialEvolutionChart {
   protected readonly chartType = 'bar' as const;
   protected readonly fullscreen = signal(false);
   protected readonly viewMode = signal<ViewMode>('ALL');
+  protected readonly selectedPeriod = signal<string | null>(null);
+  protected readonly selectedPoint = computed(() => {
+    const period = this.selectedPeriod();
+    return period === null ? null : this.points().find((point) => point.period === period) ?? null;
+  });
+  protected readonly selectedIndex = computed(() => {
+    const period = this.selectedPeriod();
+    return period === null ? -1 : this.points().findIndex((point) => point.period === period);
+  });
+  protected readonly detailMode = computed(() => this.selectedPoint() !== null);
 
   protected readonly chartWidth = computed(() => {
+    if (this.detailMode()) {
+      return 520;
+    }
+
     const width = this.points().some((point) => point.period.includes('Q'))
       ? QUARTER_WIDTH
       : MONTH_WIDTH;
     return Math.max(this.points().length * width, 520);
   });
-  protected readonly scale = computed(() => this.createScale(this.points(), this.viewMode()));
+  protected readonly scale = computed(() =>
+    this.createScale(
+      this.selectedPoint() ? [this.selectedPoint() as FinancialEvolutionPoint] : this.points(),
+      this.viewMode(),
+    ),
+  );
   protected readonly chartData = computed<ChartConfiguration<'bar'>['data']>(() => {
     const colors = this.themeColors();
+    const selectedPoint = this.selectedPoint();
+    if (selectedPoint) {
+      return {
+        labels: ['Receitas', 'Despesas'],
+        datasets: this.detailDatasets(selectedPoint, colors),
+      };
+    }
+
     const datasets = [
       this.barDataset(
         'Receitas realizadas',
@@ -214,7 +246,11 @@ export class FinancialEvolutionChart {
           grid: { display: false },
           ticks: {
             color: (context) =>
-              this.points()[context.index]?.currentPeriod ? colors.info : colors.muted,
+              this.detailMode()
+                ? colors.muted
+                : this.points()[context.index]?.currentPeriod
+                  ? colors.info
+                  : colors.muted,
             padding: 10,
             maxRotation: 0,
             autoSkip: false,
@@ -312,6 +348,37 @@ export class FinancialEvolutionChart {
 
   protected setViewMode(mode: ViewMode): void {
     this.viewMode.set(mode);
+  }
+
+  protected handleChartClick(event: { active?: object[] }): void {
+    if (this.detailMode()) {
+      return;
+    }
+
+    const index = (event.active?.[0] as { index?: unknown } | undefined)?.index;
+    if (typeof index !== 'number' || !Number.isInteger(index) || !this.points()[index]) {
+      return;
+    }
+
+    this.selectedPeriod.set(this.points()[index].period);
+  }
+
+  protected showOverview(): void {
+    this.selectedPeriod.set(null);
+  }
+
+  protected previousPeriod(): void {
+    const index = this.selectedIndex();
+    if (index > 0) {
+      this.selectedPeriod.set(this.points()[index - 1].period);
+    }
+  }
+
+  protected nextPeriod(): void {
+    const index = this.selectedIndex();
+    if (index >= 0 && index < this.points().length - 1) {
+      this.selectedPeriod.set(this.points()[index + 1].period);
+    }
   }
 
   protected setOnlyRealized(event: Event): void {
@@ -457,7 +524,23 @@ export class FinancialEvolutionChart {
     return mode === 'REALIZED' ? values[0] : values.reduce((sum, value) => sum + value, 0);
   }
 
+  protected projectedTotal(point: FinancialEvolutionPoint): number {
+    return point.projectedIncome + point.projectedExpense;
+  }
+
+  protected overdueTotal(point: FinancialEvolutionPoint): number {
+    return point.overdueIncome + point.overdueExpense;
+  }
+
+  protected periodTitle(point: FinancialEvolutionPoint): string {
+    return periodFormatter.format(new Date(`${point.periodStart}T00:00:00Z`));
+  }
+
   protected ariaLabel(): string {
+    if (this.selectedPoint()) {
+      return `Detalhamento mensal de receitas e despesas em ${this.periodTitle(this.selectedPoint() as FinancialEvolutionPoint)}`;
+    }
+
     return this.viewMode() === 'REALIZED'
       ? 'Gráfico de evolução financeira com receitas e despesas realizadas'
       : 'Gráfico de evolução financeira com receitas e despesas agrupadas por estado';
@@ -499,6 +582,54 @@ export class FinancialEvolutionChart {
     };
   }
 
+  private detailDatasets(point: FinancialEvolutionPoint, colors: ChartThemeColors) {
+    const datasets = [
+      this.detailDataset('Receita realizada', point.realizedIncome, 0, 'income', 'INCOME', 'REALIZED', colors),
+      this.detailDataset('Receita projetada', point.projectedIncome, 0, 'income', 'INCOME', 'PROJECTED', colors),
+      this.detailDataset('Receita vencida', point.overdueIncome, 0, 'income', 'INCOME', 'OVERDUE', colors),
+      this.detailDataset('Despesa realizada', 0, point.realizedExpense, 'expense', 'EXPENSE', 'REALIZED', colors),
+      this.detailDataset('Despesa projetada', 0, point.projectedExpense, 'expense', 'EXPENSE', 'PROJECTED', colors),
+      this.detailDataset('Despesa vencida', 0, point.overdueExpense, 'expense', 'EXPENSE', 'OVERDUE', colors),
+    ];
+
+    return this.viewMode() === 'REALIZED' ? [datasets[0], datasets[3]] : datasets;
+  }
+
+  private detailDataset(
+    label: string,
+    incomeValue: number,
+    expenseValue: number,
+    stack: 'income' | 'expense',
+    direction: FinancialDirection,
+    state: FinancialState,
+    colors: ChartThemeColors,
+  ) {
+    const baseColor = direction === 'INCOME' ? colors.income : colors.expense;
+    const backgroundColor =
+      state === 'REALIZED'
+        ? baseColor
+        : state === 'PROJECTED'
+          ? this.withAlpha(baseColor, 0.42)
+          : colors.warning;
+
+    return {
+      label,
+      data: [incomeValue, expenseValue],
+      backgroundColor,
+      borderColor: state === 'OVERDUE' ? colors.warning : baseColor,
+      borderWidth: state === 'REALIZED' ? 0 : 1,
+      maxBarThickness: 110,
+      categoryPercentage: 0.64,
+      barPercentage: 0.88,
+      grouped: true,
+      stack,
+      order: state === 'REALIZED' ? 0 : state === 'PROJECTED' ? 1 : 2,
+      borderRadius: state === 'OVERDUE' ? { topLeft: 5, topRight: 5 } : 0,
+      borderSkipped: false,
+      inflateAmount: 0,
+    };
+  }
+
   private segmentRadius(
     point: FinancialEvolutionPoint,
     direction: FinancialDirection,
@@ -524,13 +655,13 @@ export class FinancialEvolutionChart {
   }
 
   private tooltipTitle(index: number): string {
-    const point = this.points()[index];
+    const point = this.selectedPoint() ?? this.points()[index];
     if (!point) return '';
     return `${point.label} · ${this.periodRange(point)}`;
   }
 
   private tooltipRows(index: number, direction: FinancialDirection): string[] {
-    const point = this.points()[index];
+    const point = this.selectedPoint() ?? this.points()[index];
     if (!point) return [];
 
     const values = this.stateValues(point, direction);

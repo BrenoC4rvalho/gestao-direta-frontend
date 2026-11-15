@@ -254,6 +254,8 @@ export function provideFinancialReportLucideIcons(): Provider {
     LucideCircleCheck,
     LucideCircleDollarSign,
     LucideChevronDown,
+    LucideChevronLeft,
+    LucideChevronRight,
     LucideDownload,
     LucideFileDown,
     LucideFileSpreadsheet,

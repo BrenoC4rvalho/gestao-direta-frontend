@@ -1,4 +1,4 @@
-import { Directive, input } from '@angular/core';
+import { Directive, EventEmitter, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -15,6 +15,7 @@ class BaseChartStubDirective {
   readonly type = input();
   readonly data = input();
   readonly options = input();
+  readonly chartClick = new EventEmitter<{ active?: object[] }>();
 
   update(): void {}
 }
@@ -128,6 +129,13 @@ interface TestApi {
     subscribe: (listener: (value: FinancialReportGranularity) => void) => unknown;
   };
   handleEscape: (event: Event) => void;
+  selectedPoint: () => FinancialEvolutionPoint | null;
+  selectedIndex: () => number;
+  detailMode: () => boolean;
+  handleChartClick: (event: { active?: object[] }) => void;
+  showOverview: () => void;
+  previousPeriod: () => void;
+  nextPeriod: () => void;
 }
 
 async function createComponent(
@@ -197,22 +205,22 @@ describe('FinancialEvolutionChart', () => {
       undefined,
       undefined,
     ]);
-    expect(datasets.map((dataset) => dataset.maxBarThickness)).toEqual([34, 34, 34, 34, 34, 34]);
+    expect(datasets.map((dataset) => dataset.maxBarThickness)).toEqual([46, 46, 46, 46, 46, 46]);
     expect(datasets.map((dataset) => dataset.categoryPercentage)).toEqual([
-      0.72,
-      0.72,
-      0.72,
-      0.72,
-      0.72,
-      0.72,
+      0.78,
+      0.78,
+      0.78,
+      0.78,
+      0.78,
+      0.78,
     ]);
     expect(datasets.map((dataset) => dataset.barPercentage)).toEqual([
-      0.8,
-      0.8,
-      0.8,
-      0.8,
-      0.8,
-      0.8,
+      0.86,
+      0.86,
+      0.86,
+      0.86,
+      0.86,
+      0.86,
     ]);
     expect(datasets.every((dataset) => dataset.grouped === true)).toBe(true);
     expect((datasets[0].borderRadius as readonly unknown[])[0]).toBe(0);
@@ -418,11 +426,27 @@ describe('FinancialEvolutionChart', () => {
     expect(selected).toEqual(['QUARTERLY']);
   });
 
-  it('does not attach a click handler or period selection output', async () => {
+  it('opens a period detail view and navigates between periods', async () => {
     const fixture = await createComponent();
+    const component = fixture.componentInstance as unknown as TestApi;
 
-    expect(fixture.nativeElement.querySelector('canvas')?.getAttribute('(chartClick)')).toBeNull();
-    expect((fixture.componentInstance as unknown as Record<string, unknown>)['periodSelected']).toBeUndefined();
+    component.handleChartClick({ active: [{ index: 0 }] });
+    fixture.detectChanges();
+
+    expect(component.detailMode()).toBe(true);
+    expect(component.selectedPoint()?.period).toBe('2026-01');
+    expect(component.chartData().labels).toEqual(['Receitas', 'Despesas']);
+    expect(component.chartData().datasets).toHaveLength(6);
+    expect(component.chartData().datasets[0].data).toEqual([10000, 0]);
+    expect(component.chartData().datasets[3].data).toEqual([0, 8000]);
+
+    component.nextPeriod();
+    fixture.detectChanges();
+    expect(component.selectedPoint()?.period).toBe('2026-02');
+
+    component.showOverview();
+    fixture.detectChanges();
+    expect(component.detailMode()).toBe(false);
   });
 
   it('opens and closes fullscreen while preserving the complete chart', async () => {

@@ -2,15 +2,56 @@
   <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="financial-evolution-title">
     <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div class="min-w-0">
+        @if (selectedPoint(); as point) {
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-control px-2 text-xs font-medium text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              aria-label="Voltar para a visão geral da evolução financeira"
+              (click)="showOverview()"
+            >
+              <svg lucideIcon="chevron-left" class="size-3.5" aria-hidden="true"></svg>
+              Visão geral
+            </button>
+            <span class="text-xs text-text-muted" aria-hidden="true">/</span>
+            <span class="text-xs font-medium text-text-muted">{{ point.label }}</span>
+          </div>
+        }
         <h2 id="financial-evolution-title" class="text-lg font-semibold text-text-primary">
           Evolução financeira
         </h2>
         <p class="mt-1 text-sm text-text-muted">
-          Comparativo de receitas e despesas por período.
+          @if (selectedPoint(); as point) {
+            Detalhamento de receitas e despesas em {{ periodTitle(point) }}.
+          } @else {
+            Comparativo de receitas e despesas por período.
+          }
         </p>
       </div>
 
       <div class="flex shrink-0 items-center gap-1">
+        @if (selectedPoint(); as point) {
+          <button
+            type="button"
+            class="inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="Período anterior"
+            title="Período anterior"
+            [disabled]="selectedIndex() <= 0"
+            (click)="previousPeriod()"
+          >
+            <svg lucideIcon="chevron-left" class="size-4" aria-hidden="true"></svg>
+          </button>
+          <button
+            type="button"
+            class="inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-text-muted transition-colors hover:bg-background hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="Próximo período"
+            title="Próximo período"
+            [disabled]="selectedIndex() < 0 || selectedIndex() >= points().length - 1"
+            (click)="nextPeriod()"
+          >
+            <svg lucideIcon="chevron-right" class="size-4" aria-hidden="true"></svg>
+          </button>
+        }
         <button
           #settingsButton
           type="button"
@@ -49,19 +90,51 @@
         <div
           class="h-72 min-h-0 w-full lg:h-80"
           [style.height]="fullscreen() ? '100%' : null"
-          [style.min-width.px]="chartWidth()"
+          [style.min-width.px]="detailMode() ? null : chartWidth()"
         >
           <canvas
             baseChart
             [type]="chartType"
             [data]="chartData()"
             [options]="chartOptions()"
+            (chartClick)="handleChartClick($event)"
             role="img"
             [attr.aria-label]="ariaLabel()"
           ></canvas>
         </div>
       </div>
     </div>
+
+    @if (selectedPoint(); as point) {
+      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6" aria-label="Resumo do período">
+        <div class="rounded-md bg-background px-3 py-2">
+          <p class="text-xs text-text-muted">Receitas</p>
+          <p class="mt-1 text-sm font-semibold text-success">{{ formatCurrency(totalFor(point, 'INCOME')) }}</p>
+        </div>
+        <div class="rounded-md bg-background px-3 py-2">
+          <p class="text-xs text-text-muted">Despesas</p>
+          <p class="mt-1 text-sm font-semibold text-danger">{{ formatCurrency(totalFor(point, 'EXPENSE')) }}</p>
+        </div>
+        <div class="rounded-md bg-background px-3 py-2">
+          <p class="text-xs text-text-muted">Receitas realizadas</p>
+          <p class="mt-1 text-sm font-semibold text-text-primary">{{ formatCurrency(point.realizedIncome) }}</p>
+        </div>
+        <div class="rounded-md bg-background px-3 py-2">
+          <p class="text-xs text-text-muted">Despesas realizadas</p>
+          <p class="mt-1 text-sm font-semibold text-text-primary">{{ formatCurrency(point.realizedExpense) }}</p>
+        </div>
+        @if (viewMode() === 'ALL') {
+          <div class="rounded-md bg-background px-3 py-2">
+            <p class="text-xs text-text-muted">Projetado</p>
+            <p class="mt-1 text-sm font-semibold text-text-primary">{{ formatCurrency(projectedTotal(point)) }}</p>
+          </div>
+          <div class="rounded-md bg-background px-3 py-2">
+            <p class="text-xs text-text-muted">Vencido</p>
+            <p class="mt-1 text-sm font-semibold text-warning">{{ formatCurrency(overdueTotal(point)) }}</p>
+          </div>
+        }
+      </div>
+    }
 
     <div
       class="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-1 text-sm text-text-muted"
