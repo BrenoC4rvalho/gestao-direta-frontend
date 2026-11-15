@@ -1,5 +1,5 @@
 <header
-  class="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-md transition-shadow"
+  class="sticky top-0 z-50 border-b bg-surface/95 backdrop-blur-md transition-shadow"
   [class.border-transparent]="!scrolled()"
   [class.border-border]="scrolled()"
   [class.shadow-sm]="scrolled()"
@@ -37,7 +37,7 @@
   </div>
 
   @if (menuOpen()) {
-    <div id="landing-mobile-menu" class="border-t border-border bg-white px-4 py-4 shadow-sm xl:hidden">
+    <div id="landing-mobile-menu" class="border-t border-border bg-surface px-4 py-4 shadow-sm xl:hidden">
       <nav class="mx-auto grid max-w-7xl gap-1" aria-label="Navegação principal mobile">
         @for (item of navItems; track item.href) {
           <a [href]="item.href" class="rounded-control px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-background" (click)="closeMenu()">{{ item.label }}</a>

@@ -4,6 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 
 import { provideGestaoDiretaIcons } from '../../core/constants/lucide-icons';
+import { ThemeStore } from '../../core/stores/theme.store';
 
 import { LandingPage } from './landing-page';
 
@@ -13,6 +14,7 @@ class LoginStub {}
 describe('LandingPage', () => {
   let fixture: ComponentFixture<LandingPage>;
   let router: Router;
+  let themeStore: ThemeStore;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -25,7 +27,13 @@ describe('LandingPage', () => {
 
     fixture = TestBed.createComponent(LandingPage);
     router = TestBed.inject(Router);
+    themeStore = TestBed.inject(ThemeStore);
+    themeStore.setTheme('light');
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    document.documentElement.classList.remove('dark');
   });
 
   function textContent(): string {
@@ -64,6 +72,30 @@ describe('LandingPage', () => {
     expect(startLink?.getAttribute('href')).toBe('https://wa.me/5524988276875');
     expect(startLink?.getAttribute('target')).toBe('_blank');
     expect(platformLink?.getAttribute('href')).toBe('#funcionalidades');
+  });
+
+  it('uses semantic surfaces when the persisted theme is dark', () => {
+    themeStore.setTheme('dark');
+    fixture.detectChanges();
+
+    const landing = query<HTMLElement>('main');
+    const header = query<HTMLElement>('header');
+    const dashboard = query<HTMLElement>('[aria-label="Demonstração do Dashboard financeiro do Gestão Direta"]');
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(landing?.classList.contains('bg-background')).toBe(true);
+    expect(landing?.classList.contains('bg-white')).toBe(false);
+    expect(header?.classList.contains('bg-surface/95')).toBe(true);
+    expect(header?.classList.contains('bg-white/95')).toBe(false);
+    expect(dashboard?.querySelector('.bg-surface')).not.toBeNull();
+    expect(dashboard?.querySelector('.bg-white')).toBeNull();
+
+    const menuButton = query<HTMLButtonElement>('button[aria-controls="landing-mobile-menu"]');
+    menuButton?.click();
+    fixture.detectChanges();
+
+    expect(query('#landing-mobile-menu')?.classList.contains('bg-surface')).toBe(true);
+    expect(query('#landing-mobile-menu')?.classList.contains('bg-white')).toBe(false);
   });
 
   it('navigates to login from the navbar', async () => {

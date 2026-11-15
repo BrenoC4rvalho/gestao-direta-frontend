@@ -2,26 +2,14 @@
   display: block;
 }
 
-.gd-landing-page {
-  color-scheme: light;
-  --gd-background: #f8faf7;
-  --gd-background-secondary: #eef5f0;
-  --gd-surface: #ffffff;
-  --gd-border: #dde5dd;
-  --gd-highlight-soft: #dcfce7;
-  --gd-primary-hover: #166534;
-  --gd-text-primary: #1f2937;
-  --gd-text-muted: #6b7280;
-  --gd-shadow-soft: 0 10px 30px rgb(15 23 42 / 0.08);
-}
-
 @media (min-width: 48rem) {
   .landing-steps::before {
     position: absolute;
     top: 1.5rem;
     right: 12.5%;
     left: 12.5%;
-    border-top: 1px dashed rgb(21 128 61 / 0.3);
+    border-top: 1px dashed var(--color-primary);
+    opacity: 0.3;
     content: '';
   }
 }
