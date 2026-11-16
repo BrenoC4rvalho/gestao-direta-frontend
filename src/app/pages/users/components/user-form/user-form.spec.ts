@@ -27,6 +27,8 @@ describe('UserForm', () => {
     expect(fixture.nativeElement.textContent).toContain('Tipo de documento');
     expect(selects[0]?.textContent).toContain('CPF');
     expect(selects[0]?.textContent).toContain('CNPJ');
+    expect(getInput(fixture.nativeElement, 5).placeholder).toBe('(00) 00000-0000');
+    expect(getInput(fixture.nativeElement, 5).inputMode).toBe('tel');
   });
 
   it('should mark required fields when submitting an empty form', () => {
@@ -73,6 +75,26 @@ describe('UserForm', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('As senhas não coincidem.');
+  });
+
+  it('should update password requirement indicators while typing and deleting', () => {
+    const fixture = createForm();
+
+    setInput(fixture.nativeElement, 2, 'Gestao2026');
+    fixture.detectChanges();
+
+    const requirements = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('gd-password-requirements li')) as HTMLElement[];
+    expect(requirements().filter((item) => item.classList.contains('text-success'))).toHaveLength(4);
+    expect(requirements()[4].classList.contains('text-success')).toBe(false);
+
+    setInput(fixture.nativeElement, 2, 'Gestao2026@');
+    fixture.detectChanges();
+    expect(requirements().every((item) => item.classList.contains('text-success'))).toBe(true);
+
+    setInput(fixture.nativeElement, 2, 'Gestao2026');
+    fixture.detectChanges();
+    expect(requirements()[4].classList.contains('text-success')).toBe(false);
   });
 
   it('should reject an incomplete phone and accept a fixed-line phone', () => {
