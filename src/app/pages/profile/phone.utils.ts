@@ -1,5 +1,6 @@
 const BRAZIL_COUNTRY_CODE = '55';
-const BRAZIL_PHONE_DIGITS = 13;
+const BRAZIL_LOCAL_PHONE_MIN_DIGITS = 10;
+const BRAZIL_LOCAL_PHONE_MAX_DIGITS = 11;
 const ACCEPTED_PHONE_CHARACTERS = /^[+()\-\s\d]*$/;
 
 export function phoneDigits(value: string | number | boolean | null): string {
@@ -9,54 +10,55 @@ export function phoneDigits(value: string | number | boolean | null): string {
 export function normalizeBrazilianPhone(value: string | number | boolean | null): string | null {
   const digits = phoneDigits(value);
 
-  if (digits.length !== BRAZIL_PHONE_DIGITS || !digits.startsWith(BRAZIL_COUNTRY_CODE)) {
+  const hasCountryCode = digits.startsWith(BRAZIL_COUNTRY_CODE) && digits.length >= 12;
+  const localDigits = hasCountryCode ? digits.slice(2) : digits;
+
+  if (
+    localDigits.length < BRAZIL_LOCAL_PHONE_MIN_DIGITS ||
+    localDigits.length > BRAZIL_LOCAL_PHONE_MAX_DIGITS
+  ) {
     return null;
   }
 
-  return `+${digits}`;
+  return `+${BRAZIL_COUNTRY_CODE}${localDigits}`;
 }
 
 export function formatBrazilianPhone(value: string | number | boolean | null): string {
   const digits = phoneDigits(value);
 
-  if (digits.length !== BRAZIL_PHONE_DIGITS || !digits.startsWith(BRAZIL_COUNTRY_CODE)) {
+  const hasCountryCode = digits.startsWith(BRAZIL_COUNTRY_CODE) && digits.length >= 12;
+  const localDigits = hasCountryCode ? digits.slice(2) : digits;
+
+  if (
+    localDigits.length < BRAZIL_LOCAL_PHONE_MIN_DIGITS ||
+    localDigits.length > BRAZIL_LOCAL_PHONE_MAX_DIGITS
+  ) {
     return `${value ?? ''}`;
   }
 
-  return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9, 13)}`;
+  return `+55 (${localDigits.slice(0, 2)}) ${localDigits.length === 11 ? localDigits.slice(2, 7) : localDigits.slice(2, 6)}-${localDigits.length === 11 ? localDigits.slice(7) : localDigits.slice(6)}`;
 }
 
 export function formatBrazilianPhoneInput(value: string | number | boolean | null): string {
   const rawValue = `${value ?? ''}`;
   const trimmedValue = rawValue.trim();
 
-  if (!trimmedValue || !ACCEPTED_PHONE_CHARACTERS.test(rawValue)) {
-    return rawValue;
-  }
+  if (!trimmedValue) return '';
 
   const digits = phoneDigits(rawValue);
+  const hasCountryCode =
+    trimmedValue.startsWith(`+${BRAZIL_COUNTRY_CODE}`) ||
+    (digits.startsWith(BRAZIL_COUNTRY_CODE) && digits.length >= 12);
+  const withoutCountryCode = hasCountryCode ? digits.slice(2) : digits;
+  const limitedDigits = withoutCountryCode.slice(0, BRAZIL_LOCAL_PHONE_MAX_DIGITS);
+  const ddd = limitedDigits.slice(0, 2);
+  const number = limitedDigits.slice(2);
 
-  if (!trimmedValue.startsWith('+') || !digits.startsWith(BRAZIL_COUNTRY_CODE)) {
-    return rawValue;
-  }
+  if (limitedDigits.length <= 2) return ddd ? `(${ddd}` : '';
+  if (number.length <= (limitedDigits.length === 11 ? 5 : 4)) return `(${ddd}) ${number}`;
 
-  const limitedDigits = digits.slice(0, BRAZIL_PHONE_DIGITS);
-  const ddd = limitedDigits.slice(2, 4);
-  const number = limitedDigits.slice(4);
-
-  if (limitedDigits.length <= 2) {
-    return `+${limitedDigits}`;
-  }
-
-  if (limitedDigits.length <= 4) {
-    return `+55 (${ddd}`;
-  }
-
-  if (number.length <= 5) {
-    return `+55 (${ddd}) ${number}`;
-  }
-
-  return `+55 (${ddd}) ${number.slice(0, 5)}-${number.slice(5, 9)}`;
+  const split = limitedDigits.length === 11 ? 5 : 4;
+  return `(${ddd}) ${number.slice(0, split)}-${number.slice(split)}`;
 }
 
 export function isPhoneInputCharacterSetValid(value: string | number | boolean | null): boolean {

@@ -18,7 +18,7 @@
 
     <input
       [id]="id()"
-      [type]="type()"
+      [type]="inputType()"
       [formControl]="control()"
       [placeholder]="placeholder()"
       [required]="required()"
@@ -33,6 +33,19 @@
       [attr.aria-describedby]="describedBy()"
       [class]="fieldClasses()"
     />
+    @if (type() === 'password') {
+      <button
+        type="button"
+        class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-text-muted transition-colors hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+        [attr.aria-label]="passwordVisible() ? 'Ocultar senha' : 'Mostrar senha'"
+        [attr.aria-pressed]="passwordVisible()"
+        [title]="passwordVisible() ? 'Ocultar senha' : 'Mostrar senha'"
+        [disabled]="disabled()"
+        (click)="togglePassword()"
+      >
+        <svg [lucideIcon]="passwordVisible() ? 'eye-off' : 'eye'" class="size-4" aria-hidden="true"></svg>
+      </button>
+    }
   </div>
 
   @if (showError()) {

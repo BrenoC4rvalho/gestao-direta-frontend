@@ -86,6 +86,7 @@ export class UsersPage implements OnInit {
   protected readonly accessDenied = signal(false);
   protected readonly drawerOpen = signal(false);
   protected readonly submitting = signal(false);
+  protected readonly createFieldErrors = signal<Record<string, string>>({});
   protected readonly editingUser = signal<User | null>(null);
   protected readonly profileSubmitting = signal(false);
   protected readonly typeSubmitting = signal(false);
@@ -236,6 +237,7 @@ export class UsersPage implements OnInit {
 
   protected openCreateDrawer(): void {
     if (this.canCreateUsers()) {
+      this.createFieldErrors.set({});
       this.drawerOpen.set(true);
     }
   }
@@ -266,6 +268,7 @@ export class UsersPage implements OnInit {
     }
 
     this.submitting.set(true);
+    this.createFieldErrors.set({});
 
     this.userService
       .create(payload)
@@ -466,18 +469,35 @@ export class UsersPage implements OnInit {
     this.userForm()?.clearPassword();
 
     if (!(error instanceof HttpErrorResponse)) {
-      this.toastStore.error('Não foi possível criar o usuário.');
+      this.toastStore.error('Não foi possível criar o usuário agora. Tente novamente.');
       return;
     }
 
+    const fieldErrors = this.apiFieldErrors(error);
+    if (Object.keys(fieldErrors).length > 0) {
+      this.createFieldErrors.set(fieldErrors);
+      this.userForm()?.setServerErrors(fieldErrors);
+    }
+
     const messages: Record<number, string> = {
-      400: 'Verifique os dados informados.',
+      400: 'Verifique os campos destacados.',
       401: 'Sua sessão expirou. Faça login novamente.',
       403: 'Você não tem permissão para criar este tipo de usuário.',
       409: 'Já existe um usuário com os dados informados.',
     };
 
     this.toastStore.error(messages[error.status] ?? 'Não foi possível criar o usuário.');
+  }
+
+  private apiFieldErrors(error: HttpErrorResponse): Record<string, string> {
+    const raw = error.error?.fieldErrors;
+    if (!raw || typeof raw !== 'object') return {};
+
+    return Object.entries(raw).reduce<Record<string, string>>((result, [field, message]) => {
+      const frontendField = field === 'phoneNumber' ? 'phone' : field;
+      if (typeof message === 'string') result[frontendField] = message;
+      return result;
+    }, {});
   }
 
   protected userTypeLabel(user: User): string {

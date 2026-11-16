@@ -1,22 +1,37 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { GdFormControl, GdFormValue, Input } from '../../../shared/forms';
+import {
+  GdFormControl,
+  GdFormValue,
+  Input,
+  passwordPolicyValidator,
+  PasswordRequirements,
+} from '../../../shared/forms';
 import { Button } from '../../../shared/ui';
 
 @Component({
   selector: 'gd-reset-password-page',
-  imports: [ReactiveFormsModule, Input, Button],
+  imports: [PasswordRequirements, ReactiveFormsModule, Input, Button],
   templateUrl: './reset-password-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPasswordPage {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly recoveryToken = `${history.state.recoveryToken ?? ''}`;
 
   protected readonly loading = signal(false);
@@ -28,25 +43,48 @@ export class ResetPasswordPage {
     password: new FormControl<GdFormValue>('', {
       validators: [
         Validators.required,
-        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/),
+        passwordPolicyValidator,
       ],
     }),
-    confirmPassword: new FormControl<GdFormValue>('', { validators: [Validators.required] }),
+    confirmPassword: new FormControl<GdFormValue>('', {
+      validators: [Validators.required, this.confirmPasswordValidator()],
+    }),
   });
 
   constructor() {
+    this.form.controls.password.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.form.controls.confirmPassword.updateValueAndValidity({ onlySelf: true }));
+
     if (!this.recoveryToken) {
       void this.router.navigate(['/forgot-password']);
     }
   }
 
+  protected confirmPasswordErrorMessage(): string | null {
+    const control = this.form.controls.confirmPassword;
+    if (control.hasError('required')) return 'Confirme a nova senha.';
+    return control.hasError('passwordMismatch') ? 'As senhas não coincidem.' : null;
+  }
+
+  private confirmPasswordValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control) => {
+      const confirmation = `${control.value ?? ''}`;
+      const password = `${this.form?.controls.password.value ?? ''}`;
+      return confirmation && password && confirmation !== password ? { passwordMismatch: true } : null;
+    };
+  }
+
   protected submit(): void {
-    if (
-      this.form.invalid ||
-      this.form.controls.password.value !== this.form.controls.confirmPassword.value
-    ) {
+    if (this.form.controls.password.value !== this.form.controls.confirmPassword.value) {
+      this.form.controls.confirmPassword.setErrors({
+        ...this.form.controls.confirmPassword.errors,
+        passwordMismatch: true,
+      });
+    }
+
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.errorMessage.set('As senhas devem ser iguais e atender aos requisitos.');
       return;
     }
 

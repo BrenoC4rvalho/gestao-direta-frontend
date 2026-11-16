@@ -20,7 +20,15 @@ import {
 
 import { UserStatus, UserType } from '../../../../core/models/auth.models';
 import { UpdateUserRequest, User } from '../../../../core/models/user.models';
-import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../../../shared/forms';
+import {
+  GdFormControl,
+  GdFormValue,
+  GdSelectOption,
+  Input,
+  passwordPolicyValidator,
+  PasswordRequirements,
+  Select,
+} from '../../../../shared/forms';
 import { Badge, BadgeVariant, Button } from '../../../../shared/ui';
 import {
   DocumentType,
@@ -49,7 +57,7 @@ interface StatusAction {
 
 @Component({
   selector: 'gd-user-edit-form',
-  imports: [Badge, Button, Input, ReactiveFormsModule, Select],
+  imports: [Badge, Button, Input, PasswordRequirements, ReactiveFormsModule, Select],
   templateUrl: './user-edit-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -89,7 +97,7 @@ export class UserEditForm {
 
   protected readonly passwordForm = new FormGroup<PasswordFormControls>({
     password: new FormControl<GdFormValue>('', {
-      validators: [Validators.required, Validators.minLength(8)],
+      validators: [Validators.required, passwordPolicyValidator],
     }),
   });
 
@@ -222,7 +230,9 @@ export class UserEditForm {
       return 'Informe a senha temporária.';
     }
 
-    return control.hasError('minlength') ? 'A senha deve ter pelo menos 8 caracteres.' : null;
+    return control.hasError('passwordPolicy')
+      ? 'A senha ainda não atende a todos os requisitos de segurança.'
+      : null;
   }
 
   protected userTypeLabel(type: UserType | undefined): string {

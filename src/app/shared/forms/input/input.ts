@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 import { FieldError } from '../field-error/field-error';
 import { GdFormControl } from '../forms.types';
@@ -16,7 +17,7 @@ export type GdInputType =
 
 @Component({
   selector: 'gd-input',
-  imports: [FieldError, ReactiveFormsModule],
+  imports: [FieldError, LucideDynamicIcon, ReactiveFormsModule],
   templateUrl: './input.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +38,7 @@ export class Input {
   readonly min = input<number | null>(null);
   readonly prefix = input<string | null>(null);
   readonly step = input<number | string | null>(null);
+  protected readonly passwordVisible = signal(false);
 
   protected hintId(): string {
     return `${this.id()}-hint`;
@@ -44,6 +46,14 @@ export class Input {
 
   protected errorId(): string {
     return `${this.id()}-error`;
+  }
+
+  protected inputType(): GdInputType {
+    return this.type() === 'password' && this.passwordVisible() ? 'text' : this.type();
+  }
+
+  protected togglePassword(): void {
+    this.passwordVisible.update((visible) => !visible);
   }
 
   protected showError(): boolean {
@@ -63,6 +73,7 @@ export class Input {
     return [
       'min-h-10 w-full rounded-control border px-3 text-sm transition-colors',
       this.prefix() ? 'pl-11' : '',
+      this.type() === 'password' ? 'pr-11' : '',
       'placeholder:text-text-muted/75',
       'focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2',
       'disabled:cursor-not-allowed disabled:opacity-60',

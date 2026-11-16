@@ -35,6 +35,20 @@
       [errorMessage]="passwordErrorMessage()"
     />
 
+    <gd-password-requirements [control]="form.controls.password" />
+
+    <gd-input
+      id="user-confirm-password"
+      label="Confirmar senha"
+      placeholder="Repita a senha"
+      type="password"
+      autocomplete="new-password"
+      [control]="form.controls.confirmPassword"
+      [required]="true"
+      [disabled]="submitting()"
+      [errorMessage]="confirmPasswordErrorMessage()"
+    />
+
     <gd-select
       id="user-document-type"
       label="Tipo de documento"
@@ -49,6 +63,7 @@
       label="Documento"
       placeholder="Informe o documento"
       type="tel"
+      inputmode="tel"
       autocomplete="off"
       [control]="form.controls.document"
       [disabled]="submitting()"
@@ -64,6 +79,8 @@
       [control]="form.controls.phone"
       [required]="true"
       [disabled]="submitting()"
+      [maxlength]="15"
+      [errorMessage]="phoneErrorMessage()"
     />
 
     @if (showUserTypeSelect()) {

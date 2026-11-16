@@ -7,6 +7,7 @@ import {
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -25,9 +26,15 @@ import {
   GdFormValue,
   GdSelectOption,
   Input,
+  passwordPolicyValidator,
+  PasswordRequirements,
   Select,
 } from '../../../../shared/forms';
-import { normalizeBrazilianPhone } from "../../../profile/phone.utils";
+import {
+  formatBrazilianPhoneInput,
+  normalizeBrazilianPhone,
+  phoneDigits,
+} from '../../../profile/phone.utils';
 import { Button } from '../../../../shared/ui';
 import {
   DocumentType,
@@ -44,11 +51,12 @@ interface UserFormControls {
   document: GdFormControl;
   userType: GdFormControl;
   phone: GdFormControl;
+  confirmPassword: GdFormControl;
 }
 
 @Component({
   selector: 'gd-user-form',
-  imports: [Button, Input, ReactiveFormsModule, Select],
+  imports: [Button, Input, PasswordRequirements, ReactiveFormsModule, Select],
   templateUrl: './user-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -61,6 +69,7 @@ export class UserForm {
 
   readonly submitted = output<CreateUserRequest>();
   readonly cancelled = output<void>();
+  private readonly serverErrors = signal<Record<string, string>>({});
 
   protected readonly userTypeOptions = computed<readonly GdSelectOption[]>(() =>
     this.allowedUserTypes().map((type) => ({ label: this.userTypeLabel(type), value: type })),
@@ -79,7 +88,7 @@ export class UserForm {
       validators: [Validators.required, Validators.email],
     }),
     password: new FormControl<GdFormValue>('', {
-      validators: [Validators.required, Validators.minLength(8)],
+      validators: [Validators.required, passwordPolicyValidator],
     }),
     documentType: new FormControl<GdFormValue>('CPF', {
       validators: [Validators.required],
@@ -90,7 +99,12 @@ export class UserForm {
     userType: new FormControl<GdFormValue>('', {
       validators: [Validators.required],
     }),
-    phone: new FormControl<GdFormValue>("", { validators: [Validators.required] }),
+    phone: new FormControl<GdFormValue>('', {
+      validators: [Validators.required, this.phoneValidator()],
+    }),
+    confirmPassword: new FormControl<GdFormValue>('', {
+      validators: [Validators.required, this.confirmPasswordValidator()],
+    }),
   });
 
   constructor() {
@@ -103,6 +117,26 @@ export class UserForm {
         this.applyDocumentMask();
         this.form.controls.document.updateValueAndValidity({ emitEvent: false });
       });
+    this.form.controls.phone.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.applyPhoneMask(value));
+    this.form.controls.password.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.form.controls.confirmPassword.updateValueAndValidity({ onlySelf: true }));
+    for (const [field, control] of Object.entries(this.form.controls)) {
+      control.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+        if (this.serverErrors()[field]) {
+          const errors = { ...this.serverErrors() };
+          delete errors[field];
+          this.serverErrors.set(errors);
+        }
+        if (control.hasError('server')) {
+          const errors = { ...control.errors };
+          delete errors['server'];
+          control.setErrors(Object.keys(errors).length ? errors : null);
+        }
+      });
+    }
 
     effect(() => {
       this.open();
@@ -111,6 +145,7 @@ export class UserForm {
         name: '',
         email: '',
         password: '',
+        confirmPassword: '',
         documentType: 'CPF',
         document: '',
         userType: this.showUserTypeSelect() ? '' : defaultType,
@@ -120,6 +155,16 @@ export class UserForm {
 
   clearPassword(): void {
     this.form.controls.password.reset('');
+    this.form.controls.confirmPassword.reset('');
+  }
+
+  setServerErrors(errors: Record<string, string>): void {
+    this.serverErrors.set(errors);
+    for (const [field, message] of Object.entries(errors)) {
+      const control = this.form.controls[field as keyof UserFormControls];
+      if (control) control.setErrors({ ...control.errors, server: message });
+    }
+    this.form.markAllAsTouched();
   }
 
   protected submit(): void {
@@ -141,9 +186,15 @@ export class UserForm {
     this.setRequiredErrorIfEmpty(this.form.controls.name, name);
     this.setRequiredErrorIfEmpty(this.form.controls.email, email);
     this.setRequiredErrorIfEmpty(this.form.controls.password, password);
+    this.setRequiredErrorIfEmpty(
+      this.form.controls.confirmPassword,
+      this.stringValue(this.form.controls.confirmPassword.value),
+    );
     this.setRequiredErrorIfEmpty(this.form.controls.documentType, this.documentType());
     this.setRequiredErrorIfEmpty(this.form.controls.userType, userType);
-    if (!phoneNumber) this.form.controls.phone.setErrors({ required: true });
+    if (!phoneNumber && !this.form.controls.phone.value) {
+      this.form.controls.phone.setErrors({ ...this.form.controls.phone.errors, required: true });
+    }
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -170,12 +221,13 @@ export class UserForm {
   }
 
   protected nameErrorMessage(): string | null {
-    return this.form.controls.name.hasError('required') ? 'Informe o nome do usuário.' : null;
+    return this.fieldError('name', 'Informe o nome do usuário.');
   }
 
   protected emailErrorMessage(): string | null {
     const control = this.form.controls.email;
 
+    if (control.hasError('server')) return this.serverErrors()['email'] ?? null;
     if (control.hasError('required')) {
       return 'Informe o e-mail.';
     }
@@ -186,17 +238,34 @@ export class UserForm {
   protected passwordErrorMessage(): string | null {
     const control = this.form.controls.password;
 
+    if (control.hasError('server')) return this.serverErrors()['password'] ?? null;
     if (control.hasError('required')) {
       return 'Informe a senha.';
     }
 
-    return control.hasError('minlength') ? 'A senha deve ter pelo menos 8 caracteres.' : null;
+    return control.hasError('passwordPolicy')
+      ? 'A senha ainda não atende a todos os requisitos de segurança.'
+      : null;
+  }
+
+  protected confirmPasswordErrorMessage(): string | null {
+    const control = this.form.controls.confirmPassword;
+
+    if (control.hasError('server')) return this.serverErrors()['confirmPassword'] ?? null;
+    if (control.hasError('required')) return 'Confirme a senha.';
+    return control.hasError('passwordMismatch') ? 'As senhas não coincidem.' : null;
+  }
+
+  protected phoneErrorMessage(): string | null {
+    const control = this.form.controls.phone;
+
+    if (control.hasError('server')) return this.serverErrors()['phone'] ?? null;
+    if (control.hasError('required')) return 'Informe o telefone.';
+    return control.hasError('phoneLength') ? 'Informe um telefone com DDD válido.' : null;
   }
 
   protected userTypeErrorMessage(): string | null {
-    return this.form.controls.userType.hasError('required')
-      ? 'Selecione o tipo de usuário.'
-      : null;
+    return this.fieldError('userType', 'Selecione o tipo de usuário.');
   }
 
   protected documentErrorMessage(): string | null {
@@ -247,6 +316,32 @@ export class UserForm {
     return onlyDigits(this.form.controls.document.value) || null;
   }
 
+  private phoneValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control) => {
+      const value = this.stringValue(control.value);
+      if (!value) return null;
+      const digits = phoneDigits(value);
+      const localDigits = digits.startsWith('55') && digits.length >= 12 ? digits.slice(2) : digits;
+      return normalizeBrazilianPhone(value) && [10, 11].includes(localDigits.length)
+        ? null
+        : { phoneLength: true };
+    };
+  }
+
+  private confirmPasswordValidator(): (control: AbstractControl<GdFormValue>) => ValidationErrors | null {
+    return (control) => {
+      const confirmation = this.stringValue(control.value);
+      const password = this.stringValue(this.form?.controls.password.value);
+      return confirmation && password && confirmation !== password ? { passwordMismatch: true } : null;
+    };
+  }
+
+  private applyPhoneMask(value: GdFormValue): void {
+    const control = this.form.controls.phone;
+    const formatted = formatBrazilianPhoneInput(value);
+    if (control.value !== formatted) control.setValue(formatted, { emitEvent: false });
+  }
+
   private normalizedUserType(
     selectedUserType: UserType | '',
     allowedUserTypes: readonly UserType[],
@@ -275,6 +370,13 @@ export class UserForm {
     if (!value) {
       control.setErrors({ ...control.errors, required: true });
     }
+  }
+
+  private fieldError(field: string, fallback: string): string | null {
+    return (
+      this.serverErrors()[field] ??
+      (this.form.controls[field as keyof UserFormControls].hasError('required') ? fallback : null)
+    );
   }
 
   private stringValue(value: GdFormValue): string {

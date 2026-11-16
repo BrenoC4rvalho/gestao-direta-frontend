@@ -162,6 +162,7 @@
             [disabled]="resettingPassword()"
             [errorMessage]="passwordErrorMessage()"
           />
+          <gd-password-requirements [control]="passwordForm.controls.password" />
 
           <div class="sm:flex sm:justify-end">
             <gd-button

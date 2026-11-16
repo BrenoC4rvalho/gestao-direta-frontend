@@ -249,8 +249,6 @@ export class ContactMessagingSection {
   protected phoneErrorMessage(): string | null {
     const control = this.phoneForm.controls.phone;
     if (control.hasError('required')) return 'Informe seu telefone.';
-    if (control.hasError('characters')) return 'Use apenas números, espaços, parênteses e hífen.';
-    if (control.hasError('countryCode')) return 'Informe o código do país +55.';
     return control.hasError('phoneLength') ? 'Informe um telefone brasileiro completo com DDD.' : null;
   }
 
@@ -287,8 +285,11 @@ export class ContactMessagingSection {
       const value = rawValue.trim();
       if (!value) return { required: true };
       if (!isPhoneInputCharacterSetValid(rawValue)) return { characters: true };
-      if (!value.startsWith('+55')) return { countryCode: true };
-      return normalizeBrazilianPhone(rawValue) && phoneDigits(rawValue).length === 13 ? null : { phoneLength: true };
+      const digits = phoneDigits(rawValue);
+      const localDigits = digits.startsWith('55') && digits.length >= 12 ? digits.slice(2) : digits;
+      return normalizeBrazilianPhone(rawValue) && [10, 11].includes(localDigits.length)
+        ? null
+        : { phoneLength: true };
     };
   }
 

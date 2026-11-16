@@ -134,6 +134,7 @@
               autocomplete="new-password"
               [errorMessage]="newPasswordErrorMessage()"
             />
+            <gd-password-requirements [control]="passwordForm.controls.newPassword" />
           </div>
 
           <div class="space-y-2">

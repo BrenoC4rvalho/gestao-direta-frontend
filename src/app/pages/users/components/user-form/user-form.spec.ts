@@ -18,8 +18,9 @@ describe('UserForm', () => {
     expect(getInput(fixture.nativeElement, 0).id).toBe('user-name');
     expect(getInput(fixture.nativeElement, 1).id).toBe('user-email');
     expect(getInput(fixture.nativeElement, 2).id).toBe('user-password');
-    expect(getInput(fixture.nativeElement, 3).id).toBe('user-document');
-    expect(getInput(fixture.nativeElement, 4).id).toBe('user-phone');
+    expect(getInput(fixture.nativeElement, 3).id).toBe('user-confirm-password');
+    expect(getInput(fixture.nativeElement, 4).id).toBe('user-document');
+    expect(getInput(fixture.nativeElement, 5).id).toBe('user-phone');
     const selects = fixture.nativeElement.querySelectorAll('gd-select select');
     expect(selects[0]?.id).toBe('user-document-type');
     expect(selects[1]?.id).toBe('user-type');
@@ -53,7 +54,44 @@ describe('UserForm', () => {
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Informe um e-mail válido.');
-    expect(text).toContain('A senha deve ter pelo menos 8 caracteres.');
+    expect(text).toContain('A senha ainda não atende a todos os requisitos de segurança.');
+  });
+
+  it('should show password requirements and confirmation feedback', () => {
+    const fixture = createForm();
+
+    setInput(fixture.nativeElement, 2, 'Password1');
+    setInput(fixture.nativeElement, 3, 'Different1!');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Pelo menos 8 caracteres');
+    expect(fixture.nativeElement.textContent).toContain('Um caractere especial');
+    expect(fixture.nativeElement.textContent).toContain('As senhas não coincidem.');
+
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('As senhas não coincidem.');
+  });
+
+  it('should reject an incomplete phone and accept a fixed-line phone', () => {
+    const fixture = createForm();
+
+    setInput(fixture.nativeElement, 0, 'Maria Silva');
+    setInput(fixture.nativeElement, 1, 'maria@example.com');
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
+    setInput(fixture.nativeElement, 5, '243333444');
+    setSelect(fixture.nativeElement, 'USER');
+    submit(fixture.nativeElement);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Informe um telefone com DDD válido.');
+
+    setInput(fixture.nativeElement, 5, '2433334444');
+    fixture.detectChanges();
+    expect(getInput(fixture.nativeElement, 5).value).toBe('(24) 3333-4444');
   });
 
   it('should normalize and emit a valid payload', () => {
@@ -63,9 +101,10 @@ describe('UserForm', () => {
 
     setInput(fixture.nativeElement, 0, ' Maria Silva ');
     setInput(fixture.nativeElement, 1, ' MARIA@EXAMPLE.COM ');
-    setInput(fixture.nativeElement, 2, ' password123 ');
-    setInput(fixture.nativeElement, 3, ' 123.456.789-00 ');
-    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
+    setInput(fixture.nativeElement, 2, ' Password1! ');
+    setInput(fixture.nativeElement, 3, ' Password1! ');
+    setInput(fixture.nativeElement, 4, ' 123.456.789-00 ');
+    setInput(fixture.nativeElement, 5, ' (24) 99999-9999');
     setSelect(fixture.nativeElement, 'USER');
     submit(fixture.nativeElement);
 
@@ -73,7 +112,7 @@ describe('UserForm', () => {
       {
         name: 'Maria Silva',
         email: 'maria@example.com',
-        password: 'password123',
+        password: 'Password1!',
         document: '12345678900',
         phoneNumber: '+5524999999999',
         userType: 'USER',
@@ -88,8 +127,9 @@ describe('UserForm', () => {
 
     setInput(fixture.nativeElement, 0, 'Maria Silva');
     setInput(fixture.nativeElement, 1, 'maria@example.com');
-    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
-    setInput(fixture.nativeElement, 2, 'password123');
+    setInput(fixture.nativeElement, 5, '(24) 99999-9999');
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
     setSelect(fixture.nativeElement, 'ADMIN');
     submit(fixture.nativeElement);
 
@@ -97,7 +137,7 @@ describe('UserForm', () => {
       {
         name: 'Maria Silva',
         email: 'maria@example.com',
-        password: 'password123',
+        password: 'Password1!',
         document: null,
         phoneNumber: '+5524999999999',
         userType: 'ADMIN',
@@ -109,14 +149,14 @@ describe('UserForm', () => {
   it('should mask CPF and CNPJ documents', () => {
     const fixture = createForm();
 
-    setInput(fixture.nativeElement, 3, '12345678900');
+    setInput(fixture.nativeElement, 4, '12345678900');
     fixture.detectChanges();
-    expect(getInput(fixture.nativeElement, 3).value).toBe('123.456.789-00');
+    expect(getInput(fixture.nativeElement, 4).value).toBe('123.456.789-00');
 
     setDocumentType(fixture.nativeElement, 'CNPJ');
-    setInput(fixture.nativeElement, 3, '12345678901234');
+    setInput(fixture.nativeElement, 4, '12345678901234');
     fixture.detectChanges();
-    expect(getInput(fixture.nativeElement, 3).value).toBe('12.345.678/9012-34');
+    expect(getInput(fixture.nativeElement, 4).value).toBe('12.345.678/9012-34');
   });
 
   it('should validate incomplete CPF and CNPJ documents', () => {
@@ -124,8 +164,9 @@ describe('UserForm', () => {
 
     setInput(fixture.nativeElement, 0, 'Maria Silva');
     setInput(fixture.nativeElement, 1, 'maria@example.com');
-    setInput(fixture.nativeElement, 2, 'password123');
-    setInput(fixture.nativeElement, 3, '123');
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
+    setInput(fixture.nativeElement, 4, '123');
     setSelect(fixture.nativeElement, 'USER');
     submit(fixture.nativeElement);
     fixture.detectChanges();
@@ -156,16 +197,17 @@ describe('UserForm', () => {
     fixture.detectChanges();
 
     setInput(fixture.nativeElement, 0, 'Maria Silva');
-    setInput(fixture.nativeElement, 4, "+55 (24) 99999-9999");
+    setInput(fixture.nativeElement, 5, '(24) 99999-9999');
     setInput(fixture.nativeElement, 1, 'maria@example.com');
-    setInput(fixture.nativeElement, 2, 'password123');
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
     submit(fixture.nativeElement);
 
     expect(submitted).toEqual([
       {
         name: 'Maria Silva',
         email: 'maria@example.com',
-        password: 'password123',
+        password: 'Password1!',
         document: null,
         phoneNumber: '+5524999999999',
         userType: 'USER',
@@ -199,13 +241,15 @@ describe('UserForm', () => {
   it('should clear only the password after an error', () => {
     const fixture = createForm();
     setInput(fixture.nativeElement, 0, 'Maria Silva');
-    setInput(fixture.nativeElement, 2, 'password123');
+    setInput(fixture.nativeElement, 2, 'Password1!');
+    setInput(fixture.nativeElement, 3, 'Password1!');
 
     fixture.componentInstance.clearPassword();
     fixture.detectChanges();
 
     expect(getInput(fixture.nativeElement, 0).value).toBe('Maria Silva');
     expect(getInput(fixture.nativeElement, 2).value).toBe('');
+    expect(getInput(fixture.nativeElement, 3).value).toBe('');
   });
 });
 

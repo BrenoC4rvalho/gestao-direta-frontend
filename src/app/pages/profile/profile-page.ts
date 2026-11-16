@@ -17,7 +17,15 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { SessionStore } from '../../core/stores/session.store';
 import { ToastStore } from '../../core/stores/toast.store';
-import { GdFormControl, GdFormValue, GdSelectOption, Input, Select } from '../../shared/forms';
+import {
+  GdFormControl,
+  GdFormValue,
+  GdSelectOption,
+  Input,
+  passwordPolicyValidator,
+  PasswordRequirements,
+  Select,
+} from '../../shared/forms';
 import { Badge, BadgeVariant, Button, Card, ErrorState, Skeleton } from '../../shared/ui';
 import { ContactMessagingSection } from './contact-messaging-section';
 import {
@@ -50,6 +58,7 @@ interface PasswordFormControls {
     ContactMessagingSection,
     ErrorState,
     Input,
+    PasswordRequirements,
     ReactiveFormsModule,
     Select,
     Skeleton,
@@ -93,7 +102,7 @@ export class ProfilePage implements OnInit {
       validators: [Validators.required],
     }),
     newPassword: new FormControl<GdFormValue>('', {
-      validators: [Validators.required, Validators.minLength(8)],
+      validators: [Validators.required, passwordPolicyValidator],
     }),
     confirmPassword: new FormControl<GdFormValue>('', {
       validators: [Validators.required, this.confirmPasswordValidator()],
@@ -278,7 +287,9 @@ export class ProfilePage implements OnInit {
       return 'Informe a nova senha.';
     }
 
-    return control.hasError('minlength') ? 'A nova senha deve ter pelo menos 8 caracteres.' : null;
+    return control.hasError('passwordPolicy')
+      ? 'A nova senha ainda não atende a todos os requisitos de segurança.'
+      : null;
   }
 
   protected confirmPasswordErrorMessage(): string | null {
@@ -288,7 +299,7 @@ export class ProfilePage implements OnInit {
       return 'Confirme a nova senha.';
     }
 
-    return control.hasError('passwordMismatch') ? 'As senhas não conferem.' : null;
+    return control.hasError('passwordMismatch') ? 'As senhas não coincidem.' : null;
   }
 
   private populateProfileForm(user: User): void {
